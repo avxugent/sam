@@ -1,0 +1,61 @@
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { AssetDetailClient } from "@/components/assets/asset-detail-client";
+
+export default async function AssetPage({
+  params,
+}: {
+  params: Promise<{ id: string; assetId: string }>;
+}) {
+  const session = await auth();
+  const { id: locationId, assetId } = await params;
+
+  const asset = await prisma.asset.findUnique({
+    where: { id: assetId },
+    include: {
+      type: true,
+      manufacturer: true,
+      macAddresses: true,
+      customFields: true,
+      location: { select: { id: true, name: true, parentId: true } },
+      attachments: {
+        include: { uploadedBy: { select: { id: true, name: true } } },
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+
+  if (!asset || asset.locationId !== locationId) notFound();
+
+  const breadcrumbs = await buildBreadcrumbs(locationId);
+
+  return (
+    <AssetDetailClient
+      asset={asset}
+      breadcrumbs={breadcrumbs}
+      userRole={session?.user?.role || "VIEWER"}
+    />
+  );
+}
+
+async function buildBreadcrumbs(locationId: string): Promise<{ id: string; name: string }[]> {
+  const location = await prisma.location.findUnique({
+    where: { id: locationId },
+    select: { id: true, name: true, parentId: true },
+  });
+  if (!location) return [];
+  if (!location.parentId) return [{ id: location.id, name: location.name }];
+  const parents = await buildBreadcrumbs(location.parentId);
+  return [...parents, { id: location.id, name: location.name }];
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string; assetId: string }> }) {
+  const { assetId } = await params;
+  const asset = await prisma.asset.findUnique({
+    where: { id: assetId },
+    select: { model: true, serialNumber: true },
+  });
+  const title = asset?.model || asset?.serialNumber || "Asset";
+  return { title: `${title} – SAM` };
+}

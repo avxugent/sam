@@ -1,0 +1,142 @@
+// SAM - Simple Asset Management
+// Prisma schema for MySQL
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(VIEWER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  attachments Attachment[]
+
+  @@map("users")
+}
+
+model Location {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  parentId    String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent      Location?    @relation("LocationTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    Location[]   @relation("LocationTree")
+  assets      Asset[]
+  attachments Attachment[]
+
+  @@index([parentId])
+  @@map("locations")
+}
+
+model AssetType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  assets Asset[]
+
+  @@map("asset_types")
+}
+
+model Manufacturer {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  assets Asset[]
+
+  @@map("manufacturers")
+}
+
+model Asset {
+  id               String    @id @default(cuid())
+  locationId       String
+  typeId           String?
+  manufacturerId   String?
+  model            String?
+  serialNumber     String?
+  hostname         String?
+  installationDate DateTime? @db.Date
+  invoiceNumber    String?
+  invoiceDate      DateTime? @db.Date
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  location     Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  type         AssetType?   @relation(fields: [typeId], references: [id])
+  manufacturer Manufacturer? @relation(fields: [manufacturerId], references: [id])
+  macAddresses MacAddress[]
+  customFields CustomField[]
+  attachments  Attachment[]
+
+  @@index([locationId])
+  @@index([typeId])
+  @@index([manufacturerId])
+  @@map("assets")
+}
+
+model MacAddress {
+  id      String @id @default(cuid())
+  assetId String
+  address String
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("mac_addresses")
+}
+
+model CustomField {
+  id      String @id @default(cuid())
+  assetId String
+  key     String
+  value   String @db.Text
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("custom_fields")
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  filename     String   // stored filename on disk
+  originalName String   // original upload filename
+  mimeType     String
+  size         Int
+  path         String   // relative path under /uploads
+  locationId   String?
+  assetId      String?
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  asset      Asset?    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  uploadedBy User      @relation(fields: [uploadedById], references: [id])
+
+  @@index([locationId])
+  @@index([assetId])
+  @@map("attachments")
+}

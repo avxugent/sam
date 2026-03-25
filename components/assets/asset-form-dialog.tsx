@@ -1,0 +1,373 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Plus, Trash2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+
+const schema = z.object({
+  typeId: z.string().optional(),
+  manufacturerId: z.string().optional(),
+  model: z.string().optional(),
+  serialNumber: z.string().optional(),
+  hostname: z.string().optional(),
+  installationDate: z.string().optional(),
+  invoiceNumber: z.string().optional(),
+  invoiceDate: z.string().optional(),
+  notes: z.string().optional(),
+  macAddresses: z.array(z.object({ address: z.string() })),
+  customFields: z.array(z.object({ key: z.string(), value: z.string() })),
+});
+
+type FormData = z.infer<typeof schema>;
+
+type AssetType = { id: string; name: string };
+type Manufacturer = { id: string; name: string };
+
+type Props = {
+  mode: "create" | "edit";
+  locationId: string;
+  assetId?: string;
+  children: React.ReactNode;
+  onSuccess?: () => void;
+};
+
+export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess }: Props) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      macAddresses: [],
+      customFields: [],
+    },
+  });
+
+  const { fields: macFields, append: appendMac, remove: removeMac } = useFieldArray({ control, name: "macAddresses" });
+  const { fields: cfFields, append: appendCf, remove: removeCf } = useFieldArray({ control, name: "customFields" });
+
+  const modelValue = watch("model");
+
+  const fetchDropdowns = useCallback(async () => {
+    const [typesRes, mfrsRes] = await Promise.all([
+      fetch("/api/asset-types"),
+      fetch("/api/manufacturers"),
+    ]);
+    if (typesRes.ok) setAssetTypes(await typesRes.json());
+    if (mfrsRes.ok) setManufacturers(await mfrsRes.json());
+  }, []);
+
+  const fetchAsset = useCallback(async () => {
+    if (mode !== "edit" || !assetId) return;
+    const res = await fetch(`/api/assets/${assetId}`);
+    if (!res.ok) return;
+    const asset = await res.json();
+    reset({
+      typeId: asset.typeId || "",
+      manufacturerId: asset.manufacturerId || "",
+      model: asset.model || "",
+      serialNumber: asset.serialNumber || "",
+      hostname: asset.hostname || "",
+      installationDate: asset.installationDate
+        ? new Date(asset.installationDate).toISOString().split("T")[0]
+        : "",
+      invoiceNumber: asset.invoiceNumber || "",
+      invoiceDate: asset.invoiceDate
+        ? new Date(asset.invoiceDate).toISOString().split("T")[0]
+        : "",
+      notes: asset.notes || "",
+      macAddresses: asset.macAddresses.map((m: { address: string }) => ({ address: m.address })),
+      customFields: asset.customFields.map((f: { key: string; value: string }) => ({ key: f.key, value: f.value })),
+    });
+  }, [mode, assetId, reset]);
+
+  useEffect(() => {
+    if (open) {
+      fetchDropdowns();
+      fetchAsset();
+    }
+  }, [open, fetchDropdowns, fetchAsset]);
+
+  useEffect(() => {
+    if (!modelValue || modelValue.length < 2) {
+      setModelSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const res = await fetch(`/api/models?q=${encodeURIComponent(modelValue)}`);
+      if (res.ok) setModelSuggestions(await res.json());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [modelValue]);
+
+  async function onSubmit(data: FormData) {
+    const payload = {
+      ...data,
+      typeId: data.typeId || null,
+      manufacturerId: data.manufacturerId || null,
+      macAddresses: data.macAddresses.map((m) => m.address).filter(Boolean),
+      customFields: data.customFields.filter((f) => f.key),
+    };
+
+    const url = mode === "create"
+      ? `/api/locations/${locationId}/assets`
+      : `/api/assets/${assetId}`;
+    const method = mode === "create" ? "POST" : "PUT";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      toast({ title: "Error", description: err.error || "Something went wrong.", variant: "destructive" });
+      return;
+    }
+
+    toast({ title: mode === "create" ? "Asset created" : "Asset updated" });
+    setOpen(false);
+    reset({ macAddresses: [], customFields: [] });
+    router.refresh();
+    onSuccess?.();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{mode === "create" ? "Add Asset" : "Edit Asset"}</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Type */}
+            <div className="space-y-1.5">
+              <Label>Type</Label>
+              <Select
+                value={watch("typeId") || ""}
+                onValueChange={(v) => setValue("typeId", v === "_none" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">— None —</SelectItem>
+                  {assetTypes.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Manufacturer */}
+            <div className="space-y-1.5">
+              <Label>Manufacturer</Label>
+              <Select
+                value={watch("manufacturerId") || ""}
+                onValueChange={(v) => setValue("manufacturerId", v === "_none" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select manufacturer..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">— None —</SelectItem>
+                  {manufacturers.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Model with autocomplete */}
+            <div className="space-y-1.5 relative col-span-2">
+              <Label htmlFor="model">Model</Label>
+              <Input
+                id="model"
+                {...register("model")}
+                placeholder="e.g. Epson EB-W06"
+                autoComplete="off"
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              />
+              {showSuggestions && modelSuggestions.length > 0 && (
+                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md overflow-hidden">
+                  {modelSuggestions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
+                      onMouseDown={() => {
+                        setValue("model", s);
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Serial number */}
+            <div className="space-y-1.5">
+              <Label htmlFor="serialNumber">Serial Number</Label>
+              <Input id="serialNumber" {...register("serialNumber")} placeholder="SN-XXXX" />
+            </div>
+
+            {/* Hostname */}
+            <div className="space-y-1.5">
+              <Label htmlFor="hostname">Hostname</Label>
+              <Input id="hostname" {...register("hostname")} placeholder="projector-room101" />
+            </div>
+
+            {/* Installation date */}
+            <div className="space-y-1.5">
+              <Label htmlFor="installationDate">Installation Date</Label>
+              <Input id="installationDate" type="date" {...register("installationDate")} />
+            </div>
+
+            {/* Invoice number */}
+            <div className="space-y-1.5">
+              <Label htmlFor="invoiceNumber">Invoice Number</Label>
+              <Input id="invoiceNumber" {...register("invoiceNumber")} placeholder="INV-XXXX" />
+            </div>
+
+            {/* Invoice date */}
+            <div className="space-y-1.5">
+              <Label htmlFor="invoiceDate">Invoice Date</Label>
+              <Input id="invoiceDate" type="date" {...register("invoiceDate")} />
+            </div>
+          </div>
+
+          {/* MAC Addresses */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>MAC Addresses</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendMac({ address: "" })}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add MAC
+              </Button>
+            </div>
+            {macFields.map((field, i) => (
+              <div key={field.id} className="flex gap-2">
+                <Input
+                  {...register(`macAddresses.${i}.address`)}
+                  placeholder="AA:BB:CC:DD:EE:FF"
+                  className="font-mono"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeMac(i)}
+                  className="text-destructive hover:text-destructive flex-shrink-0"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-1.5">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea id="notes" {...register("notes")} placeholder="Any additional notes..." rows={3} />
+          </div>
+
+          {/* Custom fields */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Custom Fields</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendCf({ key: "", value: "" })}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add Field
+              </Button>
+            </div>
+            {cfFields.map((field, i) => (
+              <div key={field.id} className="flex gap-2">
+                <Input
+                  {...register(`customFields.${i}.key`)}
+                  placeholder="Field name"
+                  className="w-1/3"
+                />
+                <Input
+                  {...register(`customFields.${i}.value`)}
+                  placeholder="Value"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeCf(i)}
+                  className="text-destructive hover:text-destructive flex-shrink-0"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {mode === "create" ? "Create" : "Save"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

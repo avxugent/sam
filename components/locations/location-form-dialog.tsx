@@ -23,6 +23,9 @@ import { useToast } from "@/components/ui/use-toast";
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  country: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -31,7 +34,13 @@ type Props = {
   mode: "create" | "edit";
   parentId?: string | null;
   locationId?: string;
-  initialData?: { name: string; description?: string | null };
+  initialData?: {
+    name: string;
+    description?: string | null;
+    address?: string | null;
+    city?: string | null;
+    country?: string | null;
+  };
   children: React.ReactNode;
   onSuccess?: () => void;
 };
@@ -58,6 +67,9 @@ export function LocationFormDialog({
     defaultValues: {
       name: initialData?.name || "",
       description: initialData?.description || "",
+      address: initialData?.address || "",
+      city: initialData?.city || "",
+      country: initialData?.country || "",
     },
   });
 
@@ -78,9 +90,7 @@ export function LocationFormDialog({
       return;
     }
 
-    toast({
-      title: mode === "create" ? "Location created" : "Location updated",
-    });
+    toast({ title: mode === "create" ? "Location created" : "Location updated" });
     setOpen(false);
     reset();
     router.refresh();
@@ -90,7 +100,7 @@ export function LocationFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {mode === "create" ? "Add Location" : "Edit Location"}
@@ -110,15 +120,47 @@ export function LocationFormDialog({
               id="description"
               {...register("description")}
               placeholder="Optional description"
-              rows={3}
+              rows={2}
             />
           </div>
+
+          {/* Address fields */}
+          <div className="pt-1">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Address (optional)
+            </p>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="address">Street address</Label>
+                <Input
+                  id="address"
+                  {...register("address")}
+                  placeholder="e.g. Grote Markt 1"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    {...register("city")}
+                    placeholder="e.g. Ghent"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="country">Country</Label>
+                  <Input
+                    id="country"
+                    {...register("country")}
+                    placeholder="e.g. Belgium"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

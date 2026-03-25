@@ -17,6 +17,8 @@ import {
   Building2,
   Plus,
   Upload,
+  ShieldCheck,
+  Factory,
 } from "lucide-react";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 
@@ -115,9 +117,31 @@ function countAssetsRecursive(location: LocationNode): number {
   );
 }
 
+type AdminNavItem = {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+  /** If true, only ADMIN role can see it */
+  adminOnly?: boolean;
+};
+
+const ADMIN_NAV: AdminNavItem[] = [
+  { href: "/admin/users", label: "Users", icon: <Users className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/asset-types", label: "Asset Types", icon: <Tag className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/manufacturers", label: "Manufacturers", icon: <Factory className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/import", label: "Import CSV", icon: <Upload className="h-4 w-4" />, adminOnly: false },
+];
+
 export function Sidebar({ locationTree, userRole }: SidebarProps) {
   const pathname = usePathname();
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
+  const isAdminOrEditor = canEdit;
+  const isInAdmin = pathname.startsWith("/admin");
+  const [adminOpen, setAdminOpen] = useState(isInAdmin);
+
+  const visibleAdminItems = ADMIN_NAV.filter(
+    (item) => !item.adminOnly || userRole === "ADMIN"
+  );
 
   return (
     <aside className="w-[280px] flex-shrink-0 border-r bg-background flex flex-col h-full overflow-hidden">
@@ -128,101 +152,90 @@ export function Sidebar({ locationTree, userRole }: SidebarProps) {
         <span className="text-xs text-muted-foreground ml-auto">Asset Management</span>
       </div>
 
-      {/* Location tree */}
-      <div className="flex-1 overflow-y-auto py-3">
-        <div className="px-3 mb-1 flex items-center justify-between">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Locations
-          </span>
-          {canEdit && (
-            <LocationFormDialog mode="create" parentId={null}>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </LocationFormDialog>
-          )}
-        </div>
-
-        {locationTree.length === 0 ? (
-          <div className="px-3 py-4 text-center">
-            <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">No locations yet</p>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto flex flex-col">
+        {/* Location tree */}
+        <div className="py-3 flex-1">
+          <div className="px-3 mb-1 flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Locations
+            </span>
             {canEdit && (
               <LocationFormDialog mode="create" parentId={null}>
-                <Button variant="outline" size="sm" className="mt-2 text-xs">
-                  Add location
+                <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
               </LocationFormDialog>
             )}
           </div>
-        ) : (
-          <div className="space-y-0.5 px-1">
-            {locationTree.map((location) => (
-              <LocationTreeItem
-                key={location.id}
-                location={location}
-                userRole={userRole}
-              />
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Bottom nav */}
-      <div className="border-t p-3 space-y-1 flex-shrink-0">
-        {(userRole === "ADMIN" || userRole === "EDITOR") && (
-          <Link
-            href="/import"
-            className={cn(
-              "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-              pathname.startsWith("/import")
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted text-muted-foreground hover:text-foreground"
+          {locationTree.length === 0 ? (
+            <div className="px-3 py-4 text-center">
+              <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-xs text-muted-foreground">No locations yet</p>
+              {canEdit && (
+                <LocationFormDialog mode="create" parentId={null}>
+                  <Button variant="outline" size="sm" className="mt-2 text-xs">
+                    Add location
+                  </Button>
+                </LocationFormDialog>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-0.5 px-1">
+              {locationTree.map((location) => (
+                <LocationTreeItem
+                  key={location.id}
+                  location={location}
+                  userRole={userRole}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Admin section — visible to ADMIN and EDITOR */}
+        {isAdminOrEditor && (
+          <div className="border-t flex-shrink-0">
+            {/* Collapsible header */}
+            <button
+              onClick={() => setAdminOpen((v) => !v)}
+              className={cn(
+                "w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors",
+                isInAdmin
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="flex-1 text-left">Administration</span>
+              {adminOpen ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+            </button>
+
+            {adminOpen && (
+              <div className="px-2 pb-2 space-y-0.5">
+                {visibleAdminItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                      pathname.startsWith(item.href)
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
             )}
-          >
-            <Upload className="h-4 w-4" />
-            Import CSV
-          </Link>
-        )}
-        {userRole === "ADMIN" && (
-          <>
-            <Link
-              href="/settings/users"
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                pathname.startsWith("/settings/users")
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Users className="h-4 w-4" />
-              Users
-            </Link>
-            <Link
-              href="/settings/asset-types"
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                pathname.startsWith("/settings/asset-types")
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Tag className="h-4 w-4" />
-              Asset Types
-            </Link>
-            <Link
-              href="/settings/manufacturers"
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                pathname.startsWith("/settings/manufacturers")
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Settings className="h-4 w-4" />
-              Manufacturers
-            </Link>
-          </>
+          </div>
         )}
       </div>
     </aside>

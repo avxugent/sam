@@ -23,6 +23,8 @@ import { LocationFormDialog } from "@/components/locations/location-form-dialog"
 import { AssetTable } from "@/components/assets/asset-table";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
+import { CoverImagePicker } from "@/components/locations/cover-image-picker";
+import { LocationMap } from "@/components/locations/location-map";
 import {
   ChevronRight,
   Edit,
@@ -32,6 +34,7 @@ import {
   Package,
   FolderOpen,
   Paperclip,
+  Image,
 } from "lucide-react";
 
 type Breadcrumb = { id: string; name: string };
@@ -40,6 +43,7 @@ type LocationChild = {
   id: string;
   name: string;
   description?: string | null;
+  coverImageId?: string | null;
   _count: { assets: number; children: number };
 };
 
@@ -70,6 +74,12 @@ type Location = {
   id: string;
   name: string;
   description?: string | null;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  coverImageId?: string | null;
   parent?: { id: string; name: string; parentId?: string | null } | null;
   children: LocationChild[];
   attachments: Attachment[];
@@ -90,8 +100,20 @@ export function LocationDetailClient({
   const router = useRouter();
   const { toast } = useToast();
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
+
   const [attachments, setAttachments] = useState<Attachment[]>(location.attachments);
+  const [coverImageId, setCoverImageId] = useState<string | null>(location.coverImageId ?? null);
+  const [mapData, setMapData] = useState({
+    address: location.address,
+    city: location.city,
+    country: location.country,
+    latitude: location.latitude,
+    longitude: location.longitude,
+  });
+
   const handleAttachmentUpdate = (updated: Attachment[]) => setAttachments(updated);
+
+  const coverImage = attachments.find((a) => a.id === coverImageId && a.mimeType.startsWith("image/"));
 
   async function handleDelete() {
     const res = await fetch(`/api/locations/${location.id}`, { method: "DELETE" });
@@ -109,23 +131,20 @@ export function LocationDetailClient({
     router.refresh();
   }
 
+  const hasAddress = mapData.address || mapData.city || mapData.country;
+
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1 text-sm text-muted-foreground flex-wrap">
-        <Link href="/" className="hover:text-foreground transition-colors">
-          Home
-        </Link>
+        <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
         {breadcrumbs.map((crumb, i) => (
           <span key={crumb.id} className="flex items-center gap-1">
             <ChevronRight className="h-3 w-3" />
             {i === breadcrumbs.length - 1 ? (
               <span className="text-foreground font-medium">{crumb.name}</span>
             ) : (
-              <Link
-                href={`/locations/${crumb.id}`}
-                className="hover:text-foreground transition-colors"
-              >
+              <Link href={`/locations/${crumb.id}`} className="hover:text-foreground transition-colors">
                 {crumb.name}
               </Link>
             )}
@@ -133,17 +152,47 @@ export function LocationDetailClient({
         ))}
       </nav>
 
+      {/* Cover image banner */}
+      {coverImage && (
+        <div className="relative w-full rounded-xl overflow-hidden border" style={{ height: 220 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/api/attachments/${coverImage.id}`}
+            alt={coverImage.originalName}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+          <div className="absolute bottom-4 left-4">
+            <h1 className="text-white text-2xl font-bold drop-shadow">{location.name}</h1>
+            {hasAddress && (
+              <p className="text-white/80 text-sm mt-0.5 flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" />
+                {[mapData.address, mapData.city, mapData.country].filter(Boolean).join(", ")}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-primary" />
-            <h1 className="text-2xl font-bold">{location.name}</h1>
-          </div>
+          {!coverImage && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              <h1 className="text-2xl font-bold">{location.name}</h1>
+            </div>
+          )}
           {location.description && (
             <p className="text-muted-foreground mt-1">{location.description}</p>
           )}
-          <div className="flex gap-3 mt-3">
+          {!coverImage && hasAddress && (
+            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              {[mapData.address, mapData.city, mapData.country].filter(Boolean).join(", ")}
+            </p>
+          )}
+          <div className="flex gap-3 mt-3 flex-wrap">
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Package className="h-4 w-4" />
               <span>{location._count.assets} direct assets</span>
@@ -154,7 +203,7 @@ export function LocationDetailClient({
             </div>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Paperclip className="h-4 w-4" />
-              <span>{location._count.attachments} attachments</span>
+              <span>{attachments.length} attachments</span>
             </div>
           </div>
         </div>
@@ -164,7 +213,13 @@ export function LocationDetailClient({
             <LocationFormDialog
               mode="edit"
               locationId={location.id}
-              initialData={{ name: location.name, description: location.description }}
+              initialData={{
+                name: location.name,
+                description: location.description,
+                address: location.address,
+                city: location.city,
+                country: location.country,
+              }}
             >
               <Button variant="outline" size="sm">
                 <Edit className="h-4 w-4 mr-1" />
@@ -184,8 +239,7 @@ export function LocationDetailClient({
                   <AlertDialogTitle>Delete &quot;{location.name}&quot;?</AlertDialogTitle>
                   <AlertDialogDescription>
                     This will permanently delete this location and all its assets and
-                    attachments. Sub-locations must be removed first. This action cannot be
-                    undone.
+                    attachments. Sub-locations must be removed first.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -205,31 +259,35 @@ export function LocationDetailClient({
 
       {/* Tabs */}
       <Tabs defaultValue="assets">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="assets">
             Assets
             {assets.length > 0 && (
-              <Badge variant="secondary" className="ml-2 text-xs">
-                {assets.length}
-              </Badge>
+              <Badge variant="secondary" className="ml-2 text-xs">{assets.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="sublocations">
             Sub-locations
             {location.children.length > 0 && (
-              <Badge variant="secondary" className="ml-2 text-xs">
-                {location.children.length}
-              </Badge>
+              <Badge variant="secondary" className="ml-2 text-xs">{location.children.length}</Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="map">
+            <MapPin className="h-3.5 w-3.5 mr-1" />
+            Map &amp; Address
           </TabsTrigger>
           <TabsTrigger value="attachments">
             Attachments
             {attachments.length > 0 && (
-              <Badge variant="secondary" className="ml-2 text-xs">
-                {attachments.length}
-              </Badge>
+              <Badge variant="secondary" className="ml-2 text-xs">{attachments.length}</Badge>
             )}
           </TabsTrigger>
+          {canEdit && (
+            <TabsTrigger value="cover">
+              <Image className="h-3.5 w-3.5 mr-1" />
+              Cover Image
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Assets tab */}
@@ -274,10 +332,20 @@ export function LocationDetailClient({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {location.children.map((child) => (
                 <Link key={child.id} href={`/locations/${child.id}`}>
-                  <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+                  <Card className="hover:border-primary/50 transition-colors cursor-pointer overflow-hidden">
+                    {child.coverImageId && (
+                      <div className="h-28 overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`/api/attachments/${child.coverImageId}`}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-primary" />
+                        <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
                         {child.name}
                       </CardTitle>
                     </CardHeader>
@@ -299,6 +367,20 @@ export function LocationDetailClient({
           )}
         </TabsContent>
 
+        {/* Map & Address tab */}
+        <TabsContent value="map" className="mt-4">
+          <LocationMap
+            locationId={location.id}
+            address={mapData.address}
+            city={mapData.city}
+            country={mapData.country}
+            latitude={mapData.latitude}
+            longitude={mapData.longitude}
+            canEdit={canEdit}
+            onUpdate={(data) => setMapData({ ...mapData, ...data })}
+          />
+        </TabsContent>
+
         {/* Attachments tab */}
         <TabsContent value="attachments" className="mt-4">
           <AttachmentGallery
@@ -308,6 +390,24 @@ export function LocationDetailClient({
             onUpdate={handleAttachmentUpdate}
           />
         </TabsContent>
+
+        {/* Cover Image tab (edit only) */}
+        {canEdit && (
+          <TabsContent value="cover" className="mt-4">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Cover Image</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Choose one of the image attachments as the cover photo shown at the top of this page.
+              </p>
+            </div>
+            <CoverImagePicker
+              locationId={location.id}
+              attachments={attachments}
+              currentCoverImageId={coverImageId}
+              onUpdate={setCoverImageId}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

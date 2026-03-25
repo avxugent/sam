@@ -7,6 +7,9 @@ const createSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   parentId: z.string().nullable().optional(),
+  address: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
 });
 
 export async function GET() {
@@ -52,6 +55,9 @@ export async function POST(req: NextRequest) {
       name: parsed.data.name,
       description: parsed.data.description,
       parentId: parsed.data.parentId ?? null,
+      address: parsed.data.address ?? null,
+      city: parsed.data.city ?? null,
+      country: parsed.data.country ?? null,
     },
   });
 

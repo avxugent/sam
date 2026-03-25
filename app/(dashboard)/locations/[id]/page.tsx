@@ -29,10 +29,8 @@ export default async function LocationPage({
 
   if (!location) notFound();
 
-  // Build breadcrumbs
   const breadcrumbs = await buildBreadcrumbs(id);
 
-  // Get assets in this location (direct)
   const assets = await prisma.asset.findMany({
     where: { locationId: id },
     include: {

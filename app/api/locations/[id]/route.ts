@@ -7,6 +7,12 @@ const updateSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional().nullable(),
   parentId: z.string().nullable().optional(),
+  address: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+  coverImageId: z.string().optional().nullable(),
 });
 
 export async function GET(
@@ -22,7 +28,9 @@ export async function GET(
     include: {
       parent: { select: { id: true, name: true, parentId: true } },
       children: {
-        include: { _count: { select: { assets: true, children: true } } },
+        include: {
+          _count: { select: { assets: true, children: true } },
+        },
         orderBy: [{ order: "asc" }, { name: "asc" }],
       },
       _count: { select: { assets: true, children: true, attachments: true } },

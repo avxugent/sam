@@ -1,0 +1,29 @@
+# Development override: start only the database.
+# Use this when running `npm run dev` locally.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: sam-db-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: samdb
+      MYSQL_USER: sam
+      MYSQL_PASSWORD: sampassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - sam-mysql-dev:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  sam-mysql-dev:
+    driver: local

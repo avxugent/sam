@@ -3,18 +3,27 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
+const MAX_CUSTOM_FIELDS = 50;
+const MAX_MAC_ADDRESSES = 20;
+
+const customFieldSchema = z.object({
+  key: z.string().min(1).max(100),
+  value: z.string().max(1000),
+});
+
 const createAssetSchema = z.object({
   typeId: z.string().nullable().optional(),
   manufacturerId: z.string().nullable().optional(),
-  model: z.string().optional().nullable(),
-  serialNumber: z.string().optional().nullable(),
-  hostname: z.string().optional().nullable(),
+  model: z.string().max(255).optional().nullable(),
+  serialNumber: z.string().max(100).optional().nullable(),
+  hostname: z.string().max(255).optional().nullable(),
   installationDate: z.string().optional().nullable(),
-  invoiceNumber: z.string().optional().nullable(),
+  invoiceNumber: z.string().max(100).optional().nullable(),
   invoiceDate: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  macAddresses: z.array(z.string()).optional(),
-  customFields: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
+  notes: z.string().max(5000).optional().nullable(),
+  vaultPath: z.string().max(500).optional().nullable(),
+  macAddresses: z.array(z.string().max(17)).max(MAX_MAC_ADDRESSES).optional(),
+  customFields: z.array(customFieldSchema).max(MAX_CUSTOM_FIELDS).optional(),
 });
 
 export async function GET(
@@ -29,7 +38,6 @@ export async function GET(
   const recursive = searchParams.get("recursive") === "true";
 
   if (recursive) {
-    // Collect all descendant location IDs
     const ids = await getAllDescendantIds(id);
     ids.push(id);
 
@@ -105,16 +113,17 @@ export async function POST(
   return NextResponse.json(asset, { status: 201 });
 }
 
+// Uses a raw SQL recursive CTE instead of sequential round-trips
 async function getAllDescendantIds(locationId: string): Promise<string[]> {
-  const children = await prisma.location.findMany({
-    where: { parentId: locationId },
-    select: { id: true },
-  });
-  const ids: string[] = [];
-  for (const child of children) {
-    ids.push(child.id);
-    const childIds = await getAllDescendantIds(child.id);
-    ids.push(...childIds);
-  }
-  return ids;
+  type Row = { id: string };
+  const rows = await prisma.$queryRaw<Row[]>`
+    WITH RECURSIVE loc_tree AS (
+      SELECT id FROM locations WHERE id = ${locationId}
+      UNION ALL
+      SELECT l.id FROM locations l
+      INNER JOIN loc_tree lt ON l.parentId = lt.id
+    )
+    SELECT id FROM loc_tree WHERE id != ${locationId}
+  `;
+  return rows.map((r) => r.id);
 }

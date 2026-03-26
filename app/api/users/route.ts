@@ -5,9 +5,9 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 const createSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(8),
+  name: z.string().min(1).max(128),
+  email: z.string().email().max(255),
+  password: z.string().min(8).max(128),
   role: z.enum(["ADMIN", "EDITOR", "VIEWER"]),
 });
 
@@ -17,7 +17,7 @@ export async function GET() {
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    select: { id: true, name: true, email: true, role: true, provider: true, createdAt: true },
     orderBy: { name: "asc" },
   });
   return NextResponse.json(users);
@@ -37,8 +37,14 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
   const user = await prisma.user.create({
-    data: { name: parsed.data.name, email: parsed.data.email, passwordHash, role: parsed.data.role },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    data: {
+      name: parsed.data.name,
+      email: parsed.data.email,
+      passwordHash,
+      role: parsed.data.role,
+      provider: "credentials",
+    },
+    select: { id: true, name: true, email: true, role: true, provider: true, createdAt: true },
   });
 
   return NextResponse.json(user, { status: 201 });

@@ -21,7 +21,8 @@ model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
-  passwordHash String
+  passwordHash String?  // null for SSO-only users
+  provider     String   @default("credentials") // "credentials" | "microsoft-entra-id"
   role         Role     @default(VIEWER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -37,6 +38,9 @@ model Location {
   description    String?  @db.Text
   parentId       String?
   order          Int      @default(0)
+  // Facility identifier, e.g. "14.10.100.013"
+  // Segments: CC.BB.FFF.RRR  (campus.building.floor.room)
+  fiNumber       String?  @unique
   // Address fields
   address        String?
   city           String?
@@ -60,7 +64,18 @@ model Location {
 model AssetType {
   id        String   @id @default(cuid())
   name      String   @unique
-  createdAt DateTime @default(now())
+  // Prometheus scrape target template (newline-separated key=value pairs).
+  // Keys are Prometheus __labels__ (e.g. __address__, __metrics_path__, __param_*).
+  // Values may contain {hostname_fqdn}, {serial}, {model}, {manufacturer},
+  // {fi_number}, and {vault_<key>} placeholders.
+  // Example for Pearl recorder exporter:
+  //   __address__=https://pearlexporterdev.ugent.be
+  //   __metrics_path__=/probe
+  //   __param_target__=https://{hostname_fqdn}
+  //   __param_user__={vault_username}
+  //   __param_password__={vault_password}
+  scrapeTargetTemplate String? @db.Text
+  createdAt            DateTime @default(now())
 
   assets Asset[]
 
@@ -89,6 +104,10 @@ model Asset {
   invoiceNumber    String?
   invoiceDate      DateTime? @db.Date
   notes            String?   @db.Text
+  // Optional path to a HashiCorp Vault KV secret containing per-device
+  // credentials (e.g. "secret/data/av/rectest001").
+  // Used by the Prometheus SD endpoint to inject {vault_<key>} placeholders.
+  vaultPath        String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

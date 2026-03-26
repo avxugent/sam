@@ -9,15 +9,21 @@ export default async function AssetTypesPage() {
 
   const types = await prisma.assetType.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { assets: true } } },
+    select: {
+      id: true,
+      name: true,
+      scrapeTargetTemplate: true,
+      _count: { select: { assets: true } },
+    },
   });
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-3xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Asset Types</h1>
         <p className="text-muted-foreground mt-1">
-          Manage the list of asset types (e.g. Projector, Monitor, PC).
+          Manage asset types and configure Prometheus scrape templates for
+          exporter-based monitoring.
         </p>
       </div>
       <AssetTypesClient initialTypes={types} />

@@ -14,6 +14,12 @@ export const proxy = auth((req) => {
     return NextResponse.next();
   }
 
+  // Prometheus / monitoring endpoints use Bearer token auth (not session cookies).
+  // Let the route handlers do the token validation themselves.
+  if (pathname.startsWith("/api/prometheus/")) {
+    return NextResponse.next();
+  }
+
   // Require authentication for all other routes
   if (!req.auth) {
     const loginUrl = new URL("/login", req.url);

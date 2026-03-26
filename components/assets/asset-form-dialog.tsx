@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, KeyRound, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const schema = z.object({
@@ -37,6 +37,7 @@ const schema = z.object({
   invoiceNumber: z.string().optional(),
   invoiceDate: z.string().optional(),
   notes: z.string().optional(),
+  vaultPath: z.string().optional(),
   macAddresses: z.array(z.object({ address: z.string() })),
   customFields: z.array(z.object({ key: z.string(), value: z.string() })),
 });
@@ -45,6 +46,12 @@ type FormData = z.infer<typeof schema>;
 
 type AssetType = { id: string; name: string };
 type Manufacturer = { id: string; name: string };
+
+type VaultTestResult = {
+  ok: boolean;
+  message: string;
+  keys?: string[];
+};
 
 type Props = {
   mode: "create" | "edit";
@@ -62,6 +69,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [vaultTestResult, setVaultTestResult] = useState<VaultTestResult | null>(null);
+  const [vaultTesting, setVaultTesting] = useState(false);
 
   const {
     register,
@@ -76,6 +85,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     defaultValues: {
       macAddresses: [],
       customFields: [],
+      vaultPath: "",
     },
   });
 
@@ -83,6 +93,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const { fields: cfFields, append: appendCf, remove: removeCf } = useFieldArray({ control, name: "customFields" });
 
   const modelValue = watch("model");
+  const vaultPathValue = watch("vaultPath");
 
   const fetchDropdowns = useCallback(async () => {
     const [typesRes, mfrsRes] = await Promise.all([
@@ -112,6 +123,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         ? new Date(asset.invoiceDate).toISOString().split("T")[0]
         : "",
       notes: asset.notes || "",
+      vaultPath: asset.vaultPath || "",
       macAddresses: asset.macAddresses.map((m: { address: string }) => ({ address: m.address })),
       customFields: asset.customFields.map((f: { key: string; value: string }) => ({ key: f.key, value: f.value })),
     });
@@ -121,6 +133,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     if (open) {
       fetchDropdowns();
       fetchAsset();
+      setVaultTestResult(null);
     }
   }, [open, fetchDropdowns, fetchAsset]);
 
@@ -136,11 +149,31 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     return () => clearTimeout(timer);
   }, [modelValue]);
 
+  async function handleTestVault() {
+    const path = vaultPathValue?.trim();
+    if (!path) return;
+    setVaultTesting(true);
+    setVaultTestResult(null);
+    try {
+      const res = await fetch(`/api/vault/test?path=${encodeURIComponent(path)}`);
+      const data = await res.json();
+      setVaultTestResult({
+        ok: data.ok === true,
+        message: data.message || data.error || "Unknown result",
+        keys: data.keys,
+      });
+    } catch {
+      setVaultTestResult({ ok: false, message: "Request failed — check your network." });
+    }
+    setVaultTesting(false);
+  }
+
   async function onSubmit(data: FormData) {
     const payload = {
       ...data,
       typeId: data.typeId || null,
       manufacturerId: data.manufacturerId || null,
+      vaultPath: data.vaultPath?.trim() || null,
       macAddresses: data.macAddresses.map((m) => m.address).filter(Boolean),
       customFields: data.customFields.filter((f) => f.key),
     };
@@ -164,7 +197,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
     toast({ title: mode === "create" ? "Asset created" : "Asset updated" });
     setOpen(false);
-    reset({ macAddresses: [], customFields: [] });
+    reset({ macAddresses: [], customFields: [], vaultPath: "" });
     router.refresh();
     onSuccess?.();
   }
@@ -256,7 +289,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             {/* Hostname */}
             <div className="space-y-1.5">
               <Label htmlFor="hostname">Hostname</Label>
-              <Input id="hostname" {...register("hostname")} placeholder="projector-room101" />
+              <Input id="hostname" {...register("hostname")} placeholder="projector-room101.ugent.be" />
             </div>
 
             {/* Installation date */}
@@ -355,6 +388,73 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 </Button>
               </div>
             ))}
+          </div>
+
+          {/* Vault credentials path */}
+          <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Vault Credentials (optional)
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Path to a HashiCorp Vault KV secret containing per-device credentials
+              used by the Prometheus scrape template (e.g.{" "}
+              <code className="bg-muted px-1 rounded">secret/av/rectest001</code>).
+            </p>
+            <div className="flex gap-2">
+              <Input
+                id="vaultPath"
+                {...register("vaultPath")}
+                placeholder="secret/av/rectest001"
+                className="font-mono text-sm flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={vaultTesting || !vaultPathValue?.trim()}
+                onClick={handleTestVault}
+                className="flex-shrink-0"
+              >
+                {vaultTesting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  "Test"
+                )}
+              </Button>
+            </div>
+
+            {/* Vault test result */}
+            {vaultTestResult && (
+              <div
+                className={`flex items-start gap-2 rounded px-2.5 py-2 text-xs ${
+                  vaultTestResult.ok
+                    ? "bg-green-50 text-green-800 border border-green-200"
+                    : "bg-red-50 text-red-800 border border-red-200"
+                }`}
+              >
+                {vaultTestResult.ok ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <p>{vaultTestResult.message}</p>
+                  {vaultTestResult.ok && vaultTestResult.keys && (
+                    <p className="mt-0.5 text-green-700">
+                      Keys:{" "}
+                      {vaultTestResult.keys.map((k) => (
+                        <code key={k} className="bg-green-100 px-1 rounded mr-1">
+                          {k}
+                        </code>
+                      ))}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

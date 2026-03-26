@@ -13,7 +13,6 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.11.1",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.19.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -30,14 +29,12 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@types/bcryptjs": "^2.4.6",
-    "@types/multer": "^2.1.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "dotenv": "^17.3.1",
     "lucide-react": "^1.6.0",
-    "multer": "^2.1.1",
     "next": "16.2.1",
     "next-auth": "^5.0.0-beta.30",
     "prisma": "^6.19.2",

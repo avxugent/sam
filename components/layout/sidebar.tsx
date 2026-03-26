@@ -11,7 +11,6 @@ import {
   ChevronRight,
   ChevronDown,
   MapPin,
-  Settings,
   Users,
   Tag,
   Building2,
@@ -22,26 +21,30 @@ import {
 } from "lucide-react";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 
+// LocationNode no longer needs _count — counts come from assetCountMap
 type LocationNode = {
   id: string;
   name: string;
   children: LocationNode[];
-  _count: { assets: number; children: number };
 };
 
 type SidebarProps = {
   locationTree: LocationNode[];
   userRole: string;
+  /** Map of locationId → recursive total asset count (from server CTE) */
+  assetCountMap: Record<string, number>;
 };
 
 function LocationTreeItem({
   location,
   depth = 0,
   userRole,
+  assetCountMap,
 }: {
   location: LocationNode;
   depth?: number;
   userRole: string;
+  assetCountMap: Record<string, number>;
 }) {
   const pathname = usePathname();
   const isActive = pathname === `/locations/${location.id}`;
@@ -50,7 +53,7 @@ function LocationTreeItem({
     pathname.startsWith(`/locations/${location.id}`)
   );
 
-  const totalAssets = countAssetsRecursive(location);
+  const totalAssets = assetCountMap[location.id] ?? 0;
 
   return (
     <div>
@@ -102,6 +105,7 @@ function LocationTreeItem({
               location={child}
               depth={depth + 1}
               userRole={userRole}
+              assetCountMap={assetCountMap}
             />
           ))}
         </div>
@@ -110,18 +114,10 @@ function LocationTreeItem({
   );
 }
 
-function countAssetsRecursive(location: LocationNode): number {
-  return (
-    location._count.assets +
-    location.children.reduce((sum, child) => sum + countAssetsRecursive(child), 0)
-  );
-}
-
 type AdminNavItem = {
   href: string;
   label: string;
   icon: React.ReactNode;
-  /** If true, only ADMIN role can see it */
   adminOnly?: boolean;
 };
 
@@ -132,7 +128,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/import", label: "Import CSV", icon: <Upload className="h-4 w-4" />, adminOnly: false },
 ];
 
-export function Sidebar({ locationTree, userRole }: SidebarProps) {
+export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps) {
   const pathname = usePathname();
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
   const isAdminOrEditor = canEdit;
@@ -188,16 +184,16 @@ export function Sidebar({ locationTree, userRole }: SidebarProps) {
                   key={location.id}
                   location={location}
                   userRole={userRole}
+                  assetCountMap={assetCountMap}
                 />
               ))}
             </div>
           )}
         </div>
 
-        {/* Admin section — visible to ADMIN and EDITOR */}
+        {/* Admin section */}
         {isAdminOrEditor && (
           <div className="border-t flex-shrink-0">
-            {/* Collapsible header */}
             <button
               onClick={() => setAdminOpen((v) => !v)}
               className={cn(

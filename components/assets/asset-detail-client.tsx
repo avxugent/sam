@@ -28,6 +28,7 @@ import {
   Trash2,
   Monitor,
   Package,
+  KeyRound,
 } from "lucide-react";
 
 type Attachment = {
@@ -50,6 +51,7 @@ type Asset = {
   invoiceNumber?: string | null;
   invoiceDate?: Date | string | null;
   notes?: string | null;
+  vaultPath?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
   type?: { id: string; name: string } | null;
@@ -220,6 +222,19 @@ export function AssetDetailClient({
                       Notes
                     </p>
                     <p className="text-sm whitespace-pre-wrap">{asset.notes}</p>
+                  </div>
+                </>
+              )}
+
+              {asset.vaultPath && (
+                <>
+                  <Separator className="my-4" />
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <KeyRound className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="font-medium text-foreground">Vault path:</span>
+                    <code className="bg-muted px-1.5 py-0.5 rounded font-mono">
+                      {asset.vaultPath}
+                    </code>
                   </div>
                 </>
               )}

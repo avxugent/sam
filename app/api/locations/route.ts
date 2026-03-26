@@ -3,13 +3,22 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
+// FI number format: CC.BB.FFF.RRR  e.g. "14.10.100.013"
+const FI_NUMBER_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{3}$/;
+
 const createSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
+  name: z.string().min(1).max(255),
+  description: z.string().max(2000).optional(),
   parentId: z.string().nullable().optional(),
-  address: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  country: z.string().optional().nullable(),
+  fiNumber: z
+    .string()
+    .max(20)
+    .regex(FI_NUMBER_REGEX, "FI number must be in format CC.BB.FFF.RRR (e.g. 14.10.100.013)")
+    .optional()
+    .nullable(),
+  address: z.string().max(500).optional().nullable(),
+  city: z.string().max(255).optional().nullable(),
+  country: z.string().max(100).optional().nullable(),
 });
 
 export async function GET() {
@@ -50,16 +59,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const location = await prisma.location.create({
-    data: {
-      name: parsed.data.name,
-      description: parsed.data.description,
-      parentId: parsed.data.parentId ?? null,
-      address: parsed.data.address ?? null,
-      city: parsed.data.city ?? null,
-      country: parsed.data.country ?? null,
-    },
-  });
+  let location;
+  try {
+    location = await prisma.location.create({
+      data: {
+        name: parsed.data.name,
+        description: parsed.data.description,
+        parentId: parsed.data.parentId ?? null,
+        fiNumber: parsed.data.fiNumber ?? null,
+        address: parsed.data.address ?? null,
+        city: parsed.data.city ?? null,
+        country: parsed.data.country ?? null,
+      },
+    });
+  } catch (err: unknown) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code: string }).code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "This FI number is already assigned to another location." },
+        { status: 409 }
+      );
+    }
+    throw err;
+  }
 
   return NextResponse.json(location, { status: 201 });
 }

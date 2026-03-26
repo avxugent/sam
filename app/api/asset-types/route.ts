@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
-const schema = z.object({ name: z.string().min(1) });
+const schema = z.object({ name: z.string().min(1).max(255) });
 
 export async function GET() {
   const session = await auth();

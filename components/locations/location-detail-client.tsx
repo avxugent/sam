@@ -35,7 +35,32 @@ import {
   FolderOpen,
   Paperclip,
   Image,
+  Hash,
 } from "lucide-react";
+
+/** Parses a FI number into its segments */
+function parseFiSegments(fi: string): { campus: string; building: string; floor: string; room: string } | null {
+  const parts = fi.split(".");
+  if (parts.length !== 4) return null;
+  const [campus, building, floor, room] = parts;
+  return { campus, building, floor, room };
+}
+
+/** Badge that displays a FI number with a decoded breakdown */
+function FiNumberBadge({ fiNumber }: { fiNumber: string }) {
+  const parts = parseFiSegments(fiNumber);
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-xs font-mono bg-muted text-muted-foreground border rounded px-2 py-0.5 cursor-default select-all"
+      title={parts
+        ? `Campus: ${parts.campus} · Building: ${parts.building} · Floor: ${parts.floor} · Room: ${parts.room}`
+        : fiNumber}
+    >
+      <Hash className="h-3 w-3 flex-shrink-0" />
+      {fiNumber}
+    </span>
+  );
+}
 
 type Breadcrumb = { id: string; name: string };
 
@@ -43,6 +68,7 @@ type LocationChild = {
   id: string;
   name: string;
   description?: string | null;
+  fiNumber?: string | null;
   coverImageId?: string | null;
   _count: { assets: number; children: number };
 };
@@ -74,6 +100,7 @@ type Location = {
   id: string;
   name: string;
   description?: string | null;
+  fiNumber?: string | null;
   address?: string | null;
   city?: string | null;
   country?: string | null;
@@ -163,7 +190,14 @@ export function LocationDetailClient({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
           <div className="absolute bottom-4 left-4">
-            <h1 className="text-white text-2xl font-bold drop-shadow">{location.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-white text-2xl font-bold drop-shadow">{location.name}</h1>
+              {location.fiNumber && (
+                <span className="text-xs font-mono bg-white/20 text-white backdrop-blur-sm rounded px-2 py-0.5 border border-white/30">
+                  {location.fiNumber}
+                </span>
+              )}
+            </div>
             {hasAddress && (
               <p className="text-white/80 text-sm mt-0.5 flex items-center gap-1">
                 <MapPin className="h-3.5 w-3.5" />
@@ -178,9 +212,12 @@ export function LocationDetailClient({
       <div className="flex items-start justify-between gap-4">
         <div>
           {!coverImage && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <MapPin className="h-5 w-5 text-primary" />
               <h1 className="text-2xl font-bold">{location.name}</h1>
+              {location.fiNumber && (
+                <FiNumberBadge fiNumber={location.fiNumber} />
+              )}
             </div>
           )}
           {location.description && (
@@ -216,6 +253,7 @@ export function LocationDetailClient({
               initialData={{
                 name: location.name,
                 description: location.description,
+                fiNumber: location.fiNumber,
                 address: location.address,
                 city: location.city,
                 country: location.country,
@@ -344,10 +382,24 @@ export function LocationDetailClient({
                       </div>
                     )}
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center gap-2">
+                      <CardTitle className="text-base flex items-center gap-2 flex-wrap">
                         <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
                         {child.name}
                       </CardTitle>
+                      {child.fiNumber && (
+                        <span
+                          className="text-xs font-mono text-muted-foreground flex items-center gap-1 -mt-1"
+                          title={(() => {
+                            const p = parseFiSegments(child.fiNumber);
+                            return p
+                              ? `Campus: ${p.campus} · Building: ${p.building} · Floor: ${p.floor} · Room: ${p.room}`
+                              : child.fiNumber;
+                          })()}
+                        >
+                          <Hash className="h-3 w-3" />
+                          {child.fiNumber}
+                        </span>
+                      )}
                     </CardHeader>
                     <CardContent>
                       {child.description && (

@@ -6,6 +6,11 @@ import { auth } from "@/lib/auth";
 // GUID;FI NUMMER;CAMPUS;GEBOUW;LOKAAL;TYPE;BRAND;MODEL;SERIAL;QUANTITY;
 // DIAGONAL;WIDTH;HEIGHT;MIC_TYPE;FREQUENCY;MAC;IP_HOSTNAME;ROOM_LOCATION;
 // INSTALL_DATE;INTEGRATOR;CONTACTPERSOON;Factuurdatum;Factuurnummer
+//
+// FI NUMMER format: CC.BB.FFF.RRR (e.g. 14.10.100.013)
+// It is stored on the room-level location (LOKAAL).
+
+const FI_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{3}$/;
 
 type CsvRow = Record<string, string>;
 
@@ -129,12 +134,36 @@ export async function POST(req: NextRequest) {
 
   const stats = { created: 0, skipped: 0, errors: [] as string[] };
 
-  async function getOrCreateLocation(name: string, parentId: string | null): Promise<string> {
+  async function getOrCreateLocation(
+    name: string,
+    parentId: string | null,
+    fiNumber?: string | null
+  ): Promise<string> {
     const key = `${parentId ?? ""}|${name.toLowerCase()}`;
-    if (locationLookup.has(key)) return locationLookup.get(key)!;
+    if (locationLookup.has(key)) {
+      const existingId = locationLookup.get(key)!;
+      // If we have a fiNumber and the existing location doesn't, update it
+      if (fiNumber) {
+        await prisma.location.updateMany({
+          where: { id: existingId, fiNumber: null },
+          data: { fiNumber },
+        });
+      }
+      return existingId;
+    }
+
+    // Safely handle duplicate fiNumber — if it collides, store null
+    let safeFiNumber: string | null = fiNumber ?? null;
+    if (safeFiNumber) {
+      const existing = await prisma.location.findUnique({
+        where: { fiNumber: safeFiNumber },
+        select: { id: true },
+      });
+      if (existing) safeFiNumber = null; // already taken by another location
+    }
 
     const loc = await prisma.location.create({
-      data: { name, parentId },
+      data: { name, parentId, fiNumber: safeFiNumber },
     });
     locationLookup.set(key, loc.id);
     return loc.id;
@@ -179,13 +208,17 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Build location hierarchy
+      // FI number — validated before use
+      const rawFi = v(row, "FI NUMMER", "FI_NUMMER");
+      const fiNumber = rawFi && FI_REGEX.test(rawFi) ? rawFi : null;
+
+      // Build location hierarchy; FI number is applied to the room (LOKAAL) level
       let campusId: string | null = null;
       let gebouwId: string | null = null;
 
       if (campus) campusId = await getOrCreateLocation(campus, null);
       if (gebouw) gebouwId = await getOrCreateLocation(gebouw, campusId);
-      const locationId = await getOrCreateLocation(lokaal, gebouwId ?? campusId);
+      const locationId = await getOrCreateLocation(lokaal, gebouwId ?? campusId, fiNumber);
 
       // Type and manufacturer
       const typeName = v(row, "TYPE");
@@ -211,7 +244,7 @@ export async function POST(req: NextRequest) {
       };
 
       addCustom("GUID", "GUID");
-      addCustom("FI nummer", "FI NUMMER", "FI_NUMMER");
+      // FI nummer is stored on the location directly — not as a custom field
       addCustom("Quantity", "QUANTITY");
       addCustom("Diagonal (inch)", "DIAGONAL");
       addCustom("Width (cm)", "WIDTH");

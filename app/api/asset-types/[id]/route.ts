@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { validateTemplate } from "@/lib/scrape-template";
 
-const schema = z.object({ name: z.string().min(1) });
+const schema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  scrapeTargetTemplate: z.string().max(10000).optional().nullable(),
+});
 
 export async function PUT(
   req: NextRequest,
@@ -18,8 +22,25 @@ export async function PUT(
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
+  // Validate template syntax if provided
+  if (parsed.data.scrapeTargetTemplate) {
+    const templateErrors = validateTemplate(parsed.data.scrapeTargetTemplate);
+    if (templateErrors.length > 0) {
+      return NextResponse.json(
+        { error: "Template syntax error", details: templateErrors },
+        { status: 400 }
+      );
+    }
+  }
+
   try {
-    const type = await prisma.assetType.update({ where: { id }, data: { name: parsed.data.name } });
+    const type = await prisma.assetType.update({
+      where: { id },
+      data: {
+        ...(parsed.data.name !== undefined && { name: parsed.data.name }),
+        scrapeTargetTemplate: parsed.data.scrapeTargetTemplate ?? null,
+      },
+    });
     return NextResponse.json(type);
   } catch {
     return NextResponse.json({ error: "Name already exists or not found." }, { status: 400 });

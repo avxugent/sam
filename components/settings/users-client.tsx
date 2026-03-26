@@ -39,16 +39,16 @@ import { formatDate } from "@/lib/utils";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 
 const createSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(8),
+  name: z.string().min(1).max(128),
+  email: z.string().email().max(255),
+  password: z.string().min(8).max(128),
   role: z.enum(["ADMIN", "EDITOR", "VIEWER"]),
 });
 
 const editSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().optional(),
+  name: z.string().min(1).max(128),
+  email: z.string().email().max(255),
+  password: z.string().max(128).optional(),
   role: z.enum(["ADMIN", "EDITOR", "VIEWER"]),
 });
 
@@ -57,6 +57,7 @@ type User = {
   name: string;
   email: string;
   role: string;
+  provider: string;
   createdAt: Date | string;
 };
 
@@ -64,6 +65,17 @@ function roleBadge(role: string) {
   if (role === "ADMIN") return <Badge>ADMIN</Badge>;
   if (role === "EDITOR") return <Badge variant="secondary">EDITOR</Badge>;
   return <Badge variant="outline">VIEWER</Badge>;
+}
+
+function providerBadge(provider: string) {
+  if (provider === "microsoft-entra-id") {
+    return (
+      <Badge variant="outline" className="text-xs border-blue-300 text-blue-600 bg-blue-50">
+        Microsoft SSO
+      </Badge>
+    );
+  }
+  return null;
 }
 
 export function UsersClient({
@@ -164,9 +176,7 @@ export function UsersClient({
                   value={createForm.watch("role")}
                   onValueChange={(v) => createForm.setValue("role", v as "ADMIN" | "EDITOR" | "VIEWER")}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="VIEWER">Viewer</SelectItem>
                     <SelectItem value="EDITOR">Editor</SelectItem>
@@ -194,6 +204,7 @@ export function UsersClient({
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Name</th>
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Email</th>
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Role</th>
+              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Auth</th>
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Created</th>
               <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Actions</th>
             </tr>
@@ -209,15 +220,18 @@ export function UsersClient({
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground">{user.email}</td>
                 <td className="px-4 py-2.5">{roleBadge(user.role)}</td>
+                <td className="px-4 py-2.5">
+                  {providerBadge(user.provider) ?? (
+                    <span className="text-xs text-muted-foreground">Local</span>
+                  )}
+                </td>
                 <td className="px-4 py-2.5 text-muted-foreground text-xs">{formatDate(user.createdAt)}</td>
                 <td className="px-4 py-2.5">
                   <div className="flex justify-end gap-1">
                     {/* Edit */}
                     <Dialog
                       open={editUser?.id === user.id}
-                      onOpenChange={(open) => {
-                        if (!open) setEditUser(null);
-                      }}
+                      onOpenChange={(open) => { if (!open) setEditUser(null); }}
                     >
                       <DialogTrigger asChild>
                         <Button
@@ -250,19 +264,28 @@ export function UsersClient({
                             <Label>Email</Label>
                             <Input {...editForm.register("email")} type="email" />
                           </div>
-                          <div className="space-y-1.5">
-                            <Label>New Password</Label>
-                            <Input {...editForm.register("password")} type="password" placeholder="Leave blank to keep current" />
-                          </div>
+                          {user.provider === "credentials" && (
+                            <div className="space-y-1.5">
+                              <Label>New Password</Label>
+                              <Input
+                                {...editForm.register("password")}
+                                type="password"
+                                placeholder="Leave blank to keep current"
+                              />
+                            </div>
+                          )}
+                          {user.provider !== "credentials" && (
+                            <p className="text-xs text-muted-foreground bg-muted/50 rounded px-3 py-2">
+                              This user authenticates via Microsoft SSO — password cannot be changed here.
+                            </p>
+                          )}
                           <div className="space-y-1.5">
                             <Label>Role</Label>
                             <Select
                               value={editForm.watch("role")}
                               onValueChange={(v) => editForm.setValue("role", v as "ADMIN" | "EDITOR" | "VIEWER")}
                             >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="VIEWER">Viewer</SelectItem>
                                 <SelectItem value="EDITOR">Editor</SelectItem>

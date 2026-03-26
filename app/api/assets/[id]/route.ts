@@ -4,19 +4,28 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 
+const MAX_CUSTOM_FIELDS = 50;
+const MAX_MAC_ADDRESSES = 20;
+
+const customFieldSchema = z.object({
+  key: z.string().min(1).max(100),
+  value: z.string().max(1000),
+});
+
 const updateSchema = z.object({
   locationId: z.string().optional(),
   typeId: z.string().nullable().optional(),
   manufacturerId: z.string().nullable().optional(),
-  model: z.string().optional().nullable(),
-  serialNumber: z.string().optional().nullable(),
-  hostname: z.string().optional().nullable(),
+  model: z.string().max(255).optional().nullable(),
+  serialNumber: z.string().max(100).optional().nullable(),
+  hostname: z.string().max(255).optional().nullable(),
   installationDate: z.string().optional().nullable(),
-  invoiceNumber: z.string().optional().nullable(),
+  invoiceNumber: z.string().max(100).optional().nullable(),
   invoiceDate: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  macAddresses: z.array(z.string()).optional(),
-  customFields: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
+  notes: z.string().max(5000).optional().nullable(),
+  vaultPath: z.string().max(500).optional().nullable(),
+  macAddresses: z.array(z.string().max(17)).max(MAX_MAC_ADDRESSES).optional(),
+  customFields: z.array(customFieldSchema).max(MAX_CUSTOM_FIELDS).optional(),
 });
 
 export async function GET(
@@ -58,13 +67,12 @@ export async function PUT(
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
   }
 
   const { macAddresses, customFields, installationDate, invoiceDate, ...assetData } = parsed.data;
 
   const asset = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    // Update mac addresses if provided
     if (macAddresses !== undefined) {
       await tx.macAddress.deleteMany({ where: { assetId: id } });
       if (macAddresses.length > 0) {
@@ -74,7 +82,6 @@ export async function PUT(
       }
     }
 
-    // Update custom fields if provided
     if (customFields !== undefined) {
       await tx.customField.deleteMany({ where: { assetId: id } });
       if (customFields.length > 0) {

@@ -85,7 +85,7 @@ export default async function DashboardLayout({
         assetCountMap={assetCountMap}
       />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Header user={session.user} />
+        <Header user={{ name: session.user.name, email: session.user.email, role: session.user.role }} />
         <main className="flex-1 overflow-auto p-6">
           {children}
         </main>

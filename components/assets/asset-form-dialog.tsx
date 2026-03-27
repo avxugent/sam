@@ -24,23 +24,72 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { Loader2, Plus, Trash2, KeyRound, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-const schema = z.object({
-  typeId: z.string().optional(),
-  manufacturerId: z.string().optional(),
-  model: z.string().optional(),
-  serialNumber: z.string().optional(),
-  hostname: z.string().optional(),
-  installationDate: z.string().optional(),
-  invoiceNumber: z.string().optional(),
-  invoiceDate: z.string().optional(),
-  notes: z.string().optional(),
-  vaultPath: z.string().optional(),
-  macAddresses: z.array(z.object({ address: z.string() })),
-  customFields: z.array(z.object({ key: z.string(), value: z.string() })),
+// ── Validation helpers ──────────────────────────────────────────────────────
+
+/**
+ * RFC-1123 FQDN: labels separated by dots, each 1-63 chars, only alphanum + hyphen,
+ * must not start or end with a hyphen, at least two labels required.
+ * Examples: rectest001.ugent.be  projector-room101.example.com
+ */
+const FQDN_REGEX =
+  /^(?!-)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+
+/**
+ * IEEE 802 MAC address — colon, hyphen, or dot-separated, upper or lower case.
+ * Accepts: AA:BB:CC:DD:EE:FF  aa-bb-cc-dd-ee-ff  AABB.CCDD.EEFF
+ */
+const MAC_REGEX =
+  /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$|^([0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$/;
+
+const macAddressSchema = z.object({
+  address: z
+    .string()
+    .min(1, "MAC address is required")
+    .regex(MAC_REGEX, "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)"),
 });
+
+const schema = z
+  .object({
+    typeId: z.string().min(1, "Type is required"),
+    manufacturerId: z.string().min(1, "Manufacturer is required"),
+    model: z.string().min(1, "Model is required").max(255),
+    serialNumber: z.string().max(100).optional(),
+    hostname: z
+      .string()
+      .max(255)
+      .optional()
+      .refine(
+        (v) => !v || v.trim() === "" || FQDN_REGEX.test(v.trim()),
+        "Hostname must be a fully qualified domain name (e.g. device.example.com)"
+      ),
+    installationDate: z.string().optional(),
+    invoiceNumber: z.string().max(100).optional(),
+    invoiceDate: z.string().optional(),
+    notes: z.string().max(5000).optional(),
+    vaultPath: z.string().max(500).optional(),
+    macAddresses: z.array(macAddressSchema),
+    customFields: z.array(z.object({ key: z.string(), value: z.string() })),
+  })
+  .superRefine((data, ctx) => {
+    const hostnameSet = !!data.hostname?.trim();
+    const hasValidMac = data.macAddresses.some(
+      (m) => m.address.trim() !== "" && MAC_REGEX.test(m.address.trim())
+    );
+
+    // Rule: if hostname is filled, at least one MAC is required
+    if (hostnameSet && !hasValidMac) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["macAddresses"],
+        message:
+          "At least one MAC address is required when a hostname is set.",
+      });
+    }
+  });
 
 type FormData = z.infer<typeof schema>;
 
@@ -78,22 +127,39 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     reset,
     watch,
     setValue,
+    trigger,
     control,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      typeId: "",
+      manufacturerId: "",
+      model: "",
       macAddresses: [],
       customFields: [],
       vaultPath: "",
     },
   });
 
-  const { fields: macFields, append: appendMac, remove: removeMac } = useFieldArray({ control, name: "macAddresses" });
-  const { fields: cfFields, append: appendCf, remove: removeCf } = useFieldArray({ control, name: "customFields" });
+  const { fields: macFields, append: appendMac, remove: removeMac } = useFieldArray({
+    control,
+    name: "macAddresses",
+  });
+  const { fields: cfFields, append: appendCf, remove: removeCf } = useFieldArray({
+    control,
+    name: "customFields",
+  });
 
   const modelValue = watch("model");
+  const hostnameValue = watch("hostname");
   const vaultPathValue = watch("vaultPath");
+  const macValues = watch("macAddresses");
+
+  // Re-validate MAC rule when hostname changes and we already have MACs shown
+  useEffect(() => {
+    if (macFields.length > 0) trigger("macAddresses");
+  }, [hostnameValue, macFields.length, trigger]);
 
   const fetchDropdowns = useCallback(async () => {
     const [typesRes, mfrsRes] = await Promise.all([
@@ -124,8 +190,12 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         : "",
       notes: asset.notes || "",
       vaultPath: asset.vaultPath || "",
-      macAddresses: asset.macAddresses.map((m: { address: string }) => ({ address: m.address })),
-      customFields: asset.customFields.map((f: { key: string; value: string }) => ({ key: f.key, value: f.value })),
+      macAddresses: asset.macAddresses.map((m: { address: string }) => ({
+        address: m.address,
+      })),
+      customFields: asset.customFields.map(
+        (f: { key: string; value: string }) => ({ key: f.key, value: f.value })
+      ),
     });
   }, [mode, assetId, reset]);
 
@@ -137,6 +207,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     }
   }, [open, fetchDropdowns, fetchAsset]);
 
+  // Model autocomplete
   useEffect(() => {
     if (!modelValue || modelValue.length < 2) {
       setModelSuggestions([]);
@@ -173,14 +244,16 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       ...data,
       typeId: data.typeId || null,
       manufacturerId: data.manufacturerId || null,
+      hostname: data.hostname?.trim() || null,
       vaultPath: data.vaultPath?.trim() || null,
-      macAddresses: data.macAddresses.map((m) => m.address).filter(Boolean),
+      macAddresses: data.macAddresses.map((m) => m.address.trim()).filter(Boolean),
       customFields: data.customFields.filter((f) => f.key),
     };
 
-    const url = mode === "create"
-      ? `/api/locations/${locationId}/assets`
-      : `/api/assets/${assetId}`;
+    const url =
+      mode === "create"
+        ? `/api/locations/${locationId}/assets`
+        : `/api/assets/${assetId}`;
     const method = mode === "create" ? "POST" : "PUT";
 
     const res = await fetch(url, {
@@ -191,16 +264,28 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error || "Something went wrong.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.error || "Something went wrong.",
+        variant: "destructive",
+      });
       return;
     }
 
     toast({ title: mode === "create" ? "Asset created" : "Asset updated" });
     setOpen(false);
-    reset({ macAddresses: [], customFields: [], vaultPath: "" });
+    reset({ typeId: "", manufacturerId: "", model: "", macAddresses: [], customFields: [], vaultPath: "" });
     router.refresh();
     onSuccess?.();
   }
+
+  // Derived state for contextual hints
+  const hostnameSet = !!hostnameValue?.trim();
+  const hasAnyMac = macValues.some((m) => m.address.trim() !== "");
+
+  // Cross-field error for mac addresses (from superRefine)
+  const macCrossError = errors.macAddresses?.root?.message
+    ?? (errors.macAddresses as { message?: string } | undefined)?.message;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -212,55 +297,84 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            {/* Type */}
+
+            {/* Type — required */}
             <div className="space-y-1.5">
-              <Label>Type</Label>
+              <Label>
+                Type <span className="text-destructive">*</span>
+              </Label>
               <Select
                 value={watch("typeId") || ""}
-                onValueChange={(v) => setValue("typeId", v === "_none" ? "" : v)}
+                onValueChange={(v) => {
+                  setValue("typeId", v === "_none" ? "" : v, { shouldValidate: true });
+                }}
               >
-                <SelectTrigger>
+                <SelectTrigger
+                  className={cn(errors.typeId && "border-destructive ring-destructive")}
+                >
                   <SelectValue placeholder="Select type..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">— None —</SelectItem>
+                  <SelectItem value="_none">— Select a type —</SelectItem>
                   {assetTypes.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {errors.typeId && (
+                <p className="text-xs text-destructive">{errors.typeId.message}</p>
+              )}
             </div>
 
-            {/* Manufacturer */}
+            {/* Manufacturer — required */}
             <div className="space-y-1.5">
-              <Label>Manufacturer</Label>
+              <Label>
+                Manufacturer <span className="text-destructive">*</span>
+              </Label>
               <Select
                 value={watch("manufacturerId") || ""}
-                onValueChange={(v) => setValue("manufacturerId", v === "_none" ? "" : v)}
+                onValueChange={(v) => {
+                  setValue("manufacturerId", v === "_none" ? "" : v, { shouldValidate: true });
+                }}
               >
-                <SelectTrigger>
+                <SelectTrigger
+                  className={cn(errors.manufacturerId && "border-destructive ring-destructive")}
+                >
                   <SelectValue placeholder="Select manufacturer..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">— None —</SelectItem>
+                  <SelectItem value="_none">— Select a manufacturer —</SelectItem>
                   {manufacturers.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {errors.manufacturerId && (
+                <p className="text-xs text-destructive">{errors.manufacturerId.message}</p>
+              )}
             </div>
 
-            {/* Model with autocomplete */}
+            {/* Model — required, with autocomplete */}
             <div className="space-y-1.5 relative col-span-2">
-              <Label htmlFor="model">Model</Label>
+              <Label htmlFor="model">
+                Model <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="model"
                 {...register("model")}
                 placeholder="e.g. Epson EB-W06"
                 autoComplete="off"
+                className={cn(errors.model && "border-destructive")}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               />
+              {errors.model && (
+                <p className="text-xs text-destructive">{errors.model.message}</p>
+              )}
               {showSuggestions && modelSuggestions.length > 0 && (
                 <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md overflow-hidden">
                   {modelSuggestions.map((s) => (
@@ -269,7 +383,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                       type="button"
                       className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
                       onMouseDown={() => {
-                        setValue("model", s);
+                        setValue("model", s, { shouldValidate: true });
                         setShowSuggestions(false);
                       }}
                     >
@@ -283,25 +397,57 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             {/* Serial number */}
             <div className="space-y-1.5">
               <Label htmlFor="serialNumber">Serial Number</Label>
-              <Input id="serialNumber" {...register("serialNumber")} placeholder="SN-XXXX" />
+              <Input
+                id="serialNumber"
+                {...register("serialNumber")}
+                placeholder="SN-XXXX"
+              />
             </div>
 
-            {/* Hostname */}
+            {/* Hostname — optional, must be FQDN if filled */}
             <div className="space-y-1.5">
-              <Label htmlFor="hostname">Hostname</Label>
-              <Input id="hostname" {...register("hostname")} placeholder="projector-room101.ugent.be" />
+              <Label htmlFor="hostname">
+                Hostname
+                {hostnameSet && (
+                  <span className="ml-1.5 text-xs text-muted-foreground font-normal">
+                    (MAC required)
+                  </span>
+                )}
+              </Label>
+              <Input
+                id="hostname"
+                {...register("hostname")}
+                placeholder="device.example.com"
+                className={cn(errors.hostname && "border-destructive")}
+              />
+              {errors.hostname && (
+                <p className="text-xs text-destructive">{errors.hostname.message}</p>
+              )}
+              {!errors.hostname && (
+                <p className="text-xs text-muted-foreground">
+                  Must be a fully qualified domain name
+                </p>
+              )}
             </div>
 
             {/* Installation date */}
             <div className="space-y-1.5">
               <Label htmlFor="installationDate">Installation Date</Label>
-              <Input id="installationDate" type="date" {...register("installationDate")} />
+              <Input
+                id="installationDate"
+                type="date"
+                {...register("installationDate")}
+              />
             </div>
 
             {/* Invoice number */}
             <div className="space-y-1.5">
               <Label htmlFor="invoiceNumber">Invoice Number</Label>
-              <Input id="invoiceNumber" {...register("invoiceNumber")} placeholder="INV-XXXX" />
+              <Input
+                id="invoiceNumber"
+                {...register("invoiceNumber")}
+                placeholder="INV-XXXX"
+              />
             </div>
 
             {/* Invoice date */}
@@ -314,7 +460,19 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
           {/* MAC Addresses */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>MAC Addresses</Label>
+              <div>
+                <Label>
+                  MAC Addresses
+                  {hostnameSet && !hasAnyMac && (
+                    <span className="ml-1.5 text-destructive text-xs">*</span>
+                  )}
+                </Label>
+                {hostnameSet && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Required when hostname is set
+                  </p>
+                )}
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -325,12 +483,16 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 Add MAC
               </Button>
             </div>
+
             {macFields.map((field, i) => (
               <div key={field.id} className="flex gap-2">
                 <Input
                   {...register(`macAddresses.${i}.address`)}
                   placeholder="AA:BB:CC:DD:EE:FF"
-                  className="font-mono"
+                  className={cn(
+                    "font-mono",
+                    errors.macAddresses?.[i]?.address && "border-destructive"
+                  )}
                 />
                 <Button
                   type="button"
@@ -343,12 +505,31 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 </Button>
               </div>
             ))}
+
+            {/* Per-entry MAC format errors */}
+            {macFields.map((field, i) =>
+              errors.macAddresses?.[i]?.address ? (
+                <p key={`mac-err-${field.id}`} className="text-xs text-destructive -mt-1">
+                  MAC {i + 1}: {errors.macAddresses[i]?.address?.message}
+                </p>
+              ) : null
+            )}
+
+            {/* Cross-field error: hostname set but no MAC */}
+            {macCrossError && (
+              <p className="text-xs text-destructive">{macCrossError}</p>
+            )}
           </div>
 
           {/* Notes */}
           <div className="space-y-1.5">
             <Label htmlFor="notes">Notes</Label>
-            <Textarea id="notes" {...register("notes")} placeholder="Any additional notes..." rows={3} />
+            <Textarea
+              id="notes"
+              {...register("notes")}
+              placeholder="Any additional notes..."
+              rows={3}
+            />
           </div>
 
           {/* Custom fields */}
@@ -426,7 +607,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               </Button>
             </div>
 
-            {/* Vault test result */}
             {vaultTestResult && (
               <div
                 className={`flex items-start gap-2 rounded px-2.5 py-2 text-xs ${

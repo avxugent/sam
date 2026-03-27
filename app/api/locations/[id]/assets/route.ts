@@ -6,25 +6,58 @@ import { z } from "zod";
 const MAX_CUSTOM_FIELDS = 50;
 const MAX_MAC_ADDRESSES = 20;
 
+const FQDN_REGEX =
+  /^(?!-)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+
+const MAC_REGEX =
+  /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$|^([0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$/;
+
 const customFieldSchema = z.object({
   key: z.string().min(1).max(100),
   value: z.string().max(1000),
 });
 
-const createAssetSchema = z.object({
-  typeId: z.string().nullable().optional(),
-  manufacturerId: z.string().nullable().optional(),
-  model: z.string().max(255).optional().nullable(),
-  serialNumber: z.string().max(100).optional().nullable(),
-  hostname: z.string().max(255).optional().nullable(),
-  installationDate: z.string().optional().nullable(),
-  invoiceNumber: z.string().max(100).optional().nullable(),
-  invoiceDate: z.string().optional().nullable(),
-  notes: z.string().max(5000).optional().nullable(),
-  vaultPath: z.string().max(500).optional().nullable(),
-  macAddresses: z.array(z.string().max(17)).max(MAX_MAC_ADDRESSES).optional(),
-  customFields: z.array(customFieldSchema).max(MAX_CUSTOM_FIELDS).optional(),
-});
+const createAssetSchema = z
+  .object({
+    typeId: z.string().min(1, "Type is required"),
+    manufacturerId: z.string().min(1, "Manufacturer is required"),
+    model: z.string().min(1, "Model is required").max(255),
+    serialNumber: z.string().max(100).optional().nullable(),
+    hostname: z
+      .string()
+      .max(255)
+      .optional()
+      .nullable()
+      .refine(
+        (v) => !v || FQDN_REGEX.test(v.trim()),
+        "Hostname must be a valid fully qualified domain name"
+      ),
+    installationDate: z.string().optional().nullable(),
+    invoiceNumber: z.string().max(100).optional().nullable(),
+    invoiceDate: z.string().optional().nullable(),
+    notes: z.string().max(5000).optional().nullable(),
+    vaultPath: z.string().max(500).optional().nullable(),
+    macAddresses: z
+      .array(
+        z.string().regex(MAC_REGEX, "Invalid MAC address format")
+      )
+      .max(MAX_MAC_ADDRESSES)
+      .optional(),
+    customFields: z.array(customFieldSchema).max(MAX_CUSTOM_FIELDS).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const hostnameSet = !!data.hostname?.trim();
+    const hasValidMac = (data.macAddresses ?? []).some(
+      (m) => m.trim() !== "" && MAC_REGEX.test(m.trim())
+    );
+    if (hostnameSet && !hasValidMac) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["macAddresses"],
+        message: "At least one MAC address is required when hostname is set.",
+      });
+    }
+  });
 
 export async function GET(
   req: NextRequest,

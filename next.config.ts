@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
   // Produces a self-contained server bundle for Docker
   output: "standalone",
 
-  serverExternalPackages: ["bcryptjs"],
+  serverExternalPackages: ["bcryptjs", "speakeasy", "qrcode"],
 
   experimental: {
     serverActions: {

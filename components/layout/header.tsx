@@ -30,12 +30,15 @@ import {
   Loader2,
   MapPin,
   Package,
+  KeyRound,
 } from "lucide-react";
 
 type HeaderUser = {
   name?: string | null;
   email?: string | null;
   role?: string;
+  provider?: string;
+  totpEnabled?: boolean;
 };
 
 type QuickResult = {
@@ -312,6 +315,19 @@ export function Header({ user }: { user: HeaderUser }) {
                 {user.role}
               </Badge>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {/* 2FA settings — only for local accounts (SSO manages their own 2FA) */}
+            {user.provider === "credentials" && (
+              <DropdownMenuItem asChild>
+                <Link href="/settings/2fa" className="flex items-center gap-2 cursor-pointer">
+                  <KeyRound className="h-4 w-4" />
+                  Two-Factor Auth
+                  {user.totpEnabled && (
+                    <span className="ml-auto text-xs text-green-600">On</span>
+                  )}
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => signOut({ callbackUrl: "/login" })}

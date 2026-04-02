@@ -18,7 +18,9 @@ const entraEnabled =
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
+    // ── Primary credentials provider ──────────────────────────────────────
     Credentials({
+      id: "credentials",
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -30,6 +32,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: parsed.data.email },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            passwordHash: true,
+            totpEnabled: true,
+          },
         });
 
         // Reject if user has no password (SSO-only account)
@@ -46,9 +56,46 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           email: user.email,
           role: user.role as string,
+          // Signal that a 2FA step is still required before granting full access
+          needs2FA: user.totpEnabled ? true : undefined,
         };
       },
     }),
+
+    // ── Second-factor upgrade provider ────────────────────────────────────
+    // Called internally by /api/auth/2fa/verify after TOTP is confirmed.
+    // Issues a clean session without the needs2FA flag.
+    Credentials({
+      id: "credentials-2fa-verified",
+      name: "credentials-2fa-verified",
+      credentials: {
+        userId: { label: "User ID", type: "text" },
+      },
+      async authorize(credentials) {
+        const userId =
+          typeof credentials?.userId === "string"
+            ? credentials.userId
+            : null;
+        if (!userId) return null;
+
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, name: true, email: true, role: true, passwordHash: true },
+        });
+
+        // Must still be a credentials user with a password
+        if (!user || !user.passwordHash) return null;
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role as string,
+          // No needs2FA — this is the verified session
+        };
+      },
+    }),
+
     // Only include Entra ID provider when configured
     ...(entraEnabled
       ? [
@@ -68,7 +115,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   callbacks: {
     async signIn({ user, account }) {
-      // Only handle SSO providers here (credentials is handled in authorize())
       if (account?.provider === "microsoft-entra-id") {
         if (!user.email) return false;
 
@@ -77,7 +123,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (!existing) {
-          // Auto-provision: first SSO login creates a VIEWER account
           const newUser = await prisma.user.create({
             data: {
               name: user.name || user.email,
@@ -87,11 +132,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               role: "VIEWER",
             },
           });
-          // Inject the DB id so the jwt callback can pick it up
           user.id = newUser.id;
           (user as { role?: string }).role = "VIEWER";
         } else {
-          // Existing user — inject their SAM id and current role
           user.id = existing.id;
           (user as { role?: string }).role = existing.role as string;
         }
@@ -104,6 +147,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = (user as { id?: string; role?: string }).role;
+        const u = user as { needs2FA?: boolean };
+        if (u.needs2FA) {
+          token.needs2FA = true;
+        } else {
+          // Explicitly clear the flag when the upgrade provider issues a new token
+          delete token.needs2FA;
+        }
       }
       return token;
     },
@@ -112,6 +162,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        if (token.needs2FA) {
+          (session as { needs2FA?: boolean }).needs2FA = true;
+        }
       }
       return session;
     },
@@ -122,9 +175,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   session: {
     strategy: "jwt",
-    maxAge: 8 * 60 * 60, // 8 hours
+    maxAge: 8 * 60 * 60,
   },
-  // Required when deployed behind a reverse proxy
   trustHost: true,
 });
 

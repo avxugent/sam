@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ShieldCheck, ShieldOff } from "lucide-react";
 
 const createSchema = z.object({
   name: z.string().min(1).max(128),
@@ -58,6 +58,7 @@ type User = {
   email: string;
   role: string;
   provider: string;
+  totpEnabled: boolean;
   createdAt: Date | string;
 };
 
@@ -205,6 +206,7 @@ export function UsersClient({
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Email</th>
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Role</th>
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Auth</th>
+              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">2FA</th>
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Created</th>
               <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Actions</th>
             </tr>
@@ -223,6 +225,23 @@ export function UsersClient({
                 <td className="px-4 py-2.5">
                   {providerBadge(user.provider) ?? (
                     <span className="text-xs text-muted-foreground">Local</span>
+                  )}
+                </td>
+                <td className="px-4 py-2.5">
+                  {user.provider === "credentials" ? (
+                    user.totpEnabled ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-green-700">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        Enabled
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <ShieldOff className="h-3.5 w-3.5" />
+                        Off
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-xs text-muted-foreground">N/A</span>
                   )}
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground text-xs">{formatDate(user.createdAt)}</td>
@@ -303,6 +322,57 @@ export function UsersClient({
                         </form>
                       </DialogContent>
                     </Dialog>
+
+                    {/* Disable 2FA (admin override — no code required) */}
+                    {user.provider === "credentials" && user.totpEnabled && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-amber-600 hover:text-amber-700"
+                            title="Disable 2FA for this user"
+                          >
+                            <ShieldOff className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Disable 2FA for {user.name}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This admin override disables two-factor authentication for this
+                              user without requiring their TOTP code. Use this when a user has
+                              lost access to their authenticator app.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                const res = await fetch("/api/auth/2fa/disable", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ userId: user.id }),
+                                });
+                                const data = await res.json();
+                                if (!res.ok) {
+                                  toast({ title: "Error", description: data.error, variant: "destructive" });
+                                } else {
+                                  setUsers((prev) =>
+                                    prev.map((u) =>
+                                      u.id === user.id ? { ...u, totpEnabled: false } : u
+                                    )
+                                  );
+                                  toast({ title: "2FA disabled for " + user.name });
+                                }
+                              }}
+                            >
+                              Disable 2FA
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
 
                     {/* Delete */}
                     <AlertDialog>

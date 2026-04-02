@@ -10,7 +10,9 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:clear-import": "node scripts/clear-import-data.mjs",
+    "db:clear-import:force": "node scripts/clear-import-data.mjs --force"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -29,6 +31,8 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@types/bcryptjs": "^2.4.6",
+    "@types/qrcode": "^1.5.6",
+    "@types/speakeasy": "^2.0.10",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -38,9 +42,11 @@
     "next": "16.2.1",
     "next-auth": "^5.0.0-beta.30",
     "prisma": "^6.19.2",
+    "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.72.0",
+    "speakeasy": "^2.0.0",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.3.6",
     "zustand": "^5.0.12"

@@ -77,6 +77,20 @@ export default async function DashboardLayout({
   // Get accurate recursive asset counts via SQL CTE
   const assetCountMap = await getRecursiveAssetCounts();
 
+  // Fetch extra user fields needed by the header (provider, totpEnabled)
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { provider: true, totpEnabled: true },
+  });
+
+  const headerUser = {
+    name: session.user.name,
+    email: session.user.email,
+    role: session.user.role,
+    provider: dbUser?.provider ?? "credentials",
+    totpEnabled: dbUser?.totpEnabled ?? false,
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar
@@ -85,7 +99,7 @@ export default async function DashboardLayout({
         assetCountMap={assetCountMap}
       />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Header user={{ name: session.user.name, email: session.user.email, role: session.user.role }} />
+        <Header user={headerUser} />
         <main className="flex-1 overflow-auto p-6">
           {children}
         </main>

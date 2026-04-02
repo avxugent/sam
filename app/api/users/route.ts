@@ -11,13 +11,23 @@ const createSchema = z.object({
   role: z.enum(["ADMIN", "EDITOR", "VIEWER"]),
 });
 
+const USER_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  provider: true,
+  totpEnabled: true,
+  createdAt: true,
+} as const;
+
 export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, role: true, provider: true, createdAt: true },
+    select: USER_SELECT,
     orderBy: { name: "asc" },
   });
   return NextResponse.json(users);
@@ -44,7 +54,7 @@ export async function POST(req: NextRequest) {
       role: parsed.data.role,
       provider: "credentials",
     },
-    select: { id: true, name: true, email: true, role: true, provider: true, createdAt: true },
+    select: USER_SELECT,
   });
 
   return NextResponse.json(user, { status: 201 });

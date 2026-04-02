@@ -23,11 +23,22 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma client (reads schema.prisma)
-RUN npx prisma generate
+# Build-time arguments — only used during `next build`, never baked into the
+# runtime image. Pass real values via docker build --build-arg or CI build-args.
+# A dummy DATABASE_URL is enough for `prisma generate`; the app does NOT
+# connect to the database at build time.
+ARG DATABASE_URL=mysql://sam:build@localhost:3306/samdb
+ARG NEXTAUTH_SECRET=build-time-placeholder
+ARG NEXTAUTH_URL=http://localhost:3000
+ARG NEXT_TELEMETRY_DISABLED=1
 
-# Disable Next.js telemetry during build
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV DATABASE_URL=$DATABASE_URL
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+ENV NEXTAUTH_URL=$NEXTAUTH_URL
+ENV NEXT_TELEMETRY_DISABLED=$NEXT_TELEMETRY_DISABLED
+
+# Generate Prisma client (reads schema.prisma — does NOT connect to DB)
+RUN npx prisma generate
 
 # Build produces .next/standalone + .next/static
 RUN npm run build

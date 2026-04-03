@@ -1,0 +1,43 @@
+# Prometheus configuration for SAM development environment
+#
+# Two scrape jobs:
+#
+#   sam_devices   — Uses SAM's HTTP Service Discovery endpoint to dynamically
+#                   build the list of monitoring targets from the asset database.
+#                   Discovered targets will appear in the Prometheus UI under
+#                   Status → Targets. In a dev environment they will be reported
+#                   as DOWN (no real devices to scrape) — that is expected.
+#                   The goal is to verify the SD response is valid and that
+#                   sam_* labels are applied correctly.
+#
+#   sam_inventory — Scrapes the SAM metrics endpoint which exposes asset and
+#                   location counts in Prometheus text format. This job should
+#                   be UP as soon as the app is running.
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+
+  # ── HTTP Service Discovery ──────────────────────────────────────────────────
+  - job_name: "sam_devices"
+    http_sd_configs:
+      - url: "http://app:3000/api/prometheus/sd"
+        refresh_interval: 30s
+        authorization:
+          type: Bearer
+          credentials: "dev-prometheus-token"
+    # Map sam_* labels from the SD response onto the scraped time-series
+    relabel_configs:
+      - regex: "sam_(.*)"
+        action: labelmap
+
+  # ── Inventory metrics ───────────────────────────────────────────────────────
+  - job_name: "sam_inventory"
+    metrics_path: /api/prometheus/metrics
+    authorization:
+      type: Bearer
+      credentials: "dev-prometheus-token"
+    static_configs:
+      - targets: ["app:3000"]

@@ -1,0 +1,128 @@
+# Development Docker Compose
+#
+# Runs the full SAM stack locally with MySQL, Vault, and Prometheus.
+# All credentials are hardcoded for development — do NOT use in production.
+#
+# Usage:
+#   cd development
+#   docker compose up --build
+#
+# Services:
+#   app        — http://localhost:3000  (Next.js dev server, hot reload)
+#   db         — localhost:3306         (MySQL 8)
+#   vault      — http://localhost:8200  (Vault UI, token: root)
+#   vault-init — (one-shot init; run: docker compose logs vault-init for AppRole creds)
+#   prometheus — http://localhost:9090  (Prometheus UI)
+
+services:
+
+  # ── Application ──────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: ..
+      dockerfile: development/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "mysql://sam:sampassword@db:3306/samdb"
+      NEXTAUTH_SECRET: "dev-secret-do-not-use-in-production"
+      NEXTAUTH_URL: "http://localhost:3000"
+      UPLOAD_DIR: "/app/uploads"
+      # Vault — token auth (switch to AppRole by setting VAULT_ROLE_ID/VAULT_SECRET_ID
+      # and leaving VAULT_TOKEN blank; see vault-init logs for the generated credentials)
+      VAULT_ADDR: "http://vault:8200"
+      VAULT_TOKEN: "root"
+      VAULT_KV_VERSION: "v2"
+      # Prometheus SD — must match the credentials in prometheus/prometheus.yml
+      PROMETHEUS_SD_TOKEN: "dev-prometheus-token"
+    volumes:
+      # Bind-mount source for hot reload. node_modules and .next use named
+      # volumes so the container-built artifacts don't get overwritten by the
+      # (potentially different OS) host copies.
+      - ..:/app
+      - dev_node_modules:/app/node_modules
+      - dev_next:/app/.next
+      - dev_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Database ─────────────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: samdb
+      MYSQL_USER: sam
+      MYSQL_PASSWORD: sampassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - dev_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── Vault ─────────────────────────────────────────────────────────────────────
+  vault:
+    image: hashicorp/vault:1.19
+    command: vault server -dev -dev-root-token-id=root
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  # ── Vault initialisation (one-shot) ──────────────────────────────────────────
+  vault-init:
+    image: hashicorp/vault:1.19
+    environment:
+      VAULT_ADDR: "http://vault:8200"
+      VAULT_TOKEN: root
+    volumes:
+      - ./vault/init.sh:/vault/init.sh:ro
+    command: sh /vault/init.sh
+    depends_on:
+      vault:
+        condition: service_healthy
+    restart: "no"
+
+  # ── Prometheus ────────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v3.3.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - dev_prometheus_data:/prometheus
+    depends_on:
+      - app
+    restart: unless-stopped
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  dev_mysql_data:
+  dev_node_modules:
+  dev_next:
+  dev_uploads:
+  dev_prometheus_data:

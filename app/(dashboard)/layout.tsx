@@ -9,20 +9,24 @@ type AssetCountRow = { id: string; totalAssets: bigint };
 /**
  * Returns a map of locationId -> total recursive asset count using a
  * MySQL recursive CTE. Accurate at any depth, one query.
+ *
+ * The CTE builds a (root_id, loc_id) table where loc_id is the location
+ * itself or any of its descendants. Grouping by root_id then sums assets
+ * across the entire subtree of each location.
  */
 async function getRecursiveAssetCounts(): Promise<Record<string, number>> {
   const rows = await prisma.$queryRaw<AssetCountRow[]>`
     WITH RECURSIVE loc_tree AS (
-      SELECT id, parentId FROM locations
+      SELECT id AS root_id, id AS loc_id FROM locations
       UNION ALL
-      SELECT l.id, l.parentId
-      FROM locations l
-      INNER JOIN loc_tree lt ON l.parentId = lt.id
+      SELECT lt.root_id, l.id AS loc_id
+      FROM loc_tree lt
+      INNER JOIN locations l ON l.parentId = lt.loc_id
     )
-    SELECT lt.id, COUNT(a.id) AS totalAssets
+    SELECT lt.root_id AS id, COUNT(a.id) AS totalAssets
     FROM loc_tree lt
-    LEFT JOIN assets a ON a.locationId = lt.id
-    GROUP BY lt.id
+    LEFT JOIN assets a ON a.locationId = lt.loc_id
+    GROUP BY lt.root_id
   `;
 
   const map: Record<string, number> = {};

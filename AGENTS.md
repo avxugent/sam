@@ -212,6 +212,69 @@ Optional integrations:
 
 ---
 
+## Testing
+
+### Framework and tooling
+
+| Tool | Purpose |
+|---|---|
+| **Vitest** | Unit and component test runner (`npm test`) |
+| **@testing-library/react** | DOM-based component testing |
+| **@testing-library/user-event** | Realistic browser interaction simulation |
+| **@testing-library/jest-dom** | DOM matchers (`.toBeInTheDocument()`, etc.) |
+| **jsdom v24** | Browser environment for component tests (v27+ is ESM-only, use v24) |
+| **@vitest/coverage-v8** | V8-based code coverage |
+
+### Running tests
+
+```bash
+npm test                # run all tests once
+npm run test:watch      # watch mode
+npm run test:coverage   # run with coverage report + enforce thresholds
+npm run test:ui         # open Vitest UI in browser
+```
+
+### Coverage requirement — **80% minimum**
+
+The project enforces an 80% minimum threshold on **lines, functions, branches, and statements** for all covered files. The CI pipeline fails if coverage drops below this. Run `npm run test:coverage` before pushing.
+
+Coverage is measured on:
+- `lib/**/*.ts` — all shared utilities (excluding `lib/prisma.ts` and `lib/auth.ts`)
+- `app/api/**/*.ts` — route handlers that have corresponding test files
+- `components/**/*.tsx` — UI components that have corresponding test files
+
+Coverage measurement excludes infrastructure-only files (PrismaClient singleton, NextAuth config), pass-through re-exports, and complex UI-only components that are tested functionally rather than by line coverage.
+
+### Test file location
+
+Test files live in `__tests__/` mirroring the source structure:
+
+```
+__tests__/
+  lib/        ← unit tests for lib/* functions
+  api/        ← mocked route handler tests
+  components/ ← React component tests
+```
+
+### Rules for writing tests
+
+1. **Every new `lib/` function must have a unit test.** Pure functions (no I/O) are the highest-value test targets.
+2. **Every new API route must have at least a smoke test** covering: unauthenticated (401), wrong role (403), happy path (2xx), and key validation errors (400).
+3. **Zod validation schemas are mirrored** in both the form component and API route. The test suite must cover the shared validation rules.
+4. **Mock Prisma at the module level** using `vi.mock("@/lib/prisma", ...)` — never connect to a real database in unit tests.
+5. **Mock `@/lib/auth`** when testing API routes that call `auth()`.
+6. **Never import from `next/server` in pure unit tests** without mocking it — it causes `ERR_REQUIRE_ESM` in the test worker.
+7. **Component tests use `@testing-library/react`** — query by role/label/text, not by CSS class or test-id.
+8. **`vi.mock()` calls must be at the top level** of the test file (before any `import` of the module under test).
+9. **Do not write snapshot tests** — they are brittle and add noise without meaningful coverage.
+10. **The `reducer` exported from `components/ui/use-toast.ts` is a pure function** — test it directly without rendering any React.
+
+### vitest.config.mts location
+
+The Vitest config is at `vitest.config.mts` (`.mts` extension required for ESM compatibility in a CJS project). The setup file is `vitest.setup.mts`. Do **not** rename these to `.ts` — the test runner will fail to start.
+
+---
+
 ## Common mistakes to avoid
 
 1. **Do not use `params.id` directly** — always `const { id } = await params`.
@@ -224,3 +287,6 @@ Optional integrations:
 8. **Do not bypass Zod validation** in API routes — all user-controlled input must be validated before reaching Prisma.
 9. **Do not store secrets in the codebase** — use environment variables.
 10. **Do not hardcode MySQL queries as raw strings** — use Prisma's typed API or `$queryRaw` with tagged template literals.
+11. **Do not rename `vitest.config.mts` to `vitest.config.ts`** — the `.mts` extension is required for ESM compatibility.
+12. **Do not use jsdom v27+** — it ships ESM-only dependencies that break the CJS test worker. Pin to v24.
+13. **Always run `npm run test:coverage` before pushing** — the CI workflow enforces the 80% threshold and will fail otherwise.

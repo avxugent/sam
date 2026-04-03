@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { unlink } from "fs/promises";
-import { join, resolve } from "path";
+import { resolve } from "path";
 
 /** Strip characters that could break HTTP headers or cause path traversal */
 function safeFilename(name: string): string {

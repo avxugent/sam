@@ -1,0 +1,66 @@
+name: CI — Lint, Type-check & Test
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  ci:
+    name: Lint · Type-check · Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Set up Node.js ──────────────────────────────────────────────────
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # ── 3. Install dependencies ────────────────────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 4. Generate Prisma client ──────────────────────────────────────────
+      # Required before TypeScript type-checking (the client types are generated)
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # ── 5. TypeScript type-check ───────────────────────────────────────────
+      # Runs `tsc --noEmit` — fails on any type error in the whole project.
+      - name: TypeScript type-check
+        run: npx tsc --noEmit
+
+      # ── 6. ESLint ─────────────────────────────────────────────────────────
+      # Runs the Next.js-bundled ESLint config.
+      - name: ESLint
+        run: npm run lint -- --max-warnings 0
+
+      # ── 7. Unit tests + coverage ───────────────────────────────────────────
+      # Runs all tests and enforces the 80% coverage threshold.
+      # The DATABASE_URL is a dummy value — no real DB is needed for unit tests.
+      - name: Run tests with coverage
+        run: npm run test:coverage
+        env:
+          DATABASE_URL: "mysql://sam:test@localhost:3306/samdb"
+          NEXTAUTH_SECRET: "ci-test-secret"
+          NEXTAUTH_URL: "http://localhost:3000"
+
+      # ── 8. Upload coverage report ──────────────────────────────────────────
+      - name: Upload coverage to GitHub (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14

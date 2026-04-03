@@ -36,9 +36,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ assets: [], locations: [], query: q });
   }
 
-  // Use a SQL LIKE pattern for broad matching
-  const like = `%${q}%`;
-
   // ── Asset search ────────────────────────────────────────────────────────────
   // We search across many fields using OR conditions. Prisma's `where` with
   // nested OR handles this cleanly and avoids raw SQL injection risk.

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { parseCsv, parseDate, csvValue } from "@/lib/csv";
 
 // CSV columns from the legacy export
 // GUID;FI NUMMER;CAMPUS;GEBOUW;LOKAAL;TYPE;BRAND;MODEL;SERIAL;QUANTITY;
@@ -12,87 +13,8 @@ import { auth } from "@/lib/auth";
 
 const FI_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{3}$/;
 
-type CsvRow = Record<string, string>;
-
-function parseDate(val: string): Date | null {
-  if (!val || val.trim() === "") return null;
-  // Try ISO format first (YYYY-MM-DD)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
-    const d = new Date(val.trim());
-    return isNaN(d.getTime()) ? null : d;
-  }
-  // Try DD/MM/YYYY
-  const dmyMatch = val.trim().match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
-  if (dmyMatch) {
-    const d = new Date(`${dmyMatch[3]}-${dmyMatch[2].padStart(2, "0")}-${dmyMatch[1].padStart(2, "0")}`);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  // Try DD/MM/YY
-  const dmyShort = val.trim().match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2})$/);
-  if (dmyShort) {
-    const year = parseInt(dmyShort[3]) + 2000;
-    const d = new Date(`${year}-${dmyShort[2].padStart(2, "0")}-${dmyShort[1].padStart(2, "0")}`);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  // Fallback: let JS try
-  const d = new Date(val.trim());
-  return isNaN(d.getTime()) ? null : d;
-}
-
-function parseCsv(text: string): CsvRow[] {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
-  if (lines.length < 2) return [];
-
-  // Detect delimiter: try ; first, then ,
-  const firstLine = lines[0];
-  const delimiter = firstLine.includes(";") ? ";" : ",";
-
-  const headers = firstLine.split(delimiter).map((h) => h.trim().replace(/^"|"$/g, ""));
-  const rows: CsvRow[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const values = splitCsvLine(lines[i], delimiter);
-    if (values.every((v) => v.trim() === "")) continue;
-    const row: CsvRow = {};
-    headers.forEach((h, idx) => {
-      row[h] = (values[idx] ?? "").trim().replace(/^"|"$/g, "");
-    });
-    rows.push(row);
-  }
-  return rows;
-}
-
-function splitCsvLine(line: string, delimiter: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === delimiter && !inQuotes) {
-      result.push(current);
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current);
-  return result;
-}
-
-function v(row: CsvRow, ...keys: string[]): string {
-  for (const key of keys) {
-    const val = row[key];
-    if (val !== undefined && val.trim() !== "") return val.trim();
-  }
-  return "";
-}
+// Re-export csvValue under short alias for local readability
+const v = csvValue;
 
 export async function POST(req: NextRequest) {
   const session = await auth();

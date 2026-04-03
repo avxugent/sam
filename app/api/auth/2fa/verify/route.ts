@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/totp";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const schema = z.object({ code: z.string().min(6).max(6) });
@@ -28,6 +29,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // Rate-limit TOTP verification per user + IP to prevent brute-force of 6-digit codes
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    req.headers.get("x-real-ip") ??
+    "unknown";
+  const rl = checkRateLimit(`2fa:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) },
+      }
+    );
+  }
+
   const body = await req.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid code." }, { status: 400 });
@@ -38,8 +55,12 @@ export async function POST(req: NextRequest) {
   });
 
   if (!user?.totpEnabled || !user.totpSecret) {
-    // 2FA was disabled between login and this call — treat as verified
-    return NextResponse.json({ ok: true });
+    // 2FA was disabled between login and this call — the session state is
+    // inconsistent. Require the user to log in again rather than silently granting access.
+    return NextResponse.json(
+      { error: "Session state mismatch. Please log in again." },
+      { status: 401 }
+    );
   }
 
   const valid = verifyTotpCode(user.totpSecret, parsed.data.code);

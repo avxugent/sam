@@ -4,6 +4,7 @@ import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -26,9 +27,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
+
+        // Rate-limit by IP (broad) and by email (per-account)
+        const ip =
+          request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+          request.headers.get("x-real-ip") ??
+          "unknown";
+        const ipRl = checkRateLimit(`login:ip:${ip}`, 20, 15 * 60 * 1000);
+        const emailRl = checkRateLimit(`login:email:${parsed.data.email}`, 10, 15 * 60 * 1000);
+        if (!ipRl.allowed || !emailRl.allowed) return null;
 
         const user = await prisma.user.findUnique({
           where: { email: parsed.data.email },

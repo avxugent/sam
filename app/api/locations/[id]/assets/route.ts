@@ -146,8 +146,12 @@ export async function POST(
   return NextResponse.json(asset, { status: 201 });
 }
 
+// CUID format used by Prisma @default(cuid())
+const CUID_REGEX = /^[0-9a-z]{25}$/;
+
 // Uses a raw SQL recursive CTE instead of sequential round-trips
 async function getAllDescendantIds(locationId: string): Promise<string[]> {
+  if (!CUID_REGEX.test(locationId)) return [];
   type Row = { id: string };
   const rows = await prisma.$queryRaw<Row[]>`
     WITH RECURSIVE loc_tree AS (

@@ -38,7 +38,7 @@ export async function PUT(
         { status: 400 }
       );
     }
-    updateData.passwordHash = await bcrypt.hash(password, 12);
+    updateData.passwordHash = await bcrypt.hash(password, 13);
   }
 
   const user = await prisma.user.update({

@@ -25,6 +25,14 @@ export async function POST(req: NextRequest) {
   const file = formData.get("file") as File | null;
   if (!file) return NextResponse.json({ error: "No file provided." }, { status: 400 });
 
+  // Validate that the uploaded file is a CSV — check both MIME type and extension
+  const ALLOWED_CSV_TYPES = new Set(["text/csv", "text/plain", "application/csv"]);
+  const hasValidType = ALLOWED_CSV_TYPES.has(file.type);
+  const hasValidExt = file.name.toLowerCase().endsWith(".csv");
+  if (!hasValidType && !hasValidExt) {
+    return NextResponse.json({ error: "Only CSV files are accepted." }, { status: 400 });
+  }
+
   const text = await file.text();
   const rows = parseCsv(text);
 
@@ -224,6 +232,11 @@ export async function PUT(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   if (!file) return NextResponse.json({ error: "No file provided." }, { status: 400 });
+
+  const ALLOWED_CSV_TYPES = new Set(["text/csv", "text/plain", "application/csv"]);
+  if (!ALLOWED_CSV_TYPES.has(file.type) && !file.name.toLowerCase().endsWith(".csv")) {
+    return NextResponse.json({ error: "Only CSV files are accepted." }, { status: 400 });
+  }
 
   const text = await file.text();
   const rows = parseCsv(text);

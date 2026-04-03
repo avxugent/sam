@@ -176,9 +176,9 @@ prisma/
 - All HTTP responses already include security headers (CSP, HSTS, X-Frame-Options, etc.) via `next.config.ts`. Do not remove or weaken them.
 - The CSP `frame-src` allows `https://www.openstreetmap.org` for the map embeds — if you add other embeds, add their origin here.
 - Never log secrets, passwords, or Vault token values.
-- `PROMETHEUS_SD_TOKEN` and `VAULT_TOKEN` must never be returned in API responses.
+- `PROMETHEUS_SD_TOKEN`, `VAULT_TOKEN`, `VAULT_SECRET_ID`, and AppRole-derived tokens must never be returned in API responses.
 - Do not add new unauthenticated public routes without explicit discussion.
-- Passwords are hashed with bcrypt cost 12. Do not lower the cost factor.
+- Passwords are hashed with bcrypt cost 13. Do not lower the cost factor.
 - The `/api/setup` endpoint checks `userCount === 0` before allowing admin creation. Do not remove this guard.
 - JWT sessions expire in 8 hours (`maxAge: 8 * 60 * 60`). Do not increase this without discussion.
 
@@ -206,7 +206,9 @@ Key variables (always present):
 Optional integrations:
 - `AUTH_MICROSOFT_ENTRA_ID_ID` / `_SECRET` / `_ISSUER` — Entra ID SSO
 - `PROMETHEUS_SD_TOKEN` — Bearer token for `/api/prometheus/*` endpoints
-- `VAULT_ADDR` / `VAULT_TOKEN` / `VAULT_KV_VERSION` — HashiCorp Vault
+- `VAULT_ADDR` / `VAULT_KV_VERSION` — HashiCorp Vault (required when Vault is used)
+- `VAULT_TOKEN` — static token auth
+- `VAULT_ROLE_ID` / `VAULT_SECRET_ID` / `VAULT_APPROLE_MOUNT` — AppRole auth (takes precedence over `VAULT_TOKEN` when both are set)
 
 `.env.example` is the canonical reference. Always update it when adding new variables.
 

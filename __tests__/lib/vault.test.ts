@@ -5,54 +5,94 @@ import { isVaultConfigured, readVaultSecret, listVaultSecretKeys } from "@/lib/v
 const ORIGINAL_ADDR = process.env.VAULT_ADDR;
 const ORIGINAL_TOKEN = process.env.VAULT_TOKEN;
 const ORIGINAL_VERSION = process.env.VAULT_KV_VERSION;
+const ORIGINAL_ROLE_ID = process.env.VAULT_ROLE_ID;
+const ORIGINAL_SECRET_ID = process.env.VAULT_SECRET_ID;
+const ORIGINAL_APPROLE_MOUNT = process.env.VAULT_APPROLE_MOUNT;
 
-function setVaultEnv(addr?: string, token?: string, version?: string) {
-  if (addr !== undefined) process.env.VAULT_ADDR = addr;
-  else delete process.env.VAULT_ADDR;
-  if (token !== undefined) process.env.VAULT_TOKEN = token;
-  else delete process.env.VAULT_TOKEN;
-  if (version !== undefined) process.env.VAULT_KV_VERSION = version;
-  else delete process.env.VAULT_KV_VERSION;
+function setVaultEnv(opts: {
+  addr?: string;
+  token?: string;
+  version?: string;
+  roleId?: string;
+  secretId?: string;
+  approleMount?: string;
+}) {
+  const set = (key: string, val?: string) => {
+    if (val !== undefined) process.env[key] = val;
+    else delete process.env[key];
+  };
+  set("VAULT_ADDR", opts.addr);
+  set("VAULT_TOKEN", opts.token);
+  set("VAULT_KV_VERSION", opts.version);
+  set("VAULT_ROLE_ID", opts.roleId);
+  set("VAULT_SECRET_ID", opts.secretId);
+  set("VAULT_APPROLE_MOUNT", opts.approleMount);
 }
 
 afterEach(() => {
-  setVaultEnv(ORIGINAL_ADDR, ORIGINAL_TOKEN, ORIGINAL_VERSION);
+  setVaultEnv({
+    addr: ORIGINAL_ADDR,
+    token: ORIGINAL_TOKEN,
+    version: ORIGINAL_VERSION,
+    roleId: ORIGINAL_ROLE_ID,
+    secretId: ORIGINAL_SECRET_ID,
+    approleMount: ORIGINAL_APPROLE_MOUNT,
+  });
   vi.restoreAllMocks();
 });
 
 // ── isVaultConfigured ────────────────────────────────────────────────────────
 
 describe("isVaultConfigured()", () => {
-  it("returns false when neither env var is set", () => {
-    setVaultEnv(undefined, undefined);
+  it("returns false when no env vars are set", () => {
+    setVaultEnv({});
     expect(isVaultConfigured()).toBe(false);
   });
 
   it("returns false when only VAULT_ADDR is set", () => {
-    setVaultEnv("https://vault.example.com", undefined);
+    setVaultEnv({ addr: "https://vault.example.com" });
     expect(isVaultConfigured()).toBe(false);
   });
 
   it("returns false when only VAULT_TOKEN is set", () => {
-    setVaultEnv(undefined, "s.token");
+    setVaultEnv({ token: "s.token" });
     expect(isVaultConfigured()).toBe(false);
   });
 
-  it("returns true when both are set", () => {
-    setVaultEnv("https://vault.example.com", "s.token");
+  it("returns true when VAULT_ADDR + VAULT_TOKEN are set (token auth)", () => {
+    setVaultEnv({ addr: "https://vault.example.com", token: "s.token" });
+    expect(isVaultConfigured()).toBe(true);
+  });
+
+  it("returns false when VAULT_ADDR + VAULT_ROLE_ID are set but VAULT_SECRET_ID is missing", () => {
+    setVaultEnv({ addr: "https://vault.example.com", roleId: "my-role-id" });
+    expect(isVaultConfigured()).toBe(false);
+  });
+
+  it("returns false when VAULT_ADDR + VAULT_SECRET_ID are set but VAULT_ROLE_ID is missing", () => {
+    setVaultEnv({ addr: "https://vault.example.com", secretId: "my-secret-id" });
+    expect(isVaultConfigured()).toBe(false);
+  });
+
+  it("returns true when VAULT_ADDR + VAULT_ROLE_ID + VAULT_SECRET_ID are set (AppRole auth)", () => {
+    setVaultEnv({
+      addr: "https://vault.example.com",
+      roleId: "my-role-id",
+      secretId: "my-secret-id",
+    });
     expect(isVaultConfigured()).toBe(true);
   });
 });
 
-// ── readVaultSecret ──────────────────────────────────────────────────────────
+// ── readVaultSecret — token auth ─────────────────────────────────────────────
 
-describe("readVaultSecret()", () => {
+describe("readVaultSecret() — token auth", () => {
   beforeEach(() => {
-    setVaultEnv("https://vault.example.com", "s.testtoken", "v2");
+    setVaultEnv({ addr: "https://vault.example.com", token: "s.testtoken", version: "v2" });
   });
 
   it("returns null when vault is not configured", async () => {
-    setVaultEnv(undefined, undefined);
+    setVaultEnv({});
     const result = await readVaultSecret("secret/av/device1");
     expect(result).toBeNull();
   });
@@ -80,7 +120,7 @@ describe("readVaultSecret()", () => {
   });
 
   it("reads KV v1 secrets without inserting 'data/' segment", async () => {
-    setVaultEnv("https://vault.example.com", "s.testtoken", "v1");
+    setVaultEnv({ addr: "https://vault.example.com", token: "s.testtoken", version: "v1" });
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ data: { username: "admin" } }),
@@ -90,7 +130,6 @@ describe("readVaultSecret()", () => {
     expect(result).toEqual({ username: "admin" });
 
     const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    // Must NOT contain double "data"
     expect(url).not.toContain("/data/data/");
     expect(url).toContain("/v1/secret/av/device1");
   });
@@ -123,11 +162,137 @@ describe("readVaultSecret()", () => {
   });
 });
 
+// ── readVaultSecret — AppRole auth ───────────────────────────────────────────
+
+describe("readVaultSecret() — AppRole auth", () => {
+  const LOGIN_RESPONSE = {
+    auth: { client_token: "s.approle-token", lease_duration: 3600 },
+  };
+  const SECRET_RESPONSE = {
+    data: { data: { username: "admin", password: "s3cr3t" } },
+  };
+
+  beforeEach(() => {
+    setVaultEnv({
+      addr: "https://vault.example.com",
+      roleId: "test-role-id",
+      secretId: "test-secret-id",
+      version: "v2",
+    });
+  });
+
+  it("logs in via AppRole and uses the returned token to read a secret", async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => LOGIN_RESPONSE,
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => SECRET_RESPONSE,
+      } as Response);
+
+    const result = await readVaultSecret("secret/av/device1");
+    expect(result).toEqual({ username: "admin", password: "s3cr3t" });
+
+    const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls;
+    // First call must be the AppRole login
+    expect(calls[0][0]).toContain("/v1/auth/approle/login");
+    expect(calls[0][1].method).toBe("POST");
+    expect(JSON.parse(calls[0][1].body)).toEqual({
+      role_id: "test-role-id",
+      secret_id: "test-secret-id",
+    });
+    // Second call must use the token from the login response
+    expect(calls[1][1].headers["X-Vault-Token"]).toBe("s.approle-token");
+  });
+
+  it("uses a custom VAULT_APPROLE_MOUNT path", async () => {
+    setVaultEnv({
+      addr: "https://vault.example.com",
+      roleId: "r",
+      secretId: "s",
+      approleMount: "custom-approle",
+      version: "v2",
+    });
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => LOGIN_RESPONSE,
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => SECRET_RESPONSE,
+      } as Response);
+
+    await readVaultSecret("secret/device");
+
+    const loginUrl = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(loginUrl).toContain("/v1/auth/custom-approle/login");
+  });
+
+  it("returns null when AppRole login fails", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({}),
+    } as Response);
+
+    const result = await readVaultSecret("secret/device");
+    expect(result).toBeNull();
+  });
+
+  it("returns null when AppRole login response contains no client_token", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ auth: {} }),
+    } as Response);
+
+    const result = await readVaultSecret("secret/device");
+    expect(result).toBeNull();
+  });
+
+  it("returns null when the AppRole login fetch throws", async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
+    const result = await readVaultSecret("secret/device");
+    expect(result).toBeNull();
+  });
+
+  it("prefers AppRole over VAULT_TOKEN when both are set", async () => {
+    setVaultEnv({
+      addr: "https://vault.example.com",
+      token: "s.static-token",
+      roleId: "test-role-id",
+      secretId: "test-secret-id",
+      version: "v2",
+    });
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => LOGIN_RESPONSE,
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => SECRET_RESPONSE,
+      } as Response);
+
+    await readVaultSecret("secret/device");
+
+    const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls;
+    // Must have performed the AppRole login, not used the static token directly
+    expect(calls[0][0]).toContain("/v1/auth/approle/login");
+    // The secret read must use the AppRole token, not the static one
+    expect(calls[1][1].headers["X-Vault-Token"]).toBe("s.approle-token");
+  });
+});
+
 // ── listVaultSecretKeys ──────────────────────────────────────────────────────
 
 describe("listVaultSecretKeys()", () => {
   beforeEach(() => {
-    setVaultEnv("https://vault.example.com", "s.token", "v2");
+    setVaultEnv({ addr: "https://vault.example.com", token: "s.token", version: "v2" });
   });
 
   it("returns key names without values", async () => {

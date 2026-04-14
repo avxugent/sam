@@ -71,10 +71,9 @@ jobs:
             type=sha,prefix=sha-,format=short
 
       # ── 5. Build (and push if not a PR) ───────────────────────────────────
-      # The Next.js build requires DATABASE_URL at build time so that Prisma
-      # can generate the client. The app does NOT connect to the DB during build
-      # — a dummy MySQL URL is sufficient. NEXTAUTH_SECRET and NEXTAUTH_URL are
-      # also required to avoid build-time errors from next-auth.
+      # Prisma client generation requires DB vars at build time. The app does NOT
+      # connect to the DB during build — dummy values are sufficient.
+      # NEXTAUTH_SECRET and NEXTAUTH_URL are required to avoid next-auth build errors.
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -85,7 +84,11 @@ jobs:
 
           # Build-time environment variables (dummy values — no real DB needed)
           build-args: |
-            DATABASE_URL=mysql://sam:build@localhost:3306/samdb
+            DB_HOST=localhost
+            DB_PORT=3306
+            DB_NAME=samdb
+            DB_USER=sam
+            DB_PASSWORD=build
             NEXTAUTH_SECRET=build-time-placeholder-not-used-at-runtime
             NEXTAUTH_URL=http://localhost:3000
             NEXT_TELEMETRY_DISABLED=1

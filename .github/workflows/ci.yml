@@ -48,11 +48,16 @@ jobs:
 
       # ── 7. Unit tests + coverage ───────────────────────────────────────────
       # Runs all tests and enforces the 80% coverage threshold.
-      # The DATABASE_URL is a dummy value — no real DB is needed for unit tests.
+      # Dummy DB values — no real DB is needed for unit tests.
       - name: Run tests with coverage
         run: npm run test:coverage
         env:
-          DATABASE_URL: "mysql://sam:test@localhost:3306/samdb"
+          DB_HOST: "localhost"
+          DB_PORT: "3306"
+          DB_NAME: "samdb"
+          DB_USER: "sam"
+          DB_PASSWORD: "test"
+          DB_SSL: "false"
           NEXTAUTH_SECRET: "ci-test-secret"
           NEXTAUTH_URL: "http://localhost:3000"
 

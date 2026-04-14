@@ -24,7 +24,13 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: "mysql://sam:sampassword@db:3306/samdb"
+      # Database — individual connection parameters (app assembles the URL internally)
+      DB_HOST: "db"
+      DB_PORT: "3306"
+      DB_NAME: "samdb"
+      DB_USER: "sam"
+      DB_PASSWORD: "sampassword"
+      DB_SSL: "false"
       NEXTAUTH_SECRET: "dev-secret-do-not-use-in-production"
       NEXTAUTH_URL: "http://localhost:3000"
       UPLOAD_DIR: "/app/uploads"

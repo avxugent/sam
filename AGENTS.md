@@ -199,7 +199,12 @@ prisma/
 ## Environment variables
 
 Key variables (always present):
-- `DATABASE_URL` — MySQL connection string
+- `DB_HOST` — MySQL hostname
+- `DB_PORT` — MySQL port (default: `3306`)
+- `DB_NAME` — Database name
+- `DB_USER` — Database username
+- `DB_PASSWORD` — Database password
+- `DB_SSL` — `true` to require TLS (`sslaccept=strict`), `false` to disable (default)
 - `NEXTAUTH_SECRET` — JWT signing secret (generate with `openssl rand -base64 32`)
 - `NEXTAUTH_URL` — full public URL, no trailing slash
 

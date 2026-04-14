@@ -11,9 +11,13 @@
 //       - The Nomad cluster configured with vault { address = "..." }
 //
 // Required Vault secret keys at  secret/data/sam/config :
-//   database_url          mysql://sam:<password>@<host>:3306/samdb
+//   db_host               MySQL hostname (e.g. "db.internal")
+//   db_port               MySQL port (e.g. "3306")
+//   db_name               Database name (e.g. "samdb")
+//   db_user               Database username (e.g. "sam")
+//   db_password           Database password for the above user
+//   db_ssl                "true" to require TLS, "false" otherwise
 //   nextauth_secret       output of: openssl rand -base64 32
-//   mysql_password        password for the "sam" MySQL user
 //   prometheus_sd_token   output of: openssl rand -base64 32  (leave blank to disable)
 //   vault_addr            https://vault.example.com  (SAM's own Vault reads for asset creds)
 //   vault_token           a Vault token for SAM's per-asset secret lookups
@@ -116,7 +120,12 @@ job "sam" {
       template {
         data = <<EOH
 {{- with secret "secret/data/sam/config" -}}
-DATABASE_URL="{{ .Data.data.database_url }}"
+DB_HOST="{{ .Data.data.db_host }}"
+DB_PORT="{{ .Data.data.db_port }}"
+DB_NAME="{{ .Data.data.db_name }}"
+DB_USER="{{ .Data.data.db_user }}"
+DB_PASSWORD="{{ .Data.data.db_password }}"
+DB_SSL="{{ .Data.data.db_ssl }}"
 NEXTAUTH_SECRET="{{ .Data.data.nextauth_secret }}"
 PROMETHEUS_SD_TOKEN="{{ .Data.data.prometheus_sd_token }}"
 VAULT_ADDR="{{ .Data.data.vault_addr }}"
@@ -177,11 +186,16 @@ EOH
         args    = ["prisma", "db", "push", "--skip-generate"]
       }
 
-      // Needs the DATABASE_URL to connect
+      // Needs the DB_* vars to connect
       template {
         data = <<EOH
 {{- with secret "secret/data/sam/config" -}}
-DATABASE_URL="{{ .Data.data.database_url }}"
+DB_HOST="{{ .Data.data.db_host }}"
+DB_PORT="{{ .Data.data.db_port }}"
+DB_NAME="{{ .Data.data.db_name }}"
+DB_USER="{{ .Data.data.db_user }}"
+DB_PASSWORD="{{ .Data.data.db_password }}"
+DB_SSL="{{ .Data.data.db_ssl }}"
 {{- end }}
 EOH
         destination = "secrets/migrate.env"

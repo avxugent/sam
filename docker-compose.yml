@@ -19,7 +19,13 @@ services:
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
-      DATABASE_URL: "mysql://sam:${MYSQL_PASSWORD}@db:3306/samdb"
+      # Database — individual connection parameters (app assembles the URL internally)
+      DB_HOST: "db"
+      DB_PORT: "3306"
+      DB_NAME: "${DB_NAME:-samdb}"
+      DB_USER: "${DB_USER:-sam}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_SSL: "${DB_SSL:-false}"
       NEXTAUTH_SECRET: "${NEXTAUTH_SECRET}"
       NEXTAUTH_URL: "${NEXTAUTH_URL:-http://localhost:3000}"
       UPLOAD_DIR: "/app/uploads"
@@ -52,9 +58,9 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
-      MYSQL_DATABASE: samdb
-      MYSQL_USER: sam
-      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      MYSQL_DATABASE: "${DB_NAME:-samdb}"
+      MYSQL_USER: "${DB_USER:-sam}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
     volumes:
       - sam-mysql-data:/var/lib/mysql
     # Only expose port to host if needed for external access / dev tools

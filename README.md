@@ -64,11 +64,15 @@ Set **all** of these:
 
 | Variable | Description |
 |---|---|
-| `DATABASE_URL` | MySQL connection string (uses internal `db` service) |
+| `DB_HOST` | MySQL hostname (`db` when using docker-compose) |
+| `DB_PORT` | MySQL port (default: `3306`) |
+| `DB_NAME` | Database name (default: `samdb`) |
+| `DB_USER` | Database username (default: `sam`) |
+| `DB_PASSWORD` | Database password |
+| `DB_SSL` | `true` to require TLS, `false` to disable (default) |
 | `NEXTAUTH_SECRET` | Long random string — `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | Public URL of the app, e.g. `https://sam.example.com` |
-| `MYSQL_ROOT_PASSWORD` | MySQL root password |
-| `MYSQL_PASSWORD` | MySQL `sam` user password |
+| `MYSQL_ROOT_PASSWORD` | MySQL root password (db container only) |
 
 ### 2. Build and start
 

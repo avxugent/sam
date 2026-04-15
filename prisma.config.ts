@@ -1,4 +1,5 @@
-import "dotenv/config";
+// No dotenv import needed: Prisma CLI auto-loads .env for local dev,
+// and in containers the DB_* vars are injected by the container runtime.
 import { defineConfig } from "prisma/config";
 
 function buildDatabaseUrl(): string {

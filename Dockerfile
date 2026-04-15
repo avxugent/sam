@@ -74,6 +74,16 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copy public directory
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
+# Copy prisma CLI and schema engine so `npx prisma db push` works inside this
+# image without downloading a different version from npm at runtime.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+# Create the .bin symlink so `npx prisma` resolves to the local version
+RUN mkdir -p node_modules/.bin \
+ && ln -sf ../prisma/build/index.js node_modules/.bin/prisma
+
 # Create uploads directory owned by the app user
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 

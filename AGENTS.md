@@ -229,7 +229,7 @@ Optional integrations:
 | **@testing-library/react** | DOM-based component testing |
 | **@testing-library/user-event** | Realistic browser interaction simulation |
 | **@testing-library/jest-dom** | DOM matchers (`.toBeInTheDocument()`, etc.) |
-| **jsdom v24** | Browser environment for component tests (v27+ is ESM-only, use v24) |
+| **jsdom v24** | Browser environment for component tests (pinned to v24; v28+ is broken because `html-encoding-sniffer` internally calls `require()` on the ESM-only `@exodus/bytes` — fails regardless of project module type, unresolvable until `html-encoding-sniffer` ships CJS support) |
 | **@vitest/coverage-v8** | V8-based code coverage |
 
 ### Running tests
@@ -278,7 +278,7 @@ __tests__/
 
 ### vitest.config.mts location
 
-The Vitest config is at `vitest.config.mts` (`.mts` extension required for ESM compatibility in a CJS project). The setup file is `vitest.setup.mts`. Do **not** rename these to `.ts` — the test runner will fail to start.
+The Vitest config is at `vitest.config.mts` and setup file is `vitest.setup.mts`. The `.mts` extension was previously required because the project was declared CJS; now that `"type": "module"` is set in `package.json`, `.ts` would also work. The `.mts` names are retained as an explicit ESM signal — do not change them to `.js`.
 
 ---
 
@@ -294,6 +294,6 @@ The Vitest config is at `vitest.config.mts` (`.mts` extension required for ESM c
 8. **Do not bypass Zod validation** in API routes — all user-controlled input must be validated before reaching Prisma.
 9. **Do not store secrets in the codebase** — use environment variables.
 10. **Do not hardcode MySQL queries as raw strings** — use Prisma's typed API or `$queryRaw` with tagged template literals.
-11. **Do not rename `vitest.config.mts` to `vitest.config.ts`** — the `.mts` extension is required for ESM compatibility.
-12. **Do not use jsdom v27+** — it ships ESM-only dependencies that break the CJS test worker. Pin to v24.
+11. **Do not rename `vitest.config.mts` to `vitest.config.js`** — `.mts` and `.ts` are both valid in this ESM project, but `.js` would drop type safety.
+12. **Do not upgrade jsdom past v24.** The failure is internal: `html-encoding-sniffer` calls `require()` on `@exodus/bytes`, which is ESM-only. This throws `ERR_REQUIRE_ESM` regardless of whether the project uses `"type": "module"` — it is not a CJS/ESM project-type issue. The `npm warn deprecated whatwg-encoding` warning during install is a known, harmless side-effect. Pin to v24 until `html-encoding-sniffer` adds CJS support for `@exodus/bytes`.
 13. **Always run `npm run test:coverage` before pushing** — the CI workflow enforces the 80% threshold and will fail otherwise.

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -102,7 +102,7 @@ export function LocationFormDialog({
     handleSubmit,
     reset,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -116,7 +116,7 @@ export function LocationFormDialog({
     },
   });
 
-  const fiValue = watch("fiNumber") || "";
+  const fiValue = useWatch({ control, name: "fiNumber" }) ?? "";
   const parsedFi = parseFiNumber(fiValue);
 
   function handleFiInput(e: React.ChangeEvent<HTMLInputElement>) {

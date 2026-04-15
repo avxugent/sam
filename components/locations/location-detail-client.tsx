@@ -34,7 +34,7 @@ import {
   Package,
   FolderOpen,
   Paperclip,
-  Image,
+  Image as ImageIcon,
   Hash,
 } from "lucide-react";
 
@@ -322,7 +322,7 @@ export function LocationDetailClient({
           </TabsTrigger>
           {canEdit && (
             <TabsTrigger value="cover">
-              <Image className="h-3.5 w-3.5 mr-1" />
+              <ImageIcon className="h-3.5 w-3.5 mr-1" />
               Cover Image
             </TabsTrigger>
           )}

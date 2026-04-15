@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -94,6 +94,9 @@ export function UsersClient({
   const createForm = useForm({ resolver: zodResolver(createSchema), defaultValues: { role: "VIEWER" as const } });
   const editForm = useForm({ resolver: zodResolver(editSchema) });
 
+  const createRole = useWatch({ control: createForm.control, name: "role" });
+  const editRole = useWatch({ control: editForm.control, name: "role" });
+
   async function handleCreate(data: z.infer<typeof createSchema>) {
     const res = await fetch("/api/users", {
       method: "POST",
@@ -174,7 +177,7 @@ export function UsersClient({
               <div className="space-y-1.5">
                 <Label>Role</Label>
                 <Select
-                  value={createForm.watch("role")}
+                  value={createRole}
                   onValueChange={(v) => createForm.setValue("role", v as "ADMIN" | "EDITOR" | "VIEWER")}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -301,7 +304,7 @@ export function UsersClient({
                           <div className="space-y-1.5">
                             <Label>Role</Label>
                             <Select
-                              value={editForm.watch("role")}
+                              value={editRole}
                               onValueChange={(v) => editForm.setValue("role", v as "ADMIN" | "EDITOR" | "VIEWER")}
                             >
                               <SelectTrigger><SelectValue /></SelectTrigger>

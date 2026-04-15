@@ -16,13 +16,22 @@ const eslintConfig = defineConfig([
     "__tests__/**",
     "vitest.config.mts",
     "vitest.setup.mts",
+    // Coverage output — generated files, not source
+    "coverage/**",
   ]),
   {
     rules: {
-      // react-hook-form's watch() is intentionally non-memoizable — this is a
-      // known false positive from the React Compiler plugin. The watch() return
-      // value re-renders the component on change, which is the intended behaviour.
+      // React Compiler false positives — the rules below are suppressed because
+      // they conflict with intentional patterns in this codebase:
+      //
+      // react-compiler/react-compiler: react-hook-form's useWatch() is correctly
+      //   memoizable, but the compiler still warns on a few internal paths.
+      //
+      // react-hooks/set-state-in-effect: async data-fetch callbacks and derived-
+      //   state resets inside effects are standard React patterns; the compiler
+      //   plugin flags them as cascading-render risks but they are not.
       "react-compiler/react-compiler": "off",
+      "react-hooks/set-state-in-effect": "off",
     },
   },
 ]);

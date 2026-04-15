@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -125,7 +125,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     register,
     handleSubmit,
     reset,
-    watch,
     setValue,
     trigger,
     control,
@@ -151,10 +150,12 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     name: "customFields",
   });
 
-  const modelValue = watch("model");
-  const hostnameValue = watch("hostname");
-  const vaultPathValue = watch("vaultPath");
-  const macValues = watch("macAddresses");
+  const modelValue = useWatch({ control, name: "model" });
+  const hostnameValue = useWatch({ control, name: "hostname" });
+  const vaultPathValue = useWatch({ control, name: "vaultPath" });
+  const macValues = useWatch({ control, name: "macAddresses" });
+  const typeIdValue = useWatch({ control, name: "typeId" });
+  const manufacturerIdValue = useWatch({ control, name: "manufacturerId" });
 
   // Re-validate MAC rule when hostname changes and we already have MACs shown
   useEffect(() => {
@@ -304,7 +305,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 Type <span className="text-destructive">*</span>
               </Label>
               <Select
-                value={watch("typeId") || ""}
+                value={typeIdValue || ""}
                 onValueChange={(v) => {
                   setValue("typeId", v === "_none" ? "" : v, { shouldValidate: true });
                 }}
@@ -334,7 +335,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 Manufacturer <span className="text-destructive">*</span>
               </Label>
               <Select
-                value={watch("manufacturerId") || ""}
+                value={manufacturerIdValue || ""}
                 onValueChange={(v) => {
                   setValue("manufacturerId", v === "_none" ? "" : v, { shouldValidate: true });
                 }}

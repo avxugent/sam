@@ -12,10 +12,10 @@ on:
       - main
       - master             # builds the image on PRs but does NOT push
 
-# GitHub Enterprise instance
 env:
-  REGISTRY: ghcr.io                          # GHE still uses ghcr.io
-  IMAGE_NAME: ${{ github.repository }}       # avx/sam  (lowercased automatically)
+  GHCR_REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}       # lowercased automatically
+  DOCKERHUB_IMAGE: docker.io/kristofkeppens/sam
 
 jobs:
   build-and-push:
@@ -35,38 +35,48 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ── 3. Log in to GitHub Container Registry ────────────────────────────
-      # On pull_request events the GITHUB_TOKEN does not have write permission,
-      # so the push step is skipped. Login still succeeds for read-only access.
+      # ── 3. Log in to registries ───────────────────────────────────────────
+      # Skipped on pull_request events (GITHUB_TOKEN is read-only there).
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       # ── 4. Derive image tags and labels ───────────────────────────────────
-      # docker/metadata-action generates:
-      #   - branch push  → ghcr.io/avx/sam:main  (or :master)
-      #   - version tag  → ghcr.io/avx/sam:v1.2.3 + ghcr.io/avx/sam:latest
-      #   - PR           → ghcr.io/avx/sam:pr-42  (not pushed)
+      # docker/metadata-action generates tags for both registries:
+      #   - branch push  → :main / :latest + :sha-<sha>
+      #   - version tag  → :v1.2.3 + :1.2.3 + :1.2 + :latest + :sha-<sha>
+      #   - PR           → :pr-42  (built but NOT pushed)
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_NAME }}
+            ${{ env.DOCKERHUB_IMAGE }}
           tags: |
             # branch name for every push to main/master
             type=ref,event=branch
             # PR number (image built but not pushed)
             type=ref,event=pr
-            # full semver from tag (e.g. v1.2.3 → 1.2.3)
+            # raw tag name for tag pushes (e.g. v1.2.3)
+            type=ref,event=tag
+            # stripped semver from tag (e.g. v1.2.3 → 1.2.3)
             type=semver,pattern={{version}}
             # major.minor from tag (e.g. v1.2.3 → 1.2)
             type=semver,pattern={{major}}.{{minor}}
-            # 'latest' on every tagged release
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # 'latest' on every non-PR push (branch and tag)
+            type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
             # short commit SHA for traceability (always added)
             type=sha,prefix=sha-,format=short
 
@@ -93,10 +103,9 @@ jobs:
             NEXTAUTH_URL=http://localhost:3000
             NEXT_TELEMETRY_DISABLED=1
 
-          # Layer cache: read from the registry image of the target branch,
-          # write back so subsequent builds are faster.
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          # Layer cache stored in GHCR (authenticated via GITHUB_TOKEN)
+          cache-from: type=registry,ref=${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
 
       # ── 6. Print image digest for traceability ────────────────────────────
       - name: Print image digest

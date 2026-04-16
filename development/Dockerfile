@@ -5,7 +5,7 @@
 #
 # The production image is at the project root (Dockerfile).
 
-FROM node:20-alpine
+FROM node:24-alpine
 
 RUN apk add --no-cache libc6-compat openssl
 

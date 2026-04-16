@@ -14,7 +14,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 |---|---|---|
 | Framework | next | 16.2.1 |
 | Language | typescript | ~5.9 |
-| Runtime | node | 20 LTS |
+| Runtime | node | 24 LTS |
 | React | react | 19.2 |
 | ORM | @prisma/client | ~6.19 |
 | Auth | next-auth | 5.0.0-beta.30 |
@@ -229,7 +229,7 @@ Optional integrations:
 | **@testing-library/react** | DOM-based component testing |
 | **@testing-library/user-event** | Realistic browser interaction simulation |
 | **@testing-library/jest-dom** | DOM matchers (`.toBeInTheDocument()`, etc.) |
-| **jsdom v24** | Browser environment for component tests (pinned to v24; v28+ is broken because `html-encoding-sniffer` internally calls `require()` on the ESM-only `@exodus/bytes` — fails regardless of project module type, unresolvable until `html-encoding-sniffer` ships CJS support) |
+| **jsdom v29** | Browser environment for component tests. Requires Node 22.12+ (`require(esm)` support); do not downgrade Node below 22.12 or jsdom below v29. |
 | **@vitest/coverage-v8** | V8-based code coverage |
 
 ### Running tests
@@ -295,5 +295,5 @@ The Vitest config is at `vitest.config.mts` and setup file is `vitest.setup.mts`
 9. **Do not store secrets in the codebase** — use environment variables.
 10. **Do not hardcode MySQL queries as raw strings** — use Prisma's typed API or `$queryRaw` with tagged template literals.
 11. **Do not rename `vitest.config.mts` to `vitest.config.js`** — `.mts` and `.ts` are both valid in this ESM project, but `.js` would drop type safety.
-12. **Do not upgrade jsdom past v24.** The failure is internal: `html-encoding-sniffer` calls `require()` on `@exodus/bytes`, which is ESM-only. This throws `ERR_REQUIRE_ESM` regardless of whether the project uses `"type": "module"` — it is not a CJS/ESM project-type issue. The `npm warn deprecated whatwg-encoding` warning during install is a known, harmless side-effect. Pin to v24 until `html-encoding-sniffer` adds CJS support for `@exodus/bytes`.
+12. **Do not downgrade jsdom below v29 or Node below 22.12.** jsdom v29 requires Node 22.12+ stable `require(esm)` support — on older Node versions tests will fail with `ERR_REQUIRE_ESM` from `html-encoding-sniffer`.
 13. **Always run `npm run test:coverage` before pushing** — the CI workflow enforces the 80% threshold and will fail otherwise.

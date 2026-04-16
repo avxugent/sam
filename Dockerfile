@@ -5,7 +5,7 @@
 # ─────────────────────────────────────────────────────────────
 # Stage 1: Install ALL dependencies (dev + prod)
 # ─────────────────────────────────────────────────────────────
-FROM node:25-alpine AS deps
+FROM node:24-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -15,7 +15,7 @@ RUN npm ci
 # ─────────────────────────────────────────────────────────────
 # Stage 2: Build the application
 # ─────────────────────────────────────────────────────────────
-FROM node:25-alpine AS builder
+FROM node:24-alpine AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -53,7 +53,7 @@ RUN npm run build
 # ─────────────────────────────────────────────────────────────
 # Stage 3: Production runtime — minimal image
 # ─────────────────────────────────────────────────────────────
-FROM node:25-alpine AS runner
+FROM node:24-alpine AS runner
 RUN apk add --no-cache libc6-compat
 
 WORKDIR /app

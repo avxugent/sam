@@ -13,7 +13,26 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # ─────────────────────────────────────────────────────────────
-# Stage 2: Build the application
+# Stage 2: Prisma CLI — isolated install for running migrations
+#
+# Installs only the `prisma` package (+ its full transitive dep tree)
+# into a separate directory so that the runner stage can invoke
+# `prisma db push` without bundling the entire node_modules tree.
+# ─────────────────────────────────────────────────────────────
+FROM node:24-alpine AS prisma-cli
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /prisma-install
+
+# Read the prisma version from the project manifest and install it
+# in an isolated, minimal package.json so only prisma and its own
+# transitive deps are downloaded — nothing else from the app.
+COPY package.json ./
+RUN PRISMA_VER=$(node -p "require('./package.json').dependencies.prisma") \
+ && echo "{\"name\":\"prisma-cli\",\"private\":true,\"dependencies\":{\"prisma\":\"${PRISMA_VER}\"}}" > package.json \
+ && npm install --no-fund --loglevel=error
+
+# ─────────────────────────────────────────────────────────────
+# Stage 3: Build the application
 # ─────────────────────────────────────────────────────────────
 FROM node:24-alpine AS builder
 RUN apk add --no-cache libc6-compat
@@ -51,7 +70,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # ─────────────────────────────────────────────────────────────
-# Stage 3: Production runtime — minimal image
+# Stage 4: Production runtime — minimal image
 # ─────────────────────────────────────────────────────────────
 FROM node:24-alpine AS runner
 RUN apk add --no-cache libc6-compat
@@ -74,15 +93,15 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copy public directory
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# Copy prisma CLI and schema engine so `npx prisma db push` works inside this
-# image without downloading a different version from npm at runtime.
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
+# Prisma schema and config — needed so the CLI can read the schema
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
-# Create the .bin symlink so `npx prisma` resolves to the local version
-RUN mkdir -p node_modules/.bin \
- && ln -sf ../prisma/build/index.js node_modules/.bin/prisma
+
+# Prisma CLI in its own isolated module tree (all transitive deps included).
+# Placed outside /app so it does not interfere with the standalone bundle.
+# /usr/local/bin/prisma is created before switching to the non-root user.
+COPY --from=prisma-cli /prisma-install/node_modules /prisma-cli/node_modules
+RUN ln -sf /prisma-cli/node_modules/.bin/prisma /usr/local/bin/prisma
 
 # Create uploads directory owned by the app user
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads

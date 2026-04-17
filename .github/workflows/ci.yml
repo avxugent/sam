@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       # ── 2. Set up Node.js ──────────────────────────────────────────────────
-      - name: Set up Node.js 20
+      - name: Set up Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: "24"
@@ -31,22 +31,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ── 4. Generate Prisma client ──────────────────────────────────────────
+      # ── 4. Dependency audit ────────────────────────────────────────────────
+      - name: Dependency audit
+        run: npm audit --audit-level=moderate
+
+      # ── 5. Generate Prisma client ──────────────────────────────────────────
       # Required before TypeScript type-checking (the client types are generated)
       - name: Generate Prisma client
         run: npx prisma generate
 
-      # ── 5. TypeScript type-check ───────────────────────────────────────────
+      # ── 6. TypeScript type-check ───────────────────────────────────────────
       # Runs `tsc --noEmit` — fails on any type error in the whole project.
       - name: TypeScript type-check
         run: npx tsc --noEmit
 
-      # ── 6. ESLint ─────────────────────────────────────────────────────────
+      # ── 7. ESLint ─────────────────────────────────────────────────────────
       # Runs the Next.js-bundled ESLint config.
       - name: ESLint
         run: npm run lint -- --max-warnings 0
 
-      # ── 7. Unit tests + coverage ───────────────────────────────────────────
+      # ── 8. Unit tests + coverage ───────────────────────────────────────────
       # Runs all tests and enforces the 80% coverage threshold.
       # Dummy DB values — no real DB is needed for unit tests.
       - name: Run tests with coverage
@@ -61,7 +65,7 @@ jobs:
           NEXTAUTH_SECRET: "ci-test-secret"
           NEXTAUTH_URL: "http://localhost:3000"
 
-      # ── 8. Upload coverage report ──────────────────────────────────────────
+      # ── 9. Upload coverage report ──────────────────────────────────────────
       - name: Upload coverage to GitHub (artifact)
         if: always()
         uses: actions/upload-artifact@v4

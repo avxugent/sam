@@ -63,10 +63,9 @@ services:
       MYSQL_PASSWORD: "${DB_PASSWORD}"
     volumes:
       - sam-mysql-data:/var/lib/mysql
-    # Only expose port to host if needed for external access / dev tools
-    # Remove or comment out this section for production deployments
-    ports:
-      - "${DB_PORT:-3306}:3306"
+    # Uncomment to expose MySQL to the host (development / external tools only)
+    # ports:
+    #   - "${DB_PORT:-3306}:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s

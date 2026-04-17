@@ -12,7 +12,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 | Layer | Package | Version |
 |---|---|---|
-| Framework | next | 16.2.1 |
+| Framework | next | 16.2.4 |
 | Language | typescript | ~5.9 |
 | Runtime | node | 24 LTS |
 | React | react | 19.2 |

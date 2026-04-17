@@ -101,7 +101,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.
 # Placed outside /app so it does not interfere with the standalone bundle.
 # /usr/local/bin/prisma is created before switching to the non-root user.
 COPY --from=prisma-cli /prisma-install/node_modules /prisma-cli/node_modules
-RUN ln -sf /prisma-cli/node_modules/.bin/prisma /usr/local/bin/prisma
+RUN ln -sf /prisma-cli/node_modules/.bin/prisma /usr/local/bin/prisma \
+ && ln -sf /prisma-cli/node_modules/prisma /app/node_modules/prisma
 
 # Create uploads directory owned by the app user
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads

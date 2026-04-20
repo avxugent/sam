@@ -31,6 +31,7 @@ import {
   MapPin,
   Package,
   KeyRound,
+  UserCog,
 } from "lucide-react";
 
 type HeaderUser = {
@@ -316,6 +317,13 @@ export function Header({ user }: { user: HeaderUser }) {
               </Badge>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {/* Profile — available to all users */}
+            <DropdownMenuItem asChild>
+              <Link href="/settings/profile" className="flex items-center gap-2 cursor-pointer">
+                <UserCog className="h-4 w-4" />
+                Profile
+              </Link>
+            </DropdownMenuItem>
             {/* 2FA settings — only for local accounts (SSO manages their own 2FA) */}
             {user.provider === "credentials" && (
               <DropdownMenuItem asChild>

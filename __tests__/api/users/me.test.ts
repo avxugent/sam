@@ -45,7 +45,7 @@ describe("PATCH /api/users/me", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when unauthenticated", async () => {
-    mockAuth.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null as never);
     const res = await PATCH(makeRequest({ name: "New Name" }));
     expect(res.status).toBe(401);
   });

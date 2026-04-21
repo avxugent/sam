@@ -1,14 +1,17 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// permissions.ts imports auth which pulls in next-auth / next/server.
-// Mock those at the module level so the test worker can load the module.
+// vi.mock is hoisted — cannot reference variables declared in this scope.
+// Use vi.fn() directly inside the factory; retrieve the handle via vi.mocked().
 vi.mock("@/lib/auth", () => ({
-  auth: vi.fn().mockResolvedValue(null),
+  auth: vi.fn(),
   signIn: vi.fn(),
   signOut: vi.fn(),
 }));
 
-import { canEdit, isAdmin } from "@/lib/permissions";
+import { auth } from "@/lib/auth";
+import { canEdit, isAdmin, requireAuth, requireRole } from "@/lib/permissions";
+
+const mockAuth = vi.mocked(auth);
 
 describe("canEdit()", () => {
   it("returns true for ADMIN", () => {
@@ -25,6 +28,41 @@ describe("canEdit()", () => {
 
   it("returns false for empty string", () => {
     expect(canEdit("")).toBe(false);
+  });
+});
+
+describe("requireAuth()", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns the session when authenticated", async () => {
+    const session = { user: { id: "u1", role: "VIEWER" } };
+    mockAuth.mockResolvedValue(session);
+    await expect(requireAuth()).resolves.toEqual(session);
+  });
+
+  it("throws Unauthorized when session is null", async () => {
+    mockAuth.mockResolvedValue(null);
+    await expect(requireAuth()).rejects.toThrow("Unauthorized");
+  });
+
+  it("throws Unauthorized when session has no user", async () => {
+    mockAuth.mockResolvedValue({});
+    await expect(requireAuth()).rejects.toThrow("Unauthorized");
+  });
+});
+
+describe("requireRole()", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns the session when the user has an allowed role", async () => {
+    const session = { user: { id: "u1", role: "ADMIN" } };
+    mockAuth.mockResolvedValue(session);
+    await expect(requireRole("ADMIN", "EDITOR")).resolves.toEqual(session);
+  });
+
+  it("throws Forbidden when the user role is not in the allowed list", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" } });
+    await expect(requireRole("ADMIN", "EDITOR")).rejects.toThrow("Forbidden");
   });
 });
 

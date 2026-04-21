@@ -241,6 +241,10 @@ npm run test:coverage   # run with coverage report + enforce thresholds
 npm run test:ui         # open Vitest UI in browser
 ```
 
+> **Always run `npm test` after making any code change** and confirm the output shows no failures before considering the task complete. A passing test run is the minimum bar — never leave tests broken.
+
+The project requires **Node 24** (pinned via `.nvmrc`). If `npm test` fails with `ERR_REQUIRE_ESM` from `html-encoding-sniffer`, you are on the wrong Node version. Run `nvm use` in the project root to switch automatically.
+
 ### Coverage requirement — **80% minimum**
 
 The project enforces an 80% minimum threshold on **lines, functions, branches, and statements** for all covered files. The CI pipeline fails if coverage drops below this. Run `npm run test:coverage` before pushing.
@@ -272,7 +276,8 @@ __tests__/
 5. **Mock `@/lib/auth`** when testing API routes that call `auth()`.
 6. **Never import from `next/server` in pure unit tests** without mocking it — it causes `ERR_REQUIRE_ESM` in the test worker.
 7. **Component tests use `@testing-library/react`** — query by role/label/text, not by CSS class or test-id.
-8. **`vi.mock()` calls must be at the top level** of the test file (before any `import` of the module under test).
+8. **`vi.mock()` calls must be at the top level** of the test file (before any `import` of the module under test). Do **not** reference variables declared in the same file inside a `vi.mock()` factory — the factory is hoisted above all declarations and will throw `ReferenceError`. Instead, use `vi.fn()` directly inside the factory and retrieve typed handles via `vi.mocked()` after the import.
+8a. **When mocking `auth` from `@/lib/auth`**, always cast mock return values with `as never` (e.g. `mockAuth.mockResolvedValue(null as never)`) — next-auth v5's `auth` has a middleware overload that makes TypeScript reject plain session objects otherwise.
 9. **Do not write snapshot tests** — they are brittle and add noise without meaningful coverage.
 10. **The `reducer` exported from `components/ui/use-toast.ts` is a pure function** — test it directly without rendering any React.
 
@@ -296,4 +301,5 @@ The Vitest config is at `vitest.config.mts` and setup file is `vitest.setup.mts`
 10. **Do not hardcode MySQL queries as raw strings** — use Prisma's typed API or `$queryRaw` with tagged template literals.
 11. **Do not rename `vitest.config.mts` to `vitest.config.js`** — `.mts` and `.ts` are both valid in this ESM project, but `.js` would drop type safety.
 12. **Do not downgrade jsdom below v29 or Node below 22.12.** jsdom v29 requires Node 22.12+ stable `require(esm)` support — on older Node versions tests will fail with `ERR_REQUIRE_ESM` from `html-encoding-sniffer`.
-13. **Always run `npm run test:coverage` before pushing** — the CI workflow enforces the 80% threshold and will fail otherwise.
+13. **Always run `npm test` after every code change** — confirm zero failures before moving on. Run `npm run test:coverage` before pushing to also enforce the 80% threshold.
+14. **Run tests with Node 24** — use `nvm use` in the project root (`.nvmrc` pins the version). Tests fail with `ERR_REQUIRE_ESM` on Node 20 or below due to jsdom v29's ESM requirement.

@@ -36,17 +36,17 @@ describe("requireAuth()", () => {
 
   it("returns the session when authenticated", async () => {
     const session = { user: { id: "u1", role: "VIEWER" } };
-    mockAuth.mockResolvedValue(session);
+    mockAuth.mockResolvedValue(session as never);
     await expect(requireAuth()).resolves.toEqual(session);
   });
 
   it("throws Unauthorized when session is null", async () => {
-    mockAuth.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null as never);
     await expect(requireAuth()).rejects.toThrow("Unauthorized");
   });
 
   it("throws Unauthorized when session has no user", async () => {
-    mockAuth.mockResolvedValue({});
+    mockAuth.mockResolvedValue({} as never);
     await expect(requireAuth()).rejects.toThrow("Unauthorized");
   });
 });
@@ -56,12 +56,12 @@ describe("requireRole()", () => {
 
   it("returns the session when the user has an allowed role", async () => {
     const session = { user: { id: "u1", role: "ADMIN" } };
-    mockAuth.mockResolvedValue(session);
+    mockAuth.mockResolvedValue(session as never);
     await expect(requireRole("ADMIN", "EDITOR")).resolves.toEqual(session);
   });
 
   it("throws Forbidden when the user role is not in the allowed list", async () => {
-    mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" } });
+    mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" } } as never);
     await expect(requireRole("ADMIN", "EDITOR")).rejects.toThrow("Forbidden");
   });
 });

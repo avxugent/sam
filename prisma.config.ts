@@ -1,10 +1,19 @@
 // Prisma skips .env loading when prisma.config.ts is present ("Prisma config
-// detected, skipping environment variable loading"). Load it manually so that
-// local dev credentials from .env are available. In containers the DB_* vars
-// are injected by the runtime and dotenv is a no-op.
-import { config as loadDotenv } from "dotenv";
-loadDotenv();
+// detected, skipping environment variable loading"). Parse .env manually using
+// only Node built-ins so this works in every environment — including the
+// isolated prisma-cli Docker stage that only has prisma's own dependencies.
+// In containers the DB_* vars are injected by the runtime; no .env is present.
+import { existsSync, readFileSync } from "fs";
 import { defineConfig } from "prisma/config";
+
+if (existsSync(".env")) {
+  for (const line of readFileSync(".env", "utf8").split("\n")) {
+    const m = line.match(/^\s*([^#\s=][^=]*?)\s*=\s*(.*?)\s*$/);
+    if (m && !(m[1] in process.env)) {
+      process.env[m[1]] = m[2].replace(/^(['"])(.*)\1$/, "$2");
+    }
+  }
+}
 
 function buildDatabaseUrl(): string {
   const host = process.env.DB_HOST ?? "localhost";

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
-const schema = z.object({ name: z.string().min(1) });
+const schema = z.object({ name: z.string().min(1).max(255) });
 
 export async function PUT(
   req: NextRequest,
@@ -18,11 +18,22 @@ export async function PUT(
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
+  const existing = await prisma.manufacturer.findFirst({
+    where: { name: parsed.data.name, NOT: { id } },
+    include: { _count: { select: { assets: true } } },
+  });
+  if (existing) {
+    return NextResponse.json(
+      { error: "Name already exists.", existingId: existing.id, existingName: existing.name, existingAssetCount: existing._count.assets },
+      { status: 409 }
+    );
+  }
+
   try {
     const manufacturer = await prisma.manufacturer.update({ where: { id }, data: { name: parsed.data.name } });
     return NextResponse.json(manufacturer);
   } catch {
-    return NextResponse.json({ error: "Name already exists or not found." }, { status: 400 });
+    return NextResponse.json({ error: "Manufacturer not found." }, { status: 404 });
   }
 }
 

@@ -25,6 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
+import Link from "next/link";
 import {
   Loader2,
   Pencil,
@@ -37,6 +38,7 @@ import {
   ChevronRight,
   Info,
 } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 import { getUsedVariables, validateTemplate } from "@/lib/scrape-template";
 
 type AssetType = {
@@ -44,6 +46,16 @@ type AssetType = {
   name: string;
   scrapeTargetTemplate: string | null;
   _count: { assets: number };
+};
+
+type DrilldownAsset = {
+  id: string;
+  model?: string | null;
+  serialNumber?: string | null;
+  hostname?: string | null;
+  installationDate?: string | null;
+  location: { id: string; name: string } | null;
+  manufacturer: { name: string } | null;
 };
 
 const TEMPLATE_PLACEHOLDER = `# Lines starting with # are comments.
@@ -106,6 +118,22 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+
+  // Drilldown dialog state
+  const [drilldownType, setDrilldownType] = useState<AssetType | null>(null);
+  const [drilldownAssets, setDrilldownAssets] = useState<DrilldownAsset[]>([]);
+  const [drilldownLoading, setDrilldownLoading] = useState(false);
+
+  async function openDrilldown(item: AssetType) {
+    setDrilldownType(item);
+    setDrilldownAssets([]);
+    setDrilldownLoading(true);
+    const res = await fetch(`/api/asset-types/${item.id}/assets`);
+    setDrilldownLoading(false);
+    if (res.ok) {
+      setDrilldownAssets(await res.json());
+    }
+  }
 
   // Template editor dialog state
   const [templateDialog, setTemplateDialog] = useState<AssetType | null>(null);
@@ -260,10 +288,20 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                     </>
                   ) : (
                     <>
-                      <span className="flex-1 text-sm font-medium">{item.name}</span>
+                      <span
+                        className={`flex-1 text-sm font-medium ${item._count.assets > 0 ? "cursor-pointer hover:text-primary transition-colors" : ""}`}
+                        onClick={() => item._count.assets > 0 && openDrilldown(item)}
+                        title={item._count.assets > 0 ? `View ${item._count.assets} asset(s)` : undefined}
+                      >
+                        {item.name}
+                      </span>
 
                       {item._count.assets > 0 && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs cursor-pointer hover:bg-secondary/80"
+                          onClick={() => openDrilldown(item)}
+                        >
                           {item._count.assets} asset{item._count.assets !== 1 ? "s" : ""}
                         </Badge>
                       )}
@@ -384,6 +422,72 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
           })
         )}
       </div>
+
+      {/* Asset drilldown dialog */}
+      <Dialog
+        open={!!drilldownType}
+        onOpenChange={(open) => { if (!open) setDrilldownType(null); }}
+      >
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {drilldownType?.name}
+              {!drilldownLoading && (
+                <span className="font-normal text-muted-foreground ml-2">
+                  — {drilldownAssets.length} asset{drilldownAssets.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {drilldownLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="overflow-auto max-h-[60vh]">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Location</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Manufacturer</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Serial #</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Hostname</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Installed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {drilldownAssets.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-muted-foreground">No assets found</td>
+                    </tr>
+                  ) : (
+                    drilldownAssets.map((asset, i) => (
+                      <tr
+                        key={asset.id}
+                        className={`border-b last:border-0 hover:bg-muted/30 ${i % 2 !== 0 ? "bg-muted/10" : ""}`}
+                      >
+                        <td className="px-3 py-2">
+                          {asset.location ? (
+                            <Link href={`/locations/${asset.location.id}`} className="hover:text-primary">
+                              {asset.location.name}
+                            </Link>
+                          ) : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">{asset.manufacturer?.name || "—"}</td>
+                        <td className="px-3 py-2 font-medium">{asset.model || "—"}</td>
+                        <td className="px-3 py-2 text-muted-foreground font-mono text-xs">{asset.serialNumber || "—"}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{asset.hostname || "—"}</td>
+                        <td className="px-3 py-2 text-muted-foreground text-xs">{formatDate(asset.installationDate)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Template editor dialog */}
       <Dialog

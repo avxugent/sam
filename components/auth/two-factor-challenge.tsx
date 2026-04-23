@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +9,6 @@ import { Monitor, Loader2, ShieldCheck, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 export function TwoFactorChallenge() {
-  const router = useRouter();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -52,9 +50,11 @@ export function TwoFactorChallenge() {
       return;
     }
 
-    // Session upgraded — refresh to pick up the new cookie then navigate home
-    router.refresh();
-    router.push("/");
+    // Full navigation forces the browser to re-read the updated session cookie.
+    // router.push() is insufficient here because the new Set-Cookie header from
+    // the signIn() call inside the verify route may not arrive in time before
+    // the proxy checks the session on the next request.
+    window.location.href = "/";
   }
 
   return (

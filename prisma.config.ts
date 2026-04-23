@@ -1,5 +1,9 @@
-// No dotenv import needed: Prisma CLI auto-loads .env for local dev,
-// and in containers the DB_* vars are injected by the container runtime.
+// Prisma skips .env loading when prisma.config.ts is present ("Prisma config
+// detected, skipping environment variable loading"). Load it manually so that
+// local dev credentials from .env are available. In containers the DB_* vars
+// are injected by the runtime and dotenv is a no-op.
+import { config as loadDotenv } from "dotenv";
+loadDotenv();
 import { defineConfig } from "prisma/config";
 
 function buildDatabaseUrl(): string {

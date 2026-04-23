@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Loader2, ShieldCheck, ShieldOff } from "lucide-react";
 
 const createSchema = z.object({
@@ -43,6 +44,8 @@ const createSchema = z.object({
   email: z.string().email().max(255),
   password: z.string().min(8).max(128),
   role: z.enum(["ADMIN", "EDITOR", "VIEWER"]),
+  mustChangePassword: z.boolean().default(true),
+  twoFactorRequired: z.boolean().default(false),
 });
 
 const editSchema = z.object({
@@ -50,6 +53,7 @@ const editSchema = z.object({
   email: z.string().email().max(255),
   password: z.string().max(128).optional(),
   role: z.enum(["ADMIN", "EDITOR", "VIEWER"]),
+  twoFactorRequired: z.boolean().optional(),
 });
 
 type User = {
@@ -59,6 +63,8 @@ type User = {
   role: string;
   provider: string;
   totpEnabled: boolean;
+  mustChangePassword: boolean;
+  twoFactorRequired: boolean;
   createdAt: Date | string;
 };
 
@@ -91,11 +97,17 @@ export function UsersClient({
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
 
-  const createForm = useForm({ resolver: zodResolver(createSchema), defaultValues: { role: "VIEWER" as const } });
+  const createForm = useForm({
+    resolver: zodResolver(createSchema),
+    defaultValues: { role: "VIEWER" as const, mustChangePassword: true, twoFactorRequired: false },
+  });
   const editForm = useForm({ resolver: zodResolver(editSchema) });
 
   const createRole = useWatch({ control: createForm.control, name: "role" });
+  const createMustChangePassword = useWatch({ control: createForm.control, name: "mustChangePassword" });
+  const createTwoFactorRequired = useWatch({ control: createForm.control, name: "twoFactorRequired" });
   const editRole = useWatch({ control: editForm.control, name: "role" });
+  const editTwoFactorRequired = useWatch({ control: editForm.control, name: "twoFactorRequired" });
 
   async function handleCreate(data: z.infer<typeof createSchema>) {
     const res = await fetch("/api/users", {
@@ -117,8 +129,9 @@ export function UsersClient({
 
   async function handleEdit(data: z.infer<typeof editSchema>) {
     if (!editUser) return;
-    const payload: Record<string, string> = { name: data.name, email: data.email, role: data.role };
+    const payload: Record<string, unknown> = { name: data.name, email: data.email, role: data.role };
     if (data.password) payload.password = data.password;
+    if (data.twoFactorRequired !== undefined) payload.twoFactorRequired = data.twoFactorRequired;
 
     const res = await fetch(`/api/users/${editUser.id}`, {
       method: "PUT",
@@ -187,6 +200,29 @@ export function UsersClient({
                     <SelectItem value="ADMIN">Admin</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2 rounded-lg border p-3">
+                <p className="text-xs font-medium text-muted-foreground">Security options</p>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="create-must-change-password"
+                    checked={createMustChangePassword}
+                    onCheckedChange={(v) => createForm.setValue("mustChangePassword", !!v)}
+                  />
+                  <Label htmlFor="create-must-change-password" className="text-sm font-normal cursor-pointer">
+                    Require password change on first login
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="create-2fa-required"
+                    checked={createTwoFactorRequired}
+                    onCheckedChange={(v) => createForm.setValue("twoFactorRequired", !!v)}
+                  />
+                  <Label htmlFor="create-2fa-required" className="text-sm font-normal cursor-pointer">
+                    Require two-factor authentication
+                  </Label>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
@@ -267,6 +303,7 @@ export function UsersClient({
                               email: user.email,
                               role: user.role as "ADMIN" | "EDITOR" | "VIEWER",
                               password: "",
+                              twoFactorRequired: user.twoFactorRequired,
                             });
                           }}
                         >
@@ -315,6 +352,21 @@ export function UsersClient({
                               </SelectContent>
                             </Select>
                           </div>
+                          {user.provider === "credentials" && (
+                            <div className="space-y-2 rounded-lg border p-3">
+                              <p className="text-xs font-medium text-muted-foreground">Security options</p>
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  id={`edit-2fa-required-${user.id}`}
+                                  checked={editTwoFactorRequired ?? false}
+                                  onCheckedChange={(v) => editForm.setValue("twoFactorRequired", !!v)}
+                                />
+                                <Label htmlFor={`edit-2fa-required-${user.id}`} className="text-sm font-normal cursor-pointer">
+                                  Require two-factor authentication
+                                </Label>
+                              </div>
+                            </div>
+                          )}
                           <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setEditUser(null)}>Cancel</Button>
                             <Button type="submit" disabled={editForm.formState.isSubmitting}>

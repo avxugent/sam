@@ -54,6 +54,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
     }
     updateData.passwordHash = await bcrypt.hash(newPassword, 13);
+    updateData.mustChangePassword = false;
   }
 
   if (Object.keys(updateData).length === 0) {

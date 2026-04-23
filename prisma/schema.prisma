@@ -27,6 +27,9 @@ model User {
   // TOTP-based two-factor authentication (credentials users only)
   totpSecret   String?  // base32-encoded secret; null = 2FA not set up
   totpEnabled  Boolean  @default(false) // true only after user has verified first code
+  // Forced enrollment flags (set by admin)
+  mustChangePassword Boolean @default(false) // cleared after user successfully changes password
+  twoFactorRequired  Boolean @default(false) // stays set; forces 2FA setup on next login
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

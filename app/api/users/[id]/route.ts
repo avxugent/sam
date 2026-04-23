@@ -9,6 +9,7 @@ const updateSchema = z.object({
   email: z.string().email().max(255).optional(),
   password: z.string().min(8).max(128).optional(),
   role: z.enum(["ADMIN", "EDITOR", "VIEWER"]).optional(),
+  twoFactorRequired: z.boolean().optional(),
 });
 
 export async function PUT(
@@ -39,12 +40,14 @@ export async function PUT(
       );
     }
     updateData.passwordHash = await bcrypt.hash(password, 13);
+    // Admin password reset forces user to change it on next login
+    updateData.mustChangePassword = true;
   }
 
   const user = await prisma.user.update({
     where: { id },
     data: updateData,
-    select: { id: true, name: true, email: true, role: true, provider: true, totpEnabled: true, createdAt: true },
+    select: { id: true, name: true, email: true, role: true, provider: true, totpEnabled: true, mustChangePassword: true, twoFactorRequired: true, createdAt: true },
   });
 
   return NextResponse.json(user);

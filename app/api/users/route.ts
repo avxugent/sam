@@ -9,6 +9,8 @@ const createSchema = z.object({
   email: z.string().email().max(255),
   password: z.string().min(8).max(128),
   role: z.enum(["ADMIN", "EDITOR", "VIEWER"]),
+  mustChangePassword: z.boolean().optional().default(true),
+  twoFactorRequired: z.boolean().optional().default(false),
 });
 
 const USER_SELECT = {
@@ -18,6 +20,8 @@ const USER_SELECT = {
   role: true,
   provider: true,
   totpEnabled: true,
+  mustChangePassword: true,
+  twoFactorRequired: true,
   createdAt: true,
 } as const;
 
@@ -53,6 +57,8 @@ export async function POST(req: NextRequest) {
       passwordHash,
       role: parsed.data.role,
       provider: "credentials",
+      mustChangePassword: parsed.data.mustChangePassword,
+      twoFactorRequired: parsed.data.twoFactorRequired,
     },
     select: USER_SELECT,
   });

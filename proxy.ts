@@ -26,13 +26,36 @@ export const proxy = auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
+  const auth = req.auth as { needs2FA?: boolean; needsPasswordChange?: boolean; needs2FASetup?: boolean };
+
+  // ── Forced password change ───────────────────────────────────────────────
+  const needsPasswordChange = auth.needsPasswordChange === true;
+  const isChangePasswordRoute =
+    pathname === "/login/change-password" ||
+    pathname.startsWith("/api/users/me") ||
+    pathname.startsWith("/api/auth");
+
+  if (needsPasswordChange && !isChangePasswordRoute) {
+    return NextResponse.redirect(new URL("/login/change-password", req.url));
+  }
+
+  // ── Forced 2FA setup ─────────────────────────────────────────────────────
+  const needs2FASetup = auth.needs2FASetup === true;
+  const is2FASetupRoute =
+    pathname === "/login/setup-2fa" ||
+    pathname.startsWith("/api/auth/2fa");
+
+  if (needs2FASetup && !is2FASetupRoute) {
+    return NextResponse.redirect(new URL("/login/setup-2fa", req.url));
+  }
+
   // ── 2FA pending: password verified but TOTP code not yet entered ────────
   // Allow through: the 2FA challenge page itself and its API endpoint.
   const is2faRoute =
     pathname === "/login/2fa" ||
     pathname.startsWith("/api/auth/2fa/verify");
 
-  const needs2FA = (req.auth as { needs2FA?: boolean }).needs2FA === true;
+  const needs2FA = auth.needs2FA === true;
 
   if (needs2FA && !is2faRoute) {
     return NextResponse.redirect(new URL("/login/2fa", req.url));

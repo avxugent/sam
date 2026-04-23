@@ -49,6 +49,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: true,
             passwordHash: true,
             totpEnabled: true,
+            mustChangePassword: true,
+            twoFactorRequired: true,
           },
         });
 
@@ -60,6 +62,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user.passwordHash
         );
         if (!valid) return null;
+
+        // Forced enrollment flags take priority over 2FA challenge
+        if (user.mustChangePassword) {
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role as string,
+            needsPasswordChange: true,
+          };
+        }
+
+        if (user.twoFactorRequired && !user.totpEnabled) {
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role as string,
+            needs2FASetup: true,
+          };
+        }
 
         return {
           id: user.id,
@@ -157,12 +180,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = (user as { id?: string; role?: string }).role;
-        const u = user as { needs2FA?: boolean };
+        const u = user as { needs2FA?: boolean; needsPasswordChange?: boolean; needs2FASetup?: boolean };
         if (u.needs2FA) {
           token.needs2FA = true;
         } else {
-          // Explicitly clear the flag when the upgrade provider issues a new token
           delete token.needs2FA;
+        }
+        if (u.needsPasswordChange) {
+          token.needsPasswordChange = true;
+        } else {
+          delete token.needsPasswordChange;
+        }
+        if (u.needs2FASetup) {
+          token.needs2FASetup = true;
+        } else {
+          delete token.needs2FASetup;
         }
       }
       return token;
@@ -172,9 +204,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
-        if (token.needs2FA) {
-          (session as { needs2FA?: boolean }).needs2FA = true;
-        }
+        if (token.needs2FA) session.needs2FA = true;
+        if (token.needsPasswordChange) session.needsPasswordChange = true;
+        if (token.needs2FASetup) session.needs2FASetup = true;
       }
       return session;
     },

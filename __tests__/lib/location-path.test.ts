@@ -1,10 +1,21 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    $queryRaw: vi.fn(),
+  },
+}));
+
 import {
   parseFiNumber,
   buildLocationPathString,
   findFiNumber,
+  getAllDescendantLocationIds,
   type LocationAncestor,
 } from "@/lib/location-path";
+import { prisma } from "@/lib/prisma";
+
+const mockQueryRaw = vi.mocked(prisma.$queryRaw);
 
 // ── parseFiNumber ───────────────────────────────────────────────────────────
 
@@ -113,5 +124,29 @@ describe("findFiNumber()", () => {
 
   it("returns null for empty ancestor array", () => {
     expect(findFiNumber([])).toBeNull();
+  });
+});
+
+// ── getAllDescendantLocationIds ────────────────────────────────────────────────
+
+describe("getAllDescendantLocationIds()", () => {
+  it("returns empty array for non-CUID input", async () => {
+    await expect(getAllDescendantLocationIds("not-a-cuid")).resolves.toEqual([]);
+    await expect(getAllDescendantLocationIds("")).resolves.toEqual([]);
+    await expect(getAllDescendantLocationIds("short")).resolves.toEqual([]);
+  });
+
+  it("returns descendant ids from the database", async () => {
+    const validId = "a".repeat(25);
+    mockQueryRaw.mockResolvedValueOnce([{ id: "b".repeat(25) }, { id: "c".repeat(25) }] as never);
+    const result = await getAllDescendantLocationIds(validId);
+    expect(result).toEqual(["b".repeat(25), "c".repeat(25)]);
+  });
+
+  it("returns empty array when no descendants exist", async () => {
+    const validId = "a".repeat(25);
+    mockQueryRaw.mockResolvedValueOnce([] as never);
+    const result = await getAllDescendantLocationIds(validId);
+    expect(result).toEqual([]);
   });
 });

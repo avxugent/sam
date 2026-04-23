@@ -32,7 +32,7 @@ type Asset = {
   manufacturer?: { id: string; name: string } | null;
   macAddresses: { id: string; address: string }[];
   _count: { attachments: number };
-  location?: { id: string; name: string };
+  location?: { id: string; name: string } | null;
 };
 
 export function AssetTable({

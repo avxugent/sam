@@ -93,6 +93,7 @@ type Asset = {
   type?: { id: string; name: string } | null;
   manufacturer?: { id: string; name: string } | null;
   macAddresses: { id: string; address: string }[];
+  location?: { id: string; name: string } | null;
   _count: { attachments: number };
 };
 
@@ -118,11 +119,13 @@ export function LocationDetailClient({
   assets,
   breadcrumbs,
   userRole,
+  showLocation = false,
 }: {
   location: Location;
   assets: Asset[];
   breadcrumbs: Breadcrumb[];
   userRole: string;
+  showLocation?: boolean;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -331,7 +334,9 @@ export function LocationDetailClient({
         {/* Assets tab */}
         <TabsContent value="assets" className="mt-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Assets in {location.name}</h2>
+            <h2 className="text-lg font-semibold">
+              {showLocation ? `All assets in ${location.name}` : `Assets in ${location.name}`}
+            </h2>
             {canEdit && (
               <AssetFormDialog
                 mode="create"
@@ -345,7 +350,7 @@ export function LocationDetailClient({
               </AssetFormDialog>
             )}
           </div>
-          <AssetTable assets={assets} locationId={location.id} userRole={userRole} />
+          <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} />
         </TabsContent>
 
         {/* Sub-locations tab */}

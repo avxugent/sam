@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
+import { getAllDescendantLocationIds } from "@/lib/location-path";
 
 export default async function LocationPage({
   params,
@@ -31,12 +32,18 @@ export default async function LocationPage({
 
   const breadcrumbs = await buildBreadcrumbs(id);
 
+  const hasChildren = location._count.children > 0;
+  const locationIds = hasChildren
+    ? [id, ...(await getAllDescendantLocationIds(id))]
+    : [id];
+
   const assets = await prisma.asset.findMany({
-    where: { locationId: id },
+    where: { locationId: { in: locationIds } },
     include: {
       type: true,
       manufacturer: true,
       macAddresses: true,
+      location: { select: { id: true, name: true } },
       _count: { select: { attachments: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -48,6 +55,7 @@ export default async function LocationPage({
       assets={assets}
       breadcrumbs={breadcrumbs}
       userRole={session?.user?.role || "VIEWER"}
+      showLocation={hasChildren}
     />
   );
 }

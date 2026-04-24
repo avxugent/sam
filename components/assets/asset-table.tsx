@@ -168,10 +168,14 @@ export function AssetTable({
                 </td>
               </tr>
             ) : (
-              sorted.map((asset) => (
+              sorted.map((asset) => {
+                const assetLocationId = asset.location?.id ?? locationId;
+                const assetHref = `/locations/${assetLocationId}/assets/${asset.id}`;
+                return (
                 <tr
                   key={asset.id}
-                  className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors duration-75"
+                  className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors duration-75 cursor-pointer"
+                  onClick={() => router.push(assetHref)}
                 >
                   <td className="px-4 py-[11px]">
                     {asset.type ? (
@@ -186,12 +190,7 @@ export function AssetTable({
                     {asset.manufacturer?.name || "—"}
                   </td>
                   <td className="px-4 py-[11px] font-medium text-[#0f172a]">
-                    <Link
-                      href={`/locations/${locationId}/assets/${asset.id}`}
-                      className="hover:text-[#1e64c8] transition-colors"
-                    >
-                      {asset.model || <span className="text-[#64748b] font-normal italic">No model</span>}
-                    </Link>
+                    {asset.model || <span className="text-[#64748b] font-normal italic">No model</span>}
                   </td>
                   <td className="px-4 py-[11px] text-[#64748b] font-mono text-[11.5px]">
                     {asset.serialNumber || "—"}
@@ -200,7 +199,7 @@ export function AssetTable({
                     {asset.hostname || "—"}
                   </td>
                   {showLocation && (
-                    <td className="px-4 py-[11px] text-[#64748b]">
+                    <td className="px-4 py-[11px] text-[#64748b]" onClick={(e) => e.stopPropagation()}>
                       {asset.location ? (
                         <Link href={`/locations/${asset.location.id}`} className="hover:text-[#1e64c8]">
                           {asset.location.name}
@@ -211,7 +210,7 @@ export function AssetTable({
                   <td className="px-4 py-[11px] text-[#64748b] text-[12px]">
                     {formatDate(asset.installationDate)}
                   </td>
-                  <td className="px-4 py-[11px]">
+                  <td className="px-4 py-[11px]" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
                       {canEdit && (
                         <>
@@ -263,7 +262,8 @@ export function AssetTable({
                     </div>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

@@ -309,9 +309,10 @@ export function UsersClient({
                     >
                       <DialogTrigger asChild>
                         <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-[12px] border-[#e2e8f0] rounded-[6px] bg-[#f8fafc] text-[#64748b] hover:bg-white px-2.5"
+                          variant="ghost"
+                          size="icon"
+                          className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
+                          title="Edit user"
                           onClick={() => {
                             setEditUser(user);
                             editForm.reset({
@@ -323,7 +324,7 @@ export function UsersClient({
                             });
                           }}
                         >
-                          Edit role
+                          <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
@@ -446,13 +447,14 @@ export function UsersClient({
                     )}
 
                     {/* Delete */}
+                    {user.id !== currentUserId && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          disabled={user.id === currentUserId}
+                          className="h-[30px] w-[30px] border border-[#fecaca] rounded-md text-[#ef4444] hover:bg-red-50"
+                          title="Delete user"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -475,6 +477,7 @@ export function UsersClient({
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                    )}
                   </div>
                 </td>
               </tr>

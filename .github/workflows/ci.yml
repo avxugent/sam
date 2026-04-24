@@ -18,11 +18,11 @@ jobs:
     steps:
       # ── 1. Checkout ────────────────────────────────────────────────────────
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # ── 2. Set up Node.js ──────────────────────────────────────────────────
       - name: Set up Node.js 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: "npm"
@@ -68,7 +68,7 @@ jobs:
       # ── 9. Upload coverage report ──────────────────────────────────────────
       - name: Upload coverage to GitHub (artifact)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage/

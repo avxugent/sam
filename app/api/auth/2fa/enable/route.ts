@@ -7,7 +7,7 @@
  * Body: { code: string }
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth, signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/totp";
 import { z } from "zod";
@@ -54,6 +54,20 @@ export async function POST(req: NextRequest) {
     where: { id: session.user.id },
     data: { totpEnabled: true },
   });
+
+  // When this is a forced-setup session (needs2FASetup=true in JWT), re-issue a
+  // clean session so the proxy no longer redirects to /login/setup-2fa.
+  // Mirrors what /api/auth/2fa/verify does for the needs2FA flag.
+  if ((session as { needs2FASetup?: boolean }).needs2FASetup) {
+    try {
+      await signIn("credentials-2fa-verified", {
+        userId: session.user.id,
+        redirect: false,
+      });
+    } catch {
+      // next-auth may throw NEXT_REDIRECT internally — safe to ignore.
+    }
+  }
 
   return NextResponse.json({ ok: true, message: "2FA has been enabled." });
 }

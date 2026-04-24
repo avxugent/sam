@@ -176,7 +176,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
 
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.role = (user as { id?: string; role?: string }).role;
@@ -196,7 +196,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         } else {
           delete token.needs2FASetup;
         }
+        token.dbCheck = Math.floor(Date.now() / 1000);
       }
+
+      // Verify user still exists in the database every 5 minutes.
+      // Returns null to invalidate the session if the user has been deleted.
+      const now = Math.floor(Date.now() / 1000);
+      const lastCheck = (token.dbCheck as number) ?? 0;
+      if (now - lastCheck > 300) {
+        const exists = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { id: true },
+        });
+        if (!exists) return null;
+        token.dbCheck = now;
+      }
+
       return token;
     },
 

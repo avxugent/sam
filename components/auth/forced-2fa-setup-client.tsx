@@ -57,7 +57,9 @@ export function Forced2FASetupClient() {
       return;
     }
 
+    // Session cookie re-issued by the enable route — full navigation picks it up.
     setStep("done");
+    window.location.href = "/";
   }
 
   if (step === "done") {

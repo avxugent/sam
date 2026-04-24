@@ -3,17 +3,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 
 type AssetCountRow = { id: string; totalAssets: bigint };
 
-/**
- * Returns a map of locationId -> total recursive asset count using a
- * MySQL recursive CTE. Accurate at any depth, one query.
- *
- * The CTE builds a (root_id, loc_id) table where loc_id is the location
- * itself or any of its descendants. Grouping by root_id then sums assets
- * across the entire subtree of each location.
- */
 async function getRecursiveAssetCounts(): Promise<Record<string, number>> {
   const rows = await prisma.$queryRaw<AssetCountRow[]>`
     WITH RECURSIVE loc_tree AS (
@@ -31,7 +24,6 @@ async function getRecursiveAssetCounts(): Promise<Record<string, number>> {
 
   const map: Record<string, number> = {};
   for (const row of rows) {
-    // MySQL returns COUNT as BigInt
     map[row.id] = Number(row.totalAssets);
   }
   return map;
@@ -47,13 +39,11 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Check if setup is required
   const userCount = await prisma.user.count();
   if (userCount === 0) {
     redirect("/setup");
   }
 
-  // Fetch the location tree (structure only, no counts — counts come from CTE)
   const locationTree = await prisma.location.findMany({
     where: { parentId: null },
     include: {
@@ -78,10 +68,8 @@ export default async function DashboardLayout({
     orderBy: [{ order: "asc" }, { name: "asc" }],
   });
 
-  // Get accurate recursive asset counts via SQL CTE
   const assetCountMap = await getRecursiveAssetCounts();
 
-  // Fetch extra user fields needed by the header (provider, totpEnabled)
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { provider: true, totpEnabled: true },
@@ -95,8 +83,11 @@ export default async function DashboardLayout({
     totpEnabled: dbUser?.totpEnabled ?? false,
   };
 
+  const isAdminOrEditor = session.user.role === "ADMIN" || session.user.role === "EDITOR";
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
+      {/* Sidebar — hidden on mobile, visible on lg+ */}
       <Sidebar
         locationTree={locationTree}
         userRole={session.user.role}
@@ -104,10 +95,13 @@ export default async function DashboardLayout({
       />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header user={headerUser} />
-        <main className="flex-1 overflow-auto p-6">
+        {/* pb-[58px] on mobile to clear bottom nav; none on lg */}
+        <main className="flex-1 overflow-auto p-6 lg:p-7 pb-[74px] lg:pb-6">
           {children}
         </main>
       </div>
+      {/* Mobile bottom tab bar */}
+      <MobileBottomNav isAdminOrEditor={isAdminOrEditor} />
     </div>
   );
 }

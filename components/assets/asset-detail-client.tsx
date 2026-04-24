@@ -4,9 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,11 +21,16 @@ import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { formatDate } from "@/lib/utils";
 import {
   ChevronRight,
-  Edit,
+  Pencil,
   Trash2,
   Monitor,
   Package,
   KeyRound,
+  Lock,
+  MapPin,
+  Clock,
+  Calendar,
+  Wrench,
 } from "lucide-react";
 
 type Attachment = {
@@ -64,6 +66,42 @@ type Asset = {
 
 type Breadcrumb = { id: string; name: string };
 
+function InfoCard({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden">
+      <div className="flex items-center gap-2 px-[18px] py-[14px] border-b border-[#e2e8f0]">
+        <span className="text-[#64748b]">{icon}</span>
+        <h3 className="text-[13px] font-semibold text-[#0f172a]">{title}</h3>
+      </div>
+      <div className="p-[18px]">{children}</div>
+    </div>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <dt className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-1">
+      {children}
+    </dt>
+  );
+}
+
+function FieldValue({ value, mono, children }: { value?: string | null; mono?: boolean; children?: React.ReactNode }) {
+  return (
+    <dd className={mono ? "font-mono text-[12px] text-[#0f172a]" : "text-[13px] text-[#0f172a]"}>
+      {children || (value ? value : <span className="text-[#64748b]">—</span>)}
+    </dd>
+  );
+}
+
 export function AssetDetailClient({
   asset,
   breadcrumbs,
@@ -95,55 +133,67 @@ export function AssetDetailClient({
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1 text-sm text-muted-foreground flex-wrap">
-        <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
+      <nav className="flex items-center gap-1 text-[12px] text-[#64748b] flex-wrap">
+        <Link href="/" className="hover:text-[#0f172a] transition-colors">Home</Link>
         {breadcrumbs.map((crumb) => (
           <span key={crumb.id} className="flex items-center gap-1">
             <ChevronRight className="h-3 w-3" />
-            <Link href={`/locations/${crumb.id}`} className="hover:text-foreground transition-colors">
+            <Link href={`/locations/${crumb.id}`} className="hover:text-[#0f172a] transition-colors">
               {crumb.name}
             </Link>
           </span>
         ))}
         <span className="flex items-center gap-1">
           <ChevronRight className="h-3 w-3" />
-          <span className="text-foreground font-medium">{displayName}</span>
+          <span className="text-[#0f172a] font-medium">{displayName}</span>
         </span>
       </nav>
 
-      {/* Header */}
+      {/* Page header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Monitor className="h-5 w-5 text-primary" />
-            <h1 className="text-2xl font-bold">{displayName}</h1>
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
+            <Monitor className="h-4 w-4 text-[#1e64c8]" />
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            {asset.type && <Badge variant="outline">{asset.type.name}</Badge>}
-            {asset.manufacturer && (
-              <Badge variant="secondary">{asset.manufacturer.name}</Badge>
-            )}
+          <div>
+            <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">{displayName}</h1>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              {asset.type && (
+                <span className="text-[11px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-[10px] py-[3px] rounded-[5px]">
+                  {asset.type.name}
+                </span>
+              )}
+              {asset.manufacturer && (
+                <span className="text-[11px] font-medium bg-[#f1f5f9] text-[#64748b] px-[10px] py-[3px] rounded-[5px]">
+                  {asset.manufacturer.name}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         {canEdit && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             <AssetFormDialog
               mode="edit"
               assetId={asset.id}
               locationId={asset.locationId}
               onSuccess={() => router.refresh()}
             >
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-1" />
+              <Button variant="outline" size="sm" className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5">
+                <Pencil className="h-3.5 w-3.5" />
                 Edit
               </Button>
             </AssetFormDialog>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                  <Trash2 className="h-4 w-4 mr-1" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-[34px] rounded-[7px] border-[#fecaca] text-[#ef4444] hover:bg-red-50 text-[13px] gap-1.5"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
                   Delete
                 </Button>
               </AlertDialogTrigger>
@@ -170,155 +220,157 @@ export function AssetDetailClient({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main details */}
+        {/* Col 1–2: Asset Details + Custom Fields */}
         <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                Asset Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                <Field label="Type" value={asset.type?.name} />
-                <Field label="Manufacturer" value={asset.manufacturer?.name} />
-                <Field label="Model" value={asset.model} />
-                <Field label="Serial Number" value={asset.serialNumber} mono />
-                <Field label="Hostname" value={asset.hostname} />
-                <Field label="Location">
-                  <Link href={`/locations/${asset.location.id}`} className="text-primary hover:underline">
+          <InfoCard icon={<Package className="h-3.5 w-3.5" />} title="Asset Details">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-[14px]">
+              <div><FieldLabel>Type</FieldLabel><FieldValue value={asset.type?.name} /></div>
+              <div><FieldLabel>Manufacturer</FieldLabel><FieldValue value={asset.manufacturer?.name} /></div>
+              <div><FieldLabel>Model</FieldLabel><FieldValue value={asset.model} /></div>
+              <div><FieldLabel>Serial Number</FieldLabel><FieldValue value={asset.serialNumber} mono /></div>
+              <div><FieldLabel>Hostname</FieldLabel><FieldValue value={asset.hostname} mono /></div>
+              <div>
+                <FieldLabel>Location</FieldLabel>
+                <FieldValue>
+                  <Link href={`/locations/${asset.location.id}`} className="text-[#1e64c8] hover:underline inline-flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
                     {asset.location.name}
                   </Link>
-                </Field>
-                <Field label="Installation Date" value={formatDate(asset.installationDate)} />
-                <Field label="Invoice Number" value={asset.invoiceNumber} />
-                <Field label="Invoice Date" value={formatDate(asset.invoiceDate)} />
-              </dl>
+                </FieldValue>
+              </div>
+              <div><FieldLabel>Installation Date</FieldLabel><FieldValue value={formatDate(asset.installationDate)} /></div>
+              <div><FieldLabel>Invoice Number</FieldLabel><FieldValue value={asset.invoiceNumber} /></div>
+              <div><FieldLabel>Invoice Date</FieldLabel><FieldValue value={formatDate(asset.invoiceDate)} /></div>
+            </dl>
 
-              {asset.macAddresses.length > 0 && (
-                <>
-                  <Separator className="my-4" />
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                      MAC Addresses
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {asset.macAddresses.map((mac) => (
-                        <code key={mac.id} className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                          {mac.address}
-                        </code>
-                      ))}
+            {asset.macAddresses.length > 0 && (
+              <div className="border-t border-[#e2e8f0] mt-4 pt-4">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-2">
+                  MAC Addresses
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {asset.macAddresses.map((mac) => (
+                    <span key={mac.id} className="font-mono text-[11.5px] bg-[#f1f5f9] text-[#334155] px-[10px] py-[3px] rounded-[5px]">
+                      {mac.address}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {asset.notes && (
+              <div className="border-t border-[#e2e8f0] mt-4 pt-4">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-2">Notes</p>
+                <p className="text-[13px] text-[#334155] leading-relaxed whitespace-pre-wrap">{asset.notes}</p>
+              </div>
+            )}
+
+            {asset.vaultPath && (
+              <div className="border-t border-[#e2e8f0] mt-4 pt-4">
+                <div className="flex items-center gap-2 text-[12px] text-[#64748b]">
+                  <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="font-medium text-[#0f172a]">Vault path:</span>
+                  <code className="font-mono bg-[#f1f5f9] text-[#334155] px-2 py-0.5 rounded-[4px] text-[11.5px]">
+                    {asset.vaultPath}
+                  </code>
+                </div>
+              </div>
+            )}
+
+            {asset.customFields.length > 0 && (
+              <div className="border-t border-[#e2e8f0] mt-4 pt-4">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-3">
+                  Custom Fields
+                </p>
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-[14px]">
+                  {asset.customFields.map((f) => (
+                    <div key={f.id}>
+                      <FieldLabel>{f.key}</FieldLabel>
+                      <FieldValue value={f.value} />
                     </div>
-                  </div>
-                </>
-              )}
+                  ))}
+                </dl>
+              </div>
+            )}
+          </InfoCard>
 
-              {asset.notes && (
-                <>
-                  <Separator className="my-4" />
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                      Notes
-                    </p>
-                    <p className="text-sm whitespace-pre-wrap">{asset.notes}</p>
-                  </div>
-                </>
-              )}
-
-              {asset.vaultPath && (
-                <>
-                  <Separator className="my-4" />
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <KeyRound className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="font-medium text-foreground">Vault path:</span>
-                    <code className="bg-muted px-1.5 py-0.5 rounded font-mono">
-                      {asset.vaultPath}
-                    </code>
-                  </div>
-                </>
-              )}
-
-              {asset.customFields.length > 0 && (
-                <>
-                  <Separator className="my-4" />
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-                    Custom Fields
-                  </p>
-                  <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                    {asset.customFields.map((f) => (
-                      <Field key={f.id} label={f.key} value={f.value} />
-                    ))}
-                  </dl>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Attachments */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Attachments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AttachmentGallery
-                attachments={attachments}
-                assetId={asset.id}
-                canEdit={canEdit}
-                onUpdate={setAttachments}
-              />
-            </CardContent>
-          </Card>
+          <InfoCard icon={<KeyRound className="h-3.5 w-3.5" />} title="Attachments">
+            <AttachmentGallery
+              attachments={attachments}
+              assetId={asset.id}
+              canEdit={canEdit}
+              onUpdate={setAttachments}
+            />
+          </InfoCard>
         </div>
 
-        {/* Metadata sidebar */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Record Info</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
+        {/* Col 3: Record Info */}
+        <div className="space-y-6">
+          <InfoCard icon={<Clock className="h-3.5 w-3.5" />} title="Record Info">
+            <div className="space-y-3">
               <div>
-                <p className="text-xs text-muted-foreground">Created</p>
-                <p>{formatDate(asset.createdAt)}</p>
+                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">Created</p>
+                <p className="text-[12.5px] text-[#334155]">{formatDate(asset.createdAt)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Last Modified</p>
-                <p>{formatDate(asset.updatedAt)}</p>
+                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">Last Modified</p>
+                <p className="text-[12.5px] text-[#334155]">{formatDate(asset.updatedAt)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Location</p>
-                <Link href={`/locations/${asset.location.id}`} className="text-primary hover:underline">
+                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">Location</p>
+                <Link href={`/locations/${asset.location.id}`} className="text-[12.5px] text-[#1e64c8] hover:underline inline-flex items-center gap-1">
+                  <MapPin className="h-3 w-3 fill-[#1e64c8] stroke-[#1e64c8]" />
                   {asset.location.name}
                 </Link>
               </div>
-            </CardContent>
-          </Card>
+              {asset.installationDate && (
+                <div>
+                  <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">Installed</p>
+                  <p className="text-[12.5px] text-[#334155] inline-flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {formatDate(asset.installationDate)}
+                  </p>
+                </div>
+              )}
+            </div>
+          </InfoCard>
+
+          {attachments.length > 0 && (
+            <InfoCard icon={<Wrench className="h-3.5 w-3.5" />} title="Attachments">
+              <div className="flex flex-wrap gap-2 mb-3">
+                {attachments.slice(0, 3).map((att) => {
+                  const isImage = att.mimeType.startsWith("image/");
+                  const isPdf = att.mimeType === "application/pdf";
+                  return (
+                    <a
+                      key={att.id}
+                      href={`/api/attachments/${att.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-[52px] h-[52px] rounded-[7px] flex items-center justify-center text-[10px] text-center font-medium overflow-hidden ${
+                        isImage ? "bg-[#dbeafe]" : isPdf ? "bg-[#fee2e2]" : "bg-[#f1f5f9]"
+                      }`}
+                    >
+                      {isImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={`/api/attachments/${att.id}`} alt={att.originalName} className="w-full h-full object-cover rounded-[7px]" />
+                      ) : (
+                        <span className="text-[10px] text-[#64748b] px-1 truncate">{att.originalName.split(".").pop()?.toUpperCase()}</span>
+                      )}
+                    </a>
+                  );
+                })}
+              </div>
+              <a
+                href="#attachments"
+                className="flex w-full h-[30px] items-center justify-center border border-[#e2e8f0] rounded-[6px] bg-[#f8fafc] text-[12px] text-[#64748b] hover:bg-white transition-colors"
+              >
+                View all {attachments.length} attachment{attachments.length !== 1 ? "s" : ""}
+              </a>
+            </InfoCard>
+          )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  mono = false,
-  children,
-}: {
-  label: string;
-  value?: string | null;
-  mono?: boolean;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">
-        {label}
-      </dt>
-      <dd className={mono ? "font-mono text-xs" : ""}>
-        {children || (value ? value : <span className="text-muted-foreground">—</span>)}
-      </dd>
     </div>
   );
 }

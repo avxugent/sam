@@ -27,7 +27,7 @@ import { CoverImagePicker } from "@/components/locations/cover-image-picker";
 import { LocationMap } from "@/components/locations/location-map";
 import {
   ChevronRight,
-  Edit,
+  Pencil,
   Trash2,
   Plus,
   MapPin,
@@ -38,28 +38,11 @@ import {
   Hash,
 } from "lucide-react";
 
-/** Parses a FI number into its segments */
 function parseFiSegments(fi: string): { campus: string; building: string; floor: string; room: string } | null {
   const parts = fi.split(".");
   if (parts.length !== 4) return null;
   const [campus, building, floor, room] = parts;
   return { campus, building, floor, room };
-}
-
-/** Badge that displays a FI number with a decoded breakdown */
-function FiNumberBadge({ fiNumber }: { fiNumber: string }) {
-  const parts = parseFiSegments(fiNumber);
-  return (
-    <span
-      className="inline-flex items-center gap-1 text-xs font-mono bg-muted text-muted-foreground border rounded px-2 py-0.5 cursor-default select-all"
-      title={parts
-        ? `Campus: ${parts.campus} · Building: ${parts.building} · Floor: ${parts.floor} · Room: ${parts.room}`
-        : fiNumber}
-    >
-      <Hash className="h-3 w-3 flex-shrink-0" />
-      {fiNumber}
-    </span>
-  );
 }
 
 type Breadcrumb = { id: string; name: string };
@@ -166,15 +149,15 @@ export function LocationDetailClient({
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1 text-sm text-muted-foreground flex-wrap">
-        <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
+      <nav className="flex items-center gap-1 text-[12px] text-[#64748b] flex-wrap">
+        <Link href="/" className="hover:text-[#0f172a] transition-colors">Home</Link>
         {breadcrumbs.map((crumb, i) => (
           <span key={crumb.id} className="flex items-center gap-1">
             <ChevronRight className="h-3 w-3" />
             {i === breadcrumbs.length - 1 ? (
-              <span className="text-foreground font-medium">{crumb.name}</span>
+              <span className="text-[#0f172a] font-medium">{crumb.name}</span>
             ) : (
-              <Link href={`/locations/${crumb.id}`} className="hover:text-foreground transition-colors">
+              <Link href={`/locations/${crumb.id}`} className="hover:text-[#0f172a] transition-colors">
                 {crumb.name}
               </Link>
             )}
@@ -182,74 +165,51 @@ export function LocationDetailClient({
         ))}
       </nav>
 
-      {/* Cover image banner */}
-      {coverImage && (
-        <div className="relative w-full rounded-xl overflow-hidden border" style={{ height: 220 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`/api/attachments/${coverImage.id}`}
-            alt={coverImage.originalName}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-          <div className="absolute bottom-4 left-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-white text-2xl font-bold drop-shadow">{location.name}</h1>
-              {location.fiNumber && (
-                <span className="text-xs font-mono bg-white/20 text-white backdrop-blur-sm rounded px-2 py-0.5 border border-white/30">
-                  {location.fiNumber}
-                </span>
-              )}
-            </div>
-            {hasAddress && (
-              <p className="text-white/80 text-sm mt-0.5 flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5" />
-                {[mapData.address, mapData.city, mapData.country].filter(Boolean).join(", ")}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Cover banner — always shown (blue gradient, or photo if cover image set) */}
+      <div className="relative w-full rounded-[12px] overflow-hidden" style={{ height: 160 }}>
+        {coverImage ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/attachments/${coverImage.id}`}
+              alt={coverImage.originalName}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          </>
+        ) : (
+          <>
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(135deg, #1e64c8 0%, #1a4fa0 100%)" }}
+            />
+            {/* Decorative circles */}
+            <div className="absolute -top-8 -right-8 w-[200px] h-[200px] rounded-full bg-white opacity-[0.05]" />
+            <div className="absolute -bottom-6 -left-6 w-[120px] h-[120px] rounded-full bg-white opacity-[0.06]" />
+          </>
+        )}
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          {!coverImage && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <MapPin className="h-5 w-5 text-primary" />
-              <h1 className="text-2xl font-bold">{location.name}</h1>
-              {location.fiNumber && (
-                <FiNumberBadge fiNumber={location.fiNumber} />
-              )}
-            </div>
+        {/* Content bottom-left */}
+        <div className="absolute bottom-0 left-0 p-5">
+          <h1 className="text-[24px] font-extrabold text-white tracking-[-0.02em] drop-shadow">
+            {location.name}
+          </h1>
+          {location.fiNumber && (
+            <span className="inline-block font-mono text-[11px] text-white bg-white/20 border border-white/25 px-2 py-[2px] rounded-[5px] mt-1">
+              {location.fiNumber}
+            </span>
           )}
-          {location.description && (
-            <p className="text-muted-foreground mt-1">{location.description}</p>
-          )}
-          {!coverImage && hasAddress && (
-            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-primary" />
+          {hasAddress && (
+            <p className="text-[12.5px] text-white/75 flex items-center gap-1.5 mt-1">
+              <MapPin className="h-3.5 w-3.5" />
               {[mapData.address, mapData.city, mapData.country].filter(Boolean).join(", ")}
             </p>
           )}
-          <div className="flex gap-3 mt-3 flex-wrap">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Package className="h-4 w-4" />
-              <span>{location._count.assets} direct assets</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <FolderOpen className="h-4 w-4" />
-              <span>{location._count.children} sub-locations</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Paperclip className="h-4 w-4" />
-              <span>{attachments.length} attachments</span>
-            </div>
-          </div>
         </div>
 
+        {/* Buttons top-right */}
         {canEdit && (
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="absolute top-4 right-4 flex gap-2">
             <LocationFormDialog
               mode="edit"
               locationId={location.id}
@@ -262,16 +222,53 @@ export function LocationDetailClient({
                 country: location.country,
               }}
             >
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-1" />
+              <Button
+                size="sm"
+                className="h-8 rounded-[7px] border border-white/30 bg-white/15 text-white hover:bg-white/25 backdrop-blur-[4px] gap-1.5 text-[13px]"
+                variant="ghost"
+              >
+                <Pencil className="h-3.5 w-3.5" />
                 Edit
               </Button>
             </LocationFormDialog>
 
+            <AssetFormDialog
+              mode="create"
+              locationId={location.id}
+              onSuccess={() => router.refresh()}
+            >
+              <Button
+                size="sm"
+                className="h-8 rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 gap-1.5 text-[13px]"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Asset
+              </Button>
+            </AssetFormDialog>
+          </div>
+        )}
+      </div>
+
+      {/* Stats bar */}
+      <div className="flex items-center gap-6 flex-wrap">
+        <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
+          <Package className="h-4 w-4" />
+          <span>{location._count.assets} direct assets</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
+          <FolderOpen className="h-4 w-4" />
+          <span>{location._count.children} sub-locations</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
+          <Paperclip className="h-4 w-4" />
+          <span>{attachments.length} attachments</span>
+        </div>
+        {canEdit && (
+          <div className="ml-auto flex gap-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                  <Trash2 className="h-4 w-4 mr-1" />
+                <Button variant="outline" size="sm" className="h-8 text-[#ef4444] border-[#fecaca] hover:bg-red-50 text-[13px] rounded-[7px]">
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
                   Delete
                 </Button>
               </AlertDialogTrigger>
@@ -298,33 +295,52 @@ export function LocationDetailClient({
         )}
       </div>
 
+      {location.description && (
+        <p className="text-[13px] text-[#64748b]">{location.description}</p>
+      )}
+
       {/* Tabs */}
       <Tabs defaultValue="assets">
-        <TabsList className="flex-wrap h-auto gap-1">
-          <TabsTrigger value="assets">
+        <TabsList className="flex-wrap h-auto gap-0 border-b border-[#e2e8f0] bg-transparent rounded-none p-0">
+          <TabsTrigger
+            value="assets"
+            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+          >
             Assets
             {assets.length > 0 && (
               <Badge variant="secondary" className="ml-2 text-xs">{assets.length}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="sublocations">
+          <TabsTrigger
+            value="sublocations"
+            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+          >
             Sub-locations
             {location.children.length > 0 && (
               <Badge variant="secondary" className="ml-2 text-xs">{location.children.length}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="map">
+          <TabsTrigger
+            value="map"
+            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+          >
             <MapPin className="h-3.5 w-3.5 mr-1" />
             Map &amp; Address
           </TabsTrigger>
-          <TabsTrigger value="attachments">
+          <TabsTrigger
+            value="attachments"
+            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+          >
             Attachments
             {attachments.length > 0 && (
               <Badge variant="secondary" className="ml-2 text-xs">{attachments.length}</Badge>
             )}
           </TabsTrigger>
           {canEdit && (
-            <TabsTrigger value="cover">
+            <TabsTrigger
+              value="cover"
+              className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            >
               <ImageIcon className="h-3.5 w-3.5 mr-1" />
               Cover Image
             </TabsTrigger>
@@ -334,21 +350,9 @@ export function LocationDetailClient({
         {/* Assets tab */}
         <TabsContent value="assets" className="mt-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-[18px] font-semibold text-[#0f172a]">
               {showLocation ? `All assets in ${location.name}` : `Assets in ${location.name}`}
             </h2>
-            {canEdit && (
-              <AssetFormDialog
-                mode="create"
-                locationId={location.id}
-                onSuccess={() => router.refresh()}
-              >
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Asset
-                </Button>
-              </AssetFormDialog>
-            )}
           </div>
           <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} />
         </TabsContent>
@@ -356,10 +360,10 @@ export function LocationDetailClient({
         {/* Sub-locations tab */}
         <TabsContent value="sublocations" className="mt-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Sub-locations</h2>
+            <h2 className="text-[18px] font-semibold text-[#0f172a]">Sub-locations</h2>
             {canEdit && (
               <LocationFormDialog mode="create" parentId={location.id}>
-                <Button size="sm">
+                <Button size="sm" className="h-[34px] rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
                   <Plus className="h-4 w-4 mr-1" />
                   Add Sub-location
                 </Button>
@@ -367,59 +371,38 @@ export function LocationDetailClient({
             )}
           </div>
           {location.children.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground border rounded-lg">
+            <div className="text-center py-12 text-[#64748b] border border-[#e2e8f0] rounded-[10px] bg-white">
               <FolderOpen className="h-10 w-10 mx-auto mb-3 opacity-40" />
               <p>No sub-locations yet</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[14px]">
               {location.children.map((child) => (
                 <Link key={child.id} href={`/locations/${child.id}`}>
-                  <Card className="hover:border-primary/50 transition-colors cursor-pointer overflow-hidden">
-                    {child.coverImageId && (
-                      <div className="h-28 overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={`/api/attachments/${child.coverImageId}`}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                  <div className="bg-white border border-[#e2e8f0] rounded-[10px] p-[18px_20px] hover:border-[rgba(30,100,200,0.5)] transition-colors cursor-pointer">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <MapPin className="h-3.5 w-3.5 fill-[#1e64c8] stroke-[#1e64c8] flex-shrink-0" />
+                      <span className="text-[13.5px] font-semibold text-[#0f172a]">{child.name}</span>
+                    </div>
+                    {child.fiNumber && (
+                      <p className="font-mono text-[11px] text-[#64748b] mb-2">{child.fiNumber}</p>
                     )}
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center gap-2 flex-wrap">
-                        <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-                        {child.name}
-                      </CardTitle>
-                      {child.fiNumber && (
-                        <span
-                          className="text-xs font-mono text-muted-foreground flex items-center gap-1 -mt-1"
-                          title={(() => {
-                            const p = parseFiSegments(child.fiNumber);
-                            return p
-                              ? `Campus: ${p.campus} · Building: ${p.building} · Floor: ${p.floor} · Room: ${p.room}`
-                              : child.fiNumber;
-                          })()}
-                        >
-                          <Hash className="h-3 w-3" />
-                          {child.fiNumber}
-                        </span>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      {child.description && (
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                          {child.description}
-                        </p>
-                      )}
-                      <div className="flex gap-3 text-xs text-muted-foreground">
-                        <span>{child._count.assets} assets</span>
-                        <span>{child._count.children} sub-locations</span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    <div className="flex gap-3 text-[12px] text-[#64748b]">
+                      <span>{child._count.assets} assets</span>
+                      <span>{child._count.children} sub-locations</span>
+                    </div>
+                  </div>
                 </Link>
               ))}
+              {/* Add sub-location card */}
+              {canEdit && (
+                <LocationFormDialog mode="create" parentId={location.id}>
+                  <div className="border-2 border-dashed border-[#e2e8f0] rounded-[10px] flex items-center justify-center gap-2 p-[18px_20px] cursor-pointer hover:border-[#94a3b8] transition-colors min-h-[80px]">
+                    <Plus className="h-4 w-4 text-[#94a3b8]" />
+                    <span className="text-[13px] text-[#94a3b8]">Add sub-location</span>
+                  </div>
+                </LocationFormDialog>
+              )}
             </div>
           )}
         </TabsContent>
@@ -448,12 +431,12 @@ export function LocationDetailClient({
           />
         </TabsContent>
 
-        {/* Cover Image tab (edit only) */}
+        {/* Cover Image tab */}
         {canEdit && (
           <TabsContent value="cover" className="mt-4">
             <div className="mb-4">
-              <h2 className="text-lg font-semibold">Cover Image</h2>
-              <p className="text-sm text-muted-foreground mt-1">
+              <h2 className="text-[18px] font-semibold text-[#0f172a]">Cover Image</h2>
+              <p className="text-[13px] text-[#64748b] mt-1">
                 Choose one of the image attachments as the cover photo shown at the top of this page.
               </p>
             </div>

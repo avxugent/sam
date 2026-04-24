@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
@@ -20,7 +19,7 @@ import {
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
-import { Edit, Trash2, Search, Package, ExternalLink } from "lucide-react";
+import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 
 type Asset = {
   id: string;
@@ -34,6 +33,15 @@ type Asset = {
   _count: { attachments: number };
   location?: { id: string; name: string } | null;
 };
+
+type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "hostname" | "installationDate" | "location";
+
+function SortIcon({ col, active, dir }: { col: string; active: boolean; dir: "asc" | "desc" }) {
+  if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
+  return dir === "asc"
+    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
+    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
+}
 
 export function AssetTable({
   assets: initialAssets,
@@ -50,11 +58,18 @@ export function AssetTable({
   const { toast } = useToast();
   const [assets, setAssets] = useState(initialAssets);
   const [search, setSearch] = useState("");
+  const [sortCol, setSortCol] = useState<SortCol | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
 
-  const filtered = assets.filter((a) => {
+  function handleSort(col: SortCol) {
+    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortCol(col); setSortDir("asc"); }
+  }
+
+  const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return (
+    return assets.filter((a) =>
       !q ||
       a.model?.toLowerCase().includes(q) ||
       a.serialNumber?.toLowerCase().includes(q) ||
@@ -63,7 +78,23 @@ export function AssetTable({
       a.manufacturer?.name.toLowerCase().includes(q) ||
       a.macAddresses.some((m) => m.address.toLowerCase().includes(q))
     );
-  });
+  }, [assets, search]);
+
+  const sorted = useMemo(() => {
+    if (!sortCol) return filtered;
+    return [...filtered].sort((a, b) => {
+      let av = "";
+      let bv = "";
+      if (sortCol === "type") { av = a.type?.name ?? ""; bv = b.type?.name ?? ""; }
+      else if (sortCol === "manufacturer") { av = a.manufacturer?.name ?? ""; bv = b.manufacturer?.name ?? ""; }
+      else if (sortCol === "model") { av = a.model ?? ""; bv = b.model ?? ""; }
+      else if (sortCol === "serialNumber") { av = a.serialNumber ?? ""; bv = b.serialNumber ?? ""; }
+      else if (sortCol === "hostname") { av = a.hostname ?? ""; bv = b.hostname ?? ""; }
+      else if (sortCol === "installationDate") { av = String(a.installationDate ?? ""); bv = String(b.installationDate ?? ""); }
+      else if (sortCol === "location") { av = a.location?.name ?? ""; bv = b.location?.name ?? ""; }
+      return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }, [filtered, sortCol, sortDir]);
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/assets/${id}`, { method: "DELETE" });
@@ -79,12 +110,29 @@ export function AssetTable({
 
   if (assets.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground border rounded-lg">
+      <div className="text-center py-12 text-muted-foreground border border-[#e2e8f0] rounded-[10px] bg-white">
         <Package className="h-10 w-10 mx-auto mb-3 opacity-40" />
         <p>No assets in this location yet</p>
       </div>
     );
   }
+
+  function Th({ col, label }: { col: SortCol; label: string }) {
+    const active = sortCol === col;
+    return (
+      <th
+        className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] cursor-pointer select-none whitespace-nowrap"
+        onClick={() => handleSort(col)}
+      >
+        <span className={`inline-flex items-center gap-1 ${active ? "text-[#1e64c8]" : ""}`}>
+          {label}
+          <SortIcon col={col} active={active} dir={sortDir} />
+        </span>
+      </th>
+    );
+  }
+
+  const colSpan = showLocation ? 8 : 7;
 
   return (
     <div className="space-y-3">
@@ -94,85 +142,77 @@ export function AssetTable({
           placeholder="Search assets..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
+          className="pl-9 h-[36px] text-[13px] rounded-[8px]"
         />
       </div>
 
-      <div className="rounded-lg border overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
+        <table className="w-full text-[13px]">
           <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Type</th>
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Manufacturer</th>
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Model</th>
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Serial #</th>
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Hostname</th>
-              {showLocation && (
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Location</th>
-              )}
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Installed</th>
-              <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Actions</th>
+            <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
+              <Th col="type" label="Type" />
+              <Th col="manufacturer" label="Manufacturer" />
+              <Th col="model" label="Model" />
+              <Th col="serialNumber" label="Serial #" />
+              <Th col="hostname" label="Hostname" />
+              {showLocation && <Th col="location" label="Location" />}
+              <Th col="installationDate" label="Installed" />
+              <th className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <tr>
-                <td colSpan={showLocation ? 8 : 7} className="text-center py-8 text-muted-foreground">
+                <td colSpan={colSpan} className="text-center py-8 text-muted-foreground">
                   No assets match your search
                 </td>
               </tr>
             ) : (
-              filtered.map((asset, i) => (
+              sorted.map((asset) => (
                 <tr
                   key={asset.id}
-                  className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${
-                    i % 2 === 0 ? "" : "bg-muted/10"
-                  }`}
+                  className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors duration-75"
                 >
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-[11px]">
                     {asset.type ? (
-                      <Badge variant="outline" className="text-xs">{asset.type.name}</Badge>
+                      <span className="inline-flex items-center text-[11px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-2 py-0.5 rounded-[5px]">
+                        {asset.type.name}
+                      </span>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-[#64748b]">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
+                  <td className="px-4 py-[11px] text-[#64748b]">
                     {asset.manufacturer?.name || "—"}
                   </td>
-                  <td className="px-4 py-2.5 font-medium">
+                  <td className="px-4 py-[11px] font-medium text-[#0f172a]">
                     <Link
                       href={`/locations/${locationId}/assets/${asset.id}`}
-                      className="hover:text-primary flex items-center gap-1"
+                      className="hover:text-[#1e64c8] transition-colors"
                     >
-                      {asset.model || <span className="text-muted-foreground italic">No model</span>}
-                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                      {asset.model || <span className="text-[#64748b] font-normal italic">No model</span>}
                     </Link>
                   </td>
-                  <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">
+                  <td className="px-4 py-[11px] text-[#64748b] font-mono text-[11.5px]">
                     {asset.serialNumber || "—"}
                   </td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
+                  <td className="px-4 py-[11px] text-[#64748b] font-mono text-[11.5px]">
                     {asset.hostname || "—"}
                   </td>
                   {showLocation && (
-                    <td className="px-4 py-2.5 text-muted-foreground">
+                    <td className="px-4 py-[11px] text-[#64748b]">
                       {asset.location ? (
-                        <Link href={`/locations/${asset.location.id}`} className="hover:text-primary">
+                        <Link href={`/locations/${asset.location.id}`} className="hover:text-[#1e64c8]">
                           {asset.location.name}
                         </Link>
                       ) : "—"}
                     </td>
                   )}
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                  <td className="px-4 py-[11px] text-[#64748b] text-[12px]">
                     {formatDate(asset.installationDate)}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-[11px]">
                     <div className="flex items-center justify-end gap-1">
-                      {asset._count.attachments > 0 && (
-                        <Badge variant="secondary" className="text-xs mr-1">
-                          {asset._count.attachments} files
-                        </Badge>
-                      )}
                       {canEdit && (
                         <>
                           <AssetFormDialog
@@ -181,8 +221,12 @@ export function AssetTable({
                             locationId={locationId}
                             onSuccess={() => router.refresh()}
                           >
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <Edit className="h-3.5 w-3.5" />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
                             </Button>
                           </AssetFormDialog>
 
@@ -191,7 +235,7 @@ export function AssetTable({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                className="h-[30px] w-[30px] text-destructive hover:text-destructive hover:bg-red-50"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -224,9 +268,9 @@ export function AssetTable({
           </tbody>
         </table>
       </div>
-      {filtered.length > 0 && (
-        <p className="text-xs text-muted-foreground text-right">
-          {filtered.length} of {assets.length} asset{assets.length !== 1 ? "s" : ""}
+      {sorted.length > 0 && (
+        <p className="text-[12px] text-[#64748b] text-right">
+          {sorted.length} of {assets.length} asset{assets.length !== 1 ? "s" : ""}
         </p>
       )}
     </div>

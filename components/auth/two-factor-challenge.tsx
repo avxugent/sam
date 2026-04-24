@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Monitor, Loader2, ShieldCheck, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -12,21 +13,14 @@ export function TwoFactorChallenge() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // Auto-submit when 6 digits are entered
-  useEffect(() => {
-    if (code.replace(/\s/g, "").length === 6) {
-      handleSubmit();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code]);
-
-  async function handleSubmit(e?: React.FormEvent) {
+  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
     const trimmed = code.replace(/\s/g, "");
     if (trimmed.length !== 6) return;
@@ -37,7 +31,7 @@ export function TwoFactorChallenge() {
     const res = await fetch("/api/auth/2fa/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: trimmed }),
+      body: JSON.stringify({ code: trimmed, rememberMe }),
     });
 
     const data = await res.json();
@@ -55,7 +49,7 @@ export function TwoFactorChallenge() {
     // the signIn() call inside the verify route may not arrive in time before
     // the proxy checks the session on the next request.
     window.location.href = "/";
-  }
+  }, [code, rememberMe]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
@@ -94,6 +88,17 @@ export function TwoFactorChallenge() {
                   inputMode="numeric"
                   maxLength={7} // 6 digits + possible space
                 />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(v) => setRememberMe(!!v)}
+                />
+                <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
+                  Remember this device for 30 days
+                </Label>
               </div>
 
               {error && (

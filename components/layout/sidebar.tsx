@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Monitor,
   ChevronRight,
@@ -16,7 +15,6 @@ import {
 } from "lucide-react";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 
-// LocationNode — counts supplied externally via assetCountMap
 type LocationNode = {
   id: string;
   name: string;
@@ -26,7 +24,6 @@ type LocationNode = {
 type SidebarProps = {
   locationTree: LocationNode[];
   userRole: string;
-  /** Map of locationId → recursive total asset count (from server CTE) */
   assetCountMap: Record<string, number>;
 };
 
@@ -42,7 +39,7 @@ function LocationTreeItem({
   assetCountMap: Record<string, number>;
 }) {
   const pathname = usePathname();
-  const isActive = pathname === `/locations/${location.id}`;
+  const isActive = pathname === `/locations/${location.id}` || pathname.startsWith(`/locations/${location.id}/`);
   const hasChildren = location.children.length > 0;
   const [open, setOpen] = useState(
     pathname.startsWith(`/locations/${location.id}`)
@@ -50,48 +47,60 @@ function LocationTreeItem({
 
   const totalAssets = assetCountMap[location.id] ?? 0;
 
+  // Depth 2+ uses a dot indicator instead of a chevron
+  const useDot = depth >= 2;
+
   return (
     <div>
       <div
         className={cn(
-          "flex items-center gap-1 rounded-md px-2 py-1 text-sm group",
+          "flex items-center gap-1 py-[5px] text-[12.5px] group relative cursor-pointer select-none",
           isActive
-            ? "bg-primary text-primary-foreground"
-            : "hover:bg-muted text-foreground"
+            ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
+            : "text-[#334155] hover:bg-[#f8fafc]"
         )}
-        style={{ paddingLeft: `${(depth + 1) * 12}px` }}
+        style={{ paddingLeft: `${12 + depth * 14}px`, paddingRight: "10px" }}
       >
+        {/* Expand/collapse button or dot */}
         <button
           className="flex-shrink-0 h-4 w-4 flex items-center justify-center"
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? "Collapse" : "Expand"}
         >
-          {hasChildren ? (
+          {useDot ? (
+            <span
+              className={cn(
+                "block w-[5px] h-[5px] rounded-full",
+                isActive ? "bg-[#1e64c8]" : "bg-[#cbd5e1]"
+              )}
+            />
+          ) : hasChildren ? (
             open ? (
-              <ChevronDown className="h-3 w-3" />
+              <ChevronDown className={cn("h-3 w-3", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
             ) : (
-              <ChevronRight className="h-3 w-3" />
+              <ChevronRight className={cn("h-3 w-3", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
             )
           ) : (
             <span className="h-3 w-3" />
           )}
         </button>
+
         <Link
           href={`/locations/${location.id}`}
-          className="flex-1 flex items-center gap-2 min-w-0"
+          className="flex-1 flex items-center gap-1.5 min-w-0"
         >
-          <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+          <MapPin className={cn("h-3 w-3 flex-shrink-0", isActive ? "fill-[#1e64c8] stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
           <span className="truncate">{location.name}</span>
         </Link>
+
         {totalAssets > 0 && (
-          <Badge
-            variant={isActive ? "outline" : "secondary"}
-            className="text-xs px-1.5 py-0 h-5 flex-shrink-0"
-          >
+          <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
             {totalAssets}
-          </Badge>
+          </span>
         )}
       </div>
+
+      {/* Children — animate open/close */}
       {open && hasChildren && (
         <div>
           {location.children.map((child) => (
@@ -113,20 +122,17 @@ export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps)
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
 
   return (
-    <aside className="w-[260px] flex-shrink-0 border-r bg-background flex flex-col h-full overflow-hidden">
+    <aside className="w-[248px] flex-shrink-0 border-r bg-white flex flex-col h-full overflow-hidden hidden lg:flex">
       {/* Logo */}
-      <div className="flex items-center gap-2 px-4 h-14 border-b flex-shrink-0">
-        <Monitor className="h-5 w-5 text-primary" />
-        <span className="font-semibold text-lg">SAM</span>
-        <span className="text-xs text-muted-foreground ml-auto hidden lg:block">
-          Asset Management
-        </span>
+      <div className="flex items-center gap-2 px-4 h-[56px] border-b flex-shrink-0">
+        <Monitor className="h-5 w-5 text-[#1e64c8]" strokeWidth={2} />
+        <span className="font-bold text-[16px] text-[#0f172a] tracking-tight">SAM</span>
       </div>
 
-      {/* Location tree — takes all remaining height */}
+      {/* Location tree */}
       <div className="flex-1 overflow-y-auto py-3">
-        <div className="px-3 mb-1 flex items-center justify-between">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="px-3 mb-2 flex items-center justify-between">
+          <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.08em]">
             Locations
           </span>
           {canEdit && (
@@ -151,7 +157,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps)
             )}
           </div>
         ) : (
-          <div className="space-y-0.5 px-1">
+          <div>
             {locationTree.map((location) => (
               <LocationTreeItem
                 key={location.id}

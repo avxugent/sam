@@ -1,7 +1,22 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { jwtVerify } from "jose";
 
-export const proxy = auth((req) => {
+const REMEMBER_COOKIE = "sam_2fa_rm";
+
+async function isRemembered(req: Parameters<Parameters<typeof auth>[0]>[0], userId: string): Promise<boolean> {
+  const token = req.cookies.get(REMEMBER_COOKIE)?.value;
+  if (!token) return false;
+  try {
+    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
+    const { payload } = await jwtVerify(token, secret);
+    return payload.sub === userId;
+  } catch {
+    return false;
+  }
+}
+
+export const proxy = auth(async (req) => {
   const { pathname } = req.nextUrl;
 
   // ── Always-public routes ────────────────────────────────────────────────
@@ -58,6 +73,10 @@ export const proxy = auth((req) => {
   const needs2FA = auth.needs2FA === true;
 
   if (needs2FA && !is2faRoute) {
+    const userId = (req.auth as { user?: { id?: string } })?.user?.id ?? "";
+    if (userId && await isRemembered(req, userId)) {
+      return NextResponse.next();
+    }
     return NextResponse.redirect(new URL("/login/2fa", req.url));
   }
 

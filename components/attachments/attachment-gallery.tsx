@@ -36,10 +36,24 @@ type Attachment = {
   uploadedBy: { id: string; name: string };
 };
 
-function FileIcon({ mimeType }: { mimeType: string }) {
-  if (mimeType.startsWith("image/")) return <FileImage className="h-5 w-5 text-blue-500" />;
-  if (mimeType === "application/pdf") return <FileText className="h-5 w-5 text-red-500" />;
-  return <File className="h-5 w-5 text-muted-foreground" />;
+function FileIconBox({ mimeType }: { mimeType: string }) {
+  const isImage = mimeType.startsWith("image/");
+  const isPdf = mimeType === "application/pdf";
+  return (
+    <div
+      className={`w-[34px] h-[34px] rounded-[7px] flex items-center justify-center flex-shrink-0 ${
+        isImage ? "bg-[#eff6ff]" : isPdf ? "bg-[#fef2f2]" : "bg-[#f1f5f9]"
+      }`}
+    >
+      {isImage ? (
+        <FileImage className="h-4 w-4 text-blue-500" />
+      ) : isPdf ? (
+        <FileText className="h-4 w-4 text-red-500" />
+      ) : (
+        <File className="h-4 w-4 text-[#64748b]" />
+      )}
+    </div>
+  );
 }
 
 export function AttachmentGallery({
@@ -103,11 +117,13 @@ export function AttachmentGallery({
 
   return (
     <div className="space-y-4">
-      {/* Upload area */}
+      {/* Drop zone */}
       {canEdit && (
         <div
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/25"
+          className={`border-2 border-dashed rounded-[10px] px-5 py-7 text-center transition-colors cursor-pointer bg-white ${
+            dragOver
+              ? "border-[#1e64c8] bg-[#e8f0fc]"
+              : "border-[#cbd5e1]"
           }`}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -116,6 +132,7 @@ export function AttachmentGallery({
             setDragOver(false);
             handleFiles(e.dataTransfer.files);
           }}
+          onClick={() => fileInputRef.current?.click()}
         >
           <input
             ref={fileInputRef}
@@ -126,24 +143,18 @@ export function AttachmentGallery({
             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
           />
           {uploading ? (
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <div className="flex items-center justify-center gap-2 text-[#64748b]">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Uploading...</span>
+              <span className="text-[13px]">Uploading...</span>
             </div>
           ) : (
-            <div className="space-y-2">
-              <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                Drag & drop files here, or{" "}
-                <button
-                  type="button"
-                  className="text-primary hover:underline"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  browse
-                </button>
+            <div className="space-y-1.5">
+              <Upload className="h-7 w-7 mx-auto text-[#94a3b8]" />
+              <p className="text-[13px] text-[#64748b]">
+                Drag &amp; drop files here, or{" "}
+                <span className="text-[#1e64c8] hover:underline">browse</span>
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11.5px] text-[#94a3b8]">
                 Images, PDF, Word, Excel, CSV — max 50 MB
               </p>
             </div>
@@ -153,21 +164,21 @@ export function AttachmentGallery({
 
       {/* Attachment list */}
       {attachments.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground border rounded-lg">
+        <div className="text-center py-8 text-[#64748b] border border-[#e2e8f0] rounded-[10px] bg-white">
           <Paperclip className="h-10 w-10 mx-auto mb-3 opacity-40" />
-          <p>No attachments yet</p>
+          <p className="text-[13px]">No attachments yet</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="divide-y divide-[#e2e8f0]">
           {attachments.map((attachment) => (
             <div
               key={attachment.id}
-              className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30"
+              className="flex items-center gap-3 py-[10px] first:pt-0"
             >
-              <FileIcon mimeType={attachment.mimeType} />
+              <FileIconBox mimeType={attachment.mimeType} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{attachment.originalName}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[13px] font-medium text-[#0f172a] truncate">{attachment.originalName}</p>
+                <p className="text-[11.5px] text-[#64748b]">
                   {formatFileSize(attachment.size)} · Added {formatDate(attachment.createdAt)} by {attachment.uploadedBy.name}
                 </p>
               </div>
@@ -175,10 +186,8 @@ export function AttachmentGallery({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
-                  onClick={() => {
-                    window.open(`/api/attachments/${attachment.id}`, "_blank");
-                  }}
+                  className="h-[30px] w-[30px] text-[#64748b] hover:text-[#334155]"
+                  onClick={() => window.open(`/api/attachments/${attachment.id}`, "_blank")}
                 >
                   <Download className="h-4 w-4" />
                 </Button>
@@ -188,7 +197,7 @@ export function AttachmentGallery({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        className="h-[30px] w-[30px] text-[#ef4444] hover:text-[#ef4444] hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

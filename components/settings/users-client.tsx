@@ -68,21 +68,32 @@ type User = {
   createdAt: Date | string;
 };
 
-function roleBadge(role: string) {
-  if (role === "ADMIN") return <Badge>ADMIN</Badge>;
-  if (role === "EDITOR") return <Badge variant="secondary">EDITOR</Badge>;
-  return <Badge variant="outline">VIEWER</Badge>;
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return parts[0].slice(0, 2).toUpperCase();
 }
 
-function providerBadge(provider: string) {
-  if (provider === "microsoft-entra-id") {
+function RolePill({ role }: { role: string }) {
+  if (role === "ADMIN") {
     return (
-      <Badge variant="outline" className="text-xs border-blue-300 text-blue-600 bg-blue-50">
-        Microsoft SSO
-      </Badge>
+      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#fef3c7] text-[#92400e]">
+        ADMIN
+      </span>
     );
   }
-  return null;
+  if (role === "EDITOR") {
+    return (
+      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#e8f0fc] text-[#1e64c8]">
+        EDITOR
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#f1f5f9] text-[#64748b]">
+      VIEWER
+    </span>
+  );
 }
 
 export function UsersClient({
@@ -162,12 +173,16 @@ export function UsersClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-[18px] font-bold text-[#0f172a]">Users</h2>
+          <p className="text-[12.5px] text-[#64748b]">Manage user accounts and access levels</p>
+        </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="h-[36px] px-4 rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
               <Plus className="h-4 w-4 mr-1" />
-              Add User
+              Invite User
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -237,54 +252,55 @@ export function UsersClient({
       </div>
 
       {/* User table */}
-      <div className="border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="border border-[#e2e8f0] rounded-[10px] overflow-hidden bg-white">
+        <table className="w-full text-[13px]">
           <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Name</th>
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Email</th>
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Role</th>
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Auth</th>
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">2FA</th>
-              <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Created</th>
-              <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Actions</th>
+            <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Name</th>
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Email</th>
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Role</th>
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Provider</th>
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">2FA</th>
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Created</th>
+              <th className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Actions</th>
             </tr>
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="border-b last:border-0 hover:bg-muted/30">
-                <td className="px-4 py-2.5 font-medium">
-                  {user.name}
-                  {user.id === currentUserId && (
-                    <span className="ml-2 text-xs text-muted-foreground">(you)</span>
-                  )}
+              <tr key={user.id} className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors">
+                <td className="px-4 py-[10px]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-[#1e64c8] text-white text-[10.5px] font-bold flex items-center justify-center flex-shrink-0">
+                      {getInitials(user.name)}
+                    </div>
+                    <span className="font-medium text-[13px] text-[#0f172a]">
+                      {user.name}
+                      {user.id === currentUserId && (
+                        <span className="ml-1.5 text-[11px] text-[#64748b] font-normal">(you)</span>
+                      )}
+                    </span>
+                  </div>
                 </td>
-                <td className="px-4 py-2.5 text-muted-foreground">{user.email}</td>
-                <td className="px-4 py-2.5">{roleBadge(user.role)}</td>
-                <td className="px-4 py-2.5">
-                  {providerBadge(user.provider) ?? (
-                    <span className="text-xs text-muted-foreground">Local</span>
-                  )}
+                <td className="px-4 py-[10px] text-[#64748b]">{user.email}</td>
+                <td className="px-4 py-[10px]"><RolePill role={user.role} /></td>
+                <td className="px-4 py-[10px] text-[12px] text-[#64748b]">
+                  {user.provider === "microsoft-entra-id" ? "Microsoft" : "Local"}
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-[10px]">
                   {user.provider === "credentials" ? (
                     user.totpEnabled ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-green-700">
-                        <ShieldCheck className="h-3.5 w-3.5" />
+                      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#dcfce7] text-[#16a34a]">
                         Enabled
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                        <ShieldOff className="h-3.5 w-3.5" />
-                        Off
-                      </span>
+                      <span className="text-[#64748b]">—</span>
                     )
                   ) : (
-                    <span className="text-xs text-muted-foreground">N/A</span>
+                    <span className="text-[#64748b]">—</span>
                   )}
                 </td>
-                <td className="px-4 py-2.5 text-muted-foreground text-xs">{formatDate(user.createdAt)}</td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-[10px] text-[#64748b] text-[12px]">{formatDate(user.createdAt)}</td>
+                <td className="px-4 py-[10px]">
                   <div className="flex justify-end gap-1">
                     {/* Edit */}
                     <Dialog
@@ -293,9 +309,9 @@ export function UsersClient({
                     >
                       <DialogTrigger asChild>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[12px] border-[#e2e8f0] rounded-[6px] bg-[#f8fafc] text-[#64748b] hover:bg-white px-2.5"
                           onClick={() => {
                             setEditUser(user);
                             editForm.reset({
@@ -307,7 +323,7 @@ export function UsersClient({
                             });
                           }}
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          Edit role
                         </Button>
                       </DialogTrigger>
                       <DialogContent>

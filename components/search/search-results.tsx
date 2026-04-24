@@ -3,15 +3,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   MapPin,
   Package,
   Search,
   Loader2,
-  Building2,
-  Hash,
+  ChevronRight,
 } from "lucide-react";
 
 type AssetResult = {
@@ -45,7 +42,6 @@ type SearchResponse = {
   total: number;
 };
 
-/** Highlights all occurrences of `query` within `text` */
 function Highlight({ text, query }: { text: string; query: string }) {
   if (!query || !text) return <>{text}</>;
   const idx = text.toLowerCase().indexOf(query.toLowerCase());
@@ -70,10 +66,7 @@ export function SearchResults() {
   const [error, setError] = useState<string | null>(null);
 
   const doSearch = useCallback(async (query: string) => {
-    if (query.length < 2) {
-      setResults(null);
-      return;
-    }
+    if (query.length < 2) { setResults(null); return; }
     setLoading(true);
     setError(null);
     try {
@@ -86,25 +79,21 @@ export function SearchResults() {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    doSearch(q);
-  }, [q, doSearch]);
+  useEffect(() => { doSearch(q); }, [q, doSearch]);
 
   if (!q) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground">
+      <div className="flex flex-col items-center justify-center py-24 text-center text-[#64748b]">
         <Search className="h-12 w-12 mb-4 opacity-30" />
-        <p className="text-lg font-medium">Search SAM</p>
-        <p className="text-sm mt-1">
-          Use the search bar above to find assets and locations.
-        </p>
+        <p className="text-[18px] font-semibold text-[#0f172a]">Search SAM</p>
+        <p className="text-[13px] mt-1">Use the search bar above to find assets and locations.</p>
       </div>
     );
   }
 
   if (q.length < 2) {
     return (
-      <div className="text-center py-16 text-muted-foreground text-sm">
+      <div className="text-center py-16 text-[#64748b] text-[13px]">
         Please enter at least 2 characters to search.
       </div>
     );
@@ -112,98 +101,77 @@ export function SearchResults() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Search className="h-5 w-5 text-primary" />
-            Search results
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {loading
-              ? "Searching…"
-              : results
-              ? `${results.total} result${results.total !== 1 ? "s" : ""} for "${q}"`
-              : ""}
-          </p>
+      {/* Hero search bar */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-[#64748b] pointer-events-none" />
+        <div className="flex items-center h-[48px] pl-[44px] pr-4 text-[15px] bg-white border-[1.5px] border-[#1e64c8] rounded-[10px] shadow-[0_0_0_3px_#e8f0fc] text-[#0f172a]">
+          <span className="flex-1 truncate">{q}</span>
+          {results && (
+            <span className="ml-3 text-[11px] text-[#64748b] bg-[#f1f5f9] px-2 py-0.5 rounded flex-shrink-0">
+              {results.total} result{results.total !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+        <div className="flex items-center justify-center py-16 text-[#64748b] gap-2">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span>Searching…</span>
+          <span className="text-[13px]">Searching…</span>
         </div>
       )}
 
       {error && (
-        <div className="text-center py-8 text-destructive text-sm">{error}</div>
+        <div className="text-center py-8 text-destructive text-[13px]">{error}</div>
       )}
 
       {!loading && results && results.total === 0 && (
-        <div className="text-center py-16 text-muted-foreground">
+        <div className="text-center py-16 text-[#64748b]">
           <Search className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">No results found for &quot;{q}&quot;</p>
-          <p className="text-sm mt-1">Try different keywords or check the spelling.</p>
+          <p className="text-[15px] font-semibold text-[#0f172a]">No results found for &quot;{q}&quot;</p>
+          <p className="text-[13px] mt-1">Try different keywords or check the spelling.</p>
         </div>
       )}
 
       {!loading && results && results.total > 0 && (
         <>
-          {/* Asset results */}
           {results.assets.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-3">
-                <Package className="h-4 w-4" />
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#64748b] mb-[10px]">
                 Assets
-                <Badge variant="secondary" className="ml-1">{results.assets.length}</Badge>
               </h2>
-              <div className="border rounded-lg divide-y">
+              <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden mb-[22px]">
                 {results.assets.map((asset) => {
-                  const displayName =
-                    asset.model ||
-                    asset.hostname ||
-                    asset.serialNumber ||
-                    "Unnamed asset";
+                  const displayName = asset.model || asset.hostname || asset.serialNumber || "Unnamed asset";
                   return (
                     <Link
                       key={asset.id}
                       href={`/locations/${asset.location.id}/assets/${asset.id}`}
-                      className="flex items-start gap-4 px-4 py-3 hover:bg-muted/40 transition-colors group"
+                      className="flex items-center gap-[14px] px-[18px] py-[13px] hover:bg-[#f8fafc] transition-colors border-b border-[#e2e8f0] last:border-0 group"
                     >
-                      <Package className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="w-[34px] h-[34px] rounded-[8px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
+                        <Package className="h-4 w-4 text-[#1e64c8]" />
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-sm group-hover:text-primary transition-colors">
-                            <Highlight text={displayName} query={q} />
+                        <span className="text-[13.5px] font-semibold text-[#0f172a] truncate block">
+                          <Highlight text={displayName} query={q} />
+                        </span>
+                        <span className="text-[12px] text-[#64748b] truncate block">
+                          {[asset.type?.name, asset.location.name].filter(Boolean).join(" · ")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        {asset.type && (
+                          <span className="text-[11px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-2 py-0.5 rounded-[5px]">
+                            <Highlight text={asset.type.name} query={q} />
                           </span>
-                          {asset.type && (
-                            <Badge variant="outline" className="text-xs">
-                              <Highlight text={asset.type.name} query={q} />
-                            </Badge>
-                          )}
-                          {asset.manufacturer && (
-                            <span className="text-xs text-muted-foreground">
-                              <Highlight text={asset.manufacturer.name} query={q} />
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3 flex-shrink-0" />
-                          <Highlight text={asset.location.name} query={q} />
-                          {asset.location.fiNumber && (
-                            <>
-                              <span className="mx-1">·</span>
-                              <Hash className="h-3 w-3 flex-shrink-0" />
-                              <Highlight text={asset.location.fiNumber} query={q} />
-                            </>
-                          )}
-                        </div>
-                        {asset.snippet && (
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            <Highlight text={asset.snippet} query={q} />
-                          </p>
                         )}
+                        {asset.serialNumber && (
+                          <span className="font-mono text-[11px] text-[#64748b]">
+                            <Highlight text={asset.serialNumber} query={q} />
+                          </span>
+                        )}
+                        <ChevronRight className="h-3.5 w-3.5 text-[#64748b]" />
                       </div>
                     </Link>
                   );
@@ -212,49 +180,40 @@ export function SearchResults() {
             </section>
           )}
 
-          {results.assets.length > 0 && results.locations.length > 0 && (
-            <Separator />
-          )}
-
-          {/* Location results */}
           {results.locations.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-3">
-                <Building2 className="h-4 w-4" />
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#64748b] mb-[10px]">
                 Locations
-                <Badge variant="secondary" className="ml-1">{results.locations.length}</Badge>
               </h2>
-              <div className="border rounded-lg divide-y">
+              <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden mb-[22px]">
                 {results.locations.map((location) => (
                   <Link
                     key={location.id}
                     href={`/locations/${location.id}`}
-                    className="flex items-start gap-4 px-4 py-3 hover:bg-muted/40 transition-colors group"
+                    className="flex items-center gap-[14px] px-[18px] py-[13px] hover:bg-[#f8fafc] transition-colors border-b border-[#e2e8f0] last:border-0 group"
                   >
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div className="w-[34px] h-[34px] rounded-[8px] bg-[#f1f5f9] flex items-center justify-center flex-shrink-0">
+                      <MapPin className="h-4 w-4 fill-[#1e64c8] stroke-[#1e64c8]" />
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm group-hover:text-primary transition-colors">
-                          <Highlight text={location.name} query={q} />
-                        </span>
-                        {location.fiNumber && (
-                          <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
-                            <Highlight text={location.fiNumber} query={q} />
-                          </code>
-                        )}
-                      </div>
-                      <div className="flex gap-3 text-xs text-muted-foreground mt-0.5">
-                        <span>{location._count.assets} assets</span>
-                        <span>{location._count.children} sub-locations</span>
-                        {location.city && (
-                          <Highlight text={[location.address, location.city, location.country].filter(Boolean).join(", ")} query={q} />
-                        )}
-                      </div>
-                      {location.snippet && (
-                        <p className="text-xs text-muted-foreground mt-1 truncate">
-                          <Highlight text={location.snippet} query={q} />
-                        </p>
+                      <span className="text-[13.5px] font-semibold text-[#0f172a] truncate block">
+                        <Highlight text={location.name} query={q} />
+                      </span>
+                      <span className="text-[12px] text-[#64748b] truncate block">
+                        {[
+                          location._count.assets + " assets",
+                          location._count.children > 0 ? location._count.children + " sub-locations" : null,
+                          location.city,
+                        ].filter(Boolean).join(" · ")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {location.fiNumber && (
+                        <code className="font-mono text-[11px] text-[#64748b]">
+                          <Highlight text={location.fiNumber} query={q} />
+                        </code>
                       )}
+                      <ChevronRight className="h-3.5 w-3.5 text-[#64748b]" />
                     </div>
                   </Link>
                 ))}

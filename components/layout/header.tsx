@@ -5,8 +5,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +16,6 @@ import {
 import { cn } from "@/lib/utils";
 import {
   LogOut,
-  User,
   Search,
   X,
   ShieldCheck,
@@ -64,7 +61,14 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/import", label: "Import CSV", icon: <Upload className="h-4 w-4" />, adminOnly: false },
 ];
 
-// ── Search bar with instant dropdown + full-page on Enter ──────────────────
+function getInitials(name?: string | null, email?: string | null): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return (email?.[0] ?? "U").toUpperCase();
+}
 
 function SearchBar() {
   const router = useRouter();
@@ -76,12 +80,10 @@ function SearchBar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sync query input from URL when on /search page
   useEffect(() => {
     if (!pathname.startsWith("/search")) return;
   }, [pathname]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     function onOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -101,7 +103,6 @@ function SearchBar() {
       const data = await res.json();
       const results: QuickResult[] = [];
 
-      // Top 4 assets
       for (const a of (data.assets ?? []).slice(0, 4)) {
         results.push({
           id: a.id,
@@ -111,7 +112,6 @@ function SearchBar() {
           href: `/locations/${a.location.id}/assets/${a.id}`,
         });
       }
-      // Top 3 locations
       for (const l of (data.locations ?? []).slice(0, 3)) {
         results.push({
           id: l.id,
@@ -129,7 +129,6 @@ function SearchBar() {
     }
   }, []);
 
-  // Debounce quick search
   useEffect(() => {
     const t = setTimeout(() => fetchQuick(query), 250);
     return () => clearTimeout(t);
@@ -162,20 +161,20 @@ function SearchBar() {
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <Input
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" />
+        <input
           ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => { if (quickResults.length > 0) setOpen(true); }}
           placeholder="Search assets, locations, serial numbers…"
-          className="pl-9 pr-8 h-9 bg-muted/50 border-muted focus:bg-background"
+          className="w-full h-[36px] pl-9 pr-8 text-[13px] bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_3px_#e8f0fc] transition-shadow"
         />
         {query && (
           <button
             onClick={handleClear}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
           >
             {loading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -186,34 +185,35 @@ function SearchBar() {
         )}
       </div>
 
-      {/* Quick-results dropdown */}
       {open && quickResults.length > 0 && (
-        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-popover border rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-[#e2e8f0] rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.08)] overflow-hidden">
           {quickResults.map((r) => (
             <button
               key={r.id + r.kind}
-              className="w-full flex items-start gap-3 px-3 py-2.5 hover:bg-muted/60 text-left transition-colors"
+              className="w-full flex items-start gap-3 px-3 py-2.5 hover:bg-[#f8fafc] text-left transition-colors"
               onMouseDown={(e) => { e.preventDefault(); handleSelect(r.href); }}
             >
-              {r.kind === "asset" ? (
-                <Package className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-              ) : (
-                <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-              )}
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{r.title}</p>
-                {r.subtitle && (
-                  <p className="text-xs text-muted-foreground truncate">{r.subtitle}</p>
+              <div className={cn(
+                "w-[34px] h-[34px] rounded-[8px] flex items-center justify-center flex-shrink-0",
+                r.kind === "asset" ? "bg-[#e8f0fc]" : "bg-[#f1f5f9]"
+              )}>
+                {r.kind === "asset" ? (
+                  <Package className="h-4 w-4 text-[#1e64c8]" />
+                ) : (
+                  <MapPin className="h-4 w-4 fill-[#1e64c8] stroke-[#1e64c8]" />
                 )}
               </div>
-              <span className="ml-auto text-xs text-muted-foreground flex-shrink-0 self-center capitalize">
-                {r.kind}
-              </span>
+              <div className="min-w-0">
+                <p className="text-[13.5px] font-semibold text-[#0f172a] truncate">{r.title}</p>
+                {r.subtitle && (
+                  <p className="text-[12px] text-[#64748b] truncate">{r.subtitle}</p>
+                )}
+              </div>
             </button>
           ))}
-          <div className="border-t px-3 py-2 bg-muted/30">
+          <div className="border-t border-[#e2e8f0] px-3 py-2 bg-[#f8fafc]">
             <button
-              className="text-xs text-primary hover:underline w-full text-left"
+              className="text-xs text-[#1e64c8] hover:underline w-full text-left"
               onMouseDown={(e) => {
                 e.preventDefault();
                 setOpen(false);
@@ -229,12 +229,9 @@ function SearchBar() {
   );
 }
 
-// ── Full top nav bar ────────────────────────────────────────────────────────
-
 export function Header({ user }: { user: HeaderUser }) {
   const pathname = usePathname();
-  const roleBadgeVariant =
-    user.role === "ADMIN" ? "default" : user.role === "EDITOR" ? "secondary" : "outline";
+  const initials = getInitials(user.name, user.email);
 
   const visibleAdminItems = ADMIN_NAV.filter(
     (item) => !item.adminOnly || user.role === "ADMIN"
@@ -243,39 +240,37 @@ export function Header({ user }: { user: HeaderUser }) {
   const isInAdmin = pathname.startsWith("/admin");
 
   return (
-    <header className="h-14 border-b flex items-center gap-3 px-4 bg-background flex-shrink-0 z-30">
-      {/* Logo / brand — visible only on mobile (sidebar hidden) */}
+    <header className="h-[56px] border-b border-[#e2e8f0] flex items-center gap-3 px-4 bg-white flex-shrink-0 z-30">
+      {/* Logo — mobile only (sidebar is hidden on mobile) */}
       <Link href="/" className="flex items-center gap-1.5 mr-1 lg:hidden flex-shrink-0">
-        <Monitor className="h-5 w-5 text-primary" />
-        <span className="font-semibold">SAM</span>
+        <Monitor className="h-5 w-5 text-[#1e64c8]" strokeWidth={2} />
+        <span className="font-bold text-[16px] text-[#0f172a]">SAM</span>
       </Link>
 
-      {/* Search bar — takes available space */}
+      {/* Search bar */}
       <div className="flex-1">
         <SearchBar />
       </div>
 
-      {/* Right-side nav items */}
-      <nav className="flex items-center gap-1 flex-shrink-0">
-
-        {/* Admin dropdown — visible to Admin and Editor */}
+      {/* Right-side items */}
+      <nav className="flex items-center gap-2 flex-shrink-0">
         {isAdminOrEditor && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className={cn(
-                  "gap-1.5",
-                  isInAdmin && "bg-muted text-foreground"
+                  "text-[13px] h-[34px] px-[14px] rounded-[6px] border-[#e2e8f0] gap-1.5",
+                  isInAdmin && "bg-[#e8f0fc] border-[#1e64c8] text-[#1e64c8]"
                 )}
               >
                 <ShieldCheck className="h-4 w-4" />
                 <span className="hidden sm:block">Administration</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <DropdownMenuContent align="end" className="w-52 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+              <DropdownMenuLabel className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.08em]">
                 Administration
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -284,8 +279,8 @@ export function Header({ user }: { user: HeaderUser }) {
                   <Link
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-2 cursor-pointer",
-                      pathname.startsWith(item.href) && "font-medium text-primary"
+                      "flex items-center gap-2 cursor-pointer text-[13px]",
+                      pathname.startsWith(item.href) && "font-medium text-[#1e64c8]"
                     )}
                   >
                     {item.icon}
@@ -297,37 +292,29 @@ export function Header({ user }: { user: HeaderUser }) {
           </DropdownMenu>
         )}
 
-        {/* User menu */}
+        {/* Avatar + user menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:block">{user.name || user.email}</span>
-              <Badge variant={roleBadgeVariant} className="text-xs hidden sm:inline-flex">
-                {user.role}
-              </Badge>
-            </Button>
+            <button className="w-8 h-8 rounded-full bg-[#1e64c8] text-white text-[13px] font-semibold flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-opacity">
+              {initials}
+            </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuContent align="end" className="w-52 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
             <DropdownMenuLabel>
-              <div className="text-sm font-medium">{user.name}</div>
-              <div className="text-xs text-muted-foreground font-normal">{user.email}</div>
-              <Badge variant={roleBadgeVariant} className="text-xs mt-1">
-                {user.role}
-              </Badge>
+              <div className="text-[13px] font-medium">{user.name}</div>
+              <div className="text-[12px] text-[#64748b] font-normal">{user.email}</div>
+              <div className="text-[11px] text-[#64748b] font-normal mt-0.5">{user.role}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {/* Profile — available to all users */}
             <DropdownMenuItem asChild>
-              <Link href="/settings/profile" className="flex items-center gap-2 cursor-pointer">
+              <Link href="/settings/profile" className="flex items-center gap-2 cursor-pointer text-[13px]">
                 <UserCog className="h-4 w-4" />
                 Profile
               </Link>
             </DropdownMenuItem>
-            {/* 2FA settings — only for local accounts (SSO manages their own 2FA) */}
             {user.provider === "credentials" && (
               <DropdownMenuItem asChild>
-                <Link href="/settings/2fa" className="flex items-center gap-2 cursor-pointer">
+                <Link href="/settings/2fa" className="flex items-center gap-2 cursor-pointer text-[13px]">
                   <KeyRound className="h-4 w-4" />
                   Two-Factor Auth
                   {user.totpEnabled && (
@@ -339,7 +326,7 @@ export function Header({ user }: { user: HeaderUser }) {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="text-destructive focus:text-destructive cursor-pointer"
+              className="text-destructive focus:text-destructive cursor-pointer text-[13px]"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Sign out

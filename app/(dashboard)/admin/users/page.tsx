@@ -13,7 +13,7 @@ export default async function UsersPage() {
   });
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Users</h1>
         <p className="text-muted-foreground mt-1">Manage user accounts and their roles.</p>

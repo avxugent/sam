@@ -252,17 +252,17 @@ export function UsersClient({
       </div>
 
       {/* User table */}
-      <div className="border border-[#e2e8f0] rounded-[10px] overflow-hidden bg-white">
-        <table className="w-full text-[13px]">
+      <div className="border border-[#e2e8f0] rounded-[10px] overflow-x-auto bg-white">
+        <table className="w-full min-w-[720px] text-[13px]">
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Name</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Email</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Role</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Provider</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">2FA</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Created</th>
-              <th className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Actions</th>
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Name</th>
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Email</th>
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Role</th>
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Provider</th>
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">2FA</th>
+              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Created</th>
+              <th className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody>

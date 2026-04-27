@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import { writeFile, mkdir } from "fs/promises";
 import { resolve, extname } from "path";
 import { randomUUID } from "crypto";
+import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
 const ALLOWED_TYPES = new Set([
@@ -93,10 +95,50 @@ function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
   }
 }
 
+const linkSchema = z.object({
+  url: z.string().url().max(2000),
+  label: z.string().min(1).max(255),
+  locationId: z.string().optional().nullable(),
+  assetId: z.string().optional().nullable(),
+});
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const contentType = req.headers.get("content-type") ?? "";
+
+  // ── Link attachment (JSON body) ──────────────────────────────────────────
+  if (contentType.includes("application/json")) {
+    const body = await req.json();
+    const parsed = linkSchema.safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+    const { url, label, locationId, assetId } = parsed.data;
+    if (!locationId && !assetId) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
+
+    const attachment = await prisma.attachment.create({
+      data: {
+        attachmentType: "link",
+        url,
+        originalName: label,
+        locationId: locationId || null,
+        assetId: assetId || null,
+        uploadedById: session.user.id,
+      },
+      include: { uploadedBy: { select: { id: true, name: true } } },
+    });
+    await logAudit({
+      session,
+      req,
+      action: "CREATE",
+      entityType: "Attachment",
+      entityId: attachment.id,
+      entityName: attachment.originalName,
+      detail: { type: "link", locationId: attachment.locationId, assetId: attachment.assetId },
+    });
+    return NextResponse.json(attachment, { status: 201 });
+  }
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
@@ -154,6 +196,16 @@ export async function POST(req: NextRequest) {
     include: {
       uploadedBy: { select: { id: true, name: true } },
     },
+  });
+
+  await logAudit({
+    session,
+    req,
+    action: "CREATE",
+    entityType: "Attachment",
+    entityId: attachment.id,
+    entityName: attachment.originalName,
+    detail: { type: "file", locationId: attachment.locationId, assetId: attachment.assetId },
   });
 
   return NextResponse.json(attachment, { status: 201 });

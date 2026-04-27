@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { unlink, realpath } from "fs/promises";
 import { resolve } from "path";
+import { logAudit } from "@/lib/audit";
 
 /** Strip characters that could break HTTP headers or cause path traversal */
 function safeFilename(name: string): string {
@@ -48,7 +49,7 @@ async function assertSafePath(uploadRoot: string, resolvedPath: string): Promise
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -59,16 +60,26 @@ export async function DELETE(
   const attachment = await prisma.attachment.findUnique({ where: { id } });
   if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  try {
-    const uploadRoot = getUploadRoot();
-    const fullPath = resolve(uploadRoot, attachment.path);
-    await assertSafePath(uploadRoot, fullPath);
-    await unlink(fullPath);
-  } catch {
-    // File may already be gone — continue with DB cleanup
+  if (attachment.attachmentType !== "link" && attachment.path) {
+    try {
+      const uploadRoot = getUploadRoot();
+      const fullPath = resolve(uploadRoot, attachment.path);
+      await assertSafePath(uploadRoot, fullPath);
+      await unlink(fullPath);
+    } catch {
+      // File may already be gone — continue with DB cleanup
+    }
   }
 
   await prisma.attachment.delete({ where: { id } });
+  await logAudit({
+    session,
+    req,
+    action: "DELETE",
+    entityType: "Attachment",
+    entityId: id,
+    entityName: attachment.originalName,
+  });
   return NextResponse.json({ ok: true });
 }
 
@@ -83,8 +94,13 @@ export async function GET(
   const attachment = await prisma.attachment.findUnique({ where: { id } });
   if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Link attachments: redirect to the stored URL
+  if (attachment.attachmentType === "link" && attachment.url) {
+    return NextResponse.redirect(attachment.url);
+  }
+
   const uploadRoot = getUploadRoot();
-  const fullPath = resolve(uploadRoot, attachment.path);
+  const fullPath = resolve(uploadRoot, attachment.path ?? "");
 
   try {
     await assertSafePath(uploadRoot, fullPath);
@@ -101,7 +117,7 @@ export async function GET(
       attachment.mimeType === "image/svg+xml" ? "attachment" : "inline";
     return new NextResponse(buffer, {
       headers: {
-        "Content-Type": attachment.mimeType,
+        "Content-Type": attachment.mimeType ?? "application/octet-stream",
         "Content-Disposition": contentDispositionHeader(disposition, safeName),
         "Content-Length": buffer.length.toString(),
         // Prevent browsers from caching sensitive files indefinitely

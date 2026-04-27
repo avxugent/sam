@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 // FI number format: CC.BB.FFF.RRR  e.g. "14.10.100.013"
 const FI_NUMBER_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{3}$/;
@@ -71,7 +72,7 @@ export async function PUT(
       where: { id: parsed.data.coverImageId },
       select: { locationId: true, mimeType: true },
     });
-    if (!cover || cover.locationId !== id || !cover.mimeType.startsWith("image/")) {
+    if (!cover || cover.locationId !== id || !cover.mimeType?.startsWith("image/")) {
       return NextResponse.json(
         { error: "Invalid cover image: must be an image attachment of this location." },
         { status: 400 }
@@ -101,11 +102,21 @@ export async function PUT(
     throw err;
   }
 
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "Location",
+    entityId: id,
+    entityName: location.name,
+    detail: { name: location.name, fiNumber: location.fiNumber },
+  });
+
   return NextResponse.json(location);
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -122,6 +133,15 @@ export async function DELETE(
     );
   }
 
+  const loc = await prisma.location.findUnique({ where: { id }, select: { name: true } });
   await prisma.location.delete({ where: { id } });
+  await logAudit({
+    session,
+    req,
+    action: "DELETE",
+    entityType: "Location",
+    entityId: id,
+    entityName: loc?.name,
+  });
   return NextResponse.json({ ok: true });
 }

@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 type Attachment = {
   id: string;
   originalName: string;
-  mimeType: string;
-  size: number;
+  mimeType?: string | null;
+  size?: number | null;
 };
 
 type Props = {
@@ -30,7 +30,7 @@ export function CoverImagePicker({
   const [selected, setSelected] = useState<string | null>(currentCoverImageId);
   const [saving, setSaving] = useState(false);
 
-  const imageAttachments = attachments.filter((a) => a.mimeType.startsWith("image/"));
+  const imageAttachments = attachments.filter((a) => a.mimeType?.startsWith("image/"));
 
   async function handleSave(id: string | null) {
     setSaving(true);

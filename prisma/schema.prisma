@@ -169,16 +169,18 @@ model CustomField {
 }
 
 model Attachment {
-  id           String   @id @default(cuid())
-  filename     String   // stored filename on disk
-  originalName String   // original upload filename
-  mimeType     String
-  size         Int
-  path         String   // relative path under /uploads
-  locationId   String?
-  assetId      String?
-  uploadedById String
-  createdAt    DateTime @default(now())
+  id             String   @id @default(cuid())
+  attachmentType String   @default("file") // "file" | "link"
+  filename       String?  // null for link attachments
+  originalName   String   // file original name OR link display label
+  mimeType       String?  // null for link attachments
+  size           Int?     // null for link attachments
+  path           String?  // null for link attachments
+  url            String?  @db.Text // set for link attachments
+  locationId     String?
+  assetId        String?
+  uploadedById   String
+  createdAt      DateTime @default(now())
 
   location   Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
   asset      Asset?    @relation(fields: [assetId], references: [id], onDelete: Cascade)
@@ -187,4 +189,31 @@ model Attachment {
   @@index([locationId])
   @@index([assetId])
   @@map("attachments")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  timestamp  DateTime @default(now())
+  userId     String?
+  userEmail  String?
+  action     String   // CREATE | UPDATE | DELETE | IMPORT | EXPORT
+  entityType String   // Asset | Location | User | AssetType | Manufacturer | Attachment
+  entityId   String?
+  entityName String?
+  detail     String?  @db.Text // JSON
+  ipAddress  String?
+  userAgent  String?
+
+  @@index([timestamp])
+  @@index([userId])
+  @@index([entityType])
+  @@map("audit_logs")
+}
+
+model AppSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
 }

@@ -31,14 +31,20 @@ import {
   Clock,
   Calendar,
   Wrench,
+  ExternalLink,
+  FolderInput,
 } from "lucide-react";
+import { renderHostnameUrl } from "@/lib/hostname-template";
+import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
 
 type Attachment = {
   id: string;
-  filename: string;
+  attachmentType?: string;
+  filename?: string | null;
   originalName: string;
-  mimeType: string;
-  size: number;
+  mimeType?: string | null;
+  size?: number | null;
+  url?: string | null;
   createdAt: Date | string;
   uploadedBy: { id: string; name: string };
 };
@@ -106,15 +112,18 @@ export function AssetDetailClient({
   asset,
   breadcrumbs,
   userRole,
+  hostnameUrlTemplate,
 }: {
   asset: Asset;
   breadcrumbs: Breadcrumb[];
   userRole: string;
+  hostnameUrlTemplate?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
   const [attachments, setAttachments] = useState(asset.attachments);
+  const [moveOpen, setMoveOpen] = useState(false);
 
   async function handleDelete() {
     const res = await fetch(`/api/assets/${asset.id}`, { method: "DELETE" });
@@ -186,6 +195,16 @@ export function AssetDetailClient({
               </Button>
             </AssetFormDialog>
 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMoveOpen(true)}
+              className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5"
+            >
+              <FolderInput className="h-3.5 w-3.5" />
+              Move
+            </Button>
+
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
@@ -219,6 +238,15 @@ export function AssetDetailClient({
         )}
       </div>
 
+      <MoveAssetDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        assetId={asset.id}
+        assetName={displayName}
+        currentLocationId={asset.locationId}
+        currentLocationName={asset.location.name}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Col 1–2: Asset Details + Custom Fields */}
         <div className="lg:col-span-2 space-y-6">
@@ -228,7 +256,24 @@ export function AssetDetailClient({
               <div><FieldLabel>Manufacturer</FieldLabel><FieldValue value={asset.manufacturer?.name} /></div>
               <div><FieldLabel>Model</FieldLabel><FieldValue value={asset.model} /></div>
               <div><FieldLabel>Serial Number</FieldLabel><FieldValue value={asset.serialNumber} mono /></div>
-              <div><FieldLabel>Hostname</FieldLabel><FieldValue value={asset.hostname} mono /></div>
+              <div>
+                <FieldLabel>Hostname</FieldLabel>
+                {asset.hostname && hostnameUrlTemplate ? (
+                  <dd className="font-mono text-[12px]">
+                    <a
+                      href={renderHostnameUrl(hostnameUrlTemplate, asset)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#1e64c8] hover:underline inline-flex items-center gap-1"
+                    >
+                      {asset.hostname}
+                      <ExternalLink className="h-3 w-3 opacity-60" />
+                    </a>
+                  </dd>
+                ) : (
+                  <FieldValue value={asset.hostname} mono />
+                )}
+              </div>
               <div>
                 <FieldLabel>Location</FieldLabel>
                 <FieldValue>
@@ -339,7 +384,7 @@ export function AssetDetailClient({
             <InfoCard icon={<Wrench className="h-3.5 w-3.5" />} title="Attachments">
               <div className="flex flex-wrap gap-2 mb-3">
                 {attachments.slice(0, 3).map((att) => {
-                  const isImage = att.mimeType.startsWith("image/");
+                  const isImage = att.mimeType?.startsWith("image/");
                   const isPdf = att.mimeType === "application/pdf";
                   return (
                     <a

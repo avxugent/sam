@@ -32,6 +32,7 @@ import {
   ClipboardList,
   Settings,
   UserCog,
+  BarChart2,
 } from "lucide-react";
 
 type HeaderUser = {
@@ -260,6 +261,21 @@ export function Header({ user }: { user: HeaderUser }) {
 
       {/* Right-side items */}
       <nav className="flex items-center gap-2 flex-shrink-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "text-[13px] h-[34px] px-[14px] rounded-[6px] gap-1.5 hidden sm:flex",
+            pathname.startsWith("/reports") && "bg-[#e8f0fc] text-[#1e64c8]"
+          )}
+          asChild
+        >
+          <Link href="/reports">
+            <BarChart2 className="h-4 w-4" />
+            Reports
+          </Link>
+        </Button>
+
         {isAdminOrEditor && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

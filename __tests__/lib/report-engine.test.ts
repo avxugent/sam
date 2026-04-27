@@ -1,0 +1,188 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    asset: {
+      findMany: vi.fn(),
+      groupBy: vi.fn(),
+    },
+    assetType: { findMany: vi.fn() },
+    manufacturer: { findMany: vi.fn() },
+    location: { findMany: vi.fn() },
+  },
+}));
+
+import { translateFilters, runReport } from "@/lib/report-engine";
+import { prisma } from "@/lib/prisma";
+
+const mockFindMany = vi.mocked(prisma.asset.findMany);
+const mockGroupBy = vi.mocked(prisma.asset.groupBy);
+const mockTypeFindMany = vi.mocked(prisma.assetType.findMany);
+const mockMfFindMany = vi.mocked(prisma.manufacturer.findMany);
+const mockLocFindMany = vi.mocked(prisma.location.findMany);
+
+// ── translateFilters ────────────────────────────────────────────────────────
+
+describe("translateFilters()", () => {
+  it("returns empty object for no filters", () => {
+    expect(translateFilters([])).toEqual({});
+  });
+
+  it("translates typeId eq", () => {
+    const result = translateFilters([{ field: "typeId", op: "eq", value: "type-1" }]);
+    expect(result).toEqual({ AND: [{ typeId: "type-1" }] });
+  });
+
+  it("translates typeId isNull", () => {
+    const result = translateFilters([{ field: "typeId", op: "isNull" }]);
+    expect(result).toEqual({ AND: [{ typeId: null }] });
+  });
+
+  it("translates model contains", () => {
+    const result = translateFilters([{ field: "model", op: "contains", value: "Dell" }]);
+    expect(result).toEqual({ AND: [{ model: { contains: "Dell" } }] });
+  });
+
+  it("translates installationDate olderThanYears", () => {
+    const before = new Date();
+    const result = translateFilters([{ field: "installationDate", op: "olderThanYears", value: "5" }]);
+    expect(result).toHaveProperty("AND");
+    const condition = (result as { AND: { installationDate?: { lt: Date } }[] }).AND[0];
+    expect(condition.installationDate?.lt).toBeInstanceOf(Date);
+    expect(condition.installationDate!.lt.getTime()).toBeLessThanOrEqual(before.getTime());
+  });
+
+  it("translates installationDate newerThanYears", () => {
+    const result = translateFilters([{ field: "installationDate", op: "newerThanYears", value: "2" }]);
+    const condition = (result as { AND: { installationDate?: { gt: Date } }[] }).AND[0];
+    expect(condition.installationDate?.gt).toBeInstanceOf(Date);
+  });
+
+  it("translates installationDate before ISO date", () => {
+    const result = translateFilters([{ field: "installationDate", op: "before", value: "2020-01-01" }]);
+    const condition = (result as { AND: { installationDate?: { lt: Date } }[] }).AND[0];
+    expect(condition.installationDate?.lt).toBeInstanceOf(Date);
+  });
+
+  it("translates installationDate after ISO date", () => {
+    const result = translateFilters([{ field: "installationDate", op: "after", value: "2022-06-01" }]);
+    const condition = (result as { AND: { installationDate?: { gt: Date } }[] }).AND[0];
+    expect(condition.installationDate?.gt).toBeInstanceOf(Date);
+  });
+
+  it("translates installationDate isNull", () => {
+    const result = translateFilters([{ field: "installationDate", op: "isNull" }]);
+    expect(result).toEqual({ AND: [{ installationDate: null }] });
+  });
+
+  it("translates hostname isNotNull", () => {
+    const result = translateFilters([{ field: "hostname", op: "isNotNull" }]);
+    expect(result).toEqual({ AND: [{ hostname: { not: null } }] });
+  });
+
+  it("combines multiple filters with AND", () => {
+    const result = translateFilters([
+      { field: "typeId", op: "eq", value: "t1" },
+      { field: "hostname", op: "isNotNull" },
+    ]);
+    expect(result).toEqual({
+      AND: [{ typeId: "t1" }, { hostname: { not: null } }],
+    });
+  });
+
+  it("ignores olderThanYears with non-numeric value", () => {
+    const result = translateFilters([{ field: "installationDate", op: "olderThanYears", value: "abc" }]);
+    expect(result).toEqual({});
+  });
+});
+
+// ── runReport ───────────────────────────────────────────────────────────────
+
+describe("runReport()", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns rows and total with no grouping", async () => {
+    mockFindMany.mockResolvedValue([
+      {
+        id: "a1",
+        model: "Dell XPS",
+        serialNumber: "SN1",
+        hostname: "host1",
+        locationId: "loc1",
+        installationDate: new Date("2019-01-01"),
+        invoiceDate: null,
+        invoiceNumber: null,
+        notes: null,
+        type: { name: "Laptop" },
+        manufacturer: { name: "Dell" },
+        location: { id: "loc1", name: "Room 101" },
+      } as never,
+    ]);
+
+    const result = await runReport({
+      filters: [],
+      groupBy: "none",
+      columns: ["model", "type", "location"],
+    });
+
+    expect(result.total).toBe(1);
+    expect(result.rows[0].model).toBe("Dell XPS");
+    expect(result.rows[0].type).toBe("Laptop");
+    expect(result.rows[0].location).toBe("Room 101");
+    expect(result.groups).toEqual([]);
+  });
+
+  it("groups by type", async () => {
+    mockFindMany.mockResolvedValue([]);
+    mockGroupBy.mockResolvedValue([
+      { typeId: "t1", _count: { id: 3 } } as never,
+      { typeId: null, _count: { id: 1 } } as never,
+    ]);
+    mockTypeFindMany.mockResolvedValue([{ id: "t1", name: "Projector" }] as never);
+
+    const result = await runReport({
+      filters: [],
+      groupBy: "type",
+      columns: ["model"],
+    });
+
+    expect(result.groups).toContainEqual({ label: "Projector", count: 3 });
+    expect(result.groups).toContainEqual({ label: "No type", count: 1 });
+  });
+
+  it("groups by manufacturer", async () => {
+    mockFindMany.mockResolvedValue([]);
+    mockGroupBy.mockResolvedValue([
+      { manufacturerId: "m1", _count: { id: 5 } } as never,
+    ]);
+    mockMfFindMany.mockResolvedValue([{ id: "m1", name: "Epson" }] as never);
+
+    const result = await runReport({ filters: [], groupBy: "manufacturer", columns: ["model"] });
+    expect(result.groups).toContainEqual({ label: "Epson", count: 5 });
+  });
+
+  it("groups by location", async () => {
+    mockFindMany.mockResolvedValue([]);
+    mockGroupBy.mockResolvedValue([
+      { locationId: "l1", _count: { id: 2 } } as never,
+    ]);
+    mockLocFindMany.mockResolvedValue([{ id: "l1", name: "Lab A" }] as never);
+
+    const result = await runReport({ filters: [], groupBy: "location", columns: ["model"] });
+    expect(result.groups).toContainEqual({ label: "Lab A", count: 2 });
+  });
+
+  it("groups by installationYear from asset rows", async () => {
+    mockFindMany.mockResolvedValue([
+      { id: "a1", model: null, serialNumber: null, hostname: null, locationId: "l1", installationDate: new Date("2020-03-01"), invoiceDate: null, invoiceNumber: null, notes: null, type: null, manufacturer: null, location: { id: "l1", name: "X" } } as never,
+      { id: "a2", model: null, serialNumber: null, hostname: null, locationId: "l1", installationDate: new Date("2020-07-01"), invoiceDate: null, invoiceNumber: null, notes: null, type: null, manufacturer: null, location: { id: "l1", name: "X" } } as never,
+      { id: "a3", model: null, serialNumber: null, hostname: null, locationId: "l1", installationDate: new Date("2022-01-01"), invoiceDate: null, invoiceNumber: null, notes: null, type: null, manufacturer: null, location: { id: "l1", name: "X" } } as never,
+    ]);
+
+    const result = await runReport({ filters: [], groupBy: "installationYear", columns: ["model"] });
+    expect(result.groups).toContainEqual({ label: "2020", count: 2 });
+    expect(result.groups).toContainEqual({ label: "2022", count: 1 });
+  });
+});

@@ -13,3 +13,13 @@ export function renderHostnameUrl(
     .replaceAll("{model}", asset.model ?? "")
     .replaceAll("{manufacturer}", asset.manufacturer?.name ?? "");
 }
+
+export function renderMacAddressUrl(template: string, mac: string): string {
+  const plain = mac.replace(/[:\-\.]/g, "").toLowerCase();
+  const colon = plain.match(/.{2}/g)?.join(":") ?? mac;
+  const dash = plain.match(/.{2}/g)?.join("-") ?? mac;
+  return template
+    .replaceAll("{mac}", colon)
+    .replaceAll("{mac_plain}", plain)
+    .replaceAll("{mac_dash}", dash);
+}

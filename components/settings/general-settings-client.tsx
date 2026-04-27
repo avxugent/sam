@@ -6,14 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, ExternalLink } from "lucide-react";
+import { renderMacAddressUrl } from "@/lib/hostname-template";
 
 export function GeneralSettingsClient({
   initialHostnameUrlTemplate,
+  initialMacAddressUrlTemplate,
 }: {
   initialHostnameUrlTemplate: string;
+  initialMacAddressUrlTemplate: string;
 }) {
   const { toast } = useToast();
   const [hostnameUrlTemplate, setHostnameUrlTemplate] = useState(initialHostnameUrlTemplate);
+  const [macAddressUrlTemplate, setMacAddressUrlTemplate] = useState(initialMacAddressUrlTemplate);
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -21,7 +25,7 @@ export function GeneralSettingsClient({
     const res = await fetch("/api/settings/general", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hostnameUrlTemplate }),
+      body: JSON.stringify({ hostnameUrlTemplate, macAddressUrlTemplate }),
     });
     setSaving(false);
 
@@ -33,7 +37,7 @@ export function GeneralSettingsClient({
     toast({ title: "Settings saved" });
   }
 
-  const previewUrl = hostnameUrlTemplate
+  const hostnamePreview = hostnameUrlTemplate
     ? hostnameUrlTemplate
         .replaceAll("{hostname}", "pc-example-01")
         .replaceAll("{serial}", "SN123456")
@@ -41,8 +45,13 @@ export function GeneralSettingsClient({
         .replaceAll("{manufacturer}", "Dell")
     : "";
 
+  const macPreview = macAddressUrlTemplate
+    ? renderMacAddressUrl(macAddressUrlTemplate, "aa:bb:cc:dd:ee:ff")
+    : "";
+
   return (
     <div className="space-y-8">
+      {/* Hostname URL template */}
       <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
         <div>
           <h2 className="text-[15px] font-semibold text-[#0f172a]">Hostname URL template</h2>
@@ -62,35 +71,82 @@ export function GeneralSettingsClient({
             className="font-mono text-[13px]"
           />
           <p className="text-[12px] text-[#64748b]">
-            Available variables: <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{hostname}"}</code>{" "}
+            Available variables:{" "}
+            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{hostname}"}</code>{" "}
             <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{serial}"}</code>{" "}
             <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{model}"}</code>{" "}
             <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{manufacturer}"}</code>
           </p>
         </div>
 
-        {previewUrl && (
+        {hostnamePreview && (
           <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] text-[12px]">
             <p className="text-[#64748b] mb-1 font-medium">Preview (with example values):</p>
             <a
-              href={previewUrl}
+              href={hostnamePreview}
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#1e64c8] hover:underline font-mono inline-flex items-center gap-1"
             >
-              {previewUrl}
+              {hostnamePreview}
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
         )}
-
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving} className="gap-2">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save settings
-          </Button>
-        </div>
       </section>
+
+      {/* MAC address URL template */}
+      <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
+        <div>
+          <h2 className="text-[15px] font-semibold text-[#0f172a]">MAC address URL template</h2>
+          <p className="text-[13px] text-[#64748b] mt-1">
+            When set, MAC addresses in the asset list and detail page become clickable links.
+            Leave empty to disable.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="mac-template">URL template</Label>
+          <Input
+            id="mac-template"
+            value={macAddressUrlTemplate}
+            onChange={(e) => setMacAddressUrlTemplate(e.target.value)}
+            placeholder="https://example.com/mac/{mac}"
+            className="font-mono text-[13px]"
+          />
+          <p className="text-[12px] text-[#64748b]">
+            Available variables:{" "}
+            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{mac}"}</code>{" "}
+            <span className="text-[#94a3b8]">(aa:bb:cc:dd:ee:ff)</span>{" "}
+            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{mac_plain}"}</code>{" "}
+            <span className="text-[#94a3b8]">(aabbccddeeff)</span>{" "}
+            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{mac_dash}"}</code>{" "}
+            <span className="text-[#94a3b8]">(aa-bb-cc-dd-ee-ff)</span>
+          </p>
+        </div>
+
+        {macPreview && (
+          <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] text-[12px]">
+            <p className="text-[#64748b] mb-1 font-medium">Preview (with example value aa:bb:cc:dd:ee:ff):</p>
+            <a
+              href={macPreview}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#1e64c8] hover:underline font-mono inline-flex items-center gap-1"
+            >
+              {macPreview}
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+        )}
+      </section>
+
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={saving} className="gap-2">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Save settings
+        </Button>
+      </div>
     </div>
   );
 }

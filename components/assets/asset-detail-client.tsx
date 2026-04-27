@@ -34,7 +34,7 @@ import {
   ExternalLink,
   FolderInput,
 } from "lucide-react";
-import { renderHostnameUrl } from "@/lib/hostname-template";
+import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
 
 type Attachment = {
@@ -113,11 +113,13 @@ export function AssetDetailClient({
   breadcrumbs,
   userRole,
   hostnameUrlTemplate,
+  macAddressUrlTemplate,
 }: {
   asset: Asset;
   breadcrumbs: Breadcrumb[];
   userRole: string;
   hostnameUrlTemplate?: string | null;
+  macAddressUrlTemplate?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -294,11 +296,24 @@ export function AssetDetailClient({
                   MAC Addresses
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {asset.macAddresses.map((mac) => (
-                    <span key={mac.id} className="font-mono text-[11.5px] bg-[#f1f5f9] text-[#334155] px-[10px] py-[3px] rounded-[5px]">
-                      {mac.address}
-                    </span>
-                  ))}
+                  {asset.macAddresses.map((mac) =>
+                    macAddressUrlTemplate ? (
+                      <a
+                        key={mac.id}
+                        href={renderMacAddressUrl(macAddressUrlTemplate, mac.address)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-[11.5px] bg-[#e8f0fc] text-[#1e64c8] px-[10px] py-[3px] rounded-[5px] inline-flex items-center gap-1 hover:underline"
+                      >
+                        {mac.address}
+                        <ExternalLink className="h-2.5 w-2.5 opacity-60" />
+                      </a>
+                    ) : (
+                      <span key={mac.id} className="font-mono text-[11.5px] bg-[#f1f5f9] text-[#334155] px-[10px] py-[3px] rounded-[5px]">
+                        {mac.address}
+                      </span>
+                    )
+                  )}
                 </div>
               </div>
             )}

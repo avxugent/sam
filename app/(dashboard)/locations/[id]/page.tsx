@@ -4,9 +4,15 @@ import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 
-async function getHostnameUrlTemplate(): Promise<string | null> {
-  const setting = await prisma.appSetting.findUnique({ where: { key: "hostname.urlTemplate" } });
-  return setting?.value || null;
+async function getUrlTemplates(): Promise<{ hostnameUrlTemplate: string | null; macAddressUrlTemplate: string | null }> {
+  const settings = await prisma.appSetting.findMany({
+    where: { key: { in: ["hostname.urlTemplate", "macAddress.urlTemplate"] } },
+  });
+  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  return {
+    hostnameUrlTemplate: map["hostname.urlTemplate"] || null,
+    macAddressUrlTemplate: map["macAddress.urlTemplate"] || null,
+  };
 }
 
 export default async function LocationPage({
@@ -16,7 +22,7 @@ export default async function LocationPage({
 }) {
   const session = await auth();
   const { id } = await params;
-  const hostnameUrlTemplate = await getHostnameUrlTemplate();
+  const { hostnameUrlTemplate, macAddressUrlTemplate } = await getUrlTemplates();
 
   const location = await prisma.location.findUnique({
     where: { id },
@@ -63,6 +69,7 @@ export default async function LocationPage({
       userRole={session?.user?.role || "VIEWER"}
       showLocation={hasChildren}
       hostnameUrlTemplate={hostnameUrlTemplate}
+      macAddressUrlTemplate={macAddressUrlTemplate}
     />
   );
 }

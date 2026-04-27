@@ -106,6 +106,7 @@ export function LocationDetailClient({
   userRole,
   showLocation = false,
   hostnameUrlTemplate,
+  macAddressUrlTemplate,
 }: {
   location: Location;
   assets: Asset[];
@@ -113,6 +114,7 @@ export function LocationDetailClient({
   userRole: string;
   showLocation?: boolean;
   hostnameUrlTemplate?: string | null;
+  macAddressUrlTemplate?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -358,7 +360,7 @@ export function LocationDetailClient({
               {showLocation ? `All assets in ${location.name}` : `Assets in ${location.name}`}
             </h2>
           </div>
-          <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} hostnameUrlTemplate={hostnameUrlTemplate} />
+          <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} hostnameUrlTemplate={hostnameUrlTemplate} macAddressUrlTemplate={macAddressUrlTemplate} />
         </TabsContent>
 
         {/* Sub-locations tab */}

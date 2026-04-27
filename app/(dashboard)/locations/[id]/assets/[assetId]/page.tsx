@@ -11,10 +11,12 @@ export default async function AssetPage({
   const session = await auth();
   const { id: locationId, assetId } = await params;
 
-  const hostnameUrlTemplateSetting = await prisma.appSetting.findUnique({
-    where: { key: "hostname.urlTemplate" },
+  const templateSettings = await prisma.appSetting.findMany({
+    where: { key: { in: ["hostname.urlTemplate", "macAddress.urlTemplate"] } },
   });
-  const hostnameUrlTemplate = hostnameUrlTemplateSetting?.value || null;
+  const templateMap = Object.fromEntries(templateSettings.map((s) => [s.key, s.value]));
+  const hostnameUrlTemplate = templateMap["hostname.urlTemplate"] || null;
+  const macAddressUrlTemplate = templateMap["macAddress.urlTemplate"] || null;
 
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },
@@ -41,6 +43,7 @@ export default async function AssetPage({
       breadcrumbs={breadcrumbs}
       userRole={session?.user?.role || "VIEWER"}
       hostnameUrlTemplate={hostnameUrlTemplate}
+      macAddressUrlTemplate={macAddressUrlTemplate}
     />
   );
 }

@@ -20,7 +20,7 @@ import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
 import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown, ExternalLink } from "lucide-react";
-import { renderHostnameUrl } from "@/lib/hostname-template";
+import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 
 type Asset = {
   id: string;
@@ -50,12 +50,14 @@ export function AssetTable({
   userRole,
   showLocation = false,
   hostnameUrlTemplate,
+  macAddressUrlTemplate,
 }: {
   assets: Asset[];
   locationId: string;
   userRole: string;
   showLocation?: boolean;
   hostnameUrlTemplate?: string | null;
+  macAddressUrlTemplate?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();

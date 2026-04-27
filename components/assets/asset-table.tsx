@@ -19,7 +19,7 @@ import {
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
-import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown, ExternalLink } from "lucide-react";
+import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown, ExternalLink, Download } from "lucide-react";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 
 type Asset = {
@@ -36,6 +36,33 @@ type Asset = {
 };
 
 type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "hostname" | "installationDate" | "location";
+
+function escapeCell(v: string | null | undefined): string {
+  const s = v ?? "";
+  return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function exportToCsv(assets: Asset[], filename: string) {
+  const header = ["Type", "Manufacturer", "Model", "Serial Number", "Hostname", "MAC Addresses", "Location", "Installation Date"];
+  const rows = assets.map((a) => [
+    a.type?.name,
+    a.manufacturer?.name,
+    a.model,
+    a.serialNumber,
+    a.hostname,
+    a.macAddresses.map((m) => m.address).join("; "),
+    a.location?.name,
+    a.installationDate ? new Date(a.installationDate).toLocaleDateString() : null,
+  ].map(escapeCell).join(","));
+  const csv = [header.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function SortIcon({ col, active, dir }: { col: string; active: boolean; dir: "asc" | "desc" }) {
   if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
@@ -141,14 +168,25 @@ export function AssetTable({
 
   return (
     <div className="space-y-3">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search assets..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 h-[36px] text-[13px] rounded-[8px]"
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search assets..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-[36px] text-[13px] rounded-[8px]"
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-[36px] px-3 text-[13px] gap-1.5 flex-shrink-0"
+          onClick={() => exportToCsv(sorted, "assets.csv")}
+        >
+          <Download className="h-3.5 w-3.5" />
+          Export CSV
+        </Button>
       </div>
 
       <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">

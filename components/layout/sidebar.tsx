@@ -12,6 +12,7 @@ import {
   MapPin,
   Building2,
   Plus,
+  Layers,
 } from "lucide-react";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 
@@ -118,8 +119,33 @@ function LocationTreeItem({
   );
 }
 
+function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
+  const pathname = usePathname();
+  const isActive = pathname === "/locations";
+  return (
+    <Link
+      href="/locations"
+      className={cn(
+        "flex items-center gap-1.5 px-3 py-[5px] text-[12.5px] select-none",
+        isActive
+          ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
+          : "text-[#334155] hover:bg-[#f8fafc]"
+      )}
+    >
+      <Layers className={cn("h-3 w-3 flex-shrink-0", isActive ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
+      <span className="flex-1 truncate">All locations</span>
+      {totalAssets > 0 && (
+        <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
+          {totalAssets}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps) {
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
+  const totalAssets = locationTree.reduce((sum, loc) => sum + (assetCountMap[loc.id] ?? 0), 0);
 
   return (
     <aside className="w-[248px] flex-shrink-0 border-r bg-white flex flex-col h-full overflow-hidden hidden lg:flex">
@@ -143,6 +169,8 @@ export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps)
             </LocationFormDialog>
           )}
         </div>
+
+        <AllLocationsEntry totalAssets={totalAssets} />
 
         {locationTree.length === 0 ? (
           <div className="px-3 py-4 text-center">

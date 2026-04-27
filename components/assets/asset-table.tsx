@@ -19,7 +19,8 @@ import {
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
-import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown, ExternalLink } from "lucide-react";
+import { renderHostnameUrl } from "@/lib/hostname-template";
 
 type Asset = {
   id: string;
@@ -48,11 +49,13 @@ export function AssetTable({
   locationId,
   userRole,
   showLocation = false,
+  hostnameUrlTemplate,
 }: {
   assets: Asset[];
   locationId: string;
   userRole: string;
   showLocation?: boolean;
+  hostnameUrlTemplate?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -196,7 +199,20 @@ export function AssetTable({
                     {asset.serialNumber || "—"}
                   </td>
                   <td className="px-4 py-[11px] text-[#64748b] font-mono text-[11.5px]">
-                    {asset.hostname || "—"}
+                    {asset.hostname && hostnameUrlTemplate ? (
+                      <a
+                        href={renderHostnameUrl(hostnameUrlTemplate, asset)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-[#1e64c8] underline inline-flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {asset.hostname}
+                        <ExternalLink className="h-3 w-3 opacity-60" />
+                      </a>
+                    ) : (
+                      asset.hostname || "—"
+                    )}
                   </td>
                   {showLocation && (
                     <td className="px-4 py-[11px] text-[#64748b]" onClick={(e) => e.stopPropagation()}>

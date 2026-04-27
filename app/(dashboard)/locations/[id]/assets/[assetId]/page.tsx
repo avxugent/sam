@@ -11,6 +11,11 @@ export default async function AssetPage({
   const session = await auth();
   const { id: locationId, assetId } = await params;
 
+  const hostnameUrlTemplateSetting = await prisma.appSetting.findUnique({
+    where: { key: "hostname.urlTemplate" },
+  });
+  const hostnameUrlTemplate = hostnameUrlTemplateSetting?.value || null;
+
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },
     include: {
@@ -35,6 +40,7 @@ export default async function AssetPage({
       asset={asset}
       breadcrumbs={breadcrumbs}
       userRole={session?.user?.role || "VIEWER"}
+      hostnameUrlTemplate={hostnameUrlTemplate}
     />
   );
 }

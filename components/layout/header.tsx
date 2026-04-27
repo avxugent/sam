@@ -28,6 +28,9 @@ import {
   MapPin,
   Package,
   KeyRound,
+  Download,
+  ClipboardList,
+  Settings,
   UserCog,
 } from "lucide-react";
 
@@ -59,6 +62,9 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/asset-types", label: "Asset Types", icon: <Tag className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/manufacturers", label: "Manufacturers", icon: <Factory className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/import", label: "Import CSV", icon: <Upload className="h-4 w-4" />, adminOnly: false },
+  { href: "/admin/export", label: "Export CSV", icon: <Download className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/audit", label: "Audit Log", icon: <ClipboardList className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/settings", label: "Settings", icon: <Settings className="h-4 w-4" />, adminOnly: true },
 ];
 
 function getInitials(name?: string | null, email?: string | null): string {

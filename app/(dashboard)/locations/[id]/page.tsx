@@ -4,6 +4,11 @@ import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 
+async function getHostnameUrlTemplate(): Promise<string | null> {
+  const setting = await prisma.appSetting.findUnique({ where: { key: "hostname.urlTemplate" } });
+  return setting?.value || null;
+}
+
 export default async function LocationPage({
   params,
 }: {
@@ -11,6 +16,7 @@ export default async function LocationPage({
 }) {
   const session = await auth();
   const { id } = await params;
+  const hostnameUrlTemplate = await getHostnameUrlTemplate();
 
   const location = await prisma.location.findUnique({
     where: { id },
@@ -56,6 +62,7 @@ export default async function LocationPage({
       breadcrumbs={breadcrumbs}
       userRole={session?.user?.role || "VIEWER"}
       showLocation={hasChildren}
+      hostnameUrlTemplate={hostnameUrlTemplate}
     />
   );
 }

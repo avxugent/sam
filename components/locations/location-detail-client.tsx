@@ -58,11 +58,13 @@ type LocationChild = {
 
 type Attachment = {
   id: string;
-  filename: string;
+  attachmentType?: string;
+  filename?: string | null;
   originalName: string;
-  mimeType: string;
-  size: number;
-  path?: string;
+  mimeType?: string | null;
+  size?: number | null;
+  url?: string | null;
+  path?: string | null;
   createdAt: Date | string;
   uploadedBy: { id: string; name: string };
 };
@@ -103,12 +105,14 @@ export function LocationDetailClient({
   breadcrumbs,
   userRole,
   showLocation = false,
+  hostnameUrlTemplate,
 }: {
   location: Location;
   assets: Asset[];
   breadcrumbs: Breadcrumb[];
   userRole: string;
   showLocation?: boolean;
+  hostnameUrlTemplate?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -126,7 +130,7 @@ export function LocationDetailClient({
 
   const handleAttachmentUpdate = (updated: Attachment[]) => setAttachments(updated);
 
-  const coverImage = attachments.find((a) => a.id === coverImageId && a.mimeType.startsWith("image/"));
+  const coverImage = attachments.find((a) => a.id === coverImageId && a.mimeType?.startsWith("image/"));
 
   async function handleDelete() {
     const res = await fetch(`/api/locations/${location.id}`, { method: "DELETE" });
@@ -354,7 +358,7 @@ export function LocationDetailClient({
               {showLocation ? `All assets in ${location.name}` : `Assets in ${location.name}`}
             </h2>
           </div>
-          <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} />
+          <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} hostnameUrlTemplate={hostnameUrlTemplate} />
         </TabsContent>
 
         {/* Sub-locations tab */}

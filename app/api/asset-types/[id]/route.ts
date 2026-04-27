@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { validateTemplate } from "@/lib/scrape-template";
+import { logAudit } from "@/lib/audit";
 
 const schema = z.object({
   name: z.string().min(1).max(255).optional(),
@@ -41,6 +42,14 @@ export async function PUT(
         scrapeTargetTemplate: parsed.data.scrapeTargetTemplate ?? null,
       },
     });
+    await logAudit({
+      session,
+      req,
+      action: "UPDATE",
+      entityType: "AssetType",
+      entityId: id,
+      entityName: type.name,
+    });
     return NextResponse.json(type);
   } catch {
     return NextResponse.json({ error: "Name already exists or not found." }, { status: 400 });
@@ -48,7 +57,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -64,6 +73,15 @@ export async function DELETE(
     );
   }
 
+  const assetType = await prisma.assetType.findUnique({ where: { id }, select: { name: true } });
   await prisma.assetType.delete({ where: { id } });
+  await logAudit({
+    session,
+    req,
+    action: "DELETE",
+    entityType: "AssetType",
+    entityId: id,
+    entityName: assetType?.name,
+  });
   return NextResponse.json({ ok: true });
 }

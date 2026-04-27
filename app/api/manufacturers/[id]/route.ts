@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const schema = z.object({ name: z.string().min(1).max(255) });
 
@@ -31,6 +32,14 @@ export async function PUT(
 
   try {
     const manufacturer = await prisma.manufacturer.update({ where: { id }, data: { name: parsed.data.name } });
+    await logAudit({
+      session,
+      req,
+      action: "UPDATE",
+      entityType: "Manufacturer",
+      entityId: id,
+      entityName: manufacturer.name,
+    });
     return NextResponse.json(manufacturer);
   } catch {
     return NextResponse.json({ error: "Manufacturer not found." }, { status: 404 });
@@ -38,7 +47,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -54,6 +63,15 @@ export async function DELETE(
     );
   }
 
+  const manufacturer = await prisma.manufacturer.findUnique({ where: { id }, select: { name: true } });
   await prisma.manufacturer.delete({ where: { id } });
+  await logAudit({
+    session,
+    req,
+    action: "DELETE",
+    entityType: "Manufacturer",
+    entityId: id,
+    entityName: manufacturer?.name,
+  });
   return NextResponse.json({ ok: true });
 }

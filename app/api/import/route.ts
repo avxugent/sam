@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { parseCsv, parseDate, csvValue } from "@/lib/csv";
+import { logAudit } from "@/lib/audit";
 
 // CSV columns from the legacy export
 // GUID;FI NUMMER;CAMPUS;GEBOUW;LOKAAL;TYPE;BRAND;MODEL;SERIAL;QUANTITY;
@@ -215,6 +216,14 @@ export async function POST(req: NextRequest) {
       stats.skipped++;
     }
   }
+
+  await logAudit({
+    session,
+    req,
+    action: "IMPORT",
+    entityType: "Asset",
+    detail: { created: stats.created, skipped: stats.skipped, errorCount: stats.errors.length },
+  });
 
   return NextResponse.json({
     ok: true,

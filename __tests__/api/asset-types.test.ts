@@ -6,12 +6,16 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     assetType: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
     },
     asset: {
       count: vi.fn(),
+    },
+    auditLog: {
+      create: vi.fn(),
     },
   },
 }));
@@ -163,6 +167,7 @@ describe("DELETE /api/asset-types/[id]", () => {
   it("deletes when no assets reference this type", async () => {
     mockAuth.mockResolvedValue(adminSession() as never);
     mockAssetCount.mockResolvedValue(0);
+    vi.mocked(prisma.assetType.findUnique).mockResolvedValue({ id: "type-1", name: "Server" } as never);
     mockDelete.mockResolvedValue({ id: "type-1" } as never);
     const res = await DELETE(makeIdReq("DELETE"), { params });
     expect(res.status).toBe(200);

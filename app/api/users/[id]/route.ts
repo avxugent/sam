@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(128).optional(),
@@ -50,11 +51,21 @@ export async function PUT(
     select: { id: true, name: true, email: true, role: true, provider: true, totpEnabled: true, mustChangePassword: true, twoFactorRequired: true, createdAt: true },
   });
 
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "User",
+    entityId: id,
+    entityName: user.email,
+    detail: { role: user.role, passwordChanged: !!password },
+  });
+
   return NextResponse.json(user);
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -68,11 +79,19 @@ export async function DELETE(
   }
 
   const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
-  const userToDelete = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+  const userToDelete = await prisma.user.findUnique({ where: { id }, select: { role: true, email: true } });
   if (userToDelete?.role === "ADMIN" && adminCount <= 1) {
     return NextResponse.json({ error: "Cannot delete the last admin account." }, { status: 400 });
   }
 
   await prisma.user.delete({ where: { id } });
+  await logAudit({
+    session,
+    req,
+    action: "DELETE",
+    entityType: "User",
+    entityId: id,
+    entityName: userToDelete?.email,
+  });
   return NextResponse.json({ ok: true });
 }

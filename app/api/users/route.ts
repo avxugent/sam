@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const createSchema = z.object({
   name: z.string().min(1).max(128),
@@ -61,6 +62,16 @@ export async function POST(req: NextRequest) {
       twoFactorRequired: parsed.data.twoFactorRequired,
     },
     select: USER_SELECT,
+  });
+
+  await logAudit({
+    session,
+    req,
+    action: "CREATE",
+    entityType: "User",
+    entityId: user.id,
+    entityName: user.email,
+    detail: { role: user.role },
   });
 
   return NextResponse.json(user, { status: 201 });

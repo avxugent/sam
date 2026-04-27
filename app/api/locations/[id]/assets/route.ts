@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const MAX_CUSTOM_FIELDS = 50;
 const MAX_MAC_ADDRESSES = 20;
@@ -141,6 +142,16 @@ export async function POST(
       macAddresses: true,
       customFields: true,
     },
+  });
+
+  await logAudit({
+    session,
+    req,
+    action: "CREATE",
+    entityType: "Asset",
+    entityId: asset.id,
+    entityName: asset.model ?? asset.serialNumber ?? undefined,
+    detail: { locationId: id, typeId: asset.typeId, model: asset.model },
   });
 
   return NextResponse.json(asset, { status: 201 });

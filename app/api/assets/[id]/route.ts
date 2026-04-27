@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
+import { logAudit } from "@/lib/audit";
 
 const MAX_CUSTOM_FIELDS = 50;
 const MAX_MAC_ADDRESSES = 20;
@@ -142,11 +143,21 @@ export async function PUT(
     });
   });
 
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "Asset",
+    entityId: id,
+    entityName: asset.model ?? asset.serialNumber ?? undefined,
+    detail: { model: asset.model, typeId: asset.typeId },
+  });
+
   return NextResponse.json(asset);
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -154,6 +165,15 @@ export async function DELETE(
   if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
+  const asset = await prisma.asset.findUnique({ where: { id }, select: { model: true, serialNumber: true } });
   await prisma.asset.delete({ where: { id } });
+  await logAudit({
+    session,
+    req,
+    action: "DELETE",
+    entityType: "Asset",
+    entityId: id,
+    entityName: asset?.model ?? asset?.serialNumber ?? undefined,
+  });
   return NextResponse.json({ ok: true });
 }

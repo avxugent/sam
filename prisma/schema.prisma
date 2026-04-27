@@ -124,6 +124,7 @@ model Asset {
   installationDate DateTime? @db.Date
   invoiceNumber    String?
   invoiceDate      DateTime? @db.Date
+  warrantyMonths   Int?
   notes            String?   @db.Text
   // Optional path to a HashiCorp Vault KV secret containing per-device
   // credentials (e.g. "secret/data/av/rectest001").
@@ -142,6 +143,7 @@ model Asset {
   @@index([locationId])
   @@index([typeId])
   @@index([manufacturerId])
+  @@index([installationDate])
   @@map("assets")
 }
 
@@ -216,4 +218,16 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 
   @@map("app_settings")
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  definition  String   @db.Text  // JSON-encoded ReportDefinition
+  createdById String?             // soft ref — no FK, survives user deletion
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("reports")
 }

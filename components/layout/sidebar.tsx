@@ -13,6 +13,8 @@ import {
   Building2,
   Plus,
   Layers,
+  Search,
+  X,
 } from "lucide-react";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 
@@ -28,16 +30,25 @@ type SidebarProps = {
   assetCountMap: Record<string, number>;
 };
 
+function nodeMatchesFilter(node: LocationNode, query: string): boolean {
+  if (node.name.toLowerCase().includes(query)) return true;
+  return node.children.some((child) => nodeMatchesFilter(child, query));
+}
+
 function LocationTreeItem({
   location,
   depth = 0,
   userRole,
   assetCountMap,
+  filterQuery = "",
+  showAll = false,
 }: {
   location: LocationNode;
   depth?: number;
   userRole: string;
   assetCountMap: Record<string, number>;
+  filterQuery?: string;
+  showAll?: boolean;
 }) {
   const pathname = usePathname();
   const isActive = pathname === `/locations/${location.id}` || pathname.startsWith(`/locations/${location.id}/`);
@@ -45,6 +56,13 @@ function LocationTreeItem({
   const [open, setOpen] = useState(
     pathname.startsWith(`/locations/${location.id}`)
   );
+
+  const isFiltering = filterQuery.length > 0;
+  const selfMatches = isFiltering && !showAll && location.name.toLowerCase().includes(filterQuery);
+  const childMatches = isFiltering && !showAll && !selfMatches && location.children.some((c) => nodeMatchesFilter(c, filterQuery));
+  const forceOpen = isFiltering && (selfMatches || childMatches);
+
+  if (isFiltering && !showAll && !selfMatches && !childMatches) return null;
 
   const totalAssets = assetCountMap[location.id] ?? 0;
 
@@ -91,7 +109,9 @@ function LocationTreeItem({
           className="flex-1 flex items-center gap-1.5 min-w-0"
         >
           <MapPin className={cn("h-3 w-3 flex-shrink-0", isActive ? "fill-[#1e64c8] stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
-          <span className="truncate">{location.name}</span>
+          <span className="truncate">
+            {selfMatches ? <mark className="bg-yellow-100 text-inherit rounded-[2px]">{location.name}</mark> : location.name}
+          </span>
         </Link>
 
         {totalAssets > 0 && (
@@ -101,8 +121,8 @@ function LocationTreeItem({
         )}
       </div>
 
-      {/* Children — animate open/close */}
-      {open && hasChildren && (
+      {/* Children */}
+      {(forceOpen || open || showAll) && hasChildren && (
         <div>
           {location.children.map((child) => (
             <LocationTreeItem
@@ -111,6 +131,8 @@ function LocationTreeItem({
               depth={depth + 1}
               userRole={userRole}
               assetCountMap={assetCountMap}
+              filterQuery={filterQuery}
+              showAll={showAll || selfMatches}
             />
           ))}
         </div>
@@ -146,6 +168,7 @@ function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
 export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps) {
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
   const totalAssets = locationTree.reduce((sum, loc) => sum + (assetCountMap[loc.id] ?? 0), 0);
+  const [filterQuery, setFilterQuery] = useState("");
 
   return (
     <aside className="w-[248px] flex-shrink-0 border-r bg-white flex flex-col h-full overflow-hidden hidden lg:flex">
@@ -170,7 +193,29 @@ export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps)
           )}
         </div>
 
+        <div className="px-3 mb-2 relative">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-3 w-3 text-[#94a3b8] pointer-events-none" />
+          <input
+            value={filterQuery}
+            onChange={(e) => setFilterQuery(e.target.value)}
+            placeholder="Filter locations…"
+            className="w-full h-[28px] pl-7 pr-6 text-[12px] bg-[#f8fafc] border border-[#e2e8f0] rounded-[6px] text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_2px_#e8f0fc] transition-shadow"
+          />
+          {filterQuery && (
+            <button
+              onClick={() => setFilterQuery("")}
+              className="absolute right-5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+
         <AllLocationsEntry totalAssets={totalAssets} />
+
+        {filterQuery && locationTree.every((l) => !nodeMatchesFilter(l, filterQuery.toLowerCase().trim())) && (
+          <p className="px-3 py-3 text-[12px] text-[#94a3b8] text-center">No locations match</p>
+        )}
 
         {locationTree.length === 0 ? (
           <div className="px-3 py-4 text-center">
@@ -192,6 +237,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps)
                 location={location}
                 userRole={userRole}
                 assetCountMap={assetCountMap}
+                filterQuery={filterQuery.toLowerCase().trim()}
               />
             ))}
           </div>

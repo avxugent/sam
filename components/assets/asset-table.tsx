@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,17 @@ import {
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
-import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown, ExternalLink, Download } from "lucide-react";
+import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown, ExternalLink, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 type Asset = {
   id: string;
@@ -92,12 +101,17 @@ export function AssetTable({
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<SortCol | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(25);
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
 
   function handleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortCol(col); setSortDir("asc"); }
+    setPage(1);
   }
+
+  useEffect(() => { setPage(1); }, [search]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -127,6 +141,10 @@ export function AssetTable({
       return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
     });
   }, [filtered, sortCol, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginated = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/assets/${id}`, { method: "DELETE" });
@@ -183,6 +201,7 @@ export function AssetTable({
           size="sm"
           className="h-[36px] px-3 text-[13px] gap-1.5 flex-shrink-0"
           onClick={() => exportToCsv(sorted, "assets.csv")}
+          title="Export all filtered assets"
         >
           <Download className="h-3.5 w-3.5" />
           Export CSV
@@ -211,7 +230,7 @@ export function AssetTable({
                 </td>
               </tr>
             ) : (
-              sorted.map((asset) => {
+              paginated.map((asset) => {
                 const assetLocationId = asset.location?.id ?? locationId;
                 const assetHref = `/locations/${assetLocationId}/assets/${asset.id}`;
                 return (
@@ -324,11 +343,83 @@ export function AssetTable({
           </tbody>
         </table>
       </div>
-      {sorted.length > 0 && (
-        <p className="text-[12px] text-[#64748b] text-right">
-          {sorted.length} of {assets.length} asset{assets.length !== 1 ? "s" : ""}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <p className="text-[12px] text-[#64748b]">
+          {sorted.length === 0 ? (
+            `0 of ${assets.length} asset${assets.length !== 1 ? "s" : ""}`
+          ) : (
+            <>
+              {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, sorted.length)} of {sorted.length}
+              {sorted.length !== assets.length && ` (filtered from ${assets.length})`}
+              {` asset${assets.length !== 1 ? "s" : ""}`}
+            </>
+          )}
         </p>
-      )}
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px] text-[#64748b]">Per page</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}
+            >
+              <SelectTrigger className="h-[30px] w-[70px] text-[12px] px-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)} className="text-[12px]">{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-[30px] w-[30px]"
+              disabled={safePage <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+              .reduce<(number | "…")[]>((acc, p, i, arr) => {
+                if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("…");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, i) =>
+                p === "…" ? (
+                  <span key={`ellipsis-${i}`} className="text-[12px] text-[#94a3b8] px-1">…</span>
+                ) : (
+                  <Button
+                    key={p}
+                    variant={p === safePage ? "default" : "outline"}
+                    size="icon"
+                    className="h-[30px] w-[30px] text-[12px]"
+                    onClick={() => setPage(p as number)}
+                  >
+                    {p}
+                  </Button>
+                )
+              )}
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-[30px] w-[30px]"
+              disabled={safePage >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

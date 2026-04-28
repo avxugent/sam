@@ -16,7 +16,8 @@
  * and substitutes the values. Assets with missing Vault config get the
  * label sam_vault_missing="true" so operators can alert on them.
  *
- * Authentication: Bearer token via PROMETHEUS_SD_TOKEN env var.
+ * Authentication: Bearer token via PROMETHEUS_SD_TOKEN env var, or an active
+ * admin session cookie (so admins can browse the endpoint directly).
  *
  * ──────────────────────────────────────────────────────────────────────────────
  * Prometheus scrape_configs example (exporter-based devices):
@@ -42,6 +43,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkPrometheusAuth } from "@/lib/prometheus-auth";
+import { auth } from "@/lib/auth";
 import {
   resolveLocationPath,
   parseFiNumber,
@@ -62,8 +64,12 @@ function safeLabel(value: string | null | undefined): string {
 }
 
 export async function GET(req: NextRequest) {
-  const authError = checkPrometheusAuth(req);
-  if (authError) return authError;
+  const session = await auth();
+  const isAdmin = session?.user?.role === "ADMIN";
+  if (!isAdmin) {
+    const authError = checkPrometheusAuth(req);
+    if (authError) return authError;
+  }
 
   // Fetch all assets that have a hostname
   const assets = await prisma.asset.findMany({

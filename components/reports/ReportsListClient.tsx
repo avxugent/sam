@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
   const router = useRouter();
   const { toast } = useToast();
   const [reports, setReports] = useState(initial);
+  useEffect(() => { setReports(initial); }, [initial]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   async function handleDelete(id: string) {

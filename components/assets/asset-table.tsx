@@ -105,6 +105,11 @@ export function AssetTable({
   const [pageSize, setPageSize] = useState<number>(25);
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
 
+  // Sync local state when the parent re-fetches (e.g. after router.refresh()
+  // from AssetFormDialog). Without this, useState's initializer runs only
+  // once and newly added assets don't appear until a manual page reload.
+  useEffect(() => { setAssets(initialAssets); }, [initialAssets]);
+
   function handleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortCol(col); setSortDir("asc"); }

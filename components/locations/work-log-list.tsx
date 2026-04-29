@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,11 @@ export function WorkLogList({
   const [entries, setEntries] = useState<WorkLogEntry[]>(initialEntries);
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Sync local state when the parent re-fetches (e.g. after router.refresh()
+  // from the form dialog). Without this, useState's initializer runs only
+  // once and new entries don't appear until a manual page reload.
+  useEffect(() => { setEntries(initialEntries); }, [initialEntries]);
 
   const canCreate = userRole === "ADMIN" || userRole === "EDITOR";
   const isAdmin = userRole === "ADMIN";

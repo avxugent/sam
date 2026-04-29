@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -115,6 +115,7 @@ function TemplatePreview({ template }: { template: string }) {
 export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }) {
   const { toast } = useToast();
   const [types, setTypes] = useState(initialTypes);
+  useEffect(() => { setTypes(initialTypes); }, [initialTypes]);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

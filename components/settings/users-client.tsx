@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -105,6 +105,7 @@ export function UsersClient({
 }) {
   const { toast } = useToast();
   const [users, setUsers] = useState(initialUsers);
+  useEffect(() => { setUsers(initialUsers); }, [initialUsers]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
 

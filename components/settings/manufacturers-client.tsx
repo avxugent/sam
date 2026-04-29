@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +57,7 @@ export function ManufacturersClient({
 }) {
   const { toast } = useToast();
   const [items, setItems] = useState(initialManufacturers);
+  useEffect(() => { setItems(initialManufacturers); }, [initialManufacturers]);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

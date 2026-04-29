@@ -1,0 +1,68 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
+import { updatePresetSchema } from "@/lib/work-log-schema";
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { id } = await params;
+  const existing = await prisma.maintenancePreset.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const body = await req.json().catch(() => null);
+  const parsed = updatePresetSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const updated = await prisma.maintenancePreset.update({
+    where: { id },
+    data: {
+      ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+      ...(parsed.data.description !== undefined ? { description: parsed.data.description ?? null } : {}),
+    },
+  });
+
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "MaintenancePreset",
+    entityId: id,
+    entityName: updated.name,
+  });
+
+  return NextResponse.json(updated);
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { id } = await params;
+  const existing = await prisma.maintenancePreset.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await prisma.maintenancePreset.delete({ where: { id } });
+  await logAudit({
+    session,
+    req,
+    action: "DELETE",
+    entityType: "MaintenancePreset",
+    entityId: id,
+    entityName: existing.name,
+  });
+
+  return new NextResponse(null, { status: 204 });
+}

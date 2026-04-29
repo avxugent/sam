@@ -244,10 +244,11 @@ export function CsvImportClient() {
             {preview.preview.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs border rounded-lg overflow-hidden">
+                  <caption className="sr-only">CSV preview, first {preview.preview.length} rows</caption>
                   <thead>
                     <tr className="bg-muted/50 border-b">
                       {preview.columns.map((col) => (
-                        <th key={col} className="px-2 py-1.5 text-left font-mono font-medium whitespace-nowrap">
+                        <th key={col} scope="col" className="px-2 py-1.5 text-left font-mono font-medium whitespace-nowrap">
                           {col}
                         </th>
                       ))}

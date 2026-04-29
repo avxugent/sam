@@ -97,14 +97,15 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
       {/* Table */}
       <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
         <table className="w-full text-[13px]">
+          <caption className="sr-only">Audit log of system actions</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Timestamp</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">User</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Action</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Entity</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] hidden md:table-cell">IP</th>
-              <th className="px-4 py-[10px]"></th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Timestamp</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">User</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Action</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Entity</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] hidden md:table-cell">IP</th>
+              <th scope="col" className="px-4 py-[10px]"><span className="sr-only">Detail</span></th>
             </tr>
           </thead>
           <tbody>

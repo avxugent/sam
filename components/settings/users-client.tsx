@@ -261,15 +261,16 @@ export function UsersClient({
       {/* User table */}
       <div className="border border-[#e2e8f0] rounded-[10px] overflow-x-auto bg-white">
         <table className="w-full min-w-[720px] text-[13px]">
+          <caption className="sr-only">Users</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Name</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Email</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Role</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Provider</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">2FA</th>
-              <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Created</th>
-              <th className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Actions</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Name</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Email</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Role</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Provider</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">2FA</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Created</th>
+              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody>

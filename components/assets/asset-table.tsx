@@ -222,6 +222,7 @@ export function AssetTable({
 
       <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
         <table className="w-full text-[13px]">
+          <caption className="sr-only">{sorted.length} asset{sorted.length !== 1 ? "s" : ""}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
               <Th col="type" label="Type" />

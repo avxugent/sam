@@ -460,14 +460,15 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
           ) : (
             <div className="overflow-auto max-h-[60vh]">
               <table className="w-full text-sm">
+                <caption className="sr-only">Assets of type {drilldownType?.name}</caption>
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Location</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Manufacturer</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Serial #</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Hostname</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Installed</th>
+                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Location</th>
+                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Manufacturer</th>
+                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
+                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Serial #</th>
+                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Hostname</th>
+                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Installed</th>
                   </tr>
                 </thead>
                 <tbody>

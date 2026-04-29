@@ -79,12 +79,13 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
       ) : (
         <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
           <table className="w-full text-[13px]">
+            <caption className="sr-only">Saved reports</caption>
             <thead>
               <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-                <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Name</th>
-                <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] hidden sm:table-cell">Description</th>
-                <th className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] hidden md:table-cell">Updated</th>
-                <th className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Actions</th>
+                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Name</th>
+                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] hidden sm:table-cell">Description</th>
+                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] hidden md:table-cell">Updated</th>
+                <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Actions</th>
               </tr>
             </thead>
             <tbody>

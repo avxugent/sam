@@ -122,14 +122,15 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
       <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
+            <caption className="sr-only">{reportName}: {result.total} asset{result.total !== 1 ? "s" : ""}</caption>
             <thead>
               <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
                 {columns.map((col) => (
-                  <th key={col} className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">
+                  <th key={col} scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">
                     {COLUMN_LABELS[col]}
                   </th>
                 ))}
-                <th className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">View</th>
+                <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">View</th>
               </tr>
             </thead>
             <tbody>
@@ -169,7 +170,12 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                     <td className="px-4 py-[10px] text-right">
                       {row.locationId && (
                         <Button variant="ghost" size="sm" className="h-[26px] px-2 text-[12px]" asChild>
-                          <Link href={`/locations/${row.locationId}/assets/${row.id}`}>View</Link>
+                          <Link
+                            href={`/locations/${row.locationId}/assets/${row.id}`}
+                            aria-label={`View asset ${row.model || row.hostname || row.serialNumber || row.id}`}
+                          >
+                            View
+                          </Link>
                         </Button>
                       )}
                     </td>

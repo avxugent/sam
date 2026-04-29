@@ -87,6 +87,13 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
+      {/* Skip link — visible only on focus, jumps over the sidebar + header */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:bg-white focus:text-[#0f172a] focus:border focus:border-[#1e64c8] focus:rounded-md focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-md"
+      >
+        Skip to main content
+      </a>
       {/* Sidebar — hidden on mobile, visible on lg+ */}
       <Sidebar
         locationTree={locationTree}
@@ -96,7 +103,7 @@ export default async function DashboardLayout({
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header user={headerUser} />
         {/* pb-[58px] on mobile to clear bottom nav; none on lg */}
-        <main className="flex-1 overflow-auto p-6 lg:p-7 pb-[74px] lg:pb-6">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto p-6 lg:p-7 pb-[74px] lg:pb-6 focus:outline-none">
           {children}
         </main>
       </div>

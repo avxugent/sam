@@ -84,6 +84,7 @@ function SearchBar() {
   const [quickResults, setQuickResults] = useState<QuickResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -141,13 +142,37 @@ function SearchBar() {
     return () => clearTimeout(t);
   }, [query, fetchQuick]);
 
+  // Reset highlight when results list changes
+  useEffect(() => { setActiveIndex(-1); }, [quickResults]);
+
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && query.trim().length >= 2) {
-      setOpen(false);
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+    if (e.key === "ArrowDown" && quickResults.length > 0) {
+      e.preventDefault();
+      setOpen(true);
+      setActiveIndex((i) => (i + 1) % quickResults.length);
+      return;
+    }
+    if (e.key === "ArrowUp" && quickResults.length > 0) {
+      e.preventDefault();
+      setOpen(true);
+      setActiveIndex((i) => (i <= 0 ? quickResults.length - 1 : i - 1));
+      return;
+    }
+    if (e.key === "Enter") {
+      if (open && activeIndex >= 0 && quickResults[activeIndex]) {
+        e.preventDefault();
+        const r = quickResults[activeIndex];
+        handleSelect(r.href);
+        return;
+      }
+      if (query.trim().length >= 2) {
+        setOpen(false);
+        router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      }
     }
     if (e.key === "Escape") {
       setOpen(false);
+      setActiveIndex(-1);
       inputRef.current?.blur();
     }
   }
@@ -165,6 +190,9 @@ function SearchBar() {
     inputRef.current?.focus();
   }
 
+  const isExpanded = open && quickResults.length > 0;
+  const activeId = isExpanded && activeIndex >= 0 ? `global-search-result-${activeIndex}` : undefined;
+
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
       <div className="relative">
@@ -174,6 +202,11 @@ function SearchBar() {
           ref={inputRef}
           id="global-search"
           type="search"
+          role="combobox"
+          aria-expanded={isExpanded}
+          aria-controls="global-search-listbox"
+          aria-autocomplete="list"
+          aria-activedescendant={activeId}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -197,18 +230,33 @@ function SearchBar() {
         )}
       </div>
 
-      {open && quickResults.length > 0 && (
-        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-[#e2e8f0] rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.08)] overflow-hidden">
-          {quickResults.map((r) => (
-            <button
+      {isExpanded && (
+        <ul
+          id="global-search-listbox"
+          role="listbox"
+          aria-label="Search results"
+          className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-[#e2e8f0] rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.08)] overflow-hidden list-none m-0 p-0"
+        >
+          {quickResults.map((r, idx) => (
+            <li
               key={r.id + r.kind}
-              className="w-full flex items-start gap-3 px-3 py-2.5 hover:bg-[#f8fafc] text-left transition-colors"
+              id={`global-search-result-${idx}`}
+              role="option"
+              aria-selected={idx === activeIndex}
+              className={cn(
+                "flex items-start gap-3 px-3 py-2.5 cursor-pointer transition-colors",
+                idx === activeIndex ? "bg-[#e8f0fc]" : "hover:bg-[#f8fafc]"
+              )}
+              onMouseEnter={() => setActiveIndex(idx)}
               onMouseDown={(e) => { e.preventDefault(); handleSelect(r.href); }}
             >
-              <div className={cn(
-                "w-[34px] h-[34px] rounded-[8px] flex items-center justify-center flex-shrink-0",
-                r.kind === "asset" ? "bg-[#e8f0fc]" : "bg-[#f1f5f9]"
-              )}>
+              <div
+                aria-hidden="true"
+                className={cn(
+                  "w-[34px] h-[34px] rounded-[8px] flex items-center justify-center flex-shrink-0",
+                  r.kind === "asset" ? "bg-[#e8f0fc]" : "bg-[#f1f5f9]"
+                )}
+              >
                 {r.kind === "asset" ? (
                   <Package className="h-4 w-4 text-[#1e64c8]" />
                 ) : (
@@ -221,10 +269,11 @@ function SearchBar() {
                   <p className="text-[12px] text-[#64748b] truncate">{r.subtitle}</p>
                 )}
               </div>
-            </button>
+            </li>
           ))}
-          <div className="border-t border-[#e2e8f0] px-3 py-2 bg-[#f8fafc]">
+          <li role="presentation" className="border-t border-[#e2e8f0] px-3 py-2 bg-[#f8fafc]">
             <button
+              type="button"
               className="text-xs text-[#1e64c8] hover:underline w-full text-left"
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -234,8 +283,8 @@ function SearchBar() {
             >
               See all results for &quot;{query}&quot; →
             </button>
-          </div>
-        </div>
+          </li>
+        </ul>
       )}
     </div>
   );

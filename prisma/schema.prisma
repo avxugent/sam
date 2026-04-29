@@ -35,6 +35,7 @@ model User {
 
   attachments         Attachment[]
   passwordResetTokens PasswordResetToken[]
+  workLogs            WorkLog[]            @relation("WorkLogPerformer")
 
   @@map("users")
 }
@@ -77,6 +78,7 @@ model Location {
   children    Location[]   @relation("LocationTree")
   assets      Asset[]
   attachments Attachment[]
+  workLogs    WorkLog[]
 
   @@index([parentId])
   @@map("locations")
@@ -98,7 +100,8 @@ model AssetType {
   scrapeTargetTemplate String? @db.Text
   createdAt            DateTime @default(now())
 
-  assets Asset[]
+  assets  Asset[]
+  presets MaintenancePreset[]
 
   @@map("asset_types")
 }
@@ -139,6 +142,7 @@ model Asset {
   macAddresses MacAddress[]
   customFields CustomField[]
   attachments  Attachment[]
+  workLogs     WorkLog[]
 
   @@index([locationId])
   @@index([typeId])
@@ -230,4 +234,39 @@ model Report {
   updatedAt   DateTime @updatedAt
 
   @@map("reports")
+}
+
+model WorkLog {
+  id            String   @id @default(cuid())
+  locationId    String
+  assetId       String?            // optional — null for location-wide work
+  performedById String             // user who performed the work
+  performedAt   DateTime @db.Date  // when the work was done
+  description   String   @db.Text
+  jiraIssueKey  String?  @db.VarChar(64)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  location    Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  asset       Asset?   @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  performedBy User     @relation("WorkLogPerformer", fields: [performedById], references: [id])
+
+  @@index([locationId])
+  @@index([assetId])
+  @@index([performedById])
+  @@index([performedAt])
+  @@map("work_logs")
+}
+
+model MaintenancePreset {
+  id          String   @id @default(cuid())
+  assetTypeId String
+  name        String   @db.VarChar(120)
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  assetType AssetType @relation(fields: [assetTypeId], references: [id], onDelete: Cascade)
+
+  @@index([assetTypeId])
+  @@map("maintenance_presets")
 }

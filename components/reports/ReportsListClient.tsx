@@ -105,13 +105,13 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="sm" className="h-[28px] px-2 text-[12px] gap-1" asChild>
                         <Link href={`/reports/${r.id}`}>
-                          <Play className="h-3 w-3" />
+                          <Play className="h-3 w-3" aria-hidden="true" />
                           Run
                         </Link>
                       </Button>
                       {canEdit && (
                         <Button variant="ghost" size="sm" className="h-[28px] px-2 text-[12px]" asChild>
-                          <Link href={`/reports/${r.id}/edit`}>
+                          <Link href={`/reports/${r.id}/edit`} aria-label={`Edit report ${r.name}`}>
                             <Pencil className="h-3 w-3" />
                           </Link>
                         </Button>
@@ -120,6 +120,7 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
                         <Button
                           variant="ghost"
                           size="sm"
+                          aria-label={`Delete report ${r.name}`}
                           className="h-[28px] px-2 text-[12px] text-[#94a3b8] hover:text-destructive"
                           onClick={() => setDeleteId(r.id)}
                         >

@@ -117,6 +117,8 @@ export function WorkLogList({
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            type="search"
+            aria-label="Search work log"
             placeholder="Search work log…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -163,10 +165,10 @@ export function WorkLogList({
                 className="bg-white border border-[#e2e8f0] rounded-[10px] p-4 hover:border-[#cbd5e1] transition-colors"
               >
                 <div className="flex items-start gap-3">
-                  {/* Avatar */}
+                  {/* Avatar — name appears as text below, so the avatar is decorative */}
                   <div
                     className="w-9 h-9 rounded-full bg-[#1e64c8] text-white text-[12px] font-semibold flex items-center justify-center flex-shrink-0"
-                    title={entry.performedBy.name}
+                    aria-hidden="true"
                   >
                     {initials}
                   </div>
@@ -230,6 +232,7 @@ export function WorkLogList({
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label={`Edit work log entry by ${entry.performedBy.name}`}
                           className="h-[28px] w-[28px]"
                           title="Edit"
                         >
@@ -240,6 +243,7 @@ export function WorkLogList({
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Delete work log entry by ${entry.performedBy.name}`}
                         className="h-[28px] w-[28px] text-[#94a3b8] hover:text-destructive"
                         title="Delete"
                         onClick={() => setDeleteId(entry.id)}

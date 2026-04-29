@@ -97,6 +97,7 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
                   <Button
                     size="icon"
                     variant="ghost"
+                    aria-label={`Delete preset ${p.name}`}
                     className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
                     onClick={() => handleDelete(p.id)}
                     title="Delete preset"

@@ -281,28 +281,34 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                         className="max-w-xs h-8"
                         autoFocus
                       />
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEditName(item.id)}>
+                      <Button size="icon" variant="ghost" aria-label="Save name" className="h-8 w-8" onClick={() => handleEditName(item.id)}>
                         <Check className="h-4 w-4 text-green-600" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}>
+                      <Button size="icon" variant="ghost" aria-label="Cancel rename" className="h-8 w-8" onClick={() => setEditingId(null)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </>
                   ) : (
                     <>
-                      <span
-                        className={`flex-1 text-sm font-medium ${item._count.assets > 0 ? "cursor-pointer hover:text-primary transition-colors" : ""}`}
-                        onClick={() => item._count.assets > 0 && openDrilldown(item)}
-                        title={item._count.assets > 0 ? `View ${item._count.assets} asset(s)` : undefined}
-                      >
-                        {item.name}
-                      </span>
+                      {item._count.assets > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => openDrilldown(item)}
+                          className="flex-1 text-left text-sm font-medium cursor-pointer hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                          aria-label={`View ${item._count.assets} asset${item._count.assets !== 1 ? "s" : ""} of type ${item.name}`}
+                        >
+                          {item.name}
+                        </button>
+                      ) : (
+                        <span className="flex-1 text-sm font-medium">{item.name}</span>
+                      )}
 
                       {item._count.assets > 0 && (
                         <Badge
                           variant="secondary"
                           className="text-xs cursor-pointer hover:bg-secondary/80"
                           onClick={() => openDrilldown(item)}
+                          aria-hidden="true"
                         >
                           {item._count.assets} asset{item._count.assets !== 1 ? "s" : ""}
                         </Badge>
@@ -323,7 +329,8 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 text-muted-foreground"
-                        title={isExpanded ? "Hide scrape config" : "Show scrape config"}
+                        aria-label={isExpanded ? `Hide scrape config for ${item.name}` : `Show scrape config for ${item.name}`}
+                        aria-expanded={isExpanded}
                         onClick={() =>
                           setExpandedIds((prev) => {
                             const next = new Set(prev);
@@ -342,6 +349,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                       <Button
                         size="icon"
                         variant="ghost"
+                        aria-label={`Rename ${item.name}`}
                         className="h-8 w-8"
                         onClick={() => { setEditingId(item.id); setEditName(item.name); }}
                       >
@@ -350,7 +358,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
+                          <Button size="icon" variant="ghost" aria-label={`Delete ${item.name}`} className="h-8 w-8 text-destructive hover:text-destructive">
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </AlertDialogTrigger>

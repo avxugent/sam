@@ -283,8 +283,10 @@ export function ReportBuilder({
                 )}
 
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
+                  aria-label={`Remove filter ${i + 1}`}
                   className="h-[34px] w-[34px] p-0 text-[#94a3b8] hover:text-destructive"
                   onClick={() => removeFilter(i)}
                 >

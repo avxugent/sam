@@ -158,7 +158,7 @@ export function CsvImportClient() {
                   {(file.size / 1024).toFixed(1)} KB
                 </p>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={reset}>
+              <Button variant="ghost" size="icon" aria-label="Remove selected file" className="h-8 w-8" onClick={reset}>
                 <X className="h-4 w-4" />
               </Button>
             </div>

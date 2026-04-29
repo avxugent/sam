@@ -290,6 +290,7 @@ export function AttachmentGallery({
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label={`Download ${attachment.originalName}`}
                       className="h-[30px] w-[30px] text-[#64748b] hover:text-[#334155]"
                       onClick={() => window.open(`/api/attachments/${attachment.id}`, "_blank")}
                     >
@@ -302,6 +303,7 @@ export function AttachmentGallery({
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label={`Delete ${isLink ? "link" : "attachment"} ${attachment.originalName}`}
                           className="h-[30px] w-[30px] text-[#ef4444] hover:text-[#ef4444] hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />

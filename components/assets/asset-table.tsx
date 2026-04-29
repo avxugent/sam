@@ -174,15 +174,20 @@ export function AssetTable({
 
   function Th({ col, label }: { col: SortCol; label: string }) {
     const active = sortCol === col;
+    const ariaSort: "ascending" | "descending" | "none" = active
+      ? sortDir === "asc" ? "ascending" : "descending"
+      : "none";
     return (
-      <th
-        className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] cursor-pointer select-none whitespace-nowrap"
-        onClick={() => handleSort(col)}
-      >
-        <span className={`inline-flex items-center gap-1 ${active ? "text-[#1e64c8]" : ""}`}>
-          {label}
+      <th scope="col" aria-sort={ariaSort} className="text-left text-[12px] font-medium text-[#64748b] whitespace-nowrap">
+        <button
+          type="button"
+          onClick={() => handleSort(col)}
+          className="w-full text-left px-4 py-[10px] inline-flex items-center gap-1 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
+          aria-label={`Sort by ${label}${active ? `, currently ${sortDir === "asc" ? "ascending" : "descending"}` : ""}`}
+        >
+          <span className={active ? "text-[#1e64c8]" : ""}>{label}</span>
           <SortIcon col={col} active={active} dir={sortDir} />
-        </span>
+        </button>
       </th>
     );
   }
@@ -195,6 +200,8 @@ export function AssetTable({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            type="search"
+            aria-label="Search assets"
             placeholder="Search assets..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -224,7 +231,7 @@ export function AssetTable({
               <Th col="hostname" label="Hostname" />
               {showLocation && <Th col="location" label="Location" />}
               <Th col="installationDate" label="Installed" />
-              <th className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Actions</th>
+              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -241,8 +248,14 @@ export function AssetTable({
                 return (
                 <tr
                   key={asset.id}
-                  className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors duration-75 cursor-pointer"
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`Open asset ${asset.model || asset.hostname || asset.serialNumber || "details"}`}
+                  className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors duration-75 cursor-pointer focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
                   onClick={() => router.push(assetHref)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); router.push(assetHref); }
+                  }}
                 >
                   <td className="px-4 py-[11px]">
                     {asset.type ? (
@@ -303,6 +316,7 @@ export function AssetTable({
                             <Button
                               variant="ghost"
                               size="icon"
+                              aria-label={`Edit asset ${asset.model || asset.hostname || asset.serialNumber || asset.id}`}
                               className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
                             >
                               <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
@@ -314,6 +328,7 @@ export function AssetTable({
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                aria-label={`Delete asset ${asset.model || asset.hostname || asset.serialNumber || asset.id}`}
                                 className="h-[30px] w-[30px] text-destructive hover:text-destructive hover:bg-red-50"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -379,10 +394,11 @@ export function AssetTable({
             </Select>
           </div>
 
-          <div className="flex items-center gap-1">
+          <nav className="flex items-center gap-1" aria-label="Pagination">
             <Button
               variant="outline"
               size="icon"
+              aria-label="Previous page"
               className="h-[30px] w-[30px]"
               disabled={safePage <= 1}
               onClick={() => setPage((p) => p - 1)}
@@ -399,12 +415,14 @@ export function AssetTable({
               }, [])
               .map((p, i) =>
                 p === "…" ? (
-                  <span key={`ellipsis-${i}`} className="text-[12px] text-[#94a3b8] px-1">…</span>
+                  <span key={`ellipsis-${i}`} className="text-[12px] text-[#94a3b8] px-1" aria-hidden="true">…</span>
                 ) : (
                   <Button
                     key={p}
                     variant={p === safePage ? "default" : "outline"}
                     size="icon"
+                    aria-label={`Go to page ${p}`}
+                    aria-current={p === safePage ? "page" : undefined}
                     className="h-[30px] w-[30px] text-[12px]"
                     onClick={() => setPage(p as number)}
                   >
@@ -416,13 +434,14 @@ export function AssetTable({
             <Button
               variant="outline"
               size="icon"
+              aria-label="Next page"
               className="h-[30px] w-[30px]"
               disabled={safePage >= totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
-          </div>
+          </nav>
         </div>
       </div>
     </div>

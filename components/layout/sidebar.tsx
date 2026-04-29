@@ -82,9 +82,12 @@ function LocationTreeItem({
       >
         {/* Expand/collapse button or dot */}
         <button
-          className="flex-shrink-0 h-4 w-4 flex items-center justify-center"
+          type="button"
+          className="flex-shrink-0 h-4 w-4 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
           onClick={() => setOpen((v) => !v)}
-          aria-label={open ? "Collapse" : "Expand"}
+          aria-label={open ? `Collapse ${location.name}` : `Expand ${location.name}`}
+          aria-expanded={hasChildren ? open : undefined}
+          disabled={!hasChildren}
         >
           {useDot ? (
             <span
@@ -186,7 +189,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps)
           </span>
           {canEdit && (
             <LocationFormDialog mode="create" parentId={null}>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
+              <Button variant="ghost" size="icon" aria-label="Add top-level location" className="h-6 w-6">
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             </LocationFormDialog>
@@ -194,8 +197,11 @@ export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps)
         </div>
 
         <div className="px-3 mb-2 relative">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-3 w-3 text-[#94a3b8] pointer-events-none" />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-3 w-3 text-[#94a3b8] pointer-events-none" aria-hidden="true" />
+          <label htmlFor="sidebar-location-filter" className="sr-only">Filter locations</label>
           <input
+            id="sidebar-location-filter"
+            type="search"
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
             placeholder="Filter locations…"
@@ -203,6 +209,8 @@ export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps)
           />
           {filterQuery && (
             <button
+              type="button"
+              aria-label="Clear location filter"
               onClick={() => setFilterQuery("")}
               className="absolute right-5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
             >

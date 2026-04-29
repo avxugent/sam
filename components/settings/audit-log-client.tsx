@@ -117,8 +117,19 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
                 <>
                   <tr
                     key={log.id}
-                    className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] cursor-pointer"
+                    role={log.detail ? "button" : undefined}
+                    tabIndex={log.detail ? 0 : undefined}
+                    aria-expanded={log.detail ? expandedId === log.id : undefined}
+                    aria-label={log.detail ? `${expandedId === log.id ? "Collapse" : "Expand"} details for ${log.action} ${log.entityType}` : undefined}
+                    className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] cursor-pointer focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
                     onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+                    onKeyDown={(e) => {
+                      if (!log.detail) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setExpandedId(expandedId === log.id ? null : log.id);
+                      }
+                    }}
                   >
                     <td className="px-4 py-[10px] text-[12px] font-mono text-[#64748b] whitespace-nowrap">
                       {new Date(log.timestamp).toLocaleString()}
@@ -140,7 +151,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
                     </td>
                     <td className="px-4 py-[10px] text-right">
                       {log.detail && (
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <Button variant="ghost" size="icon" aria-hidden="true" tabIndex={-1} className="h-6 w-6">
                           {expandedId === log.id
                             ? <ChevronUp className="h-3.5 w-3.5" />
                             : <ChevronDown className="h-3.5 w-3.5" />}

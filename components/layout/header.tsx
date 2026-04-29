@@ -168,9 +168,12 @@ function SearchBar() {
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" aria-hidden="true" />
+        <label htmlFor="global-search" className="sr-only">Search assets, locations, serial numbers</label>
         <input
           ref={inputRef}
+          id="global-search"
+          type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -180,7 +183,9 @@ function SearchBar() {
         />
         {query && (
           <button
+            type="button"
             onClick={handleClear}
+            aria-label={loading ? "Searching" : "Clear search"}
             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
           >
             {loading ? (
@@ -282,12 +287,13 @@ export function Header({ user }: { user: HeaderUser }) {
               <Button
                 variant="outline"
                 size="sm"
+                aria-label="Administration menu"
                 className={cn(
                   "text-[13px] h-[34px] px-[14px] rounded-[6px] border-[#e2e8f0] gap-1.5",
                   isInAdmin && "bg-[#e8f0fc] border-[#1e64c8] text-[#1e64c8]"
                 )}
               >
-                <ShieldCheck className="h-4 w-4" />
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
                 <span className="hidden sm:block">Administration</span>
               </Button>
             </DropdownMenuTrigger>
@@ -317,8 +323,12 @@ export function Header({ user }: { user: HeaderUser }) {
         {/* Avatar + user menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="w-8 h-8 rounded-full bg-[#1e64c8] text-white text-[13px] font-semibold flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-opacity">
-              {initials}
+            <button
+              type="button"
+              aria-label={`Account menu for ${user.name ?? user.email ?? "user"}`}
+              className="w-8 h-8 rounded-full bg-[#1e64c8] text-white text-[13px] font-semibold flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1e64c8]"
+            >
+              <span aria-hidden="true">{initials}</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">

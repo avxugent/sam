@@ -1,0 +1,274 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Search, Pencil, Trash2, Wrench, Package } from "lucide-react";
+import { WorkLogFormDialog, type WorkLogAssetOption, type WorkLogUserOption } from "@/components/locations/work-log-form-dialog";
+import { JiraIssueBadge } from "@/components/locations/jira-issue-badge";
+import { formatDate } from "@/lib/utils";
+
+export type WorkLogEntry = {
+  id: string;
+  performedAt: string;
+  description: string;
+  jiraIssueKey: string | null;
+  performedBy: { id: string; name: string; email: string };
+  asset: {
+    id: string;
+    model: string | null;
+    serialNumber: string | null;
+    hostname: string | null;
+    type: { id: string; name: string } | null;
+  } | null;
+};
+
+type Props = {
+  locationId: string;
+  entries: WorkLogEntry[];
+  assets: WorkLogAssetOption[];
+  users: WorkLogUserOption[];
+  currentUserId: string;
+  userRole: string;
+  jiraBaseUrl: string | null;
+};
+
+function getInitials(name: string | null | undefined, email: string): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return (email[0] ?? "U").toUpperCase();
+}
+
+function assetLabel(asset: WorkLogEntry["asset"]): string {
+  if (!asset) return "";
+  return asset.model || asset.hostname || asset.serialNumber || "Asset";
+}
+
+export function WorkLogList({
+  locationId,
+  entries: initialEntries,
+  assets,
+  users,
+  currentUserId,
+  userRole,
+  jiraBaseUrl,
+}: Props) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [entries, setEntries] = useState<WorkLogEntry[]>(initialEntries);
+  const [search, setSearch] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const canCreate = userRole === "ADMIN" || userRole === "EDITOR";
+  const isAdmin = userRole === "ADMIN";
+
+  const filtered = entries.filter((e) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      e.description.toLowerCase().includes(q) ||
+      e.performedBy.name?.toLowerCase().includes(q) ||
+      e.jiraIssueKey?.toLowerCase().includes(q) ||
+      assetLabel(e.asset).toLowerCase().includes(q)
+    );
+  });
+
+  async function handleDelete(id: string) {
+    const res = await fetch(`/api/work-logs/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast({ title: "Delete failed", description: err.error, variant: "destructive" });
+      return;
+    }
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+    toast({ title: "Entry deleted" });
+    router.refresh();
+  }
+
+  function canModify(entry: WorkLogEntry): boolean {
+    return isAdmin || entry.performedBy.id === currentUserId;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search work log…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-[36px] text-[13px] rounded-[8px]"
+          />
+        </div>
+        {canCreate && (
+          <WorkLogFormDialog
+            mode="create"
+            locationId={locationId}
+            assets={assets}
+            users={users}
+            currentUserId={currentUserId}
+          >
+            <Button size="sm" className="h-[36px] gap-1.5 bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
+              <Plus className="h-4 w-4" />
+              Add entry
+            </Button>
+          </WorkLogFormDialog>
+        )}
+      </div>
+
+      {/* Empty state */}
+      {entries.length === 0 ? (
+        <div className="text-center py-12 border border-[#e2e8f0] rounded-[10px] bg-white">
+          <Wrench className="h-10 w-10 mx-auto mb-3 text-[#94a3b8] opacity-60" />
+          <p className="text-[14px] text-[#64748b] mb-1">No work log entries yet</p>
+          <p className="text-[12px] text-[#94a3b8]">
+            {canCreate ? "Record what was done at this location." : "Entries will appear here when technicians log work."}
+          </p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-10 border border-[#e2e8f0] rounded-[10px] bg-white">
+          <p className="text-[13px] text-[#64748b]">No entries match your search</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((entry) => {
+            const initials = getInitials(entry.performedBy.name, entry.performedBy.email);
+            const assetText = assetLabel(entry.asset);
+            return (
+              <div
+                key={entry.id}
+                className="bg-white border border-[#e2e8f0] rounded-[10px] p-4 hover:border-[#cbd5e1] transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  {/* Avatar */}
+                  <div
+                    className="w-9 h-9 rounded-full bg-[#1e64c8] text-white text-[12px] font-semibold flex items-center justify-center flex-shrink-0"
+                    title={entry.performedBy.name}
+                  >
+                    {initials}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    {/* Top row: name, date, asset, JIRA */}
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-[13px] font-semibold text-[#0f172a]">
+                        {entry.performedBy.name}
+                      </span>
+                      <span className="text-[12px] text-[#64748b]">•</span>
+                      <span className="text-[12px] text-[#64748b]">{formatDate(entry.performedAt)}</span>
+
+                      {entry.asset && (
+                        <>
+                          <span className="text-[12px] text-[#64748b]">•</span>
+                          <Link
+                            href={`/locations/${locationId}/assets/${entry.asset.id}`}
+                            className="inline-flex items-center gap-1 text-[12px] text-[#1e64c8] hover:underline"
+                          >
+                            <Package className="h-3 w-3" />
+                            {assetText}
+                          </Link>
+                          {entry.asset.type && (
+                            <span className="inline-flex items-center text-[10px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-1.5 py-0 rounded-[4px]">
+                              {entry.asset.type.name}
+                            </span>
+                          )}
+                        </>
+                      )}
+
+                      {entry.jiraIssueKey && (
+                        <JiraIssueBadge issueKey={entry.jiraIssueKey} jiraBaseUrl={jiraBaseUrl} />
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-[13px] text-[#334155] whitespace-pre-wrap break-words">
+                      {entry.description}
+                    </p>
+                  </div>
+
+                  {/* Actions */}
+                  {canModify(entry) && (
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <WorkLogFormDialog
+                        mode="edit"
+                        locationId={locationId}
+                        workLogId={entry.id}
+                        initialData={{
+                          assetId: entry.asset?.id ?? null,
+                          performedById: entry.performedBy.id,
+                          performedAt: entry.performedAt.split("T")[0],
+                          description: entry.description,
+                          jiraIssueKey: entry.jiraIssueKey,
+                        }}
+                        assets={assets}
+                        users={users}
+                        currentUserId={currentUserId}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-[28px] w-[28px]"
+                          title="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
+                        </Button>
+                      </WorkLogFormDialog>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-[28px] w-[28px] text-[#94a3b8] hover:text-destructive"
+                        title="Delete"
+                        onClick={() => setDeleteId(entry.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this work log entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone. The entry will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (deleteId) handleDelete(deleteId); setDeleteId(null); }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

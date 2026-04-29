@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getUsedVariables, validateTemplate } from "@/lib/scrape-template";
+import { MaintenancePresetsManager } from "@/components/settings/maintenance-presets-manager";
 
 type AssetType = {
   id: string;
@@ -414,6 +415,10 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                           </span>
                         </div>
                       )}
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t">
+                      <MaintenancePresetsManager assetTypeId={item.id} />
                     </div>
                   </div>
                 )}

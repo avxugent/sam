@@ -1,0 +1,303 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Sparkles } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { createWorkLogSchema } from "@/lib/work-log-schema";
+import type { z } from "zod";
+
+type FormData = z.infer<typeof createWorkLogSchema>;
+
+export type WorkLogAssetOption = {
+  id: string;
+  label: string;
+  typeId: string | null;
+};
+
+export type WorkLogUserOption = {
+  id: string;
+  label: string;
+};
+
+type Preset = { id: string; name: string; description: string | null };
+
+type Props = {
+  mode: "create" | "edit";
+  locationId: string;
+  workLogId?: string;
+  initialData?: {
+    assetId?: string | null;
+    performedById?: string;
+    performedAt?: string;
+    description?: string;
+    jiraIssueKey?: string | null;
+  };
+  assets: WorkLogAssetOption[];
+  users: WorkLogUserOption[];
+  currentUserId: string;
+  children: React.ReactNode;
+  onSuccess?: () => void;
+};
+
+const NO_ASSET = "__none__";
+
+function todayIsoDate(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+export function WorkLogFormDialog({
+  mode,
+  locationId,
+  workLogId,
+  initialData,
+  assets,
+  users,
+  currentUserId,
+  children,
+  onSuccess,
+}: Props) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presetsLoading, setPresetsLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({
+    resolver: zodResolver(createWorkLogSchema),
+    defaultValues: {
+      assetId: initialData?.assetId ?? null,
+      performedById: initialData?.performedById ?? currentUserId,
+      performedAt: initialData?.performedAt ?? todayIsoDate(),
+      description: initialData?.description ?? "",
+      jiraIssueKey: initialData?.jiraIssueKey ?? "",
+    },
+  });
+
+  const assetIdValue = watch("assetId");
+  const descriptionValue = watch("description");
+
+  // Fetch presets when an asset (with a type) is selected
+  useEffect(() => {
+    if (!assetIdValue) {
+      setPresets([]);
+      return;
+    }
+    const asset = assets.find((a) => a.id === assetIdValue);
+    if (!asset?.typeId) {
+      setPresets([]);
+      return;
+    }
+    setPresetsLoading(true);
+    fetch(`/api/asset-types/${asset.typeId}/presets`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setPresets(Array.isArray(data) ? data : []))
+      .finally(() => setPresetsLoading(false));
+  }, [assetIdValue, assets]);
+
+  function applyPreset(preset: Preset) {
+    const current = descriptionValue?.trim() ?? "";
+    const presetText = preset.description ? `${preset.name}\n\n${preset.description}` : preset.name;
+    const next = current ? `${current}\n\n${presetText}` : presetText;
+    setValue("description", next, { shouldValidate: true });
+  }
+
+  async function onSubmit(data: FormData) {
+    const url =
+      mode === "create"
+        ? `/api/locations/${locationId}/work-logs`
+        : `/api/work-logs/${workLogId}`;
+    const method = mode === "create" ? "POST" : "PUT";
+
+    const payload = {
+      ...data,
+      assetId: data.assetId === NO_ASSET ? null : data.assetId || null,
+      jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null,
+    };
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast({
+        title: "Error",
+        description: err.error || "Something went wrong.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: mode === "create" ? "Work log entry added" : "Work log entry updated" });
+    setOpen(false);
+    reset();
+    router.refresh();
+    onSuccess?.();
+  }
+
+  function handleOpenChange(v: boolean) {
+    setOpen(v);
+    if (v) {
+      reset({
+        assetId: initialData?.assetId ?? null,
+        performedById: initialData?.performedById ?? currentUserId,
+        performedAt: initialData?.performedAt ?? todayIsoDate(),
+        description: initialData?.description ?? "",
+        jiraIssueKey: initialData?.jiraIssueKey ?? "",
+      });
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{mode === "create" ? "Add work log entry" : "Edit work log entry"}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Asset (optional) */}
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-asset">Asset <span className="text-xs text-muted-foreground">(optional)</span></Label>
+            <Select
+              value={assetIdValue ?? NO_ASSET}
+              onValueChange={(v) => setValue("assetId", v === NO_ASSET ? null : v, { shouldValidate: true })}
+            >
+              <SelectTrigger id="wl-asset">
+                <SelectValue placeholder="No specific asset" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_ASSET}>— No specific asset —</SelectItem>
+                {assets.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Date + performed-by */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="wl-date">Date *</Label>
+              <Input id="wl-date" type="date" {...register("performedAt")} />
+              {errors.performedAt && (
+                <p className="text-xs text-destructive">{errors.performedAt.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="wl-user">Performed by *</Label>
+              <Select
+                value={watch("performedById") ?? currentUserId}
+                onValueChange={(v) => setValue("performedById", v, { shouldValidate: true })}
+              >
+                <SelectTrigger id="wl-user">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Preset chips */}
+          {presets.length > 0 && (
+            <div className="rounded-md border bg-muted/30 p-2.5 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <Sparkles className="h-3 w-3" />
+                Quick presets
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {presets.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyPreset(p)}
+                    className="px-2.5 py-1 text-[12px] rounded-full bg-white border border-[#e2e8f0] text-[#334155] hover:border-[#1e64c8] hover:text-[#1e64c8] transition-colors"
+                    title={p.description ?? p.name}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {presetsLoading && (
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Loading presets…
+            </p>
+          )}
+
+          {/* Description */}
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-desc">Description *</Label>
+            <Textarea
+              id="wl-desc"
+              {...register("description")}
+              placeholder="Describe what was done…"
+              rows={4}
+            />
+            {errors.description && (
+              <p className="text-xs text-destructive">{errors.description.message}</p>
+            )}
+          </div>
+
+          {/* JIRA key (optional) */}
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-jira">
+              JIRA issue key <span className="text-xs text-muted-foreground">(optional)</span>
+            </Label>
+            <Input id="wl-jira" {...register("jiraIssueKey")} placeholder="AVT-123" className="font-mono" />
+            {errors.jiraIssueKey && (
+              <p className="text-xs text-destructive">{errors.jiraIssueKey.message}</p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting} className="gap-1.5">
+              {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {mode === "create" ? "Add entry" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

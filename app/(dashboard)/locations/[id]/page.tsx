@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
+import { isJiraConfigured } from "@/lib/jira";
 
 async function getUrlTemplates(): Promise<{ hostnameUrlTemplate: string | null; macAddressUrlTemplate: string | null }> {
   const settings = await prisma.appSetting.findMany({
@@ -61,15 +62,49 @@ export default async function LocationPage({
     orderBy: { createdAt: "desc" },
   });
 
+  const workLogs = await prisma.workLog.findMany({
+    where: { locationId: id },
+    include: {
+      performedBy: { select: { id: true, name: true, email: true } },
+      asset: {
+        select: {
+          id: true,
+          model: true,
+          serialNumber: true,
+          hostname: true,
+          type: { select: { id: true, name: true } },
+        },
+      },
+    },
+    orderBy: [{ performedAt: "desc" }, { createdAt: "desc" }],
+  });
+
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, email: true },
+    orderBy: { name: "asc" },
+  });
+
   return (
     <LocationDetailClient
       location={location}
       assets={assets}
       breadcrumbs={breadcrumbs}
       userRole={session?.user?.role || "VIEWER"}
+      currentUserId={session?.user?.id ?? ""}
       showLocation={hasChildren}
       hostnameUrlTemplate={hostnameUrlTemplate}
       macAddressUrlTemplate={macAddressUrlTemplate}
+      workLogs={workLogs.map((w) => ({
+        id: w.id,
+        performedAt: w.performedAt.toISOString(),
+        description: w.description,
+        jiraIssueKey: w.jiraIssueKey,
+        performedBy: w.performedBy,
+        asset: w.asset,
+      }))}
+      users={users.map((u) => ({ id: u.id, label: u.name + (u.email ? ` (${u.email})` : "") }))}
+      jiraEnabled={isJiraConfigured()}
+      jiraBaseUrl={process.env.JIRA_BASE_URL ?? null}
     />
   );
 }

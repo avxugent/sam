@@ -25,6 +25,8 @@ import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
 import { CoverImagePicker } from "@/components/locations/cover-image-picker";
 import { LocationMap } from "@/components/locations/location-map";
+import { WorkLogList, type WorkLogEntry } from "@/components/locations/work-log-list";
+import type { WorkLogAssetOption, WorkLogUserOption } from "@/components/locations/work-log-form-dialog";
 import {
   ChevronRight,
   Pencil,
@@ -36,6 +38,7 @@ import {
   Paperclip,
   Image as ImageIcon,
   Hash,
+  Wrench,
 } from "lucide-react";
 
 function parseFiSegments(fi: string): { campus: string; building: string; floor: string; room: string } | null {
@@ -104,17 +107,27 @@ export function LocationDetailClient({
   assets,
   breadcrumbs,
   userRole,
+  currentUserId,
   showLocation = false,
   hostnameUrlTemplate,
   macAddressUrlTemplate,
+  workLogs = [],
+  users = [],
+  jiraEnabled = false,
+  jiraBaseUrl = null,
 }: {
   location: Location;
   assets: Asset[];
   breadcrumbs: Breadcrumb[];
   userRole: string;
+  currentUserId?: string;
   showLocation?: boolean;
   hostnameUrlTemplate?: string | null;
   macAddressUrlTemplate?: string | null;
+  workLogs?: WorkLogEntry[];
+  users?: WorkLogUserOption[];
+  jiraEnabled?: boolean;
+  jiraBaseUrl?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -342,6 +355,16 @@ export function LocationDetailClient({
               <Badge variant="secondary" className="ml-2 text-xs">{attachments.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger
+            value="worklog"
+            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+          >
+            <Wrench className="h-3.5 w-3.5 mr-1" />
+            Work Log
+            {workLogs.length > 0 && (
+              <Badge variant="secondary" className="ml-2 text-xs">{workLogs.length}</Badge>
+            )}
+          </TabsTrigger>
           {canEdit && (
             <TabsTrigger
               value="cover"
@@ -434,6 +457,31 @@ export function LocationDetailClient({
             locationId={location.id}
             canEdit={canEdit}
             onUpdate={handleAttachmentUpdate}
+          />
+        </TabsContent>
+
+        {/* Work Log tab */}
+        <TabsContent value="worklog" className="mt-4">
+          <div className="mb-4">
+            <h2 className="text-[18px] font-semibold text-[#0f172a]">Work Log</h2>
+            <p className="text-[13px] text-[#64748b] mt-1">
+              Maintenance, repairs, and other work performed at this location.
+            </p>
+          </div>
+          <WorkLogList
+            locationId={location.id}
+            entries={workLogs}
+            assets={assets.map<WorkLogAssetOption>((a) => ({
+              id: a.id,
+              label: [a.type?.name, a.model || a.hostname || a.serialNumber, a.location?.name]
+                .filter(Boolean)
+                .join(" · "),
+              typeId: a.type?.id ?? null,
+            }))}
+            users={users}
+            currentUserId={currentUserId ?? ""}
+            userRole={userRole}
+            jiraBaseUrl={jiraEnabled ? jiraBaseUrl : null}
           />
         </TabsContent>
 

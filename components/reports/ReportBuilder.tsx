@@ -193,10 +193,12 @@ export function ReportBuilder({
         <h2 className="text-[14px] font-semibold text-[#0f172a]">Report details</h2>
         <div className="space-y-1.5">
           <Label htmlFor="report-name" className="text-[12.5px]">
-            Name <span className="text-destructive">*</span>
+            Name <span aria-hidden="true" className="text-destructive">*</span>
           </Label>
           <Input
             id="report-name"
+            required
+            aria-required="true"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Assets older than 5 years"

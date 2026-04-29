@@ -192,24 +192,30 @@ export function UsersClient({
             </DialogHeader>
             <form onSubmit={createForm.handleSubmit(handleCreate)} className="space-y-4">
               <div className="space-y-1.5">
-                <Label>Name</Label>
-                <Input {...createForm.register("name")} placeholder="Jane Doe" />
+                <Label htmlFor="user-create-name">
+                  Name <span aria-hidden="true" className="text-destructive">*</span>
+                </Label>
+                <Input id="user-create-name" required aria-required="true" autoComplete="name" {...createForm.register("name")} placeholder="Jane Doe" />
               </div>
               <div className="space-y-1.5">
-                <Label>Email</Label>
-                <Input {...createForm.register("email")} type="email" placeholder="jane@example.com" />
+                <Label htmlFor="user-create-email">
+                  Email <span aria-hidden="true" className="text-destructive">*</span>
+                </Label>
+                <Input id="user-create-email" required aria-required="true" autoComplete="email" {...createForm.register("email")} type="email" placeholder="jane@example.com" />
               </div>
               <div className="space-y-1.5">
-                <Label>Password</Label>
-                <Input {...createForm.register("password")} type="password" placeholder="Min 8 characters" />
+                <Label htmlFor="user-create-password">
+                  Password <span aria-hidden="true" className="text-destructive">*</span>
+                </Label>
+                <Input id="user-create-password" required aria-required="true" autoComplete="new-password" {...createForm.register("password")} type="password" placeholder="Min 8 characters" />
               </div>
               <div className="space-y-1.5">
-                <Label>Role</Label>
+                <Label htmlFor="user-create-role">Role</Label>
                 <Select
                   value={createRole}
                   onValueChange={(v) => createForm.setValue("role", v as "ADMIN" | "EDITOR" | "VIEWER")}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="user-create-role"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="VIEWER">Viewer</SelectItem>
                     <SelectItem value="EDITOR">Editor</SelectItem>
@@ -334,17 +340,19 @@ export function UsersClient({
                         </DialogHeader>
                         <form onSubmit={editForm.handleSubmit(handleEdit)} className="space-y-4">
                           <div className="space-y-1.5">
-                            <Label>Name</Label>
-                            <Input {...editForm.register("name")} />
+                            <Label htmlFor={`user-edit-name-${user.id}`}>Name</Label>
+                            <Input id={`user-edit-name-${user.id}`} autoComplete="name" {...editForm.register("name")} />
                           </div>
                           <div className="space-y-1.5">
-                            <Label>Email</Label>
-                            <Input {...editForm.register("email")} type="email" />
+                            <Label htmlFor={`user-edit-email-${user.id}`}>Email</Label>
+                            <Input id={`user-edit-email-${user.id}`} autoComplete="email" {...editForm.register("email")} type="email" />
                           </div>
                           {user.provider === "credentials" && (
                             <div className="space-y-1.5">
-                              <Label>New Password</Label>
+                              <Label htmlFor={`user-edit-password-${user.id}`}>New Password</Label>
                               <Input
+                                id={`user-edit-password-${user.id}`}
+                                autoComplete="new-password"
                                 {...editForm.register("password")}
                                 type="password"
                                 placeholder="Leave blank to keep current"
@@ -357,12 +365,12 @@ export function UsersClient({
                             </p>
                           )}
                           <div className="space-y-1.5">
-                            <Label>Role</Label>
+                            <Label htmlFor={`user-edit-role-${user.id}`}>Role</Label>
                             <Select
                               value={editRole}
                               onValueChange={(v) => editForm.setValue("role", v as "ADMIN" | "EDITOR" | "VIEWER")}
                             >
-                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectTrigger id={`user-edit-role-${user.id}`}><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="VIEWER">Viewer</SelectItem>
                                 <SelectItem value="EDITOR">Editor</SelectItem>

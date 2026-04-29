@@ -122,6 +122,7 @@ export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  aria-required="true"
                   autoComplete="email"
                 />
               </div>
@@ -141,10 +142,11 @@ export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  aria-required="true"
                   autoComplete="current-password"
                 />
               </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
+              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign in

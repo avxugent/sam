@@ -188,14 +188,20 @@ export function LocationFormDialog({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Name */}
           <div className="space-y-1.5">
-            <Label htmlFor="loc-name">Name *</Label>
+            <Label htmlFor="loc-name">
+              Name <span aria-hidden="true" className="text-destructive">*</span>
+            </Label>
             <Input
               id="loc-name"
+              required
+              aria-required="true"
+              aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? "loc-name-err" : undefined}
               {...register("name")}
               placeholder="e.g. Lecture Hall 101"
             />
             {errors.name && (
-              <p className="text-xs text-destructive">{errors.name.message}</p>
+              <p id="loc-name-err" className="text-xs text-destructive">{errors.name.message}</p>
             )}
           </div>
 
@@ -226,9 +232,11 @@ export function LocationFormDialog({
               placeholder="14.10.100.013"
               className="font-mono"
               maxLength={13}
+              aria-invalid={!!errors.fiNumber}
+              aria-describedby={errors.fiNumber ? "loc-fi-err" : undefined}
             />
             {errors.fiNumber && (
-              <p className="text-xs text-destructive">{errors.fiNumber.message}</p>
+              <p id="loc-fi-err" className="text-xs text-destructive">{errors.fiNumber.message}</p>
             )}
             {/* Live breakdown */}
             {parsedFi && (

@@ -209,19 +209,31 @@ export function WorkLogFormDialog({
           {/* Date + performed-by */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="wl-date">Date *</Label>
-              <Input id="wl-date" type="date" {...register("performedAt")} />
+              <Label htmlFor="wl-date">
+                Date <span aria-hidden="true" className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="wl-date"
+                type="date"
+                required
+                aria-required="true"
+                aria-invalid={!!errors.performedAt}
+                aria-describedby={errors.performedAt ? "wl-date-err" : undefined}
+                {...register("performedAt")}
+              />
               {errors.performedAt && (
-                <p className="text-xs text-destructive">{errors.performedAt.message}</p>
+                <p id="wl-date-err" className="text-xs text-destructive">{errors.performedAt.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="wl-user">Performed by *</Label>
+              <Label htmlFor="wl-user">
+                Performed by <span aria-hidden="true" className="text-destructive">*</span>
+              </Label>
               <Select
                 value={watch("performedById") ?? currentUserId}
                 onValueChange={(v) => setValue("performedById", v, { shouldValidate: true })}
               >
-                <SelectTrigger id="wl-user">
+                <SelectTrigger id="wl-user" aria-required="true">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -264,15 +276,21 @@ export function WorkLogFormDialog({
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="wl-desc">Description *</Label>
+            <Label htmlFor="wl-desc">
+              Description <span aria-hidden="true" className="text-destructive">*</span>
+            </Label>
             <Textarea
               id="wl-desc"
+              required
+              aria-required="true"
+              aria-invalid={!!errors.description}
+              aria-describedby={errors.description ? "wl-desc-err" : undefined}
               {...register("description")}
               placeholder="Describe what was done…"
               rows={4}
             />
             {errors.description && (
-              <p className="text-xs text-destructive">{errors.description.message}</p>
+              <p id="wl-desc-err" className="text-xs text-destructive">{errors.description.message}</p>
             )}
           </div>
 
@@ -281,9 +299,16 @@ export function WorkLogFormDialog({
             <Label htmlFor="wl-jira">
               JIRA issue key <span className="text-xs text-muted-foreground">(optional)</span>
             </Label>
-            <Input id="wl-jira" {...register("jiraIssueKey")} placeholder="AVT-123" className="font-mono" />
+            <Input
+              id="wl-jira"
+              aria-invalid={!!errors.jiraIssueKey}
+              aria-describedby={errors.jiraIssueKey ? "wl-jira-err" : undefined}
+              {...register("jiraIssueKey")}
+              placeholder="AVT-123"
+              className="font-mono"
+            />
             {errors.jiraIssueKey && (
-              <p className="text-xs text-destructive">{errors.jiraIssueKey.message}</p>
+              <p id="wl-jira-err" className="text-xs text-destructive">{errors.jiraIssueKey.message}</p>
             )}
           </div>
 

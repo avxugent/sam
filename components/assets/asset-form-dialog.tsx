@@ -301,8 +301,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
             {/* Type — required */}
             <div className="space-y-1.5">
-              <Label>
-                Type <span className="text-destructive">*</span>
+              <Label htmlFor="asset-type">
+                Type <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
               <Select
                 value={typeIdValue || ""}
@@ -311,6 +311,10 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 }}
               >
                 <SelectTrigger
+                  id="asset-type"
+                  aria-required="true"
+                  aria-invalid={!!errors.typeId}
+                  aria-describedby={errors.typeId ? "asset-type-err" : undefined}
                   className={cn(errors.typeId && "border-destructive ring-destructive")}
                 >
                   <SelectValue placeholder="Select type..." />
@@ -325,14 +329,14 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 </SelectContent>
               </Select>
               {errors.typeId && (
-                <p className="text-xs text-destructive">{errors.typeId.message}</p>
+                <p id="asset-type-err" className="text-xs text-destructive">{errors.typeId.message}</p>
               )}
             </div>
 
             {/* Manufacturer — required */}
             <div className="space-y-1.5">
-              <Label>
-                Manufacturer <span className="text-destructive">*</span>
+              <Label htmlFor="asset-manufacturer">
+                Manufacturer <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
               <Select
                 value={manufacturerIdValue || ""}
@@ -341,6 +345,10 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 }}
               >
                 <SelectTrigger
+                  id="asset-manufacturer"
+                  aria-required="true"
+                  aria-invalid={!!errors.manufacturerId}
+                  aria-describedby={errors.manufacturerId ? "asset-manufacturer-err" : undefined}
                   className={cn(errors.manufacturerId && "border-destructive ring-destructive")}
                 >
                   <SelectValue placeholder="Select manufacturer..." />
@@ -355,17 +363,21 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 </SelectContent>
               </Select>
               {errors.manufacturerId && (
-                <p className="text-xs text-destructive">{errors.manufacturerId.message}</p>
+                <p id="asset-manufacturer-err" className="text-xs text-destructive">{errors.manufacturerId.message}</p>
               )}
             </div>
 
             {/* Model — required, with autocomplete */}
             <div className="space-y-1.5 relative col-span-2">
               <Label htmlFor="model">
-                Model <span className="text-destructive">*</span>
+                Model <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
               <Input
                 id="model"
+                required
+                aria-required="true"
+                aria-invalid={!!errors.model}
+                aria-describedby={errors.model ? "model-err" : undefined}
                 {...register("model")}
                 placeholder="e.g. Epson EB-W06"
                 autoComplete="off"
@@ -374,7 +386,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               />
               {errors.model && (
-                <p className="text-xs text-destructive">{errors.model.message}</p>
+                <p id="model-err" className="text-xs text-destructive">{errors.model.message}</p>
               )}
               {showSuggestions && modelSuggestions.length > 0 && (
                 <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md overflow-hidden">
@@ -417,15 +429,17 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               </Label>
               <Input
                 id="hostname"
+                aria-invalid={!!errors.hostname}
+                aria-describedby={errors.hostname ? "hostname-err" : "hostname-hint"}
                 {...register("hostname")}
                 placeholder="device.example.com"
                 className={cn(errors.hostname && "border-destructive")}
               />
               {errors.hostname && (
-                <p className="text-xs text-destructive">{errors.hostname.message}</p>
+                <p id="hostname-err" className="text-xs text-destructive">{errors.hostname.message}</p>
               )}
               {!errors.hostname && (
-                <p className="text-xs text-muted-foreground">
+                <p id="hostname-hint" className="text-xs text-muted-foreground">
                   Must be a fully qualified domain name
                 </p>
               )}
@@ -489,6 +503,9 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               <div key={field.id} className="flex gap-2">
                 <Input
                   {...register(`macAddresses.${i}.address`)}
+                  aria-label={`MAC address ${i + 1}`}
+                  aria-invalid={!!errors.macAddresses?.[i]?.address}
+                  aria-describedby={errors.macAddresses?.[i]?.address ? `mac-err-${i}` : undefined}
                   placeholder="AA:BB:CC:DD:EE:FF"
                   className={cn(
                     "font-mono",
@@ -499,6 +516,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                   type="button"
                   variant="ghost"
                   size="icon"
+                  aria-label={`Remove MAC address ${i + 1}`}
                   onClick={() => removeMac(i)}
                   className="text-destructive hover:text-destructive flex-shrink-0"
                 >
@@ -510,7 +528,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             {/* Per-entry MAC format errors */}
             {macFields.map((field, i) =>
               errors.macAddresses?.[i]?.address ? (
-                <p key={`mac-err-${field.id}`} className="text-xs text-destructive -mt-1">
+                <p key={`mac-err-${field.id}`} id={`mac-err-${i}`} className="text-xs text-destructive -mt-1">
                   MAC {i + 1}: {errors.macAddresses[i]?.address?.message}
                 </p>
               ) : null

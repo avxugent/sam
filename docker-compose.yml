@@ -29,6 +29,19 @@ services:
       NEXTAUTH_SECRET: "${NEXTAUTH_SECRET}"
       NEXTAUTH_URL: "${NEXTAUTH_URL:-http://localhost:3000}"
       UPLOAD_DIR: "/app/uploads"
+      # Storage backend — leave unset for local disk (default), or set to "s3"
+      # to route attachment uploads and CSV backups through an S3-compatible
+      # bucket. When STORAGE_DRIVER=s3, the sam-uploads volume below is
+      # unused; you can drop the volume mapping if you do not need to store
+      # any other state on disk.
+      STORAGE_DRIVER: "${STORAGE_DRIVER:-}"
+      S3_BUCKET: "${S3_BUCKET:-}"
+      S3_REGION: "${S3_REGION:-us-east-1}"
+      S3_ENDPOINT: "${S3_ENDPOINT:-}"
+      S3_FORCE_PATH_STYLE: "${S3_FORCE_PATH_STYLE:-}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
+      EXPORT_S3_PREFIX: "${EXPORT_S3_PREFIX:-backups/}"
       # Microsoft Entra ID SSO (optional — leave blank to disable)
       AUTH_MICROSOFT_ENTRA_ID_ID: "${AUTH_MICROSOFT_ENTRA_ID_ID:-}"
       AUTH_MICROSOFT_ENTRA_ID_SECRET: "${AUTH_MICROSOFT_ENTRA_ID_SECRET:-}"

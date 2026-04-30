@@ -34,6 +34,17 @@ services:
       NEXTAUTH_SECRET: "dev-secret-do-not-use-in-production"
       NEXTAUTH_URL: "http://localhost:3000"
       UPLOAD_DIR: "/app/uploads"
+      # Storage backend — leave unset for local disk (default), or set to "s3"
+      # to route attachment uploads and CSV backups through an S3-compatible
+      # bucket. When STORAGE_DRIVER=s3 the dev_uploads volume below is unused.
+      STORAGE_DRIVER: "${STORAGE_DRIVER:-}"
+      S3_BUCKET: "${S3_BUCKET:-}"
+      S3_REGION: "${S3_REGION:-us-east-1}"
+      S3_ENDPOINT: "${S3_ENDPOINT:-}"
+      S3_FORCE_PATH_STYLE: "${S3_FORCE_PATH_STYLE:-}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
+      EXPORT_S3_PREFIX: "${EXPORT_S3_PREFIX:-backups/}"
       # Vault — token auth (switch to AppRole by setting VAULT_ROLE_ID/VAULT_SECRET_ID
       # and leaving VAULT_TOKEN blank; see vault-init logs for the generated credentials)
       VAULT_ADDR: "http://vault:8200"

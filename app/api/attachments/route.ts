@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { writeFile, mkdir } from "fs/promises";
-import { resolve, extname } from "path";
+import { extname } from "path";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { getStorageDriver } from "@/lib/storage";
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
 const ALLOWED_TYPES = new Set([
@@ -156,20 +156,17 @@ export async function POST(req: NextRequest) {
   const rawExt = extname(file.name).toLowerCase();
   const ext = ALLOWED_EXTENSIONS.has(rawExt) ? rawExt : "";
 
-  const uploadRoot = resolve(process.cwd(), process.env.UPLOAD_DIR || "./uploads");
-  const subDir = locationId ? `locations/${locationId}` : `assets/${assetId}`;
-  const fullDir = resolve(uploadRoot, subDir);
-
-  // Ensure subDir doesn't escape uploadRoot (e.g. via ../../ injection in locationId)
-  if (!fullDir.startsWith(uploadRoot + "/") && fullDir !== uploadRoot) {
+  // Reject IDs that would otherwise compose into a traversal-shaped key.
+  // The storage driver enforces the ultimate safety boundary, but rejecting
+  // bad input here gives a clean 400 instead of a 500.
+  const idSegment = locationId ?? assetId ?? "";
+  if (!/^[a-zA-Z0-9_-]+$/.test(idSegment)) {
     return NextResponse.json({ error: "Invalid path." }, { status: 400 });
   }
 
-  await mkdir(fullDir, { recursive: true });
-
+  const subDir = locationId ? `locations/${locationId}` : `assets/${assetId}`;
   const filename = `${randomUUID()}${ext}`;
   const relativePath = `${subDir}/${filename}`;
-  const fullPath = resolve(fullDir, filename);
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -177,7 +174,8 @@ export async function POST(req: NextRequest) {
   if (!validateMagicBytes(buffer, file.type)) {
     return NextResponse.json({ error: "File content does not match declared type." }, { status: 400 });
   }
-  await writeFile(fullPath, buffer);
+
+  await getStorageDriver().putObject(relativePath, buffer, file.type);
 
   // Sanitize original name stored in DB (strip control chars)
   const safeOriginalName = file.name.replace(/[\r\n\\"]/g, "_").slice(0, 255);

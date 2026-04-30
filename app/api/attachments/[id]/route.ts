@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { unlink, realpath } from "fs/promises";
-import { resolve } from "path";
 import { logAudit } from "@/lib/audit";
+import { getStorageDriver, StorageNotFoundError } from "@/lib/storage";
 
 /** Strip characters that could break HTTP headers or cause path traversal */
 function safeFilename(name: string): string {
@@ -20,34 +19,6 @@ function contentDispositionHeader(disposition: "inline" | "attachment", filename
   return `${disposition}; filename="${filename}"; filename*=UTF-8''${encoded}`;
 }
 
-function getUploadRoot(): string {
-  const uploadDir = process.env.UPLOAD_DIR || "./uploads";
-  return resolve(process.cwd(), uploadDir);
-}
-
-/**
- * Prevent path traversal: ensure resolvedPath is within uploadRoot.
- * Uses realpath() to follow symlinks so a symlink pointing outside the upload
- * root cannot be used to read or delete arbitrary files.
- */
-async function assertSafePath(uploadRoot: string, resolvedPath: string): Promise<void> {
-  let realRoot: string;
-  let realPath: string;
-  try {
-    [realRoot, realPath] = await Promise.all([realpath(uploadRoot), realpath(resolvedPath)]);
-  } catch {
-    // Fall back to string-based check when the path doesn't exist yet or
-    // realpath fails for any other reason
-    if (!resolvedPath.startsWith(uploadRoot + "/") && resolvedPath !== uploadRoot) {
-      throw new Error("Path traversal detected");
-    }
-    return;
-  }
-  if (!realPath.startsWith(realRoot + "/") && realPath !== realRoot) {
-    throw new Error("Path traversal detected");
-  }
-}
-
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -62,10 +33,7 @@ export async function DELETE(
 
   if (attachment.attachmentType !== "link" && attachment.path) {
     try {
-      const uploadRoot = getUploadRoot();
-      const fullPath = resolve(uploadRoot, attachment.path);
-      await assertSafePath(uploadRoot, fullPath);
-      await unlink(fullPath);
+      await getStorageDriver().deleteObject(attachment.path);
     } catch {
       // File may already be gone — continue with DB cleanup
     }
@@ -99,32 +67,31 @@ export async function GET(
     return NextResponse.redirect(attachment.url);
   }
 
-  const uploadRoot = getUploadRoot();
-  const fullPath = resolve(uploadRoot, attachment.path ?? "");
-
-  try {
-    await assertSafePath(uploadRoot, fullPath);
-  } catch {
-    return NextResponse.json({ error: "Invalid path." }, { status: 400 });
+  if (!attachment.path) {
+    return NextResponse.json({ error: "Attachment has no stored content." }, { status: 404 });
   }
 
-  const { readFile } = await import("fs/promises");
+  let buffer: Buffer;
   try {
-    const buffer = await readFile(fullPath);
-    const safeName = safeFilename(attachment.originalName);
-    // SVG files can execute scripts when rendered inline — always force download
-    const disposition =
-      attachment.mimeType === "image/svg+xml" ? "attachment" : "inline";
-    return new NextResponse(buffer, {
-      headers: {
-        "Content-Type": attachment.mimeType ?? "application/octet-stream",
-        "Content-Disposition": contentDispositionHeader(disposition, safeName),
-        "Content-Length": buffer.length.toString(),
-        // Prevent browsers from caching sensitive files indefinitely
-        "Cache-Control": "private, max-age=3600",
-      },
-    });
-  } catch {
-    return NextResponse.json({ error: "File not found on disk." }, { status: 404 });
+    buffer = await getStorageDriver().getObject(attachment.path);
+  } catch (err) {
+    if (err instanceof StorageNotFoundError) {
+      return NextResponse.json({ error: "File not found." }, { status: 404 });
+    }
+    return NextResponse.json({ error: "Failed to read file." }, { status: 500 });
   }
+
+  const safeName = safeFilename(attachment.originalName);
+  // SVG files can execute scripts when rendered inline — always force download
+  const disposition =
+    attachment.mimeType === "image/svg+xml" ? "attachment" : "inline";
+  return new NextResponse(buffer as BodyInit, {
+    headers: {
+      "Content-Type": attachment.mimeType ?? "application/octet-stream",
+      "Content-Disposition": contentDispositionHeader(disposition, safeName),
+      "Content-Length": buffer.length.toString(),
+      // Prevent browsers from caching sensitive files indefinitely
+      "Cache-Control": "private, max-age=3600",
+    },
+  });
 }

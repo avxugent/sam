@@ -1,13 +1,19 @@
 /**
  * scripts/export-backup.mjs
  *
- * Generates a CSV export of all SAM data and saves it to a file.
- * Suitable for use in cron jobs or automated backup pipelines.
+ * Generates a CSV export of all SAM data and saves it to a file (or to S3
+ * when STORAGE_DRIVER=s3 is configured). Suitable for use in cron jobs or
+ * automated backup pipelines.
  *
  * Usage:
- *   node scripts/export-backup.mjs                         # saves to configured outputDir
- *   node scripts/export-backup.mjs --output /path/to/dir  # override output directory
+ *   node scripts/export-backup.mjs                         # use configured destination
+ *   node scripts/export-backup.mjs --output /path/to/dir  # force local disk + override directory
  *   node scripts/export-backup.mjs --dry-run              # print row count only, no file written
+ *
+ * Destination resolution:
+ *   1. --output flag      → always writes to local disk at the given directory.
+ *   2. STORAGE_DRIVER=s3  → uploads to s3://$S3_BUCKET/$EXPORT_S3_PREFIX/<file>.csv.
+ *   3. Default            → writes to local disk at AppSetting `export.outputDir` or `./exports`.
  *
  * Run from the project root so that the .env file is found automatically.
  */
@@ -16,6 +22,7 @@ import "./_env.mjs";
 import { PrismaClient } from "@prisma/client";
 import { writeFile, mkdir } from "fs/promises";
 import { resolve, join } from "path";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const prisma = new PrismaClient();
 
@@ -66,16 +73,27 @@ const outputOverride = getArg("--output");
 // ── main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  // Determine output directory (arg > DB setting > default)
+  // Resolution: --output forces local disk; otherwise STORAGE_DRIVER=s3 picks
+  // S3; otherwise local disk at the configured outputDir.
+  const useS3 =
+    !outputOverride &&
+    process.env.STORAGE_DRIVER === "s3" &&
+    !!process.env.S3_BUCKET;
+
   let outputDir = outputOverride;
-  if (!outputDir) {
+  if (!useS3 && !outputDir) {
     const setting = await prisma.appSetting.findUnique({ where: { key: "export.outputDir" } });
     outputDir = setting?.value || "./exports";
   }
 
   console.log("\nSAM — CSV export backup");
   console.log("─────────────────────────────────────────");
-  console.log(`  Output directory : ${outputDir}`);
+  if (useS3) {
+    const prefix = process.env.EXPORT_S3_PREFIX || "backups/";
+    console.log(`  Destination      : s3://${process.env.S3_BUCKET}/${prefix}`);
+  } else {
+    console.log(`  Output directory : ${outputDir}`);
+  }
   console.log(`  Dry run          : ${dryRun ? "YES" : "no"}`);
   console.log("");
 
@@ -158,6 +176,35 @@ async function main() {
 
   const date = new Date().toISOString().slice(0, 10);
   const filename = `sam-export-${date}.csv`;
+
+  if (useS3) {
+    const bucket = process.env.S3_BUCKET;
+    const prefix = (process.env.EXPORT_S3_PREFIX || "backups/").replace(/^\/+/, "");
+    const normalizedPrefix = prefix.endsWith("/") || prefix === "" ? prefix : prefix + "/";
+    const key = `${normalizedPrefix}${filename}`;
+    const region = process.env.S3_REGION || "us-east-1";
+    const client = new S3Client({
+      region,
+      ...(process.env.S3_ENDPOINT ? { endpoint: process.env.S3_ENDPOINT } : {}),
+      ...(process.env.S3_FORCE_PATH_STYLE === "true" ? { forcePathStyle: true } : {}),
+    });
+    const body = Buffer.from(csv, "utf8");
+    await client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: body,
+        ContentType: "text/csv; charset=utf-8",
+        ContentLength: body.length,
+        ServerSideEncryption: "AES256",
+      })
+    );
+    console.log(`  ✓ Uploaded ${dataRows} data rows to:`);
+    console.log(`    s3://${bucket}/${key}`);
+    console.log("");
+    return;
+  }
+
   const resolvedDir = resolve(process.cwd(), outputDir);
   await mkdir(resolvedDir, { recursive: true });
   const fullPath = join(resolvedDir, filename);

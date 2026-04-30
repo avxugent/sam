@@ -374,7 +374,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               </Label>
               <Input
                 id="model"
-                required
                 aria-required="true"
                 aria-invalid={!!errors.model}
                 aria-describedby={errors.model ? "model-err" : undefined}

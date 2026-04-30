@@ -215,7 +215,6 @@ export function WorkLogFormDialog({
               <Input
                 id="wl-date"
                 type="date"
-                required
                 aria-required="true"
                 aria-invalid={!!errors.performedAt}
                 aria-describedby={errors.performedAt ? "wl-date-err" : undefined}
@@ -281,7 +280,6 @@ export function WorkLogFormDialog({
             </Label>
             <Textarea
               id="wl-desc"
-              required
               aria-required="true"
               aria-invalid={!!errors.description}
               aria-describedby={errors.description ? "wl-desc-err" : undefined}

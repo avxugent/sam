@@ -193,7 +193,6 @@ export function LocationFormDialog({
             </Label>
             <Input
               id="loc-name"
-              required
               aria-required="true"
               aria-invalid={!!errors.name}
               aria-describedby={errors.name ? "loc-name-err" : undefined}

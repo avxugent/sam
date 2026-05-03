@@ -42,6 +42,19 @@ services:
       AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
       AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
       EXPORT_S3_PREFIX: "${EXPORT_S3_PREFIX:-backups/}"
+      # Audit-log forwarding (optional — leave SYSLOG_HOST blank to disable).
+      # When set, audit entries are forwarded to the configured rsyslog
+      # server in real time and unforwarded rows can be replayed via
+      # `node scripts/forward-audit.mjs` (run from cron).
+      SYSLOG_HOST: "${SYSLOG_HOST:-}"
+      SYSLOG_PORT: "${SYSLOG_PORT:-}"
+      SYSLOG_TRANSPORT: "${SYSLOG_TRANSPORT:-udp}"
+      SYSLOG_APP_NAME: "${SYSLOG_APP_NAME:-sam}"
+      SYSLOG_HOSTNAME: "${SYSLOG_HOSTNAME:-}"
+      SYSLOG_FACILITY: "${SYSLOG_FACILITY:-10}"
+      SYSLOG_TIMEOUT_MS: "${SYSLOG_TIMEOUT_MS:-3000}"
+      SYSLOG_CA_BUNDLE: "${SYSLOG_CA_BUNDLE:-}"
+      SYSLOG_TLS_REJECT_UNAUTHORIZED: "${SYSLOG_TLS_REJECT_UNAUTHORIZED:-true}"
       # Microsoft Entra ID SSO (optional — leave blank to disable)
       AUTH_MICROSOFT_ENTRA_ID_ID: "${AUTH_MICROSOFT_ENTRA_ID_ID:-}"
       AUTH_MICROSOFT_ENTRA_ID_SECRET: "${AUTH_MICROSOFT_ENTRA_ID_SECRET:-}"

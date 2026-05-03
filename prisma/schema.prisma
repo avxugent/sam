@@ -198,21 +198,25 @@ model Attachment {
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  timestamp  DateTime @default(now())
-  userId     String?
-  userEmail  String?
-  action     String   // CREATE | UPDATE | DELETE | IMPORT | EXPORT
-  entityType String   // Asset | Location | User | AssetType | Manufacturer | Attachment
-  entityId   String?
-  entityName String?
-  detail     String?  @db.Text // JSON
-  ipAddress  String?
-  userAgent  String?
+  id          String    @id @default(cuid())
+  timestamp   DateTime  @default(now())
+  userId      String?
+  userEmail   String?
+  action      String    // CREATE | UPDATE | DELETE | IMPORT | EXPORT
+  entityType  String    // Asset | Location | User | AssetType | Manufacturer | Attachment
+  entityId    String?
+  entityName  String?
+  detail      String?   @db.Text // JSON
+  ipAddress   String?
+  userAgent   String?
+  // Set after the row is successfully forwarded to the configured syslog
+  // server. NULL = not yet forwarded (eligible for the catch-up job).
+  forwardedAt DateTime?
 
   @@index([timestamp])
   @@index([userId])
   @@index([entityType])
+  @@index([forwardedAt])
   @@map("audit_logs")
 }
 

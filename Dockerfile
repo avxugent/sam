@@ -67,7 +67,8 @@ ENV NEXT_TELEMETRY_DISABLED=$NEXT_TELEMETRY_DISABLED
 RUN npx prisma generate
 
 # Build produces .next/standalone + .next/static
-RUN npm run build
+# --webpack: Turbopack native bindings require glibc; Alpine uses musl
+RUN npx next build --webpack
 
 # ─────────────────────────────────────────────────────────────
 # Stage 4: Production runtime — minimal image

@@ -44,3 +44,5 @@ next-env.d.ts
 
 # Uploaded files
 /uploads/
+.claude/scheduled_tasks.lock
+app/.next/

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import {
   Search,
   X,
   Package,
+  ArchiveX,
 } from "lucide-react";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 
@@ -25,11 +26,15 @@ type LocationNode = {
   children: LocationNode[];
 };
 
+type StockTypeNode = { id: string; name: string };
+
 type SidebarProps = {
   locationTree: LocationNode[];
   userRole: string;
   assetCountMap: Record<string, number>;
   stockItemCount?: number;
+  stockTypes?: StockTypeNode[];
+  decommissionedCount?: number;
 };
 
 function nodeMatchesFilter(node: LocationNode, query: string): boolean {
@@ -67,8 +72,6 @@ function LocationTreeItem({
   if (isFiltering && !showAll && !selfMatches && !childMatches) return null;
 
   const totalAssets = assetCountMap[location.id] ?? 0;
-
-  // Depth 2+ uses a dot indicator instead of a chevron
   const useDot = depth >= 2;
 
   return (
@@ -82,7 +85,6 @@ function LocationTreeItem({
         )}
         style={{ paddingLeft: `${12 + depth * 14}px`, paddingRight: "10px" }}
       >
-        {/* Expand/collapse button or dot */}
         <button
           type="button"
           className="flex-shrink-0 h-4 w-4 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
@@ -92,27 +94,17 @@ function LocationTreeItem({
           disabled={!hasChildren}
         >
           {useDot ? (
-            <span
-              className={cn(
-                "block w-[5px] h-[5px] rounded-full",
-                isActive ? "bg-[#1e64c8]" : "bg-[#cbd5e1]"
-              )}
-            />
+            <span className={cn("block w-[5px] h-[5px] rounded-full", isActive ? "bg-[#1e64c8]" : "bg-[#cbd5e1]")} />
           ) : hasChildren ? (
-            open ? (
-              <ChevronDown className={cn("h-3 w-3", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
-            ) : (
-              <ChevronRight className={cn("h-3 w-3", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
-            )
+            open
+              ? <ChevronDown className={cn("h-3 w-3", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
+              : <ChevronRight className={cn("h-3 w-3", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
           ) : (
             <span className="h-3 w-3" />
           )}
         </button>
 
-        <Link
-          href={`/locations/${location.id}`}
-          className="flex-1 flex items-center gap-1.5 min-w-0"
-        >
+        <Link href={`/locations/${location.id}`} className="flex-1 flex items-center gap-1.5 min-w-0">
           <MapPin className={cn("h-3 w-3 flex-shrink-0", isActive ? "fill-[#1e64c8] stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
           <span className="truncate">
             {selfMatches ? <mark className="bg-yellow-100 text-inherit rounded-[2px]">{location.name}</mark> : location.name}
@@ -126,7 +118,6 @@ function LocationTreeItem({
         )}
       </div>
 
-      {/* Children */}
       {(forceOpen || open || showAll) && hasChildren && (
         <div>
           {location.children.map((child) => (
@@ -170,10 +161,106 @@ function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
   );
 }
 
-export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount = 0 }: SidebarProps) {
+// Inner component using useSearchParams — must be inside Suspense
+function StockNavItems({
+  stockTypes,
+  stockItemCount,
+  decommissionedCount,
+}: {
+  stockTypes: StockTypeNode[];
+  stockItemCount: number;
+  decommissionedCount: number;
+}) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTypeId = searchParams.get("typeId");
+  const isStockPath = pathname === "/stock";
+  const allActive = isStockPath && !currentTypeId;
+  const isDecommissioned = pathname === "/decommissioned";
+
+  return (
+    <div>
+      <Link
+        href="/stock"
+        className={cn(
+          "flex items-center gap-1.5 py-[5px] pl-[40px] pr-[10px] text-[12px] select-none",
+          allActive
+            ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
+            : "text-[#334155] hover:bg-[#f8fafc]"
+        )}
+      >
+        <span className="flex-1 truncate">All items</span>
+        {stockItemCount > 0 && (
+          <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
+            {stockItemCount}
+          </span>
+        )}
+      </Link>
+      {stockTypes.map((t) => {
+        const isActive = isStockPath && currentTypeId === t.id;
+        return (
+          <Link
+            key={t.id}
+            href={`/stock?typeId=${t.id}`}
+            className={cn(
+              "flex items-center py-[5px] pl-[40px] pr-[10px] text-[12px] select-none",
+              isActive
+                ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
+                : "text-[#334155] hover:bg-[#f8fafc]"
+            )}
+          >
+            <span className="truncate">{t.name}</span>
+          </Link>
+        );
+      })}
+
+      {/* Decommissioned link — always shown (even with 0 count) */}
+      <div className="mx-3 my-1 h-px bg-[#f1f5f9]" />
+      <Link
+        href="/decommissioned"
+        className={cn(
+          "flex items-center gap-1.5 py-[5px] pl-[40px] pr-[10px] text-[12px] select-none",
+          isDecommissioned
+            ? "bg-[#f1f5f9] text-[#64748b] font-semibold border-r-[3px] border-[#94a3b8]"
+            : "text-[#64748b] hover:bg-[#f8fafc]"
+        )}
+      >
+        <ArchiveX className={cn("h-3 w-3 flex-shrink-0", isDecommissioned ? "text-[#64748b]" : "text-[#94a3b8]")} />
+        <span className="flex-1 truncate">Decommissioned</span>
+        {decommissionedCount > 0 && (
+          <span className="text-[11px] text-[#94a3b8] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
+            {decommissionedCount}
+          </span>
+        )}
+      </Link>
+    </div>
+  );
+}
+
+export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount = 0, stockTypes = [], decommissionedCount = 0 }: SidebarProps) {
+  const pathname = usePathname();
+  const isStockPath = pathname === "/stock" || pathname.startsWith("/stock") || pathname === "/decommissioned";
+
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
   const totalAssets = locationTree.reduce((sum, loc) => sum + (assetCountMap[loc.id] ?? 0), 0);
   const [filterQuery, setFilterQuery] = useState("");
+
+  // Mutually exclusive: only one section expanded at a time
+  const [locationOpen, setLocationOpen] = useState(!isStockPath);
+  const [stockOpen, setStockOpen] = useState(isStockPath);
+
+  const hasStockTypes = stockTypes.length > 0 || decommissionedCount > 0;
+
+  function openLocations() {
+    setLocationOpen(true);
+    setStockOpen(false);
+  }
+
+  function openStock() {
+    setStockOpen(true);
+    setLocationOpen(false);
+    setFilterQuery("");
+  }
 
   return (
     <aside className="w-[248px] flex-shrink-0 border-r bg-white flex flex-col h-full overflow-hidden hidden lg:flex">
@@ -183,105 +270,151 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
         <span className="font-bold text-[16px] text-[#0f172a] tracking-tight">SAM</span>
       </div>
 
-      {/* Location tree */}
-      <div className="flex-1 overflow-y-auto py-3">
-        <div className="px-3 mb-2 flex items-center justify-between">
-          <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.08em]">
-            Locations
-          </span>
-          {canEdit && (
-            <LocationFormDialog mode="create" parentId={null}>
-              <Button variant="ghost" size="icon" aria-label="Add top-level location" className="h-6 w-6">
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </LocationFormDialog>
-          )}
-        </div>
+      {/* Single scrollable area for both sections */}
+      <div className="flex-1 overflow-y-auto">
 
-        <div className="px-3 mb-2 relative">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-3 w-3 text-[#94a3b8] pointer-events-none" aria-hidden="true" />
-          <label htmlFor="sidebar-location-filter" className="sr-only">Filter locations</label>
-          <input
-            id="sidebar-location-filter"
-            type="search"
-            value={filterQuery}
-            onChange={(e) => setFilterQuery(e.target.value)}
-            placeholder="Filter locations…"
-            className="w-full h-[28px] pl-7 pr-6 text-[12px] bg-[#f8fafc] border border-[#e2e8f0] rounded-[6px] text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_2px_#e8f0fc] transition-shadow"
-          />
-          {filterQuery && (
+        {/* ── Locations section ── */}
+        <div className="py-2">
+          {/* Section header — click to expand, collapses stock */}
+          <div className="px-3 mb-1 flex items-center justify-between">
             <button
               type="button"
-              aria-label="Clear location filter"
-              onClick={() => setFilterQuery("")}
-              className="absolute right-5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
+              onClick={openLocations}
+              className="flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
+              aria-expanded={locationOpen}
             >
-              <X className="h-3 w-3" />
+              {locationOpen
+                ? <ChevronDown className="h-2.5 w-2.5 text-[#94a3b8]" />
+                : <ChevronRight className="h-2.5 w-2.5 text-[#94a3b8]" />}
+              <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.08em] ml-0.5">
+                Locations
+              </span>
             </button>
-          )}
-        </div>
-
-        <AllLocationsEntry totalAssets={totalAssets} />
-
-        {filterQuery && locationTree.every((l) => !nodeMatchesFilter(l, filterQuery.toLowerCase().trim())) && (
-          <p className="px-3 py-3 text-[12px] text-[#94a3b8] text-center">No locations match</p>
-        )}
-
-        {locationTree.length === 0 ? (
-          <div className="px-3 py-4 text-center">
-            <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">No locations yet</p>
-            {canEdit && (
+            {canEdit && locationOpen && (
               <LocationFormDialog mode="create" parentId={null}>
-                <Button variant="outline" size="sm" className="mt-2 text-xs">
-                  Add location
+                <Button variant="ghost" size="icon" aria-label="Add top-level location" className="h-6 w-6">
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
               </LocationFormDialog>
             )}
           </div>
-        ) : (
-          <div>
-            {locationTree.map((location) => (
-              <LocationTreeItem
-                key={location.id}
-                location={location}
-                userRole={userRole}
-                assetCountMap={assetCountMap}
-                filterQuery={filterQuery.toLowerCase().trim()}
-              />
-            ))}
+
+          {locationOpen && (
+            <>
+              <div className="px-3 mb-2 relative">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-3 w-3 text-[#94a3b8] pointer-events-none" aria-hidden="true" />
+                <label htmlFor="sidebar-location-filter" className="sr-only">Filter locations</label>
+                <input
+                  id="sidebar-location-filter"
+                  type="search"
+                  value={filterQuery}
+                  onChange={(e) => setFilterQuery(e.target.value)}
+                  placeholder="Filter locations…"
+                  className="w-full h-[28px] pl-7 pr-6 text-[12px] bg-[#f8fafc] border border-[#e2e8f0] rounded-[6px] text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_2px_#e8f0fc] transition-shadow"
+                />
+                {filterQuery && (
+                  <button
+                    type="button"
+                    aria-label="Clear location filter"
+                    onClick={() => setFilterQuery("")}
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+
+              <AllLocationsEntry totalAssets={totalAssets} />
+
+              {filterQuery && locationTree.every((l) => !nodeMatchesFilter(l, filterQuery.toLowerCase().trim())) && (
+                <p className="px-3 py-3 text-[12px] text-[#94a3b8] text-center">No locations match</p>
+              )}
+
+              {locationTree.length === 0 ? (
+                <div className="px-3 py-4 text-center">
+                  <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">No locations yet</p>
+                  {canEdit && (
+                    <LocationFormDialog mode="create" parentId={null}>
+                      <Button variant="outline" size="sm" className="mt-2 text-xs">
+                        Add location
+                      </Button>
+                    </LocationFormDialog>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  {locationTree.map((location) => (
+                    <LocationTreeItem
+                      key={location.id}
+                      location={location}
+                      userRole={userRole}
+                      assetCountMap={assetCountMap}
+                      filterQuery={filterQuery.toLowerCase().trim()}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ── Stock section ── */}
+        <div className="border-t border-[#e2e8f0] py-2">
+          {/* Stock header row */}
+          <div
+            className={cn(
+              "flex items-center gap-1 py-[5px] pl-[12px] pr-[10px] text-[12.5px] select-none",
+              isStockPath ? "text-[#1e64c8] font-semibold" : "text-[#334155]"
+            )}
+          >
+            {/* Chevron: toggle stock, collapse locations */}
+            <button
+              type="button"
+              className="flex-shrink-0 h-4 w-4 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
+              onClick={() => stockOpen ? setStockOpen(false) : openStock()}
+              disabled={!hasStockTypes}
+              aria-label={stockOpen ? "Collapse stock" : "Expand stock"}
+              aria-expanded={stockOpen}
+            >
+              {hasStockTypes ? (
+                stockOpen
+                  ? <ChevronDown className={cn("h-3 w-3", isStockPath ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
+                  : <ChevronRight className={cn("h-3 w-3", isStockPath ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
+              ) : (
+                <span className="h-3 w-3" />
+              )}
+            </button>
+
+            {/* Stock link — navigating here also opens stock section */}
+            <Link
+              href="/stock"
+              onClick={openStock}
+              className="flex-1 flex items-center gap-1.5 min-w-0"
+            >
+              <Package className={cn("h-3 w-3 flex-shrink-0", isStockPath ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
+              <span className="truncate">Stock</span>
+              {stockItemCount > 0 && (
+                <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5 ml-auto">
+                  {stockItemCount}
+                </span>
+              )}
+            </Link>
           </div>
-        )}
+
+          {/* Stock sub-items */}
+          {stockOpen && hasStockTypes && (
+            <Suspense fallback={null}>
+              <StockNavItems
+                stockTypes={stockTypes}
+                stockItemCount={stockItemCount}
+                decommissionedCount={decommissionedCount}
+              />
+            </Suspense>
+          )}
+        </div>
+
       </div>
-
-      {/* Stock link */}
-      <StockEntry stockItemCount={stockItemCount} />
     </aside>
-  );
-}
-
-function StockEntry({ stockItemCount }: { stockItemCount: number }) {
-  const pathname = usePathname();
-  const isActive = pathname === "/stock" || pathname.startsWith("/stock/");
-  return (
-    <div className="border-t border-[#e2e8f0] py-2">
-      <Link
-        href="/stock"
-        className={cn(
-          "flex items-center gap-1.5 px-3 py-[5px] mx-0 text-[12.5px] select-none",
-          isActive
-            ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
-            : "text-[#334155] hover:bg-[#f8fafc]"
-        )}
-      >
-        <Package className={cn("h-3 w-3 flex-shrink-0", isActive ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
-        <span className="flex-1 truncate">Stock</span>
-        {stockItemCount > 0 && (
-          <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
-            {stockItemCount}
-          </span>
-        )}
-      </Link>
-    </div>
   );
 }

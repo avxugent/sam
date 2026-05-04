@@ -3,14 +3,20 @@
 # Multi-stage build using Next.js standalone output
 
 # ─────────────────────────────────────────────────────────────
+# Base — shared layer with libc6-compat
+# ─────────────────────────────────────────────────────────────
+FROM node:24-alpine AS base
+RUN apk add --no-cache libc6-compat
+
+# ─────────────────────────────────────────────────────────────
 # Stage 1: Install ALL dependencies (dev + prod)
 # ─────────────────────────────────────────────────────────────
-FROM node:24-alpine AS deps
-RUN apk add --no-cache libc6-compat
+FROM base AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 # ─────────────────────────────────────────────────────────────
 # Stage 2: Prisma CLI — isolated install for running migrations
@@ -19,23 +25,23 @@ RUN npm ci
 # into a separate directory so that the runner stage can invoke
 # `prisma db push` without bundling the entire node_modules tree.
 # ─────────────────────────────────────────────────────────────
-FROM node:24-alpine AS prisma-cli
-RUN apk add --no-cache libc6-compat openssl
+FROM base AS prisma-cli
+RUN apk add --no-cache openssl
 WORKDIR /prisma-install
 
 # Read the prisma version from the project manifest and install it
 # in an isolated, minimal package.json so only prisma and its own
 # transitive deps are downloaded — nothing else from the app.
 COPY package.json ./
-RUN PRISMA_VER=$(node -p "require('./package.json').dependencies.prisma") \
+RUN --mount=type=cache,target=/root/.npm \
+    PRISMA_VER=$(node -p "require('./package.json').dependencies.prisma") \
  && echo "{\"name\":\"prisma-cli\",\"private\":true,\"dependencies\":{\"prisma\":\"${PRISMA_VER}\"}}" > package.json \
  && npm install --no-fund --loglevel=error
 
 # ─────────────────────────────────────────────────────────────
 # Stage 3: Build the application
 # ─────────────────────────────────────────────────────────────
-FROM node:24-alpine AS builder
-RUN apk add --no-cache libc6-compat
+FROM base AS builder
 WORKDIR /app
 
 # Copy deps from previous stage
@@ -52,7 +58,6 @@ ARG DB_USER=sam
 ARG DB_PASSWORD=build
 ARG NEXTAUTH_SECRET=build-time-placeholder
 ARG NEXTAUTH_URL=http://localhost:3000
-ARG NEXT_TELEMETRY_DISABLED=1
 
 ENV DB_HOST=$DB_HOST
 ENV DB_PORT=$DB_PORT
@@ -61,20 +66,20 @@ ENV DB_USER=$DB_USER
 ENV DB_PASSWORD=$DB_PASSWORD
 ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
 ENV NEXTAUTH_URL=$NEXTAUTH_URL
-ENV NEXT_TELEMETRY_DISABLED=$NEXT_TELEMETRY_DISABLED
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Generate Prisma client (reads schema.prisma — does NOT connect to DB)
 RUN npx prisma generate
 
 # Build produces .next/standalone + .next/static
 # --webpack: Turbopack native bindings require glibc; Alpine uses musl
-RUN npx next build --webpack
+RUN --mount=type=cache,target=/app/.next/cache \
+    npx next build --webpack
 
 # ─────────────────────────────────────────────────────────────
 # Stage 4: Production runtime — minimal image
 # ─────────────────────────────────────────────────────────────
-FROM node:24-alpine AS runner
-RUN apk add --no-cache libc6-compat
+FROM base AS runner
 
 WORKDIR /app
 
@@ -85,8 +90,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 nextjs
 
-# Copy standalone server bundle
-COPY --from=builder /app/.next/standalone ./
+# Pre-create .next so Next.js can write its runtime cache as the nextjs user
+RUN mkdir .next && chown nextjs:nodejs .next
+
+# Copy standalone server bundle (includes minimal node_modules + server.js)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 
 # Copy static assets (must be in place next to the server)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
@@ -114,6 +122,11 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+
+# Health check — orchestrator can detect unhealthy container.
+# /api/auth/session is unauthenticated and returns 200 once the server is up.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/auth/session || exit 1
 
 # The standalone bundle includes a pre-built server.js
 CMD ["node", "server.js"]

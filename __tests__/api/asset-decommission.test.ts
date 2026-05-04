@@ -39,8 +39,8 @@ function reinstateReq() {
 }
 
 const PARAMS = Promise.resolve({ id: "asset-1" });
-const INSTALLED_ASSET = { id: "asset-1", model: "Dell Monitor", status: "INSTALLED" };
-const DECOMMISSIONED_ASSET = { id: "asset-1", model: "Dell Monitor", status: "DECOMMISSIONED" };
+const INSTALLED_ASSET = { id: "asset-1", model: "Dell Monitor", status: "INSTALLED", location: { name: "Room 205", fiNumber: "14.10.100.205" } };
+const DECOMMISSIONED_ASSET = { id: "asset-1", model: "Dell Monitor", status: "DECOMMISSIONED", location: { name: "Room 205", fiNumber: null } };
 
 beforeEach(() => vi.clearAllMocks());
 

@@ -140,10 +140,12 @@ model Asset {
   // credentials (e.g. "secret/data/av/rectest001").
   // Used by the Prometheus SD endpoint to inject {vault_<key>} placeholders.
   vaultPath        String?
-  status           AssetStatus @default(INSTALLED)
-  decommissionedAt DateTime?
-  decommissionNote String?     @db.VarChar(500)
-  createdAt        DateTime    @default(now())
+  status               AssetStatus @default(INSTALLED)
+  decommissionedAt     DateTime?
+  decommissionNote     String?     @db.VarChar(500)
+  lastLocationName     String?     @db.VarChar(255)
+  lastLocationFiNumber String?     @db.VarChar(20)
+  createdAt            DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
   location     Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)

@@ -17,7 +17,14 @@ export async function POST(
   if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const existing = await prisma.asset.findUnique({ where: { id }, select: { model: true, status: true } });
+  const existing = await prisma.asset.findUnique({
+    where: { id },
+    select: {
+      model: true,
+      status: true,
+      location: { select: { name: true, fiNumber: true } },
+    },
+  });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (existing.status === "DECOMMISSIONED") {
     return NextResponse.json({ error: "Asset is already decommissioned." }, { status: 400 });
@@ -35,6 +42,8 @@ export async function POST(
       status: "DECOMMISSIONED",
       decommissionedAt: new Date(),
       decommissionNote: parsed.data.note ?? null,
+      lastLocationName: existing.location.name,
+      lastLocationFiNumber: existing.location.fiNumber ?? null,
     },
   });
 
@@ -45,7 +54,11 @@ export async function POST(
     entityType: "Asset",
     entityId: id,
     entityName: existing.model ?? undefined,
-    detail: { status: "DECOMMISSIONED", note: parsed.data.note },
+    detail: {
+      status: "DECOMMISSIONED",
+      note: parsed.data.note,
+      lastLocation: existing.location.name,
+    },
   });
 
   return NextResponse.json(asset);

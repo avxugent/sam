@@ -50,31 +50,17 @@ export default async function LocationPage({
     ? [id, ...(await getAllDescendantLocationIds(id))]
     : [id];
 
-  const assetWhere = { locationId: { in: locationIds } };
-  const [assets, decommissionedAssets] = await Promise.all([
-    prisma.asset.findMany({
-      where: { ...assetWhere, status: "INSTALLED" },
-      include: {
-        type: true,
-        manufacturer: true,
-        macAddresses: true,
-        location: { select: { id: true, name: true } },
-        _count: { select: { attachments: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.asset.findMany({
-      where: { ...assetWhere, status: "DECOMMISSIONED" },
-      include: {
-        type: true,
-        manufacturer: true,
-        macAddresses: true,
-        location: { select: { id: true, name: true } },
-        _count: { select: { attachments: true } },
-      },
-      orderBy: { decommissionedAt: "desc" },
-    }),
-  ]);
+  const assets = await prisma.asset.findMany({
+    where: { locationId: { in: locationIds }, status: "INSTALLED" },
+    include: {
+      type: true,
+      manufacturer: true,
+      macAddresses: true,
+      location: { select: { id: true, name: true } },
+      _count: { select: { attachments: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   const workLogs = await prisma.workLog.findMany({
     where: { locationId: id },
@@ -102,7 +88,6 @@ export default async function LocationPage({
     <LocationDetailClient
       location={location}
       assets={assets}
-      decommissionedAssets={decommissionedAssets}
       breadcrumbs={breadcrumbs}
       userRole={session?.user?.role || "VIEWER"}
       currentUserId={session?.user?.id ?? ""}

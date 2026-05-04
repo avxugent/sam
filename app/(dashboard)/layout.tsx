@@ -70,7 +70,15 @@ export default async function DashboardLayout({
 
   const assetCountMap = await getRecursiveAssetCounts();
 
-  const stockItemCount = await prisma.stockItem.count();
+  const [stockItemCount, decommissionedCount, stockTypes] = await Promise.all([
+    prisma.stockItem.count(),
+    prisma.asset.count({ where: { status: "DECOMMISSIONED" } }),
+    prisma.assetType.findMany({
+      where: { stockItems: { some: {} } },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -102,6 +110,8 @@ export default async function DashboardLayout({
         userRole={session.user.role}
         assetCountMap={assetCountMap}
         stockItemCount={stockItemCount}
+        stockTypes={stockTypes}
+        decommissionedCount={decommissionedCount}
       />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header user={headerUser} />

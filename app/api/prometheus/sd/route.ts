@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 
   // Fetch all assets that have a hostname
   const assets = await prisma.asset.findMany({
-    where: { hostname: { not: null } },
+    where: { hostname: { not: null }, status: "INSTALLED" },
     select: {
       id: true,
       hostname: true,

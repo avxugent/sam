@@ -17,6 +17,11 @@ enum Role {
   VIEWER
 }
 
+enum AssetStatus {
+  INSTALLED
+  DECOMMISSIONED
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -100,8 +105,9 @@ model AssetType {
   scrapeTargetTemplate String? @db.Text
   createdAt            DateTime @default(now())
 
-  assets  Asset[]
-  presets MaintenancePreset[]
+  assets      Asset[]
+  stockItems  StockItem[]
+  presets     MaintenancePreset[]
 
   @@map("asset_types")
 }
@@ -111,7 +117,8 @@ model Manufacturer {
   name      String   @unique
   createdAt DateTime @default(now())
 
-  assets Asset[]
+  assets     Asset[]
+  stockItems StockItem[]
 
   @@map("manufacturers")
 }
@@ -133,8 +140,11 @@ model Asset {
   // credentials (e.g. "secret/data/av/rectest001").
   // Used by the Prometheus SD endpoint to inject {vault_<key>} placeholders.
   vaultPath        String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  status           AssetStatus @default(INSTALLED)
+  decommissionedAt DateTime?
+  decommissionNote String?     @db.VarChar(500)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   location     Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
   type         AssetType?   @relation(fields: [typeId], references: [id])
@@ -273,4 +283,26 @@ model MaintenancePreset {
 
   @@index([assetTypeId])
   @@map("maintenance_presets")
+}
+
+model StockItem {
+  id                    String    @id @default(cuid())
+  typeId                String
+  manufacturerId        String?
+  model                 String    @db.VarChar(255)
+  serialNumber          String?   @db.VarChar(100)
+  quantity              Int       @default(1)
+  notes                 String?   @db.Text
+  reservedForLocationId String?
+  invoiceNumber         String?   @db.VarChar(100)
+  invoiceDate           DateTime? @db.Date
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  type         AssetType     @relation(fields: [typeId], references: [id])
+  manufacturer Manufacturer? @relation(fields: [manufacturerId], references: [id])
+
+  @@index([typeId])
+  @@index([manufacturerId])
+  @@map("stock_items")
 }

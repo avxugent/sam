@@ -70,13 +70,18 @@ export async function GET(
   const { id } = await params;
   const { searchParams } = new URL(req.url);
   const recursive = searchParams.get("recursive") === "true";
+  const statusParam = searchParams.get("status");
+  const statusFilter =
+    statusParam === "DECOMMISSIONED"
+      ? { status: "DECOMMISSIONED" as const }
+      : { status: "INSTALLED" as const };
 
   if (recursive) {
     const ids = await getAllDescendantIds(id);
     ids.push(id);
 
     const assets = await prisma.asset.findMany({
-      where: { locationId: { in: ids } },
+      where: { locationId: { in: ids }, ...statusFilter },
       include: {
         type: true,
         manufacturer: true,
@@ -92,7 +97,7 @@ export async function GET(
   }
 
   const assets = await prisma.asset.findMany({
-    where: { locationId: id },
+    where: { locationId: id, ...statusFilter },
     include: {
       type: true,
       manufacturer: true,

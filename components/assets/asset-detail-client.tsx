@@ -33,7 +33,12 @@ import {
   Wrench,
   ExternalLink,
   FolderInput,
+  ArchiveX,
+  RotateCcw,
+  TriangleAlert,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
 
@@ -60,6 +65,9 @@ type Asset = {
   invoiceDate?: Date | string | null;
   notes?: string | null;
   vaultPath?: string | null;
+  status: string;
+  decommissionedAt?: Date | string | null;
+  decommissionNote?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
   type?: { id: string; name: string } | null;
@@ -124,8 +132,43 @@ export function AssetDetailClient({
   const router = useRouter();
   const { toast } = useToast();
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
+  const isDecommissioned = asset.status === "DECOMMISSIONED";
   const [attachments, setAttachments] = useState(asset.attachments);
   const [moveOpen, setMoveOpen] = useState(false);
+  const [decommissionNote, setDecommissionNote] = useState("");
+  const [decommissioning, setDecommissioning] = useState(false);
+  const [reinstating, setReinstating] = useState(false);
+
+  async function handleDecommission() {
+    setDecommissioning(true);
+    const res = await fetch(`/api/assets/${asset.id}/decommission`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note: decommissionNote || null }),
+    });
+    setDecommissioning(false);
+    if (!res.ok) {
+      const err = await res.json();
+      toast({ title: "Error", description: err.error, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Asset decommissioned" });
+    setDecommissionNote("");
+    router.refresh();
+  }
+
+  async function handleReinstate() {
+    setReinstating(true);
+    const res = await fetch(`/api/assets/${asset.id}/reinstate`, { method: "POST" });
+    setReinstating(false);
+    if (!res.ok) {
+      const err = await res.json();
+      toast({ title: "Error", description: err.error, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Asset reinstated" });
+    router.refresh();
+  }
 
   async function handleDelete() {
     const res = await fetch(`/api/assets/${asset.id}`, { method: "DELETE" });
@@ -160,6 +203,50 @@ export function AssetDetailClient({
         </span>
       </nav>
 
+      {/* Decommissioned banner */}
+      {isDecommissioned && (
+        <div className="flex items-start gap-3 bg-[#fefce8] border border-[#fde047] rounded-[10px] px-4 py-3">
+          <TriangleAlert className="h-4 w-4 text-[#ca8a04] mt-0.5 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-[#713f12]">
+              Decommissioned
+              {asset.decommissionedAt && (
+                <span className="font-normal ml-1.5 text-[#92400e]">
+                  · {new Date(asset.decommissionedAt).toLocaleDateString()}
+                </span>
+              )}
+            </p>
+            {asset.decommissionNote && (
+              <p className="text-[12px] text-[#92400e] mt-0.5">{asset.decommissionNote}</p>
+            )}
+          </div>
+          {userRole === "ADMIN" && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-[30px] text-[12px] gap-1.5 border-[#fde047] text-[#713f12] hover:bg-[#fef9c3] flex-shrink-0">
+                  <RotateCcw className="h-3 w-3" />
+                  Reinstate
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reinstate &quot;{displayName}&quot;?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will mark the asset as installed again and restore it to the active asset list.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleReinstate} disabled={reinstating} className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white">
+                    {reinstating ? "Reinstating…" : "Reinstate"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+      )}
+
       {/* Page header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
@@ -183,7 +270,7 @@ export function AssetDetailClient({
           </div>
         </div>
 
-        {canEdit && (
+        {canEdit && !isDecommissioned && (
           <div className="flex gap-2 flex-shrink-0">
             <AssetFormDialog
               mode="edit"
@@ -206,6 +293,44 @@ export function AssetDetailClient({
               <FolderInput className="h-3.5 w-3.5" />
               Move
             </Button>
+
+            {/* Decommission */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-[34px] rounded-[7px] border-[#fde047] text-[#92400e] hover:bg-[#fef9c3] text-[13px] gap-1.5">
+                  <ArchiveX className="h-3.5 w-3.5" />
+                  Decommission
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Decommission &quot;{displayName}&quot;?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    The asset will be marked as decommissioned and removed from the active asset list. It will not be deleted.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="px-6 pb-2 space-y-1">
+                  <Label htmlFor="decommission-note" className="text-[13px]">Reason (optional)</Label>
+                  <Input
+                    id="decommission-note"
+                    value={decommissionNote}
+                    onChange={(e) => setDecommissionNote(e.target.value)}
+                    placeholder="e.g. End of life, hardware failure…"
+                    maxLength={500}
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDecommissionNote("")}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDecommission}
+                    disabled={decommissioning}
+                    className="bg-[#ca8a04] hover:bg-[#a16207] text-white"
+                  >
+                    {decommissioning ? "Decommissioning…" : "Decommission"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>

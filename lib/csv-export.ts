@@ -52,15 +52,16 @@ async function buildLocationHierarchy(locationId: string, locationMap: Map<strin
   return { campus, building, room };
 }
 
-export async function generateExportCsv(): Promise<string> {
+export async function generateExportCsv(includeDecommissioned = false): Promise<string> {
   // Fetch all locations into a map for hierarchy lookup
   const allLocations = await prisma.location.findMany({
     select: { id: true, name: true, fiNumber: true, parentId: true },
   });
   const locationMap = new Map<string, LocationRow>(allLocations.map((l) => [l.id, l]));
 
-  // Fetch all assets with their relations
+  // Fetch assets — decommissioned excluded by default
   const assets = await prisma.asset.findMany({
+    where: includeDecommissioned ? {} : { status: "INSTALLED" },
     include: {
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },

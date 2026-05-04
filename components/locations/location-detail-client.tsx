@@ -39,6 +39,7 @@ import {
   Image as ImageIcon,
   Hash,
   Wrench,
+  ArchiveX,
 } from "lucide-react";
 
 function parseFiSegments(fi: string): { campus: string; building: string; floor: string; room: string } | null {
@@ -105,6 +106,7 @@ type Location = {
 export function LocationDetailClient({
   location,
   assets,
+  decommissionedAssets = [],
   breadcrumbs,
   userRole,
   currentUserId,
@@ -118,6 +120,7 @@ export function LocationDetailClient({
 }: {
   location: Location;
   assets: Asset[];
+  decommissionedAssets?: Asset[];
   breadcrumbs: Breadcrumb[];
   userRole: string;
   currentUserId?: string;
@@ -365,6 +368,16 @@ export function LocationDetailClient({
               <Badge variant="secondary" className="ml-2 text-xs">{workLogs.length}</Badge>
             )}
           </TabsTrigger>
+          {decommissionedAssets.length > 0 && (
+            <TabsTrigger
+              value="decommissioned"
+              className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            >
+              <ArchiveX className="h-3.5 w-3.5 mr-1" />
+              Decommissioned
+              <Badge variant="secondary" className="ml-2 text-xs">{decommissionedAssets.length}</Badge>
+            </TabsTrigger>
+          )}
           {canEdit && (
             <TabsTrigger
               value="cover"
@@ -484,6 +497,26 @@ export function LocationDetailClient({
             jiraBaseUrl={jiraEnabled ? jiraBaseUrl : null}
           />
         </TabsContent>
+
+        {/* Decommissioned tab */}
+        {decommissionedAssets.length > 0 && (
+          <TabsContent value="decommissioned" className="mt-4">
+            <div className="mb-4">
+              <h2 className="text-[18px] font-semibold text-[#0f172a]">Decommissioned Assets</h2>
+              <p className="text-[13px] text-[#64748b] mt-1">
+                Assets that have been retired. Only admins can reinstate them.
+              </p>
+            </div>
+            <AssetTable
+              assets={decommissionedAssets}
+              locationId={location.id}
+              userRole={userRole}
+              showLocation={showLocation}
+              hostnameUrlTemplate={hostnameUrlTemplate}
+              macAddressUrlTemplate={macAddressUrlTemplate}
+            />
+          </TabsContent>
+        )}
 
         {/* Cover Image tab */}
         {canEdit && (

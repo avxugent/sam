@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
   // nested OR handles this cleanly and avoids raw SQL injection risk.
   const assets = await prisma.asset.findMany({
     where: {
+      status: "INSTALLED",
       OR: [
         { model: { contains: q } },
         { serialNumber: { contains: q } },

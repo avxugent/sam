@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MapPin, Search, ShieldCheck } from "lucide-react";
+import { MapPin, Search, ShieldCheck, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavTab = {
@@ -24,6 +24,12 @@ const tabs: NavTab[] = [
     label: "Search",
     icon: <Search className="h-5 w-5" />,
     match: (p) => p.startsWith("/search"),
+  },
+  {
+    href: "/stock",
+    label: "Stock",
+    icon: <Package className="h-5 w-5" />,
+    match: (p) => p.startsWith("/stock"),
   },
 ];
 

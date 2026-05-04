@@ -15,6 +15,7 @@ import {
   Layers,
   Search,
   X,
+  Package,
 } from "lucide-react";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 
@@ -28,6 +29,7 @@ type SidebarProps = {
   locationTree: LocationNode[];
   userRole: string;
   assetCountMap: Record<string, number>;
+  stockItemCount?: number;
 };
 
 function nodeMatchesFilter(node: LocationNode, query: string): boolean {
@@ -168,7 +170,7 @@ function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
   );
 }
 
-export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps) {
+export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount = 0 }: SidebarProps) {
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
   const totalAssets = locationTree.reduce((sum, loc) => sum + (assetCountMap[loc.id] ?? 0), 0);
   const [filterQuery, setFilterQuery] = useState("");
@@ -251,6 +253,35 @@ export function Sidebar({ locationTree, userRole, assetCountMap }: SidebarProps)
           </div>
         )}
       </div>
+
+      {/* Stock link */}
+      <StockEntry stockItemCount={stockItemCount} />
     </aside>
+  );
+}
+
+function StockEntry({ stockItemCount }: { stockItemCount: number }) {
+  const pathname = usePathname();
+  const isActive = pathname === "/stock" || pathname.startsWith("/stock/");
+  return (
+    <div className="border-t border-[#e2e8f0] py-2">
+      <Link
+        href="/stock"
+        className={cn(
+          "flex items-center gap-1.5 px-3 py-[5px] mx-0 text-[12.5px] select-none",
+          isActive
+            ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
+            : "text-[#334155] hover:bg-[#f8fafc]"
+        )}
+      >
+        <Package className={cn("h-3 w-3 flex-shrink-0", isActive ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
+        <span className="flex-1 truncate">Stock</span>
+        {stockItemCount > 0 && (
+          <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
+            {stockItemCount}
+          </span>
+        )}
+      </Link>
+    </div>
   );
 }

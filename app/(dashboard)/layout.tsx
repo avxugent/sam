@@ -70,6 +70,8 @@ export default async function DashboardLayout({
 
   const assetCountMap = await getRecursiveAssetCounts();
 
+  const stockItemCount = await prisma.stockItem.count();
+
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { provider: true, totpEnabled: true },
@@ -99,6 +101,7 @@ export default async function DashboardLayout({
         locationTree={locationTree}
         userRole={session.user.role}
         assetCountMap={assetCountMap}
+        stockItemCount={stockItemCount}
       />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header user={headerUser} />

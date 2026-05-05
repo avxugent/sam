@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { MapPin, Search, ShieldCheck, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+type LabelKey = "locations" | "search" | "stock" | "administration";
+
 type NavTab = {
   href: string;
-  label: string;
+  labelKey: LabelKey;
   icon: React.ReactNode;
   match: (pathname: string) => boolean;
 };
@@ -15,19 +18,19 @@ type NavTab = {
 const tabs: NavTab[] = [
   {
     href: "/",
-    label: "Locations",
+    labelKey: "locations",
     icon: <MapPin className="h-5 w-5" />,
     match: (p) => p === "/" || p.startsWith("/locations"),
   },
   {
     href: "/search",
-    label: "Search",
+    labelKey: "search",
     icon: <Search className="h-5 w-5" />,
     match: (p) => p.startsWith("/search"),
   },
   {
     href: "/stock",
-    label: "Stock",
+    labelKey: "stock",
     icon: <Package className="h-5 w-5" />,
     match: (p) => p.startsWith("/stock"),
   },
@@ -35,14 +38,20 @@ const tabs: NavTab[] = [
 
 const adminTab: NavTab = {
   href: "/admin/users",
-  label: "Admin",
+  labelKey: "administration",
   icon: <ShieldCheck className="h-5 w-5" />,
   match: (p) => p.startsWith("/admin"),
 };
 
 export function MobileBottomNav({ isAdminOrEditor }: { isAdminOrEditor: boolean }) {
   const pathname = usePathname();
+  const tNav = useTranslations("nav");
+  const tCommon = useTranslations("common");
   const navTabs = isAdminOrEditor ? [...tabs, adminTab] : tabs;
+
+  function labelOf(key: LabelKey): string {
+    return key === "search" ? tCommon("search") : tNav(key);
+  }
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-[58px] bg-white border-t border-[#e2e8f0] flex items-center z-40">
@@ -66,7 +75,7 @@ export function MobileBottomNav({ isAdminOrEditor }: { isAdminOrEditor: boolean 
               {tab.icon}
             </div>
             <span className={cn("text-[10px]", active ? "font-semibold text-[#1e64c8]" : "font-normal text-[#64748b]")}>
-              {tab.label}
+              {labelOf(tab.labelKey)}
             </span>
           </Link>
         );

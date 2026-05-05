@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, Suspense } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -139,6 +140,7 @@ function LocationTreeItem({
 
 function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const isActive = pathname === "/locations";
   return (
     <Link
@@ -151,7 +153,7 @@ function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
       )}
     >
       <Layers className={cn("h-3 w-3 flex-shrink-0", isActive ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
-      <span className="flex-1 truncate">All locations</span>
+      <span className="flex-1 truncate">{t("allLocations")}</span>
       {totalAssets > 0 && (
         <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
           {totalAssets}
@@ -164,6 +166,7 @@ function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
 
 export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount = 0, stockTypes = [], decommissionedCount = 0 }: SidebarProps) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const isStockPath = pathname === "/stock" || pathname.startsWith("/stock") || pathname === "/decommissioned";
 
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
@@ -212,12 +215,12 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
                 ? <ChevronDown className="h-2.5 w-2.5 text-[#94a3b8]" />
                 : <ChevronRight className="h-2.5 w-2.5 text-[#94a3b8]" />}
               <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.08em] ml-0.5">
-                Locations
+                {t("locations")}
               </span>
             </button>
             {canEdit && locationOpen && (
               <LocationFormDialog mode="create" parentId={null}>
-                <Button variant="ghost" size="icon" aria-label="Add top-level location" className="h-6 w-6">
+                <Button variant="ghost" size="icon" aria-label={t("addTopLocation")} className="h-6 w-6">
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </LocationFormDialog>
@@ -234,7 +237,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
                   type="search"
                   value={filterQuery}
                   onChange={(e) => setFilterQuery(e.target.value)}
-                  placeholder="Filter locations…"
+                  placeholder={t("filterLocations")}
                   className="w-full h-[28px] pl-7 pr-6 text-[12px] bg-[#f8fafc] border border-[#e2e8f0] rounded-[6px] text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_2px_#e8f0fc] transition-shadow"
                 />
                 {filterQuery && (
@@ -252,17 +255,17 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
               <AllLocationsEntry totalAssets={totalAssets} />
 
               {filterQuery && locationTree.every((l) => !nodeMatchesFilter(l, filterQuery.toLowerCase().trim())) && (
-                <p className="px-3 py-3 text-[12px] text-[#94a3b8] text-center">No locations match</p>
+                <p className="px-3 py-3 text-[12px] text-[#94a3b8] text-center">{t("noLocationsMatch")}</p>
               )}
 
               {locationTree.length === 0 ? (
                 <div className="px-3 py-4 text-center">
                   <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-xs text-muted-foreground">No locations yet</p>
+                  <p className="text-xs text-muted-foreground">{t("noLocationsYet")}</p>
                   {canEdit && (
                     <LocationFormDialog mode="create" parentId={null}>
                       <Button variant="outline" size="sm" className="mt-2 text-xs">
-                        Add location
+                        {t("addLocation")}
                       </Button>
                     </LocationFormDialog>
                   )}
@@ -299,7 +302,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
               className="flex-shrink-0 h-4 w-4 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
               onClick={() => stockOpen ? setStockOpen(false) : openStock()}
               disabled={!hasStockTypes}
-              aria-label={stockOpen ? "Collapse stock" : "Expand stock"}
+              aria-label={stockOpen ? t("collapseStock") : t("expandStock")}
               aria-expanded={stockOpen}
             >
               {hasStockTypes ? (
@@ -318,7 +321,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
               className="flex-1 flex items-center gap-1.5 min-w-0"
             >
               <Package className={cn("h-3 w-3 flex-shrink-0", isStockPath ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
-              <span className="truncate">Stock</span>
+              <span className="truncate">{t("stock")}</span>
               {stockItemCount > 0 && (
                 <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5 ml-auto">
                   {stockItemCount}

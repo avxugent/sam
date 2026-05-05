@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ArchiveX } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ export function StockNavItems({
   stockItemCount: number;
   decommissionedCount: number;
 }) {
+  const t = useTranslations("nav");
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentTypeId = searchParams.get("typeId");
@@ -34,7 +36,7 @@ export function StockNavItems({
             : "text-[#334155] hover:bg-[#f8fafc]"
         )}
       >
-        <span className="flex-1 truncate">All items</span>
+        <span className="flex-1 truncate">{t("allItems")}</span>
         {stockItemCount > 0 && (
           <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
             {stockItemCount}
@@ -71,7 +73,7 @@ export function StockNavItems({
         )}
       >
         <ArchiveX className={cn("h-3 w-3 flex-shrink-0", isDecommissioned ? "text-[#64748b]" : "text-[#94a3b8]")} />
-        <span className="flex-1 truncate">Decommissioned</span>
+        <span className="flex-1 truncate">{t("decommissioned")}</span>
         {decommissionedCount > 0 && (
           <span className="text-[11px] text-[#94a3b8] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
             {decommissionedCount}

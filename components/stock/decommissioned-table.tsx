@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,6 +43,9 @@ export function DecommissionedTable({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("decommissioned");
+  const tStock = useTranslations("stock");
+  const tCommon = useTranslations("common");
   const [assets, setAssets] = useState(initialAssets);
   const [query, setQuery] = useState("");
   const isAdmin = userRole === "ADMIN";
@@ -67,7 +71,7 @@ export function DecommissionedTable({
       return;
     }
     setAssets((prev) => prev.filter((a) => a.id !== id));
-    toast({ title: "Asset reinstated" });
+    toast({ title: t("reinstated") });
     router.refresh();
   }
 
@@ -76,7 +80,7 @@ export function DecommissionedTable({
       <div className="relative max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
         <Input
-          placeholder="Search decommissioned…"
+          placeholder={t("searchDecommissioned")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="pl-8 h-8 text-[13px]"
@@ -87,12 +91,12 @@ export function DecommissionedTable({
         <table className="w-full text-[13px]">
           <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
             <tr>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">Type</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">Model</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">Serial</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">Last Location</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">Decommissioned</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">Note</th>
+              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{tStock("type")}</th>
+              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{tStock("model")}</th>
+              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{tStock("serial")}</th>
+              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{t("lastLocation")}</th>
+              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{t("decommissioned")}</th>
+              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{t("note")}</th>
               {isAdmin && <th className="px-3 py-2.5 w-[60px]" />}
             </tr>
           </thead>
@@ -100,7 +104,7 @@ export function DecommissionedTable({
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={isAdmin ? 7 : 6} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">
-                  No decommissioned assets
+                  {t("noDecommissioned")}
                 </td>
               </tr>
             ) : (
@@ -145,24 +149,26 @@ export function DecommissionedTable({
                     <td className="px-3 py-2.5">
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-[#e8f0fc]" title="Reinstate asset">
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-[#e8f0fc]" title={t("reinstate")}>
                             <RotateCcw className="h-3.5 w-3.5 text-[#1e64c8]" />
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Reinstate &quot;{asset.model || asset.serialNumber || "asset"}&quot;?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              {t("reinstateConfirmTitle", { name: asset.model || asset.serialNumber || tStock("item") })}
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
-                              The asset will be marked as installed again and reappear in {asset.lastLocationName ?? "its location"}.
+                              {t("reinstateConfirmDescription", { location: asset.lastLocationName ?? t("itsLocation") })}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleReinstate(asset.id)}
                               className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
                             >
-                              Reinstate
+                              {t("reinstate")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

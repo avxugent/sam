@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,19 +55,19 @@ type QuickResult = {
 
 type AdminNavItem = {
   href: string;
-  label: string;
+  labelKey: "users" | "assetTypes" | "manufacturers" | "importCsv" | "exportCsv" | "auditLog" | "settings";
   icon: React.ReactNode;
   adminOnly: boolean;
 };
 
 const ADMIN_NAV: AdminNavItem[] = [
-  { href: "/admin/users", label: "Users", icon: <Users className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/asset-types", label: "Asset Types", icon: <Tag className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/manufacturers", label: "Manufacturers", icon: <Factory className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/import", label: "Import CSV", icon: <Upload className="h-4 w-4" />, adminOnly: false },
-  { href: "/admin/export", label: "Export CSV", icon: <Download className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/audit", label: "Audit Log", icon: <ClipboardList className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/settings", label: "Settings", icon: <Settings className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/users", labelKey: "users", icon: <Users className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/asset-types", labelKey: "assetTypes", icon: <Tag className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/manufacturers", labelKey: "manufacturers", icon: <Factory className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/import", labelKey: "importCsv", icon: <Upload className="h-4 w-4" />, adminOnly: false },
+  { href: "/admin/export", labelKey: "exportCsv", icon: <Download className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/audit", labelKey: "auditLog", icon: <ClipboardList className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/settings", labelKey: "settings", icon: <Settings className="h-4 w-4" />, adminOnly: true },
 ];
 
 function getInitials(name?: string | null, email?: string | null): string {
@@ -78,6 +80,8 @@ function getInitials(name?: string | null, email?: string | null): string {
 }
 
 function SearchBar() {
+  const t = useTranslations("nav");
+  const tc = useTranslations("common");
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState("");
@@ -197,7 +201,7 @@ function SearchBar() {
     <div ref={containerRef} className="relative w-full max-w-md">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" aria-hidden="true" />
-        <label htmlFor="global-search" className="sr-only">Search assets, locations, serial numbers</label>
+        <label htmlFor="global-search" className="sr-only">{t("searchPlaceholder")}</label>
         <input
           ref={inputRef}
           id="global-search"
@@ -211,14 +215,14 @@ function SearchBar() {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => { if (quickResults.length > 0) setOpen(true); }}
-          placeholder="Search assets, locations, serial numbers…"
+          placeholder={t("searchPlaceholder")}
           className="w-full h-[36px] pl-9 pr-8 text-[13px] bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_3px_#e8f0fc] transition-shadow"
         />
         {query && (
           <button
             type="button"
             onClick={handleClear}
-            aria-label={loading ? "Searching" : "Clear search"}
+            aria-label={loading ? `${tc("search")}…` : tc("close")}
             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
           >
             {loading ? (
@@ -292,6 +296,7 @@ function SearchBar() {
 
 export function Header({ user }: { user: HeaderUser }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const initials = getInitials(user.name, user.email);
 
   const visibleAdminItems = ADMIN_NAV.filter(
@@ -326,7 +331,7 @@ export function Header({ user }: { user: HeaderUser }) {
         >
           <Link href="/reports">
             <BarChart2 className="h-4 w-4" />
-            Reports
+            {t("reports")}
           </Link>
         </Button>
 
@@ -336,19 +341,19 @@ export function Header({ user }: { user: HeaderUser }) {
               <Button
                 variant="outline"
                 size="sm"
-                aria-label="Administration menu"
+                aria-label={t("administration")}
                 className={cn(
                   "text-[13px] h-[34px] px-[14px] rounded-[6px] border-[#e2e8f0] gap-1.5",
                   isInAdmin && "bg-[#e8f0fc] border-[#1e64c8] text-[#1e64c8]"
                 )}
               >
                 <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                <span className="hidden sm:block">Administration</span>
+                <span className="hidden sm:block">{t("administration")}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
               <DropdownMenuLabel className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.08em]">
-                Administration
+                {t("administration")}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               {visibleAdminItems.map((item) => (
@@ -361,13 +366,16 @@ export function Header({ user }: { user: HeaderUser }) {
                     )}
                   >
                     {item.icon}
-                    {item.label}
+                    {t(item.labelKey)}
                   </Link>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+
+        {/* Language switcher */}
+        <LanguageSwitcher />
 
         {/* Avatar + user menu */}
         <DropdownMenu>
@@ -390,14 +398,14 @@ export function Header({ user }: { user: HeaderUser }) {
             <DropdownMenuItem asChild>
               <Link href="/settings/profile" className="flex items-center gap-2 cursor-pointer text-[13px]">
                 <UserCog className="h-4 w-4" />
-                Profile
+                {t("profile")}
               </Link>
             </DropdownMenuItem>
             {user.provider === "credentials" && (
               <DropdownMenuItem asChild>
                 <Link href="/settings/2fa" className="flex items-center gap-2 cursor-pointer text-[13px]">
                   <KeyRound className="h-4 w-4" />
-                  Two-Factor Auth
+                  {t("twoFactorAuth")}
                   {user.totpEnabled && (
                     <span className="ml-auto text-xs text-green-600">On</span>
                   )}
@@ -410,7 +418,7 @@ export function Header({ user }: { user: HeaderUser }) {
               className="text-destructive focus:text-destructive cursor-pointer text-[13px]"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Sign out
+              {t("signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

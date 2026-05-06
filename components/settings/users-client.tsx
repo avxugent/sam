@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,7 +38,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Trash2, Loader2, ShieldCheck, ShieldOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ShieldCheck, ShieldOff, ChevronUp, ChevronDown } from "lucide-react";
 
 const createSchema = z.object({
   name: z.string().min(1).max(128),
@@ -68,6 +68,15 @@ type User = {
   twoFactorRequired: boolean;
   createdAt: Date | string;
 };
+
+type SortCol = "name" | "email" | "role" | "twoFactor" | "createdAt";
+
+function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
+  return dir === "asc"
+    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
+    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
+}
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -112,6 +121,45 @@ export function UsersClient({
   useEffect(() => { setUsers(initialUsers); }, [initialUsers]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
+  const [sortCol, setSortCol] = useState<SortCol>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  function handleSort(col: SortCol) {
+    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortCol(col); setSortDir("asc"); }
+  }
+
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => {
+      let av = "", bv = "";
+      if (sortCol === "name") { av = a.name; bv = b.name; }
+      else if (sortCol === "email") { av = a.email; bv = b.email; }
+      else if (sortCol === "role") { av = a.role; bv = b.role; }
+      else if (sortCol === "twoFactor") { av = String(a.totpEnabled ?? false); bv = String(b.totpEnabled ?? false); }
+      else if (sortCol === "createdAt") { av = String(a.createdAt ?? ""); bv = String(b.createdAt ?? ""); }
+      return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }, [users, sortCol, sortDir]);
+
+  function Th({ col, label }: { col: SortCol; label: string }) {
+    const active = sortCol === col;
+    const ariaSort: "ascending" | "descending" | "none" = active
+      ? sortDir === "asc" ? "ascending" : "descending"
+      : "none";
+    return (
+      <th
+        scope="col"
+        aria-sort={ariaSort}
+        className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap cursor-pointer select-none hover:bg-[#f1f5f9]"
+        onClick={() => handleSort(col)}
+      >
+        <div className="flex items-center gap-1">
+          {label}
+          <SortIcon active={active} dir={sortDir} />
+        </div>
+      </th>
+    );
+  }
 
   const createForm = useForm({
     resolver: zodResolver(createSchema),
@@ -268,17 +316,17 @@ export function UsersClient({
           <caption className="sr-only">{t("title")}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("name")}</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("email")}</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("role")}</th>
+              <Th col="name" label={t("name")} />
+              <Th col="email" label={t("email")} />
+              <Th col="role" label={t("role")} />
               <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("provider")}</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("twoFactor")}</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{tField("created")}</th>
+              <Th col="twoFactor" label={t("twoFactor")} />
+              <Th col="createdAt" label={tField("created")} />
               <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{tCommon("actions")}</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {sortedUsers.map((user) => (
               <tr key={user.id} className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors">
                 <td className="px-4 py-[10px]">
                   <div className="flex items-center gap-2">

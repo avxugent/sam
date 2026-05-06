@@ -29,6 +29,15 @@ const ACTION_COLORS: Record<string, string> = {
   EXPORT: "bg-[#f3e8ff] text-[#7c3aed]",
 };
 
+type SortCol = "timestamp" | "user" | "action" | "entity";
+
+function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
+  return dir === "asc"
+    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
+    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
+}
+
 function ActionBadge({ action }: { action: string }) {
   return (
     <span className={cn("inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-[5px]", ACTION_COLORS[action] ?? "bg-[#f1f5f9] text-[#64748b]")}>
@@ -44,6 +53,13 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
   const [actionFilter, setActionFilter] = useState("");
   const [entityFilter, setEntityFilter] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [sortCol, setSortCol] = useState<SortCol>("timestamp");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  function handleSort(col: SortCol) {
+    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortCol(col); setSortDir("asc"); }
+  }
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -60,6 +76,37 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
       );
     });
   }, [initialLogs, search, actionFilter, entityFilter]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      let av = "", bv = "";
+      if (sortCol === "timestamp") { av = String(a.timestamp); bv = String(b.timestamp); }
+      else if (sortCol === "user") { av = a.userEmail ?? ""; bv = b.userEmail ?? ""; }
+      else if (sortCol === "action") { av = a.action; bv = b.action; }
+      else if (sortCol === "entity") { av = `${a.entityType} ${a.entityName ?? ""}`.trim(); bv = `${b.entityType} ${b.entityName ?? ""}`.trim(); }
+      return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }, [filtered, sortCol, sortDir]);
+
+  function Th({ col, label, className }: { col: SortCol; label: string; className?: string }) {
+    const active = sortCol === col;
+    const ariaSort: "ascending" | "descending" | "none" = active
+      ? sortDir === "asc" ? "ascending" : "descending"
+      : "none";
+    return (
+      <th
+        scope="col"
+        aria-sort={ariaSort}
+        className={cn("text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap cursor-pointer select-none hover:bg-[#f1f5f9]", className)}
+        onClick={() => handleSort(col)}
+      >
+        <div className="flex items-center gap-1">
+          {label}
+          <SortIcon active={active} dir={sortDir} />
+        </div>
+      </th>
+    );
+  }
 
   const actions = [...new Set(initialLogs.map((l) => l.action))].sort();
   const entityTypes = [...new Set(initialLogs.map((l) => l.entityType))].sort();
@@ -103,11 +150,11 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
           <caption className="sr-only">{t("title")}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("timestamp")}</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("user")}</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{t("action")}</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{t("entity")}</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] hidden md:table-cell">{t("ip")}</th>
+              <Th col="timestamp" label={t("timestamp")} />
+              <Th col="user" label={t("user")} />
+              <Th col="action" label={t("action")} />
+              <Th col="entity" label={t("entity")} />
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap hidden md:table-cell">{t("ip")}</th>
               <th scope="col" className="px-4 py-[10px]"><span className="sr-only">{t("details")}</span></th>
             </tr>
           </thead>
@@ -117,7 +164,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
                 <td colSpan={6} className="text-center py-10 text-[#64748b]">{t("noLogs")}</td>
               </tr>
             ) : (
-              filtered.map((log) => (
+              sorted.map((log) => (
                 <>
                   <tr
                     key={log.id}

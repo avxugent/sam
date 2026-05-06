@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -18,8 +18,17 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Search, RotateCcw } from "lucide-react";
+import { Search, RotateCcw, ChevronUp, ChevronDown } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+
+type SortCol = "type" | "model" | "serialNumber" | "lastLocation" | "decommissionedAt";
+
+function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
+  return dir === "asc"
+    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
+    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
+}
 
 export type DecommissionedAsset = {
   id: string;
@@ -50,6 +59,13 @@ export function DecommissionedTable({
   const [assets, setAssets] = useState(initialAssets);
   const [query, setQuery] = useState("");
   const isAdmin = userRole === "ADMIN";
+  const [sortCol, setSortCol] = useState<SortCol | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  function handleSort(col: SortCol) {
+    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortCol(col); setSortDir("asc"); }
+  }
 
   const filtered = assets.filter((a) => {
     if (!query) return true;
@@ -63,6 +79,39 @@ export function DecommissionedTable({
       a.decommissionNote?.toLowerCase().includes(q)
     );
   });
+
+  const sorted = useMemo(() => {
+    if (!sortCol) return filtered;
+    return [...filtered].sort((a, b) => {
+      let av = "", bv = "";
+      if (sortCol === "type") { av = a.type?.name ?? ""; bv = b.type?.name ?? ""; }
+      else if (sortCol === "model") { av = a.model ?? ""; bv = b.model ?? ""; }
+      else if (sortCol === "serialNumber") { av = a.serialNumber ?? ""; bv = b.serialNumber ?? ""; }
+      else if (sortCol === "lastLocation") { av = a.lastLocationName ?? ""; bv = b.lastLocationName ?? ""; }
+      else if (sortCol === "decommissionedAt") { av = String(a.decommissionedAt ?? ""); bv = String(b.decommissionedAt ?? ""); }
+      return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }, [filtered, sortCol, sortDir]);
+
+  function Th({ col, label }: { col: SortCol; label: string }) {
+    const active = sortCol === col;
+    const ariaSort: "ascending" | "descending" | "none" = active
+      ? sortDir === "asc" ? "ascending" : "descending"
+      : "none";
+    return (
+      <th
+        scope="col"
+        aria-sort={ariaSort}
+        className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide cursor-pointer select-none hover:bg-[#f1f5f9]"
+        onClick={() => handleSort(col)}
+      >
+        <div className="flex items-center gap-1">
+          {label}
+          <SortIcon active={active} dir={sortDir} />
+        </div>
+      </th>
+    );
+  }
 
   async function handleReinstate(id: string) {
     const res = await fetch(`/api/assets/${id}/reinstate`, { method: "POST" });
@@ -92,11 +141,11 @@ export function DecommissionedTable({
         <table className="w-full text-[13px]">
           <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
             <tr>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{tStock("type")}</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{tStock("model")}</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{tStock("serial")}</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{t("lastLocation")}</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{t("decommissioned")}</th>
+              <Th col="type" label={tStock("type")} />
+              <Th col="model" label={tStock("model")} />
+              <Th col="serialNumber" label={tStock("serial")} />
+              <Th col="lastLocation" label={t("lastLocation")} />
+              <Th col="decommissionedAt" label={t("decommissioned")} />
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{t("note")}</th>
               {isAdmin && <th className="px-3 py-2.5 w-[60px]" />}
             </tr>
@@ -109,7 +158,7 @@ export function DecommissionedTable({
                 </td>
               </tr>
             ) : (
-              filtered.map((asset) => (
+              sorted.map((asset) => (
                 <tr key={asset.id} className="hover:bg-[#f8fafc] transition-colors">
                   <td className="px-3 py-2.5">
                     {asset.type ? (

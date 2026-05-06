@@ -1,15 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { Download, Pencil, Search, ExternalLink } from "lucide-react";
+import { Download, Pencil, Search, ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
 import type { ReportResult, ColumnKey } from "@/lib/report-types";
 
+
+function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
+  return dir === "asc"
+    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
+    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
+}
 
 type Props = {
   reportId: string;
@@ -27,6 +34,13 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
   const [search, setSearch] = useState("");
+  const [sortCol, setSortCol] = useState<ColumnKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  function handleSort(col: ColumnKey) {
+    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortCol(col); setSortDir("asc"); }
+  }
 
   const columnLabels: Record<ColumnKey, string> = {
     model: tField("model"),
@@ -46,6 +60,15 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
     const q = search.toLowerCase();
     return columns.some((col) => (row[col] as string | null)?.toLowerCase().includes(q));
   });
+
+  const sorted = useMemo(() => {
+    if (!sortCol) return filtered;
+    return [...filtered].sort((a, b) => {
+      const av = String(a[sortCol] ?? "");
+      const bv = String(b[sortCol] ?? "");
+      return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }, [filtered, sortCol, sortDir]);
 
   async function handleExport() {
     const res = await fetch(`/api/reports/${reportId}/export`);
@@ -130,11 +153,26 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
             <caption className="sr-only">{reportName}: {result.total}</caption>
             <thead>
               <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-                {columns.map((col) => (
-                  <th key={col} scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">
-                    {columnLabels[col]}
-                  </th>
-                ))}
+                {columns.map((col) => {
+                  const active = sortCol === col;
+                  const ariaSort: "ascending" | "descending" | "none" = active
+                    ? sortDir === "asc" ? "ascending" : "descending"
+                    : "none";
+                  return (
+                    <th
+                      key={col}
+                      scope="col"
+                      aria-sort={ariaSort}
+                      className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap cursor-pointer select-none hover:bg-[#f1f5f9]"
+                      onClick={() => handleSort(col)}
+                    >
+                      <div className="flex items-center gap-1">
+                        {columnLabels[col]}
+                        <SortIcon active={active} dir={sortDir} />
+                      </div>
+                    </th>
+                  );
+                })}
                 <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{tCommon("view")}</th>
               </tr>
             </thead>
@@ -146,7 +184,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                   </td>
                 </tr>
               ) : (
-                filtered.map((row) => (
+                sorted.map((row) => (
                   <tr key={row.id} className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors">
                     {columns.map((col) => {
                       const val = row[col] as string | null;
@@ -192,9 +230,9 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
         </div>
       </div>
 
-      {filtered.length < result.total && search && (
+      {sorted.length < result.total && search && (
         <p className="text-[12px] text-[#64748b] text-center">
-          {t("showingOf", { n: filtered.length, total: result.total })}
+          {t("showingOf", { n: sorted.length, total: result.total })}
         </p>
       )}
     </div>

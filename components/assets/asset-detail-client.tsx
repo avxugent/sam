@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -131,6 +132,10 @@ export function AssetDetailClient({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("asset");
+  const tField = useTranslations("field");
+  const tCommon = useTranslations("common");
+  const tDecom = useTranslations("decommissioned");
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
   const isDecommissioned = asset.status === "DECOMMISSIONED";
   const [attachments, setAttachments] = useState(asset.attachments);
@@ -149,10 +154,10 @@ export function AssetDetailClient({
     setDecommissioning(false);
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
-    toast({ title: "Asset decommissioned" });
+    toast({ title: tDecom("decommissionAsset") });
     setDecommissionNote("");
     router.refresh();
   }
@@ -163,10 +168,10 @@ export function AssetDetailClient({
     setReinstating(false);
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
-    toast({ title: "Asset reinstated" });
+    toast({ title: tDecom("reinstated") });
     router.refresh();
   }
 
@@ -174,21 +179,21 @@ export function AssetDetailClient({
     const res = await fetch(`/api/assets/${asset.id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
-    toast({ title: "Asset deleted" });
+    toast({ title: t("assetDeleted") });
     router.push(`/locations/${asset.locationId}`);
     router.refresh();
   }
 
-  const displayName = asset.model || asset.serialNumber || "Unnamed Asset";
+  const displayName = asset.model || asset.serialNumber || t("unnamedAsset");
 
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1 text-[12px] text-[#64748b] flex-wrap">
-        <Link href="/" className="hover:text-[#0f172a] transition-colors">Home</Link>
+        <Link href="/" className="hover:text-[#0f172a] transition-colors">{tCommon("home")}</Link>
         {breadcrumbs.map((crumb) => (
           <span key={crumb.id} className="flex items-center gap-1">
             <ChevronRight className="h-3 w-3" />
@@ -209,7 +214,7 @@ export function AssetDetailClient({
           <TriangleAlert className="h-4 w-4 text-[#ca8a04] mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-semibold text-[#713f12]">
-              Decommissioned
+              {tDecom("bannerLabel")}
               {asset.decommissionedAt && (
                 <span className="font-normal ml-1.5 text-[#92400e]">
                   · {new Date(asset.decommissionedAt).toLocaleDateString()}
@@ -225,20 +230,20 @@ export function AssetDetailClient({
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-[30px] text-[12px] gap-1.5 border-[#fde047] text-[#713f12] hover:bg-[#fef9c3] flex-shrink-0">
                   <RotateCcw className="h-3 w-3" />
-                  Reinstate
+                  {tDecom("reinstate")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Reinstate &quot;{displayName}&quot;?</AlertDialogTitle>
+                  <AlertDialogTitle>{tDecom("reinstateConfirmTitle", { name: displayName })}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will mark the asset as installed again and restore it to the active asset list.
+                    {tDecom("reinstateConfirmDescription", { location: tDecom("itsLocation") })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                   <AlertDialogAction onClick={handleReinstate} disabled={reinstating} className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white">
-                    {reinstating ? "Reinstating…" : "Reinstate"}
+                    {reinstating ? tDecom("reinstating") : tDecom("reinstate")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -280,7 +285,7 @@ export function AssetDetailClient({
             >
               <Button variant="outline" size="sm" className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5">
                 <Pencil className="h-3.5 w-3.5" />
-                Edit
+                {tCommon("edit")}
               </Button>
             </AssetFormDialog>
 
@@ -291,7 +296,7 @@ export function AssetDetailClient({
               className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5"
             >
               <FolderInput className="h-3.5 w-3.5" />
-              Move
+              {t("moveAssetButton")}
             </Button>
 
             {/* Decommission */}
@@ -299,34 +304,34 @@ export function AssetDetailClient({
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-[34px] rounded-[7px] border-[#fde047] text-[#92400e] hover:bg-[#fef9c3] text-[13px] gap-1.5">
                   <ArchiveX className="h-3.5 w-3.5" />
-                  Decommission
+                  {tDecom("decommissionAsset")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Decommission &quot;{displayName}&quot;?</AlertDialogTitle>
+                  <AlertDialogTitle>{tDecom("decommissionConfirmTitle", { name: displayName })}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    The asset will be marked as decommissioned and removed from the active asset list. It will not be deleted.
+                    {tDecom("decommissionConfirmDescription")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="px-6 pb-2 space-y-1">
-                  <Label htmlFor="decommission-note" className="text-[13px]">Reason (optional)</Label>
+                  <Label htmlFor="decommission-note" className="text-[13px]">{tDecom("decommissionReasonLabel")}</Label>
                   <Input
                     id="decommission-note"
                     value={decommissionNote}
                     onChange={(e) => setDecommissionNote(e.target.value)}
-                    placeholder="e.g. End of life, hardware failure…"
+                    placeholder={tDecom("decommissionReasonPlaceholder")}
                     maxLength={500}
                   />
                 </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDecommissionNote("")}>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel onClick={() => setDecommissionNote("")}>{tCommon("cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDecommission}
                     disabled={decommissioning}
                     className="bg-[#ca8a04] hover:bg-[#a16207] text-white"
                   >
-                    {decommissioning ? "Decommissioning…" : "Decommission"}
+                    {decommissioning ? tDecom("decommissioning") : tDecom("decommissionAsset")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -340,23 +345,23 @@ export function AssetDetailClient({
                   className="h-[34px] rounded-[7px] border-[#fecaca] text-[#ef4444] hover:bg-red-50 text-[13px] gap-1.5"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Delete
+                  {tCommon("delete")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete &quot;{displayName}&quot;?</AlertDialogTitle>
+                  <AlertDialogTitle>{t("deleteConfirmTitle", { name: displayName })}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete this asset and all its attachments.
+                    {t("deleteConfirmDescription")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDelete}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
-                    Delete
+                    {tCommon("delete")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -377,14 +382,14 @@ export function AssetDetailClient({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Col 1–2: Asset Details + Custom Fields */}
         <div className="lg:col-span-2 space-y-6">
-          <InfoCard icon={<Package className="h-3.5 w-3.5" />} title="Asset Details">
+          <InfoCard icon={<Package className="h-3.5 w-3.5" />} title={t("assetDetails")}>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-[14px]">
-              <div><FieldLabel>Type</FieldLabel><FieldValue value={asset.type?.name} /></div>
-              <div><FieldLabel>Manufacturer</FieldLabel><FieldValue value={asset.manufacturer?.name} /></div>
-              <div><FieldLabel>Model</FieldLabel><FieldValue value={asset.model} /></div>
-              <div><FieldLabel>Serial Number</FieldLabel><FieldValue value={asset.serialNumber} mono /></div>
+              <div><FieldLabel>{tField("type")}</FieldLabel><FieldValue value={asset.type?.name} /></div>
+              <div><FieldLabel>{tField("manufacturer")}</FieldLabel><FieldValue value={asset.manufacturer?.name} /></div>
+              <div><FieldLabel>{tField("model")}</FieldLabel><FieldValue value={asset.model} /></div>
+              <div><FieldLabel>{tField("serialNumber")}</FieldLabel><FieldValue value={asset.serialNumber} mono /></div>
               <div>
-                <FieldLabel>Hostname</FieldLabel>
+                <FieldLabel>{tField("hostname")}</FieldLabel>
                 {asset.hostname && hostnameUrlTemplate ? (
                   <dd className="font-mono text-[12px]">
                     <a
@@ -402,7 +407,7 @@ export function AssetDetailClient({
                 )}
               </div>
               <div>
-                <FieldLabel>Location</FieldLabel>
+                <FieldLabel>{tField("location")}</FieldLabel>
                 <FieldValue>
                   <Link href={`/locations/${asset.location.id}`} className="text-[#1e64c8] hover:underline inline-flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
@@ -410,15 +415,15 @@ export function AssetDetailClient({
                   </Link>
                 </FieldValue>
               </div>
-              <div><FieldLabel>Installation Date</FieldLabel><FieldValue value={formatDate(asset.installationDate)} /></div>
-              <div><FieldLabel>Invoice Number</FieldLabel><FieldValue value={asset.invoiceNumber} /></div>
-              <div><FieldLabel>Invoice Date</FieldLabel><FieldValue value={formatDate(asset.invoiceDate)} /></div>
+              <div><FieldLabel>{tField("installationDate")}</FieldLabel><FieldValue value={formatDate(asset.installationDate)} /></div>
+              <div><FieldLabel>{tField("invoiceNumber")}</FieldLabel><FieldValue value={asset.invoiceNumber} /></div>
+              <div><FieldLabel>{tField("invoiceDate")}</FieldLabel><FieldValue value={formatDate(asset.invoiceDate)} /></div>
             </dl>
 
             {asset.macAddresses.length > 0 && (
               <div className="border-t border-[#e2e8f0] mt-4 pt-4">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-2">
-                  MAC Addresses
+                  {tField("macAddresses")}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {asset.macAddresses.map((mac) =>
@@ -445,7 +450,7 @@ export function AssetDetailClient({
 
             {asset.notes && (
               <div className="border-t border-[#e2e8f0] mt-4 pt-4">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-2">Notes</p>
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-2">{tField("notes")}</p>
                 <p className="text-[13px] text-[#334155] leading-relaxed whitespace-pre-wrap">{asset.notes}</p>
               </div>
             )}
@@ -454,7 +459,7 @@ export function AssetDetailClient({
               <div className="border-t border-[#e2e8f0] mt-4 pt-4">
                 <div className="flex items-center gap-2 text-[12px] text-[#64748b]">
                   <Lock className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="font-medium text-[#0f172a]">Vault path:</span>
+                  <span className="font-medium text-[#0f172a]">{tField("vaultPath")}:</span>
                   <code className="font-mono bg-[#f1f5f9] text-[#334155] px-2 py-0.5 rounded-[4px] text-[11.5px]">
                     {asset.vaultPath}
                   </code>
@@ -465,7 +470,7 @@ export function AssetDetailClient({
             {asset.customFields.length > 0 && (
               <div className="border-t border-[#e2e8f0] mt-4 pt-4">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-3">
-                  Custom Fields
+                  {tField("customFields")}
                 </p>
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-[14px]">
                   {asset.customFields.map((f) => (
@@ -479,7 +484,7 @@ export function AssetDetailClient({
             )}
           </InfoCard>
 
-          <InfoCard icon={<KeyRound className="h-3.5 w-3.5" />} title="Attachments">
+          <InfoCard icon={<KeyRound className="h-3.5 w-3.5" />} title={t("attachments")}>
             <AttachmentGallery
               attachments={attachments}
               assetId={asset.id}
@@ -491,18 +496,18 @@ export function AssetDetailClient({
 
         {/* Col 3: Record Info */}
         <div className="space-y-6">
-          <InfoCard icon={<Clock className="h-3.5 w-3.5" />} title="Record Info">
+          <InfoCard icon={<Clock className="h-3.5 w-3.5" />} title={t("recordInfo")}>
             <div className="space-y-3">
               <div>
-                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">Created</p>
+                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">{tField("created")}</p>
                 <p className="text-[12.5px] text-[#334155]">{formatDate(asset.createdAt)}</p>
               </div>
               <div>
-                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">Last Modified</p>
+                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">{tField("lastModified")}</p>
                 <p className="text-[12.5px] text-[#334155]">{formatDate(asset.updatedAt)}</p>
               </div>
               <div>
-                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">Location</p>
+                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">{tField("location")}</p>
                 <Link href={`/locations/${asset.location.id}`} className="text-[12.5px] text-[#1e64c8] hover:underline inline-flex items-center gap-1">
                   <MapPin className="h-3 w-3 fill-[#1e64c8] stroke-[#1e64c8]" />
                   {asset.location.name}
@@ -510,7 +515,7 @@ export function AssetDetailClient({
               </div>
               {asset.installationDate && (
                 <div>
-                  <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">Installed</p>
+                  <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">{tField("installed")}</p>
                   <p className="text-[12.5px] text-[#334155] inline-flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     {formatDate(asset.installationDate)}
@@ -521,7 +526,7 @@ export function AssetDetailClient({
           </InfoCard>
 
           {attachments.length > 0 && (
-            <InfoCard icon={<Wrench className="h-3.5 w-3.5" />} title="Attachments">
+            <InfoCard icon={<Wrench className="h-3.5 w-3.5" />} title={t("attachments")}>
               <div className="flex flex-wrap gap-2 mb-3">
                 {attachments.slice(0, 3).map((att) => {
                   const isImage = att.mimeType?.startsWith("image/");
@@ -550,7 +555,7 @@ export function AssetDetailClient({
                 href="#attachments"
                 className="flex w-full h-[30px] items-center justify-center border border-[#e2e8f0] rounded-[6px] bg-[#f8fafc] text-[12px] text-[#64748b] hover:bg-white transition-colors"
               >
-                View all {attachments.length} attachment{attachments.length !== 1 ? "s" : ""}
+                {t("viewAllAttachments", { count: attachments.length, plural: attachments.length !== 1 ? "s" : "" })}
               </a>
             </InfoCard>
           )}

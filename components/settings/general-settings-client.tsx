@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,8 @@ export function GeneralSettingsClient({
   initialHostnameUrlTemplate: string;
   initialMacAddressUrlTemplate: string;
 }) {
+  const t = useTranslations("settings");
+  const tCommon = useTranslations("common");
   const { toast } = useToast();
   const [hostnameUrlTemplate, setHostnameUrlTemplate] = useState(initialHostnameUrlTemplate);
   const [macAddressUrlTemplate, setMacAddressUrlTemplate] = useState(initialMacAddressUrlTemplate);
@@ -31,10 +34,10 @@ export function GeneralSettingsClient({
 
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
-    toast({ title: "Settings saved" });
+    toast({ title: t("saved") });
   }
 
   const hostnamePreview = hostnameUrlTemplate
@@ -54,11 +57,8 @@ export function GeneralSettingsClient({
       {/* Hostname URL template */}
       <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">Hostname URL template</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">
-            When set, hostnames in the asset list and detail page become clickable links.
-            Leave empty to disable.
-          </p>
+          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("hostnameTemplate")}</h2>
+          <p className="text-[13px] text-[#64748b] mt-1">{t("hostnameTemplateHelp")}</p>
         </div>
 
         <div className="space-y-2">
@@ -98,11 +98,8 @@ export function GeneralSettingsClient({
       {/* MAC address URL template */}
       <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">MAC address URL template</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">
-            When set, MAC addresses in the asset list and detail page become clickable links.
-            Leave empty to disable.
-          </p>
+          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("macAddressTemplate")}</h2>
+          <p className="text-[13px] text-[#64748b] mt-1">{t("macAddressTemplateHelp")}</p>
         </div>
 
         <div className="space-y-2">
@@ -144,7 +141,7 @@ export function GeneralSettingsClient({
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} className="gap-2">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save settings
+          {saving ? tCommon("saving") : tCommon("save")}
         </Button>
       </div>
     </div>

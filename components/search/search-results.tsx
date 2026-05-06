@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   MapPin,
@@ -58,6 +59,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
 }
 
 export function SearchResults() {
+  const t = useTranslations("search");
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
 
@@ -85,8 +87,8 @@ export function SearchResults() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center text-[#64748b]">
         <Search className="h-12 w-12 mb-4 opacity-30" />
-        <p className="text-[18px] font-semibold text-[#0f172a]">Search SAM</p>
-        <p className="text-[13px] mt-1">Use the search bar above to find assets and locations.</p>
+        <p className="text-[18px] font-semibold text-[#0f172a]">{t("title")}</p>
+        <p className="text-[13px] mt-1">{t("noQuery")}</p>
       </div>
     );
   }
@@ -94,7 +96,7 @@ export function SearchResults() {
   if (q.length < 2) {
     return (
       <div className="text-center py-16 text-[#64748b] text-[13px]">
-        Please enter at least 2 characters to search.
+        {t("tooShort")}
       </div>
     );
   }
@@ -128,7 +130,7 @@ export function SearchResults() {
       {!loading && results && results.total === 0 && (
         <div className="text-center py-16 text-[#64748b]">
           <Search className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="text-[15px] font-semibold text-[#0f172a]">No results found for &quot;{q}&quot;</p>
+          <p className="text-[15px] font-semibold text-[#0f172a]">{t("noResults", { query: q })}</p>
           <p className="text-[13px] mt-1">Try different keywords or check the spelling.</p>
         </div>
       )}
@@ -138,7 +140,7 @@ export function SearchResults() {
           {results.assets.length > 0 && (
             <section>
               <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#64748b] mb-[10px]">
-                Assets
+                {t("assets")}
               </h2>
               <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden mb-[22px]">
                 {results.assets.map((asset) => {
@@ -183,7 +185,7 @@ export function SearchResults() {
           {results.locations.length > 0 && (
             <section>
               <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#64748b] mb-[10px]">
-                Locations
+                {t("locations")}
               </h2>
               <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden mb-[22px]">
                 {results.locations.map((location) => (
@@ -201,8 +203,8 @@ export function SearchResults() {
                       </span>
                       <span className="text-[12px] text-[#64748b] truncate block">
                         {[
-                          location._count.assets + " assets",
-                          location._count.children > 0 ? location._count.children + " sub-locations" : null,
+                          t("assetsFound", { count: location._count.assets }),
+                          location._count.children > 0 ? t("locationsFound", { count: location._count.children }) : null,
                           location.city,
                         ].filter(Boolean).join(" · ")}
                       </span>

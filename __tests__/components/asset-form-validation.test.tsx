@@ -7,6 +7,15 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: (ns: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const messages = require("../../messages/en.json") as Record<string, Record<string, string>>;
+    const section = messages[ns] ?? {};
+    return (key: string) => section[key] ?? key;
+  },
+}));
+
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
@@ -45,7 +54,7 @@ describe("<AssetFormDialog /> validation", () => {
     renderDialog();
     const user = await openDialog();
     // Click submit without filling in required fields
-    const submitBtn = screen.getByRole("button", { name: "Create" });
+    const submitBtn = screen.getByRole("button", { name: "Create asset" });
     await user.click(submitBtn);
     await waitFor(() => {
       expect(screen.getByText("Type is required")).toBeInTheDocument();
@@ -55,7 +64,7 @@ describe("<AssetFormDialog /> validation", () => {
   it("shows Model required error", async () => {
     renderDialog();
     const user = await openDialog();
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("button", { name: "Create asset" }));
     await waitFor(() => {
       expect(screen.getByText("Model is required")).toBeInTheDocument();
     });
@@ -68,7 +77,7 @@ describe("<AssetFormDialog /> validation", () => {
     const hostnameInput = screen.getByPlaceholderText(/device\.example\.com/i);
     await user.type(hostnameInput, "not-a-fqdn");
 
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("button", { name: "Create asset" }));
 
     await waitFor(() => {
       expect(
@@ -84,7 +93,7 @@ describe("<AssetFormDialog /> validation", () => {
     const hostnameInput = screen.getByPlaceholderText(/device\.example\.com/i);
     await user.type(hostnameInput, "projector.ugent.be");
     // Trigger validation by submitting (other required fields will fail, but FQDN should not)
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("button", { name: "Create asset" }));
 
     await waitFor(() => {
       // The destructive error for FQDN should not be present (only the persistent hint text is)
@@ -102,7 +111,7 @@ describe("<AssetFormDialog /> validation", () => {
     const hostnameInput = screen.getByPlaceholderText(/device\.example\.com/i);
     await user.type(hostnameInput, "projector.ugent.be");
 
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("button", { name: "Create asset" }));
 
     await waitFor(() => {
       expect(
@@ -121,7 +130,7 @@ describe("<AssetFormDialog /> validation", () => {
     const macInput = screen.getByPlaceholderText("AA:BB:CC:DD:EE:FF");
     await user.type(macInput, "not-a-mac");
 
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("button", { name: "Create asset" }));
 
     await waitFor(() => {
       expect(screen.getByText(/Invalid MAC address/i)).toBeInTheDocument();
@@ -152,7 +161,7 @@ describe("<AssetFormDialog /> validation", () => {
     // Fill model
     await user.type(screen.getByPlaceholderText(/Epson EB-W06/i), "EB-W06");
 
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("button", { name: "Create asset" }));
 
     // With Type and Manufacturer still empty, we'll get those errors not MAC errors
     await waitFor(() => {

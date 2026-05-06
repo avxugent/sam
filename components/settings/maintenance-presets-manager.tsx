@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +15,8 @@ type Preset = {
 };
 
 export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string }) {
+  const t = useTranslations("assetTypes");
+  const tCommon = useTranslations("common");
   const { toast } = useToast();
   const [presets, setPresets] = useState<Preset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,25 +43,25 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
     setAdding(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const created = await res.json();
     setPresets((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
     setNewName("");
     setNewDesc("");
-    toast({ title: "Preset added" });
+    toast({ title: t("presetAdded") });
   }
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/asset-types/presets/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     setPresets((prev) => prev.filter((p) => p.id !== id));
-    toast({ title: "Preset deleted" });
+    toast({ title: t("presetDeleted") });
   }
 
   return (
@@ -100,7 +103,7 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
                     aria-label={`Delete preset ${p.name}`}
                     className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
                     onClick={() => handleDelete(p.id)}
-                    title="Delete preset"
+                    title={t("deletePreset")}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -112,13 +115,13 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
           {/* Add new preset */}
           <div className="space-y-1.5 pt-2 border-t">
             <Input
-              placeholder="New preset name (e.g. Clean filter)"
+              placeholder={t("newPresetPlaceholder")}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               className="h-8 text-sm"
             />
             <Textarea
-              placeholder="Optional default description that prefills the work-log entry"
+              placeholder={t("presetDescPlaceholder")}
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
               rows={2}

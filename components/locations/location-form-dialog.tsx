@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Hash } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useTranslations } from "next-intl";
 
 // FI number: CC.BB.FFF.RRR  e.g. "14.10.100.013"
 const FI_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{3}$/;
@@ -96,6 +97,10 @@ export function LocationFormDialog({
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [fiRaw, setFiRaw] = useState(initialData?.fiNumber || "");
+  const t = useTranslations("locationForm");
+  const tLoc = useTranslations("location");
+  const tCommon = useTranslations("common");
+  const tField = useTranslations("field");
 
   const {
     register,
@@ -145,14 +150,14 @@ export function LocationFormDialog({
     if (!res.ok) {
       const err = await res.json();
       toast({
-        title: "Error",
-        description: err.error || "Something went wrong.",
+        title: tCommon("error"),
+        description: err.error || tCommon("somethingWentWrong"),
         variant: "destructive",
       });
       return;
     }
 
-    toast({ title: mode === "create" ? "Location created" : "Location updated" });
+    toast({ title: mode === "create" ? tLoc("locationCreated") : tLoc("locationUpdated") });
     setOpen(false);
     setFiRaw("");
     reset();
@@ -182,14 +187,14 @@ export function LocationFormDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {mode === "create" ? "Add Location" : "Edit Location"}
+            {mode === "create" ? t("createTitle") : t("editTitle")}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Name */}
           <div className="space-y-1.5">
             <Label htmlFor="loc-name">
-              Name <span aria-hidden="true" className="text-destructive">*</span>
+              {tField("name")} <span aria-hidden="true" className="text-destructive">*</span>
             </Label>
             <Input
               id="loc-name"
@@ -197,7 +202,7 @@ export function LocationFormDialog({
               aria-invalid={!!errors.name}
               aria-describedby={errors.name ? "loc-name-err" : undefined}
               {...register("name")}
-              placeholder="e.g. Lecture Hall 101"
+              placeholder={t("namePlaceholder")}
             />
             {errors.name && (
               <p id="loc-name-err" className="text-xs text-destructive">{errors.name.message}</p>
@@ -206,11 +211,11 @@ export function LocationFormDialog({
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="loc-desc">Description</Label>
+            <Label htmlFor="loc-desc">{tField("description")}</Label>
             <Textarea
               id="loc-desc"
               {...register("description")}
-              placeholder="Optional description"
+              placeholder={t("descriptionPlaceholder")}
               rows={2}
             />
           </div>
@@ -219,16 +224,16 @@ export function LocationFormDialog({
           <div className="space-y-1.5">
             <Label htmlFor="loc-fi" className="flex items-center gap-1.5">
               <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-              FI Number
+              {tField("fiNumber")}
               <span className="text-xs text-muted-foreground font-normal ml-1">
-                (optional)
+                ({tCommon("optional")})
               </span>
             </Label>
             <Input
               id="loc-fi"
               value={fiRaw}
               onChange={handleFiInput}
-              placeholder="14.10.100.013"
+              placeholder={t("fiNumberPlaceholder")}
               className="font-mono"
               maxLength={13}
               aria-invalid={!!errors.fiNumber}
@@ -241,26 +246,26 @@ export function LocationFormDialog({
             {parsedFi && (
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground bg-muted/50 rounded px-3 py-2">
                 <span>
-                  <span className="font-medium text-foreground">Campus:</span>{" "}
+                  <span className="font-medium text-foreground">{tField("campus")}:</span>{" "}
                   {parsedFi.campus}
                 </span>
                 <span>
-                  <span className="font-medium text-foreground">Building:</span>{" "}
+                  <span className="font-medium text-foreground">{tField("building")}:</span>{" "}
                   {parsedFi.building}
                 </span>
                 <span>
-                  <span className="font-medium text-foreground">Floor:</span>{" "}
+                  <span className="font-medium text-foreground">{tField("floor")}:</span>{" "}
                   {parsedFi.floor}
                 </span>
                 <span>
-                  <span className="font-medium text-foreground">Room:</span>{" "}
+                  <span className="font-medium text-foreground">{tField("room")}:</span>{" "}
                   {parsedFi.room}
                 </span>
               </div>
             )}
             {!parsedFi && fiRaw.length > 0 && !errors.fiNumber && (
               <p className="text-xs text-muted-foreground">
-                Keep typing — format: CC.BB.FFF.RRR
+                {t("fiNumberTypingHint")}
               </p>
             )}
           </div>
@@ -268,32 +273,32 @@ export function LocationFormDialog({
           {/* Address section */}
           <div className="pt-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Address (optional)
+              {tField("address")} ({tCommon("optional")})
             </p>
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="loc-address">Street address</Label>
+                <Label htmlFor="loc-address">{tField("streetAddress")}</Label>
                 <Input
                   id="loc-address"
                   {...register("address")}
-                  placeholder="e.g. Grote Markt 1"
+                  placeholder={t("addressPlaceholder")}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="loc-city">City</Label>
+                  <Label htmlFor="loc-city">{tField("city")}</Label>
                   <Input
                     id="loc-city"
                     {...register("city")}
-                    placeholder="e.g. Ghent"
+                    placeholder={t("cityPlaceholder")}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="loc-country">Country</Label>
+                  <Label htmlFor="loc-country">{tField("country")}</Label>
                   <Input
                     id="loc-country"
                     {...register("country")}
-                    placeholder="e.g. Belgium"
+                    placeholder={t("countryPlaceholder")}
                   />
                 </div>
               </div>
@@ -302,11 +307,11 @@ export function LocationFormDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {mode === "create" ? "Create" : "Save"}
+              {mode === "create" ? t("createSubmit") : t("updateSubmit")}
             </Button>
           </DialogFooter>
         </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
@@ -37,6 +38,8 @@ function ActionBadge({ action }: { action: string }) {
 }
 
 export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
+  const t = useTranslations("audit");
+  const tCommon = useTranslations("common");
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("");
   const [entityFilter, setEntityFilter] = useState("");
@@ -68,7 +71,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by user, entity, IP..."
+            placeholder={`${tCommon("search")}…`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 h-[36px] text-[13px] rounded-[8px]"
@@ -79,7 +82,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
           onChange={(e) => setActionFilter(e.target.value)}
           className="h-[36px] rounded-[8px] border border-input bg-background px-3 text-[13px] text-[#334155]"
         >
-          <option value="">All actions</option>
+          <option value="">{t("filterByAction")}</option>
           {actions.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
         <select
@@ -87,31 +90,31 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
           onChange={(e) => setEntityFilter(e.target.value)}
           className="h-[36px] rounded-[8px] border border-input bg-background px-3 text-[13px] text-[#334155]"
         >
-          <option value="">All entity types</option>
+          <option value="">{t("filterByEntity")}</option>
           {entityTypes.map((e) => <option key={e} value={e}>{e}</option>)}
         </select>
       </div>
 
-      <p className="text-[12px] text-[#64748b]">{filtered.length} of {initialLogs.length} entries</p>
+      <p className="text-[12px] text-[#64748b]">{filtered.length} {tCommon("of")} {initialLogs.length}</p>
 
       {/* Table */}
       <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
         <table className="w-full text-[13px]">
-          <caption className="sr-only">Audit log of system actions</caption>
+          <caption className="sr-only">{t("title")}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Timestamp</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">User</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Action</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Entity</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] hidden md:table-cell">IP</th>
-              <th scope="col" className="px-4 py-[10px]"><span className="sr-only">Detail</span></th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("timestamp")}</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("user")}</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{t("action")}</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{t("entity")}</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] hidden md:table-cell">{t("ip")}</th>
+              <th scope="col" className="px-4 py-[10px]"><span className="sr-only">{t("details")}</span></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-10 text-[#64748b]">No log entries match your filters</td>
+                <td colSpan={6} className="text-center py-10 text-[#64748b]">{t("noLogs")}</td>
               </tr>
             ) : (
               filtered.map((log) => (
@@ -121,7 +124,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
                     role={log.detail ? "button" : undefined}
                     tabIndex={log.detail ? 0 : undefined}
                     aria-expanded={log.detail ? expandedId === log.id : undefined}
-                    aria-label={log.detail ? `${expandedId === log.id ? "Collapse" : "Expand"} details for ${log.action} ${log.entityType}` : undefined}
+                    aria-label={log.detail ? `${t("showDetails")} ${log.action} ${log.entityType}` : undefined}
                     className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] cursor-pointer focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
                     onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
                     onKeyDown={(e) => {

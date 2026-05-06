@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +50,9 @@ export function LocationMap({
   canEdit,
   onUpdate,
 }: Props) {
+  const t = useTranslations("location");
+  const tCommon = useTranslations("common");
+  const tField = useTranslations("field");
   const { toast } = useToast();
   const [address, setAddress] = useState(initAddress || "");
   const [city, setCity] = useState(initCity || "");
@@ -64,7 +68,7 @@ export function LocationMap({
   async function handleSearch() {
     const query = [address, city, country].filter(Boolean).join(", ");
     if (!query) {
-      toast({ title: "Enter an address to search", variant: "destructive" });
+      toast({ title: t("mapAddress"), variant: "destructive" });
       return;
     }
     setSearching(true);
@@ -80,7 +84,7 @@ export function LocationMap({
         toast({ title: "No results found", description: "Try a more specific address." });
       }
     } catch {
-      toast({ title: "Search failed", description: "Could not reach geocoding service.", variant: "destructive" });
+      toast({ title: tCommon("error"), description: "Could not reach geocoding service.", variant: "destructive" });
     }
     setSearching(false);
   }
@@ -117,11 +121,11 @@ export function LocationMap({
 
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
 
-    toast({ title: "Location saved" });
+    toast({ title: t("locationUpdated") });
     onUpdate({ address, city, country, latitude: lat, longitude: lng });
   }
 
@@ -140,7 +144,7 @@ export function LocationMap({
       {canEdit ? (
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label>Street address</Label>
+            <Label>{tField("streetAddress")}</Label>
             <Input
               value={address}
               onChange={(e) => setAddress(e.target.value)}
@@ -150,7 +154,7 @@ export function LocationMap({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>City</Label>
+              <Label>{tField("city")}</Label>
               <Input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
@@ -158,7 +162,7 @@ export function LocationMap({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Country</Label>
+              <Label>{tField("country")}</Label>
               <Input
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
@@ -178,7 +182,7 @@ export function LocationMap({
               ) : (
                 <Search className="h-4 w-4 mr-1.5" />
               )}
-              Find on map
+              {t("mapAddress")}
             </Button>
             <Button
               size="sm"
@@ -190,7 +194,7 @@ export function LocationMap({
               ) : (
                 <Save className="h-4 w-4 mr-1.5" />
               )}
-              Save address
+              {saving ? tCommon("saving") : tCommon("save")}
             </Button>
           </div>
 
@@ -269,8 +273,8 @@ export function LocationMap({
           <MapPin className="h-10 w-10 opacity-30" />
           <p className="text-sm">
             {canEdit
-              ? "Enter an address and click \"Find on map\" to pin this location."
-              : "No location coordinates set."}
+              ? t("mapAddress")
+              : t("noMapAddress")}
           </p>
         </div>
       )}

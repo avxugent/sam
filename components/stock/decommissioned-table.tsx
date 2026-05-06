@@ -46,6 +46,7 @@ export function DecommissionedTable({
   const t = useTranslations("decommissioned");
   const tStock = useTranslations("stock");
   const tCommon = useTranslations("common");
+  const tAsset = useTranslations("asset");
   const [assets, setAssets] = useState(initialAssets);
   const [query, setQuery] = useState("");
   const isAdmin = userRole === "ADMIN";
@@ -122,7 +123,7 @@ export function DecommissionedTable({
                       href={`/locations/${asset.locationId}/assets/${asset.id}`}
                       className="font-medium text-[#0f172a] hover:text-[#1e64c8] hover:underline"
                     >
-                      {asset.model || asset.serialNumber || "Unnamed"}
+                      {asset.model || asset.serialNumber || tAsset("unnamedAsset")}
                     </Link>
                     {asset.manufacturer && (
                       <span className="text-[11.5px] text-[#94a3b8] ml-1.5">{asset.manufacturer.name}</span>

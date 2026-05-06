@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +56,8 @@ export function ManufacturersClient({
 }: {
   initialManufacturers: Manufacturer[];
 }) {
+  const t = useTranslations("manufacturers");
+  const tCommon = useTranslations("common");
   const { toast } = useToast();
   const [items, setItems] = useState(initialManufacturers);
   useEffect(() => { setItems(initialManufacturers); }, [initialManufacturers]);
@@ -94,7 +97,7 @@ export function ManufacturersClient({
     setAdding(false);
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const item = await res.json();
@@ -102,7 +105,7 @@ export function ManufacturersClient({
       [...prev, { ...item, _count: { assets: 0 } }].sort((a, b) => a.name.localeCompare(b.name))
     );
     setNewName("");
-    toast({ title: "Manufacturer added" });
+    toast({ title: t("manufacturerCreated") });
   }
 
   async function handleEdit(id: string) {
@@ -127,7 +130,7 @@ export function ManufacturersClient({
 
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const updated = await res.json();
@@ -137,7 +140,7 @@ export function ManufacturersClient({
         .sort((a, b) => a.name.localeCompare(b.name))
     );
     setEditingId(null);
-    toast({ title: "Manufacturer updated" });
+    toast({ title: t("manufacturerUpdated") });
   }
 
   async function handleMerge() {
@@ -152,7 +155,7 @@ export function ManufacturersClient({
 
     const data = await res.json();
     if (!res.ok) {
-      toast({ title: "Error", description: data.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: data.error, variant: "destructive" });
       setMergeConflict(null);
       return;
     }
@@ -161,7 +164,7 @@ export function ManufacturersClient({
     setMergeConflict(null);
     setEditingId(null);
     toast({
-      title: "Manufacturers merged",
+      title: t("manufacturerMerged"),
       description: `${data.movedCount} asset(s) moved to "${mergeConflict.existingName}".`,
     });
   }
@@ -170,11 +173,11 @@ export function ManufacturersClient({
     const res = await fetch(`/api/manufacturers/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));
-    toast({ title: "Manufacturer deleted" });
+    toast({ title: t("manufacturerDeleted") });
   }
 
   return (
@@ -182,7 +185,7 @@ export function ManufacturersClient({
       {/* Add form */}
       <div className="flex gap-2">
         <Input
-          placeholder="Add new manufacturer..."
+          placeholder={t("addNewManufacturer")}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
@@ -265,17 +268,17 @@ export function ManufacturersClient({
                         <AlertDialogDescription>
                           {item._count.assets > 0
                             ? `This manufacturer is used by ${item._count.assets} asset(s). Reassign them before deleting.`
-                            : "This will permanently delete this manufacturer."}
+                            : t("deleteConfirmDescription")}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDelete(item.id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           disabled={item._count.assets > 0}
                         >
-                          Delete
+                          {tCommon("delete")}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -362,17 +365,14 @@ export function ManufacturersClient({
       <AlertDialog open={!!mergeConflict} onOpenChange={(open) => { if (!open) setMergeConflict(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Manufacturer already exists</AlertDialogTitle>
+            <AlertDialogTitle>{t("mergeTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              A manufacturer named &quot;{mergeConflict?.existingName}&quot; already exists
-              {mergeConflict?.existingAssetCount
-                ? ` with ${mergeConflict.existingAssetCount} asset(s)`
-                : ""}. What would you like to do?
+              {t("mergeDescription", { from: mergeConflict?.existingName ?? "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setMergeConflict(null)}>
-              Change name
+              {tCommon("cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleMerge}
@@ -380,7 +380,7 @@ export function ManufacturersClient({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {merging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Move all assets &amp; merge
+              {t("mergeSubmit")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

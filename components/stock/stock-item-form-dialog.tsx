@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -63,6 +64,9 @@ type Props = {
 export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("stock");
+  const tCommon = useTranslations("common");
+  const tField = useTranslations("field");
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
@@ -156,11 +160,11 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
 
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
 
-    toast({ title: mode === "create" ? "Item added to stock" : "Stock item updated" });
+    toast({ title: mode === "create" ? t("addedToStock") : t("stockItemUpdated") });
     handleClose();
     onSuccess?.();
     router.refresh();
@@ -171,19 +175,19 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{mode === "create" ? "Add stock item" : "Edit stock item"}</DialogTitle>
+          <DialogTitle>{mode === "create" ? t("addItem") : t("editItem")}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
           {/* Type */}
           <div className="space-y-1">
-            <Label htmlFor="typeId">Type <span className="text-destructive">*</span></Label>
+            <Label htmlFor="typeId">{tField("type")} <span className="text-destructive">*</span></Label>
             <Select
               onValueChange={(v) => { setValue("typeId", v, { shouldValidate: true }); }}
               defaultValue=""
             >
               <SelectTrigger id="typeId" className={cn(errors.typeId && "border-destructive")}>
-                <SelectValue placeholder="Select type…" />
+                <SelectValue placeholder={t("selectType")} />
               </SelectTrigger>
               <SelectContent>
                 {assetTypes.map((t) => (
@@ -196,13 +200,13 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
 
           {/* Manufacturer */}
           <div className="space-y-1">
-            <Label htmlFor="manufacturerId">Manufacturer</Label>
+            <Label htmlFor="manufacturerId">{tField("manufacturer")}</Label>
             <Select
               onValueChange={(v) => setValue("manufacturerId", v, { shouldValidate: true })}
               defaultValue=""
             >
               <SelectTrigger id="manufacturerId">
-                <SelectValue placeholder="Select manufacturer…" />
+                <SelectValue placeholder={t("selectManufacturer")} />
               </SelectTrigger>
               <SelectContent>
                 {manufacturers.map((m) => (
@@ -214,11 +218,11 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
 
           {/* Model */}
           <div className="space-y-1 relative">
-            <Label htmlFor="model">Model <span className="text-destructive">*</span></Label>
+            <Label htmlFor="model">{tField("model")} <span className="text-destructive">*</span></Label>
             <Input
               id="model"
               {...register("model")}
-              placeholder="e.g. Dell UltraSharp U2722D"
+              placeholder={t("modelPlaceholder")}
               className={cn(errors.model && "border-destructive")}
               autoComplete="off"
               onChange={(e) => {
@@ -252,11 +256,11 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
           {/* Serial + Quantity row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="serialNumber">Serial Number</Label>
+              <Label htmlFor="serialNumber">{tField("serialNumber")}</Label>
               <Input
                 id="serialNumber"
                 {...register("serialNumber")}
-                placeholder="Optional"
+                placeholder={t("serialOptional")}
                 className={cn("font-mono text-[12.5px]", errors.serialNumber && "border-destructive")}
                 onChange={(e) => {
                   register("serialNumber").onChange(e);
@@ -266,7 +270,7 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
               {errors.serialNumber && <p className="text-xs text-destructive">{errors.serialNumber.message}</p>}
             </div>
             <div className="space-y-1">
-              <Label htmlFor="quantity">Quantity <span className="text-destructive">*</span></Label>
+              <Label htmlFor="quantity">{t("quantity")} <span className="text-destructive">*</span></Label>
               <Input
                 id="quantity"
                 type="number"
@@ -282,28 +286,28 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
           {/* Invoice */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="invoiceNumber">Invoice Number</Label>
+              <Label htmlFor="invoiceNumber">{tField("invoiceNumber")}</Label>
               <Input id="invoiceNumber" {...register("invoiceNumber")} />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="invoiceDate">Invoice Date</Label>
+              <Label htmlFor="invoiceDate">{tField("invoiceDate")}</Label>
               <Input id="invoiceDate" type="date" {...register("invoiceDate")} />
             </div>
           </div>
 
           {/* Notes */}
           <div className="space-y-1">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">{tField("notes")}</Label>
             <Textarea id="notes" {...register("notes")} rows={3} />
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" size="sm" onClick={handleClose} disabled={isSubmitting}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" size="sm" disabled={isSubmitting} className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white">
               {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
-              {mode === "create" ? "Add to stock" : "Save changes"}
+              {mode === "create" ? t("createSubmit") : t("updateSubmit")}
             </Button>
           </DialogFooter>
         </form>

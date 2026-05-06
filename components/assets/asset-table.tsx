@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -51,8 +52,7 @@ function escapeCell(v: string | null | undefined): string {
   return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-function exportToCsv(assets: Asset[], filename: string) {
-  const header = ["Type", "Manufacturer", "Model", "Serial Number", "Hostname", "MAC Addresses", "Location", "Installation Date"];
+function exportToCsv(assets: Asset[], filename: string, headers: string[]) {
   const rows = assets.map((a) => [
     a.type?.name,
     a.manufacturer?.name,
@@ -63,7 +63,7 @@ function exportToCsv(assets: Asset[], filename: string) {
     a.location?.name,
     a.installationDate ? new Date(a.installationDate).toLocaleDateString() : null,
   ].map(escapeCell).join(","));
-  const csv = [header.join(","), ...rows].join("\n");
+  const csv = [headers.join(","), ...rows].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -97,6 +97,9 @@ export function AssetTable({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("asset");
+  const tField = useTranslations("field");
+  const tCommon = useTranslations("common");
   const [assets, setAssets] = useState(initialAssets);
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<SortCol | null>(null);
@@ -155,10 +158,10 @@ export function AssetTable({
     const res = await fetch(`/api/assets/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
-    toast({ title: "Asset deleted" });
+    toast({ title: t("assetDeleted") });
     setAssets((prev) => prev.filter((a) => a.id !== id));
     router.refresh();
   }
@@ -167,7 +170,7 @@ export function AssetTable({
     return (
       <div className="text-center py-12 text-muted-foreground border border-[#e2e8f0] rounded-[10px] bg-white">
         <Package className="h-10 w-10 mx-auto mb-3 opacity-40" />
-        <p>No assets in this location yet</p>
+        <p>{t("noAssetsInLocation")}</p>
       </div>
     );
   }
@@ -201,8 +204,8 @@ export function AssetTable({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            aria-label="Search assets"
-            placeholder="Search assets..."
+            aria-label={t("searchAssets")}
+            placeholder={t("searchAssets")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 h-[36px] text-[13px] rounded-[8px]"
@@ -212,34 +215,34 @@ export function AssetTable({
           variant="outline"
           size="sm"
           className="h-[36px] px-3 text-[13px] gap-1.5 flex-shrink-0"
-          onClick={() => exportToCsv(sorted, "assets.csv")}
-          title="Export all filtered assets"
+          onClick={() => exportToCsv(sorted, "assets.csv", [tField("type"), tField("manufacturer"), tField("model"), tField("serialNumber"), tField("hostname"), tField("macAddresses"), tField("location"), tField("installed")])}
+          title={t("exportTitle")}
         >
           <Download className="h-3.5 w-3.5" />
-          Export CSV
+          {t("exportCsv")}
         </Button>
       </div>
 
       <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
         <table className="w-full text-[13px]">
-          <caption className="sr-only">{sorted.length} asset{sorted.length !== 1 ? "s" : ""}</caption>
+          <caption className="sr-only">{t("assetCount", { count: sorted.length })}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <Th col="type" label="Type" />
-              <Th col="manufacturer" label="Manufacturer" />
-              <Th col="model" label="Model" />
-              <Th col="serialNumber" label="Serial #" />
-              <Th col="hostname" label="Hostname" />
-              {showLocation && <Th col="location" label="Location" />}
-              <Th col="installationDate" label="Installed" />
-              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">Actions</th>
+              <Th col="type" label={tField("type")} />
+              <Th col="manufacturer" label={tField("manufacturer")} />
+              <Th col="model" label={tField("model")} />
+              <Th col="serialNumber" label={tField("serialNumber")} />
+              <Th col="hostname" label={tField("hostname")} />
+              {showLocation && <Th col="location" label={tField("location")} />}
+              <Th col="installationDate" label={tField("installed")} />
+              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{tCommon("actions")}</th>
             </tr>
           </thead>
           <tbody>
             {sorted.length === 0 ? (
               <tr>
                 <td colSpan={colSpan} className="text-center py-8 text-muted-foreground">
-                  No assets match your search
+                  {t("noAssetsInLocation")}
                 </td>
               </tr>
             ) : (
@@ -271,7 +274,7 @@ export function AssetTable({
                     {asset.manufacturer?.name || "—"}
                   </td>
                   <td className="px-4 py-[11px] font-medium text-[#0f172a]">
-                    {asset.model || <span className="text-[#64748b] font-normal italic">No model</span>}
+                    {asset.model || <span className="text-[#64748b] font-normal italic">{t("noModel")}</span>}
                   </td>
                   <td className="px-4 py-[11px] text-[#64748b] font-mono text-[11.5px]">
                     {asset.serialNumber || "—"}
@@ -337,18 +340,18 @@ export function AssetTable({
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete this asset?</AlertDialogTitle>
+                                <AlertDialogTitle>{t("deleteSimpleTitle")}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will permanently delete the asset and all its attachments.
+                                  {t("deleteConfirmDescription")}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => handleDelete(asset.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  Delete
+                                  {tCommon("delete")}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -367,19 +370,19 @@ export function AssetTable({
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <p className="text-[12px] text-[#64748b]">
           {sorted.length === 0 ? (
-            `0 of ${assets.length} asset${assets.length !== 1 ? "s" : ""}`
+            <>0 {tCommon("of")} {t("assetCount", { count: assets.length })}</>
           ) : (
             <>
-              {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, sorted.length)} of {sorted.length}
-              {sorted.length !== assets.length && ` (filtered from ${assets.length})`}
-              {` asset${assets.length !== 1 ? "s" : ""}`}
+              {t("pagination", { from: (safePage - 1) * pageSize + 1, to: Math.min(safePage * pageSize, sorted.length), total: sorted.length })}
+              {sorted.length !== assets.length && ` ${t("filteredFrom", { total: assets.length })}`}
+              {" "}{t("assetCount", { count: assets.length })}
             </>
           )}
         </p>
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-[12px] text-[#64748b]">Per page</span>
+            <span className="text-[12px] text-[#64748b]">{t("rowsPerPage")}</span>
             <Select
               value={String(pageSize)}
               onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}

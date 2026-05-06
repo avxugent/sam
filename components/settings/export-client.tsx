@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,8 @@ export function ExportClient({
   initialOutputDir: string;
   initialEnabled: boolean;
 }) {
+  const t = useTranslations("export");
+  const tCommon = useTranslations("common");
   const { toast } = useToast();
   const [cronExpression, setCronExpression] = useState(initialCronExpression);
   const [outputDir, setOutputDir] = useState(initialOutputDir);
@@ -28,7 +31,7 @@ export function ExportClient({
     try {
       const res = await fetch("/api/export/csv");
       if (!res.ok) {
-        toast({ title: "Export failed", variant: "destructive" });
+        toast({ title: tCommon("error"), variant: "destructive" });
         return;
       }
       const blob = await res.blob();
@@ -39,7 +42,7 @@ export function ExportClient({
       a.download = `sam-export-${date}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "Export downloaded" });
+      toast({ title: t("exportComplete") });
     } finally {
       setDownloading(false);
     }
@@ -54,7 +57,7 @@ export function ExportClient({
     });
     setSaving(false);
     if (!res.ok) {
-      toast({ title: "Error saving settings", variant: "destructive" });
+      toast({ title: tCommon("error"), variant: "destructive" });
       return;
     }
     toast({ title: "Schedule settings saved" });
@@ -65,15 +68,12 @@ export function ExportClient({
       {/* Manual export */}
       <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-4">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">Manual export</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">
-            Download the current database as a CSV file. The format is compatible with the CSV import function,
-            so you can use it as a backup or for data migration.
-          </p>
+          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("title")}</h2>
+          <p className="text-[13px] text-[#64748b] mt-1">{t("subtitle")}</p>
         </div>
         <Button onClick={handleDownload} disabled={downloading} className="gap-2">
           {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          Download CSV export
+          {t("downloadCsv")}
         </Button>
       </section>
 

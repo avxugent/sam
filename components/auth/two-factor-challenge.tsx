@@ -8,8 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Monitor, Loader2, ShieldCheck, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { useTranslations } from "next-intl";
 
 export function TwoFactorChallenge() {
+  const t = useTranslations("auth");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,7 +40,7 @@ export function TwoFactorChallenge() {
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error || "Verification failed.");
+      setError(data.error || t("verificationFailed"));
       setCode("");
       inputRef.current?.focus();
       return;
@@ -64,15 +66,15 @@ export function TwoFactorChallenge() {
             <div className="flex justify-center mb-2">
               <ShieldCheck className="h-10 w-10 text-primary" />
             </div>
-            <CardTitle>Two-Factor Authentication</CardTitle>
+            <CardTitle>{t("twoFactorTitle")}</CardTitle>
             <CardDescription>
-              Enter the 6-digit code from your authenticator app.
+              {t("twoFactorSubtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="code">Authentication code</Label>
+                <Label htmlFor="code">{t("twoFactorCode")}</Label>
                 <Input
                   ref={inputRef}
                   id="code"
@@ -111,7 +113,7 @@ export function TwoFactorChallenge() {
                 disabled={loading || code.replace(/\s/g, "").length !== 6}
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Verify
+                {t("twoFactorVerify")}
               </Button>
 
               <Button
@@ -121,7 +123,7 @@ export function TwoFactorChallenge() {
                 onClick={() => signOut({ callbackUrl: "/login" })}
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                Sign out and use a different account
+                {t("twoFactorBack")}
               </Button>
             </form>
 

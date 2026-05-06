@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -67,6 +68,8 @@ export function StockItemTable({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("stock");
+  const tCommon = useTranslations("common");
   const [items, setItems] = useState(initialItems);
   const [query, setQuery] = useState("");
   const [sortCol, setSortCol] = useState<SortCol>("type");
@@ -114,11 +117,11 @@ export function StockItemTable({
     const res = await fetch(`/api/stock/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));
-    toast({ title: "Stock item deleted" });
+    toast({ title: t("stockItemDeleted") });
     router.refresh();
   }
 
@@ -144,14 +147,14 @@ export function StockItemTable({
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
           <Input
-            placeholder="Search stock…"
+            placeholder={t("searchStock")}
             value={query}
             onChange={(e) => { setQuery(e.target.value); setPage(1); }}
             className="pl-8 h-8 text-[13px]"
           />
         </div>
         <span className="text-[12px] text-[#94a3b8] ml-auto">
-          {filtered.length} item{filtered.length !== 1 ? "s" : ""}
+          {filtered.length} {filtered.length !== 1 ? t("items") : t("item")}
         </span>
       </div>
 
@@ -160,11 +163,11 @@ export function StockItemTable({
         <table className="w-full text-[13px]">
           <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
             <tr>
-              <Th col="type" label="Type" />
-              <Th col="manufacturer" label="Manufacturer" />
-              <Th col="model" label="Model" />
-              <Th col="serialNumber" label="Serial" />
-              <Th col="quantity" label="Qty" />
+              <Th col="type" label={t("type")} />
+              <Th col="manufacturer" label={t("manufacturer")} />
+              <Th col="model" label={t("model")} />
+              <Th col="serialNumber" label={t("serial")} />
+              <Th col="quantity" label={t("qty")} />
               {canEdit && <th className="px-3 py-2.5 w-[100px]" />}
             </tr>
           </thead>
@@ -172,7 +175,7 @@ export function StockItemTable({
             {paginated.length === 0 ? (
               <tr>
                 <td colSpan={canEdit ? 6 : 5} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">
-                  No stock items found
+                  {t("noStockItems")}
                 </td>
               </tr>
             ) : (
@@ -200,7 +203,7 @@ export function StockItemTable({
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 p-0 text-[#1e64c8] hover:bg-[#e8f0fc]"
-                          title="Deploy to location"
+                          title={t("deployTo")}
                           onClick={() => setDeployItem(item)}
                         >
                           <ArrowRightFromLine className="h-3.5 w-3.5" />
@@ -218,18 +221,18 @@ export function StockItemTable({
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete stock item?</AlertDialogTitle>
+                              <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will remove &quot;{item.model}&quot; from stock. This action cannot be undone.
+                                {t("deleteConfirmDescription", { model: item.model })}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleDelete(item.id)}
                                 className="bg-[#ef4444] hover:bg-[#dc2626] text-white"
                               >
-                                Delete
+                                {tCommon("delete")}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -248,7 +251,7 @@ export function StockItemTable({
       {sorted.length > pageSize && (
         <div className="flex items-center justify-between text-[12px] text-[#64748b]">
           <div className="flex items-center gap-2">
-            <span>Rows per page</span>
+            <span>{t("rowsPerPage")}</span>
             <Select
               value={String(pageSize)}
               onValueChange={(v) => { setPageSize(Number(v) as typeof PAGE_SIZE_OPTIONS[number]); setPage(1); }}

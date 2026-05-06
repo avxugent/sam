@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Monitor, Loader2, ArrowLeft } from "lucide-react";
 
 export function ResetPasswordClient({ token }: { token: string }) {
+  const t = useTranslations("auth");
   const router = useRouter();
 
   const [validating, setValidating] = useState(true);
@@ -42,7 +44,7 @@ export function ResetPasswordClient({ token }: { token: string }) {
     setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(t("passwordMismatch"));
       return;
     }
 
@@ -77,18 +79,19 @@ export function ResetPasswordClient({ token }: { token: string }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Set new password</CardTitle>
-            <CardDescription>Choose a strong password for your account.</CardDescription>
+            <CardTitle>{t("passwordResetNewPasswordTitle")}</CardTitle>
+            <CardDescription>{t("passwordResetNewPasswordSubtitle")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {validating ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span className="sr-only">{t("validating")}</span>
               </div>
             ) : !tokenValid ? (
               <div className="space-y-4">
                 <p className="text-sm text-destructive">
-                  This reset link is invalid or has expired. Please request a new one.
+                  {t("tokenInvalid")}
                 </p>
                 <Link
                   href="/login/forgot-password"
@@ -101,13 +104,13 @@ export function ResetPasswordClient({ token }: { token: string }) {
             ) : success ? (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  Your password has been reset. Redirecting you to sign in…
+                  {t("passwordResetSuccess")}
                 </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="password">New password</Label>
+                  <Label htmlFor="password">{t("newPassword")}</Label>
                   <Input
                     id="password"
                     type="password"
@@ -119,7 +122,7 @@ export function ResetPasswordClient({ token }: { token: string }) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="confirmPassword">Confirm password</Label>
+                  <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
@@ -132,7 +135,7 @@ export function ResetPasswordClient({ token }: { token: string }) {
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Set new password
+                  {t("passwordReset")}
                 </Button>
                 <Link
                   href="/login"

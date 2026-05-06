@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -103,6 +104,9 @@ export function UsersClient({
   initialUsers: User[];
   currentUserId: string;
 }) {
+  const t = useTranslations("users");
+  const tCommon = useTranslations("common");
+  const tField = useTranslations("field");
   const { toast } = useToast();
   const [users, setUsers] = useState(initialUsers);
   useEffect(() => { setUsers(initialUsers); }, [initialUsers]);
@@ -129,14 +133,14 @@ export function UsersClient({
     });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const user = await res.json();
     setUsers((prev) => [...prev, user].sort((a, b) => a.name.localeCompare(b.name)));
     setCreateOpen(false);
     createForm.reset({ role: "VIEWER" });
-    toast({ title: "User created" });
+    toast({ title: t("userCreated") });
   }
 
   async function handleEdit(data: z.infer<typeof editSchema>) {
@@ -152,74 +156,74 @@ export function UsersClient({
     });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const updated = await res.json();
     setUsers((prev) => prev.map((u) => (u.id === editUser.id ? updated : u)));
     setEditUser(null);
-    toast({ title: "User updated" });
+    toast({ title: t("userUpdated") });
   }
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     setUsers((prev) => prev.filter((u) => u.id !== id));
-    toast({ title: "User deleted" });
+    toast({ title: t("userDeleted") });
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-[18px] font-bold text-[#0f172a]">Users</h2>
-          <p className="text-[12.5px] text-[#64748b]">Manage user accounts and access levels</p>
+          <h2 className="text-[18px] font-bold text-[#0f172a]">{t("title")}</h2>
+          <p className="text-[12.5px] text-[#64748b]">{t("subtitle")}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="h-[36px] px-4 rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
               <Plus className="h-4 w-4 mr-1" />
-              Invite User
+              {t("addUser")}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add User</DialogTitle>
+              <DialogTitle>{t("createUser")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={createForm.handleSubmit(handleCreate)} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="user-create-name">
-                  Name <span aria-hidden="true" className="text-destructive">*</span>
+                  {tField("name")} <span aria-hidden="true" className="text-destructive">*</span>
                 </Label>
                 <Input id="user-create-name" required aria-required="true" autoComplete="name" {...createForm.register("name")} placeholder="Jane Doe" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="user-create-email">
-                  Email <span aria-hidden="true" className="text-destructive">*</span>
+                  {tField("email")} <span aria-hidden="true" className="text-destructive">*</span>
                 </Label>
                 <Input id="user-create-email" required aria-required="true" autoComplete="email" {...createForm.register("email")} type="email" placeholder="jane@example.com" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="user-create-password">
-                  Password <span aria-hidden="true" className="text-destructive">*</span>
+                  {tField("password")} <span aria-hidden="true" className="text-destructive">*</span>
                 </Label>
-                <Input id="user-create-password" required aria-required="true" autoComplete="new-password" {...createForm.register("password")} type="password" placeholder="Min 8 characters" />
+                <Input id="user-create-password" required aria-required="true" autoComplete="new-password" {...createForm.register("password")} type="password" placeholder={t("passwordPlaceholder")} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="user-create-role">Role</Label>
+                <Label htmlFor="user-create-role">{tField("role")}</Label>
                 <Select
                   value={createRole}
                   onValueChange={(v) => createForm.setValue("role", v as "ADMIN" | "EDITOR" | "VIEWER")}
                 >
                   <SelectTrigger id="user-create-role"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="VIEWER">Viewer</SelectItem>
-                    <SelectItem value="EDITOR">Editor</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="VIEWER">{t("rolesViewer")}</SelectItem>
+                    <SelectItem value="EDITOR">{t("rolesEditor")}</SelectItem>
+                    <SelectItem value="ADMIN">{t("rolesAdmin")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -232,7 +236,7 @@ export function UsersClient({
                     onCheckedChange={(v) => createForm.setValue("mustChangePassword", !!v)}
                   />
                   <Label htmlFor="create-must-change-password" className="text-sm font-normal cursor-pointer">
-                    Require password change on first login
+                    {t("mustChangePassword")}
                   </Label>
                 </div>
                 <div className="flex items-center gap-2">
@@ -242,15 +246,15 @@ export function UsersClient({
                     onCheckedChange={(v) => createForm.setValue("twoFactorRequired", !!v)}
                   />
                   <Label htmlFor="create-2fa-required" className="text-sm font-normal cursor-pointer">
-                    Require two-factor authentication
+                    {t("twoFactorRequired")}
                   </Label>
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{tCommon("cancel")}</Button>
                 <Button type="submit" disabled={createForm.formState.isSubmitting}>
                   {createForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create
+                  {tCommon("create")}
                 </Button>
               </DialogFooter>
             </form>
@@ -261,16 +265,16 @@ export function UsersClient({
       {/* User table */}
       <div className="border border-[#e2e8f0] rounded-[10px] overflow-x-auto bg-white">
         <table className="w-full min-w-[720px] text-[13px]">
-          <caption className="sr-only">Users</caption>
+          <caption className="sr-only">{t("title")}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Name</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Email</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Role</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Provider</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">2FA</th>
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Created</th>
-              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">Actions</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("name")}</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("email")}</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("role")}</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("provider")}</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("twoFactor")}</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{tField("created")}</th>
+              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{tCommon("actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -292,13 +296,13 @@ export function UsersClient({
                 <td className="px-4 py-[10px] text-[#64748b]">{user.email}</td>
                 <td className="px-4 py-[10px]"><RolePill role={user.role} /></td>
                 <td className="px-4 py-[10px] text-[12px] text-[#64748b]">
-                  {user.provider === "microsoft-entra-id" ? "Microsoft" : "Local"}
+                  {user.provider === "microsoft-entra-id" ? t("providerEntra") : t("providerCredentials")}
                 </td>
                 <td className="px-4 py-[10px]">
                   {user.provider === "credentials" ? (
                     user.totpEnabled ? (
                       <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#dcfce7] text-[#16a34a]">
-                        Enabled
+                        {t("active")}
                       </span>
                     ) : (
                       <span className="text-[#64748b]">—</span>
@@ -320,7 +324,7 @@ export function UsersClient({
                           variant="ghost"
                           size="icon"
                           className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
-                          title="Edit user"
+                          title={t("editUser")}
                           onClick={() => {
                             setEditUser(user);
                             editForm.reset({
@@ -337,26 +341,26 @@ export function UsersClient({
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Edit User</DialogTitle>
+                          <DialogTitle>{t("editUser")}</DialogTitle>
                         </DialogHeader>
                         <form onSubmit={editForm.handleSubmit(handleEdit)} className="space-y-4">
                           <div className="space-y-1.5">
-                            <Label htmlFor={`user-edit-name-${user.id}`}>Name</Label>
+                            <Label htmlFor={`user-edit-name-${user.id}`}>{tField("name")}</Label>
                             <Input id={`user-edit-name-${user.id}`} autoComplete="name" {...editForm.register("name")} />
                           </div>
                           <div className="space-y-1.5">
-                            <Label htmlFor={`user-edit-email-${user.id}`}>Email</Label>
+                            <Label htmlFor={`user-edit-email-${user.id}`}>{tField("email")}</Label>
                             <Input id={`user-edit-email-${user.id}`} autoComplete="email" {...editForm.register("email")} type="email" />
                           </div>
                           {user.provider === "credentials" && (
                             <div className="space-y-1.5">
-                              <Label htmlFor={`user-edit-password-${user.id}`}>New Password</Label>
+                              <Label htmlFor={`user-edit-password-${user.id}`}>{tField("password")}</Label>
                               <Input
                                 id={`user-edit-password-${user.id}`}
                                 autoComplete="new-password"
                                 {...editForm.register("password")}
                                 type="password"
-                                placeholder="Leave blank to keep current"
+                                placeholder={t("passwordPlaceholder")}
                               />
                             </div>
                           )}
@@ -366,16 +370,16 @@ export function UsersClient({
                             </p>
                           )}
                           <div className="space-y-1.5">
-                            <Label htmlFor={`user-edit-role-${user.id}`}>Role</Label>
+                            <Label htmlFor={`user-edit-role-${user.id}`}>{tField("role")}</Label>
                             <Select
                               value={editRole}
                               onValueChange={(v) => editForm.setValue("role", v as "ADMIN" | "EDITOR" | "VIEWER")}
                             >
                               <SelectTrigger id={`user-edit-role-${user.id}`}><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="VIEWER">Viewer</SelectItem>
-                                <SelectItem value="EDITOR">Editor</SelectItem>
-                                <SelectItem value="ADMIN">Admin</SelectItem>
+                                <SelectItem value="VIEWER">{t("rolesViewer")}</SelectItem>
+                                <SelectItem value="EDITOR">{t("rolesEditor")}</SelectItem>
+                                <SelectItem value="ADMIN">{t("rolesAdmin")}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -389,16 +393,16 @@ export function UsersClient({
                                   onCheckedChange={(v) => editForm.setValue("twoFactorRequired", !!v)}
                                 />
                                 <Label htmlFor={`edit-2fa-required-${user.id}`} className="text-sm font-normal cursor-pointer">
-                                  Require two-factor authentication
+                                  {t("twoFactorRequired")}
                                 </Label>
                               </div>
                             </div>
                           )}
                           <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setEditUser(null)}>Cancel</Button>
+                            <Button type="button" variant="outline" onClick={() => setEditUser(null)}>{tCommon("cancel")}</Button>
                             <Button type="submit" disabled={editForm.formState.isSubmitting}>
                               {editForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                              Save
+                              {tCommon("save")}
                             </Button>
                           </DialogFooter>
                         </form>
@@ -413,7 +417,7 @@ export function UsersClient({
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-amber-600 hover:text-amber-700"
-                            title="Disable 2FA for this user"
+                            title={t("twoFactor")}
                           >
                             <ShieldOff className="h-3.5 w-3.5" />
                           </Button>
@@ -428,7 +432,7 @@ export function UsersClient({
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={async () => {
                                 const res = await fetch("/api/auth/2fa/disable", {
@@ -438,7 +442,7 @@ export function UsersClient({
                                 });
                                 const data = await res.json();
                                 if (!res.ok) {
-                                  toast({ title: "Error", description: data.error, variant: "destructive" });
+                                  toast({ title: tCommon("error"), description: data.error, variant: "destructive" });
                                 } else {
                                   setUsers((prev) =>
                                     prev.map((u) =>
@@ -449,7 +453,7 @@ export function UsersClient({
                                 }
                               }}
                             >
-                              Disable 2FA
+                              {t("twoFactor")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -464,25 +468,25 @@ export function UsersClient({
                           variant="ghost"
                           size="icon"
                           className="h-[30px] w-[30px] border border-[#fecaca] rounded-md text-[#ef4444] hover:bg-red-50"
-                          title="Delete user"
+                          title={t("deleteUser")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete {user.name}?</AlertDialogTitle>
+                          <AlertDialogTitle>{t("deleteConfirmTitle", { name: user.name })}</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will permanently delete this user account.
+                            {t("deleteConfirmDescription")}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => handleDelete(user.id)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           >
-                            Delete
+                            {tCommon("delete")}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

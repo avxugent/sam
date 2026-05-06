@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -131,6 +132,9 @@ export function LocationDetailClient({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("location");
+  const tCommon = useTranslations("common");
+  const tNav = useTranslations("nav");
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
 
   const [attachments, setAttachments] = useState<Attachment[]>(location.attachments);
@@ -151,10 +155,10 @@ export function LocationDetailClient({
     const res = await fetch(`/api/locations/${location.id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
-    toast({ title: "Location deleted" });
+    toast({ title: t("locationDeleted") });
     if (location.parent) {
       router.push(`/locations/${location.parent.id}`);
     } else {
@@ -169,7 +173,7 @@ export function LocationDetailClient({
     <div className="space-y-6">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1 text-[12px] text-[#64748b] flex-wrap">
-        <Link href="/" className="hover:text-[#0f172a] transition-colors">Home</Link>
+        <Link href="/" className="hover:text-[#0f172a] transition-colors">{tCommon("home")}</Link>
         {breadcrumbs.map((crumb, i) => (
           <span key={crumb.id} className="flex items-center gap-1">
             <ChevronRight className="h-3 w-3" />
@@ -247,7 +251,7 @@ export function LocationDetailClient({
                 variant="ghost"
               >
                 <Pencil className="h-3.5 w-3.5" />
-                Edit
+                {tCommon("edit")}
               </Button>
             </LocationFormDialog>
 
@@ -261,7 +265,7 @@ export function LocationDetailClient({
                 className="h-8 rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 gap-1.5 text-[13px]"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add Asset
+                {tNav("addAsset")}
               </Button>
             </AssetFormDialog>
           </div>
@@ -272,15 +276,15 @@ export function LocationDetailClient({
       <div className="flex items-center gap-6 flex-wrap">
         <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
           <Package className="h-4 w-4" />
-          <span>{location._count.assets} direct assets</span>
+          <span>{t("directAssets", { count: location._count.assets })}</span>
         </div>
         <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
           <FolderOpen className="h-4 w-4" />
-          <span>{location._count.children} sub-locations</span>
+          <span>{t("subLocations", { count: location._count.children })}</span>
         </div>
         <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
           <Paperclip className="h-4 w-4" />
-          <span>{attachments.length} attachments</span>
+          <span>{t("attachmentsCount", { count: attachments.length })}</span>
         </div>
         {canEdit && (
           <div className="ml-auto flex gap-2">
@@ -288,24 +292,23 @@ export function LocationDetailClient({
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 text-[#ef4444] border-[#fecaca] hover:bg-red-50 text-[13px] rounded-[7px]">
                   <Trash2 className="h-3.5 w-3.5 mr-1" />
-                  Delete
+                  {tCommon("delete")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete &quot;{location.name}&quot;?</AlertDialogTitle>
+                  <AlertDialogTitle>{t("deleteConfirmTitle", { name: location.name })}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete this location and all its assets and
-                    attachments. Sub-locations must be removed first.
+                    {t("deleteConfirmDescription")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDelete}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
-                    Delete
+                    {tCommon("delete")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -325,7 +328,7 @@ export function LocationDetailClient({
             value="assets"
             className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
           >
-            Assets
+            {t("tabAssets")}
             {assets.length > 0 && (
               <Badge variant="secondary" className="ml-2 text-xs">{assets.length}</Badge>
             )}
@@ -334,7 +337,7 @@ export function LocationDetailClient({
             value="sublocations"
             className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
           >
-            Sub-locations
+            {t("tabSubLocations")}
             {location.children.length > 0 && (
               <Badge variant="secondary" className="ml-2 text-xs">{location.children.length}</Badge>
             )}
@@ -344,13 +347,13 @@ export function LocationDetailClient({
             className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             <MapPin className="h-3.5 w-3.5 mr-1" />
-            Map &amp; Address
+            {t("tabMap")}
           </TabsTrigger>
           <TabsTrigger
             value="attachments"
             className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
           >
-            Attachments
+            {t("tabAttachments")}
             {attachments.length > 0 && (
               <Badge variant="secondary" className="ml-2 text-xs">{attachments.length}</Badge>
             )}
@@ -360,7 +363,7 @@ export function LocationDetailClient({
             className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             <Wrench className="h-3.5 w-3.5 mr-1" />
-            Work Log
+            {t("tabWorkLog")}
             {workLogs.length > 0 && (
               <Badge variant="secondary" className="ml-2 text-xs">{workLogs.length}</Badge>
             )}
@@ -371,7 +374,7 @@ export function LocationDetailClient({
               className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
             >
               <ImageIcon className="h-3.5 w-3.5 mr-1" />
-              Cover Image
+              {t("tabCoverImage")}
             </TabsTrigger>
           )}
         </TabsList>
@@ -380,7 +383,7 @@ export function LocationDetailClient({
         <TabsContent value="assets" className="mt-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-[18px] font-semibold text-[#0f172a]">
-              {showLocation ? `All assets in ${location.name}` : `Assets in ${location.name}`}
+              {showLocation ? t("allAssetsIn", { name: location.name }) : t("assetsIn", { name: location.name })}
             </h2>
           </div>
           <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} hostnameUrlTemplate={hostnameUrlTemplate} macAddressUrlTemplate={macAddressUrlTemplate} />
@@ -389,12 +392,12 @@ export function LocationDetailClient({
         {/* Sub-locations tab */}
         <TabsContent value="sublocations" className="mt-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[18px] font-semibold text-[#0f172a]">Sub-locations</h2>
+            <h2 className="text-[18px] font-semibold text-[#0f172a]">{t("subLocationsHeading")}</h2>
             {canEdit && (
               <LocationFormDialog mode="create" parentId={location.id}>
                 <Button size="sm" className="h-[34px] rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
                   <Plus className="h-4 w-4 mr-1" />
-                  Add Sub-location
+                  {tNav("addSubLocation")}
                 </Button>
               </LocationFormDialog>
             )}
@@ -402,7 +405,7 @@ export function LocationDetailClient({
           {location.children.length === 0 ? (
             <div className="text-center py-12 text-[#64748b] border border-[#e2e8f0] rounded-[10px] bg-white">
               <FolderOpen className="h-10 w-10 mx-auto mb-3 opacity-40" />
-              <p>No sub-locations yet</p>
+              <p>{t("noSubLocations")}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[14px]">
@@ -417,8 +420,8 @@ export function LocationDetailClient({
                       <p className="font-mono text-[11px] text-[#64748b] mb-2">{child.fiNumber}</p>
                     )}
                     <div className="flex gap-3 text-[12px] text-[#64748b]">
-                      <span>{child._count.assets} assets</span>
-                      <span>{child._count.children} sub-locations</span>
+                      <span>{t("directAssets", { count: child._count.assets })}</span>
+                      <span>{t("subLocations", { count: child._count.children })}</span>
                     </div>
                   </div>
                 </Link>
@@ -428,7 +431,7 @@ export function LocationDetailClient({
                 <LocationFormDialog mode="create" parentId={location.id}>
                   <div className="border-2 border-dashed border-[#e2e8f0] rounded-[10px] flex items-center justify-center gap-2 p-[18px_20px] cursor-pointer hover:border-[#94a3b8] transition-colors min-h-[80px]">
                     <Plus className="h-4 w-4 text-[#94a3b8]" />
-                    <span className="text-[13px] text-[#94a3b8]">Add sub-location</span>
+                    <span className="text-[13px] text-[#94a3b8]">{t("addSubLocationCard")}</span>
                   </div>
                 </LocationFormDialog>
               )}
@@ -463,9 +466,9 @@ export function LocationDetailClient({
         {/* Work Log tab */}
         <TabsContent value="worklog" className="mt-4">
           <div className="mb-4">
-            <h2 className="text-[18px] font-semibold text-[#0f172a]">Work Log</h2>
+            <h2 className="text-[18px] font-semibold text-[#0f172a]">{t("workLogHeading")}</h2>
             <p className="text-[13px] text-[#64748b] mt-1">
-              Maintenance, repairs, and other work performed at this location.
+              {t("workLogSubtitle")}
             </p>
           </div>
           <WorkLogList
@@ -489,9 +492,9 @@ export function LocationDetailClient({
         {canEdit && (
           <TabsContent value="cover" className="mt-4">
             <div className="mb-4">
-              <h2 className="text-[18px] font-semibold text-[#0f172a]">Cover Image</h2>
+              <h2 className="text-[18px] font-semibold text-[#0f172a]">{t("coverImageHeading")}</h2>
               <p className="text-[13px] text-[#64748b] mt-1">
-                Choose one of the image attachments as the cover photo shown at the top of this page.
+                {t("coverImageHelp")}
               </p>
             </div>
             <CoverImagePicker

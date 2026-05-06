@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +38,10 @@ type Props = {
 };
 
 export function ProfileClient({ name, email, provider }: Props) {
+  const t = useTranslations("settings");
+  const tCommon = useTranslations("common");
+  const tField = useTranslations("field");
+  const tAuth = useTranslations("auth");
   const router = useRouter();
   const { toast } = useToast();
   const isCredentials = provider === "credentials";
@@ -60,13 +65,13 @@ export function ProfileClient({ name, email, provider }: Props) {
       });
       if (!res.ok) {
         const body = await res.json();
-        toast({ title: "Error", description: body.error ?? "Failed to update name.", variant: "destructive" });
+        toast({ title: tCommon("error"), description: body.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
       } else {
-        toast({ title: "Name updated." });
+        toast({ title: t("profileTitle") });
         router.refresh();
       }
     } catch {
-      toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
+      toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
     } finally {
       setNameSaving(false);
     }
@@ -96,13 +101,13 @@ export function ProfileClient({ name, email, provider }: Props) {
       });
       if (!res.ok) {
         const body = await res.json();
-        toast({ title: "Error", description: body.error ?? "Failed to update password.", variant: "destructive" });
+        toast({ title: tCommon("error"), description: body.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
       } else {
-        toast({ title: "Password updated." });
+        toast({ title: t("passwordChanged") });
         resetPw();
       }
     } catch {
-      toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
+      toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
     } finally {
       setPwSaving(false);
     }
@@ -113,14 +118,14 @@ export function ProfileClient({ name, email, provider }: Props) {
       {/* Name */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Display name</CardTitle>
-          <CardDescription>This name is shown in the navigation bar.</CardDescription>
+          <CardTitle className="text-base">{t("profileTitle")}</CardTitle>
+          <CardDescription>{t("profileSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleNameSubmit(onNameSubmit)} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="name">
-                Name <span className="text-destructive">*</span>
+                {tField("name")} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="name"
@@ -133,13 +138,12 @@ export function ProfileClient({ name, email, provider }: Props) {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{tField("email")}</Label>
               <Input id="email" value={email} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">Email address cannot be changed here.</p>
             </div>
             <Button type="submit" disabled={nameSaving}>
               {nameSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save name
+              {nameSaving ? tCommon("saving") : tCommon("save")}
             </Button>
           </form>
         </CardContent>
@@ -149,14 +153,14 @@ export function ProfileClient({ name, email, provider }: Props) {
       {isCredentials && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Change password</CardTitle>
-            <CardDescription>Provide your current password to set a new one.</CardDescription>
+            <CardTitle className="text-base">{t("changePassword")}</CardTitle>
+            <CardDescription>{t("profileSubtitle")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handlePwSubmit(onPasswordSubmit)} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="currentPassword">
-                  Current password <span className="text-destructive">*</span>
+                  {tAuth("currentPassword")} <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="currentPassword"
@@ -171,7 +175,7 @@ export function ProfileClient({ name, email, provider }: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="newPassword">
-                  New password <span className="text-destructive">*</span>
+                  {tAuth("newPassword")} <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="newPassword"
@@ -186,7 +190,7 @@ export function ProfileClient({ name, email, provider }: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="confirmPassword">
-                  Confirm new password <span className="text-destructive">*</span>
+                  {tAuth("confirmPassword")} <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="confirmPassword"
@@ -201,7 +205,7 @@ export function ProfileClient({ name, email, provider }: Props) {
               </div>
               <Button type="submit" disabled={pwSaving}>
                 {pwSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Update password
+                {pwSaving ? tCommon("saving") : tCommon("save")}
               </Button>
             </form>
           </CardContent>
@@ -212,7 +216,7 @@ export function ProfileClient({ name, email, provider }: Props) {
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">
-              Your account is managed via SSO. Password changes are not available here.
+              {t("profileSubtitle")}
             </p>
           </CardContent>
         </Card>

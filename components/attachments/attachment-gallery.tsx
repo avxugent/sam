@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,6 +84,8 @@ export function AttachmentGallery({
   canEdit: boolean;
   onUpdate?: (attachments: Attachment[]) => void;
 }) {
+  const t = useTranslations("attachment");
+  const tCommon = useTranslations("common");
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachments, setAttachments] = useState(initialAttachments);
@@ -112,7 +115,7 @@ export function AttachmentGallery({
       const res = await fetch("/api/attachments", { method: "POST", body: formData });
       if (!res.ok) {
         const err = await res.json();
-        toast({ title: "Upload failed", description: err.error || file.name, variant: "destructive" });
+        toast({ title: t("uploadFailed"), description: err.error || file.name, variant: "destructive" });
       } else {
         const attachment = await res.json();
         updateAttachments([attachment, ...attachments]);
@@ -135,7 +138,7 @@ export function AttachmentGallery({
     setAddingLink(false);
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const attachment = await res.json();
@@ -143,17 +146,17 @@ export function AttachmentGallery({
     setShowLinkDialog(false);
     setLinkUrl("");
     setLinkLabel("");
-    toast({ title: "Link added" });
+    toast({ title: t("linked") });
   }
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/attachments/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
-    toast({ title: "Attachment deleted" });
+    toast({ title: t("deleted") });
     updateAttachments(attachments.filter((a) => a.id !== id));
   }
 
@@ -181,7 +184,7 @@ export function AttachmentGallery({
           {uploading ? (
             <div className="flex items-center justify-center gap-2 text-[#64748b]">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span className="text-[13px]">Uploading...</span>
+              <span className="text-[13px]">{tCommon("uploading")}</span>
             </div>
           ) : (
             <div className="space-y-1.5">
@@ -205,7 +208,7 @@ export function AttachmentGallery({
           onClick={() => setShowLinkDialog(true)}
         >
           <Plus className="h-3.5 w-3.5" />
-          Add link
+          {t("addLink")}
         </Button>
       )}
 
@@ -213,11 +216,11 @@ export function AttachmentGallery({
       <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Add link</DialogTitle>
+            <DialogTitle>{t("addLink")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddLink} className="space-y-4 pt-1">
             <div className="space-y-1.5">
-              <Label htmlFor="link-url">URL <span className="text-destructive">*</span></Label>
+              <Label htmlFor="link-url">{t("linkUrl")} <span className="text-destructive">*</span></Label>
               <Input
                 id="link-url"
                 type="url"
@@ -228,20 +231,20 @@ export function AttachmentGallery({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="link-label">Label <span className="text-destructive">*</span></Label>
+              <Label htmlFor="link-label">{t("linkLabel")} <span className="text-destructive">*</span></Label>
               <Input
                 id="link-label"
                 value={linkLabel}
                 onChange={(e) => setLinkLabel(e.target.value)}
-                placeholder="Link description"
+                placeholder={t("linkLabel")}
                 required
               />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowLinkDialog(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => setShowLinkDialog(false)}>{tCommon("cancel")}</Button>
               <Button type="submit" disabled={addingLink || !linkUrl || !linkLabel}>
                 {addingLink && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Add link
+                {t("addLinkSubmit")}
               </Button>
             </DialogFooter>
           </form>
@@ -252,7 +255,7 @@ export function AttachmentGallery({
       {attachments.length === 0 ? (
         <div className="text-center py-8 text-[#64748b] border border-[#e2e8f0] rounded-[10px] bg-white">
           <Paperclip className="h-10 w-10 mx-auto mb-3 opacity-40" />
-          <p className="text-[13px]">No attachments yet</p>
+          <p className="text-[13px]">{t("noAttachments")}</p>
         </div>
       ) : (
         <div className="divide-y divide-[#e2e8f0]">
@@ -282,7 +285,7 @@ export function AttachmentGallery({
                     <p className="text-[13px] font-medium text-[#0f172a] truncate">{attachment.originalName}</p>
                   )}
                   <p className="text-[11.5px] text-[#64748b]">
-                    {isLink ? "Link" : formatFileSize(attachment.size ?? 0)} · Added {formatDate(attachment.createdAt)} by {attachment.uploadedBy.name}
+                    {isLink ? t("linkType") : formatFileSize(attachment.size ?? 0)} · {t("addedBy", { date: formatDate(attachment.createdAt), name: attachment.uploadedBy.name })}
                   </p>
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
@@ -303,7 +306,7 @@ export function AttachmentGallery({
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label={`Delete ${isLink ? "link" : "attachment"} ${attachment.originalName}`}
+                          aria-label={`${t(isLink ? "deleteLinkTitle" : "deleteConfirmTitle").replace("?", "")} ${attachment.originalName}`}
                           className="h-[30px] w-[30px] text-[#ef4444] hover:text-[#ef4444] hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -311,18 +314,18 @@ export function AttachmentGallery({
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete {isLink ? "link" : "attachment"}?</AlertDialogTitle>
+                          <AlertDialogTitle>{isLink ? t("deleteLinkTitle") : t("deleteConfirmTitle")}</AlertDialogTitle>
                           <AlertDialogDescription>
                             &quot;{attachment.originalName}&quot; will be permanently deleted.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => handleDelete(attachment.id)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           >
-                            Delete
+                            {tCommon("delete")}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

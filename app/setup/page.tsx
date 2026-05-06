@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +11,9 @@ import { Monitor, Loader2, CheckCircle } from "lucide-react";
 
 export default function SetupPage() {
   const router = useRouter();
+  const t = useTranslations("setup");
+  const tAuth = useTranslations("auth");
+  const tField = useTranslations("field");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,11 +27,11 @@ export default function SetupPage() {
     setError("");
 
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError(tAuth("passwordMismatch"));
       return;
     }
     if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError(tAuth("passwordTooShort"));
       return;
     }
 
@@ -54,8 +58,7 @@ export default function SetupPage() {
       <div className="min-h-screen flex items-center justify-center bg-muted/40">
         <div className="text-center space-y-4">
           <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-          <h2 className="text-xl font-semibold">Setup complete!</h2>
-          <p className="text-muted-foreground">Redirecting to login…</p>
+          <h2 className="text-xl font-semibold">{t("complete")}</h2>
         </div>
       </div>
     );
@@ -70,13 +73,13 @@ export default function SetupPage() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Initial Setup</CardTitle>
-            <CardDescription>Create the first administrator account to get started.</CardDescription>
+            <CardTitle>{t("title")}</CardTitle>
+            <CardDescription>{t("subtitle")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="name">Full name</Label>
+                <Label htmlFor="name">{t("name")}</Label>
                 <Input
                   id="name"
                   placeholder="Jane Doe"
@@ -86,7 +89,7 @@ export default function SetupPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{tField("email")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -97,7 +100,7 @@ export default function SetupPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{tField("password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -107,7 +110,7 @@ export default function SetupPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="confirm">Confirm password</Label>
+                <Label htmlFor="confirm">{tAuth("confirmPassword")}</Label>
                 <Input
                   id="confirm"
                   type="password"
@@ -119,7 +122,7 @@ export default function SetupPage() {
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create admin account
+                {loading ? t("submitting") : t("submit")}
               </Button>
             </form>
           </CardContent>

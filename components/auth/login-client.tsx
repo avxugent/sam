@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Monitor, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 // Microsoft logo as inline SVG to avoid external image dependency
 function MicrosoftLogo() {
@@ -39,6 +40,8 @@ export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState(false);
+  const t = useTranslations("auth");
+  const tField = useTranslations("field");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +57,7 @@ export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
     setLoading(false);
 
     if (result?.error) {
-      setError("Invalid email or password.");
+      setError(t("invalidCredentials"));
     } else {
       router.push(safeCallback);
       router.refresh();
@@ -77,11 +80,11 @@ export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Sign in</CardTitle>
+            <CardTitle>{t("signIn")}</CardTitle>
             <CardDescription>
               {ssoEnabled
-                ? "Use your Microsoft account or local credentials"
-                : "Enter your credentials to access SAM"}
+                ? t("signInSubtitleSso")
+                : t("signInSubtitleCredentials")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -100,12 +103,12 @@ export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
                   ) : (
                     <MicrosoftLogo />
                   )}
-                  Sign in with Microsoft
+                  {t("signInWithEntra")}
                 </Button>
 
                 <div className="flex items-center gap-3">
                   <Separator className="flex-1" />
-                  <span className="text-xs text-muted-foreground">or</span>
+                  <span className="text-xs text-muted-foreground">{t("or")}</span>
                   <Separator className="flex-1" />
                 </div>
               </>
@@ -114,11 +117,11 @@ export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
             {/* Credentials form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{tField("email")}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@example.com"
+                  placeholder={t("emailPlaceholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -128,12 +131,12 @@ export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{tField("password")}</Label>
                   <Link
                     href="/login/forgot-password"
                     className="text-xs text-muted-foreground hover:text-foreground"
                   >
-                    Forgot password?
+                    {t("forgotPassword")}
                   </Link>
                 </div>
                 <Input
@@ -149,7 +152,7 @@ export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
               {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign in
+                {t("signIn")}
               </Button>
             </form>
           </CardContent>

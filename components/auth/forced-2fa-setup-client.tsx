@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 type Step = "intro" | "scanning" | "done";
 
 export function Forced2FASetupClient() {
+  const t = useTranslations("auth");
   const { toast } = useToast();
 
   const [step, setStep] = useState<Step>("intro");
@@ -74,10 +76,9 @@ export function Forced2FASetupClient() {
             <CardContent className="pt-6">
               <div className="flex flex-col items-center text-center gap-3 py-4">
                 <ShieldCheck className="h-12 w-12 text-green-500" />
-                <h3 className="text-lg font-semibold">2FA activated</h3>
+                <h3 className="text-lg font-semibold">{t("twoFactorEnabled")}</h3>
                 <p className="text-sm text-muted-foreground max-w-xs">
-                  Your account is now secured with two-factor authentication.
-                  You will be asked for a code at each login.
+                  {t("twoFactorEnabledDescription")}
                 </p>
                 <Button onClick={() => { window.location.href = "/"; }} className="mt-2">
                   Continue
@@ -100,10 +101,9 @@ export function Forced2FASetupClient() {
           </div>
           <Card>
             <CardHeader>
-              <CardTitle>Set up authenticator</CardTitle>
+              <CardTitle>{t("twoFactorSetupTitle")}</CardTitle>
               <CardDescription>
-                Scan the QR code with your authenticator app (Google Authenticator,
-                Aegis, 1Password, Authy, etc.), then enter the 6-digit code to confirm.
+                {t("twoFactorSetupSubtitle")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -120,11 +120,11 @@ export function Forced2FASetupClient() {
                   className="text-xs text-primary hover:underline"
                   onClick={() => setShowManualKey((v) => !v)}
                 >
-                  {showManualKey ? "Hide" : "Can't scan? Enter the key manually"}
+                  {showManualKey ? t("hideManualKey") : t("cantScanKey")}
                 </button>
                 {showManualKey && (
                   <div className="mt-2 p-3 bg-muted rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">Manual entry key:</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("twoFactorSetupSecret")}:</p>
                     <code className="text-sm font-mono select-all break-all">{secret}</code>
                     <p className="text-xs text-muted-foreground mt-1">
                       Type: Time-based · Period: 30s · Digits: 6
@@ -137,7 +137,7 @@ export function Forced2FASetupClient() {
 
               <form onSubmit={handleEnable} className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="totp-code">Enter the code shown in your app</Label>
+                  <Label htmlFor="totp-code">{t("twoFactorCode")}</Label>
                   <Input
                     id="totp-code"
                     value={code}
@@ -155,7 +155,7 @@ export function Forced2FASetupClient() {
                   disabled={loading || code.length !== 6}
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Activate 2FA
+                  {t("twoFactorSetupConfirm")}
                 </Button>
               </form>
             </CardContent>
@@ -177,11 +177,10 @@ export function Forced2FASetupClient() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-amber-500" />
-              <CardTitle>Two-factor authentication required</CardTitle>
+              <CardTitle>{t("twoFactorSetupRequired")}</CardTitle>
             </div>
             <CardDescription>
-              Your account requires two-factor authentication. Set up an authenticator
-              app to continue.
+              {t("twoFactorSetupSubtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -191,7 +190,7 @@ export function Forced2FASetupClient() {
               ) : (
                 <ShieldCheck className="mr-2 h-4 w-4" />
               )}
-              Set up 2FA
+              {t("twoFactorSetupTitle")}
             </Button>
           </CardContent>
         </Card>

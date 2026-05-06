@@ -19,6 +19,7 @@ import {
 import { Plus, Search, Pencil, Trash2, Wrench, Package } from "lucide-react";
 import { WorkLogFormDialog, type WorkLogAssetOption, type WorkLogUserOption } from "@/components/locations/work-log-form-dialog";
 import { JiraIssueBadge } from "@/components/locations/jira-issue-badge";
+import { useTranslations } from "next-intl";
 import { formatDate } from "@/lib/utils";
 
 export type WorkLogEntry = {
@@ -69,6 +70,8 @@ export function WorkLogList({
   userRole,
   jiraBaseUrl,
 }: Props) {
+  const t = useTranslations("workLog");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const { toast } = useToast();
   const [entries, setEntries] = useState<WorkLogEntry[]>(initialEntries);
@@ -98,11 +101,11 @@ export function WorkLogList({
     const res = await fetch(`/api/work-logs/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: "Delete failed", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== id));
-    toast({ title: "Entry deleted" });
+    toast({ title: t("entryDeleted") });
     router.refresh();
   }
 
@@ -135,7 +138,7 @@ export function WorkLogList({
           >
             <Button size="sm" className="h-[36px] gap-1.5 bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
               <Plus className="h-4 w-4" />
-              Add entry
+              {t("addEntry")}
             </Button>
           </WorkLogFormDialog>
         )}
@@ -145,7 +148,7 @@ export function WorkLogList({
       {entries.length === 0 ? (
         <div className="text-center py-12 border border-[#e2e8f0] rounded-[10px] bg-white">
           <Wrench className="h-10 w-10 mx-auto mb-3 text-[#94a3b8] opacity-60" />
-          <p className="text-[14px] text-[#64748b] mb-1">No work log entries yet</p>
+          <p className="text-[14px] text-[#64748b] mb-1">{t("noEntries")}</p>
           <p className="text-[12px] text-[#94a3b8]">
             {canCreate ? "Record what was done at this location." : "Entries will appear here when technicians log work."}
           </p>
@@ -232,9 +235,9 @@ export function WorkLogList({
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label={`Edit work log entry by ${entry.performedBy.name}`}
+                          aria-label={`${t("editEntry")} by ${entry.performedBy.name}`}
                           className="h-[28px] w-[28px]"
-                          title="Edit"
+                          title={t("editEntry")}
                         >
                           <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
                         </Button>
@@ -243,9 +246,9 @@ export function WorkLogList({
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label={`Delete work log entry by ${entry.performedBy.name}`}
+                        aria-label={`${t("deleteEntry")} by ${entry.performedBy.name}`}
                         className="h-[28px] w-[28px] text-[#94a3b8] hover:text-destructive"
-                        title="Delete"
+                        title={t("deleteEntry")}
                         onClick={() => setDeleteId(entry.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -262,18 +265,18 @@ export function WorkLogList({
       <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this work log entry?</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               This cannot be undone. The entry will be permanently removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => { if (deleteId) handleDelete(deleteId); setDeleteId(null); }}
             >
-              Delete
+              {tCommon("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

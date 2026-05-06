@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +114,8 @@ function TemplatePreview({ template }: { template: string }) {
 }
 
 export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }) {
+  const t = useTranslations("assetTypes");
+  const tCommon = useTranslations("common");
   const { toast } = useToast();
   const [types, setTypes] = useState(initialTypes);
   useEffect(() => { setTypes(initialTypes); }, [initialTypes]);
@@ -156,7 +159,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     setAdding(false);
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const item = await res.json();
@@ -166,7 +169,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
       )
     );
     setNewName("");
-    toast({ title: "Asset type added" });
+    toast({ title: t("typeCreated") });
   }
 
   async function handleEditName(id: string) {
@@ -178,7 +181,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const updated = await res.json();
@@ -188,7 +191,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
         .sort((a, b) => a.name.localeCompare(b.name))
     );
     setEditingId(null);
-    toast({ title: "Asset type updated" });
+    toast({ title: t("typeUpdated") });
   }
 
   async function handleSaveTemplate() {
@@ -196,7 +199,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     const errors = validateTemplate(templateValue);
     if (errors.length > 0) {
       toast({
-        title: "Template has errors",
+        title: t("templateHasErrors"),
         description: errors[0],
         variant: "destructive",
       });
@@ -213,30 +216,30 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     setTemplateSaving(false);
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error || err.details?.[0], variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error || err.details?.[0], variant: "destructive" });
       return;
     }
     const updated = await res.json();
     setTypes((prev) =>
-      prev.map((t) =>
-        t.id === templateDialog.id
-          ? { ...t, scrapeTargetTemplate: updated.scrapeTargetTemplate }
-          : t
+      prev.map((item) =>
+        item.id === templateDialog.id
+          ? { ...item, scrapeTargetTemplate: updated.scrapeTargetTemplate }
+          : item
       )
     );
     setTemplateDialog(null);
-    toast({ title: "Scrape template saved" });
+    toast({ title: t("scrapeTemplateSaved") });
   }
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/asset-types/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     setTypes((prev) => prev.filter((i) => i.id !== id));
-    toast({ title: "Asset type deleted" });
+    toast({ title: t("typeDeleted") });
   }
 
   return (
@@ -244,7 +247,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
       {/* Add form */}
       <div className="flex gap-2">
         <Input
-          placeholder="Add new asset type..."
+          placeholder={t("namePlaceholder")}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
@@ -252,7 +255,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
         />
         <Button onClick={handleAdd} disabled={adding || !newName.trim()}>
           {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          Add
+          {tCommon("add")}
         </Button>
       </div>
 
@@ -364,21 +367,21 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete &quot;{item.name}&quot;?</AlertDialogTitle>
+                            <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
                             <AlertDialogDescription>
                               {item._count.assets > 0
-                                ? `This type is used by ${item._count.assets} asset(s). Reassign them before deleting.`
-                                : "This will permanently delete this asset type."}
+                                ? t("typeInUse", { count: item._count.assets })
+                                : t("deleteConfirmDescription")}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDelete(item.id)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               disabled={item._count.assets > 0}
                             >
-                              Delete
+                              {tCommon("delete")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -394,7 +397,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                           <Activity className="h-3.5 w-3.5" />
-                          Prometheus Scrape Template
+                          {t("scrapeTemplate")}
                         </p>
                         <Button
                           size="sm"
@@ -406,7 +409,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                           }}
                         >
                           <Pencil className="h-3 w-3 mr-1" />
-                          Edit template
+                          {tCommon("edit")}
                         </Button>
                       </div>
 
@@ -418,9 +421,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                         <div className="flex items-start gap-2 text-xs text-muted-foreground py-2">
                           <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                           <span>
-                            No scrape template configured. Assets of this type will use their hostname as
-                            the Prometheus scrape target directly. Configure a template when assets are
-                            monitored via an external exporter (e.g. Pearl recorder exporter).
+                            {t("scrapeTemplateHelp")}
                           </span>
                         </div>
                       )}
@@ -460,7 +461,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
           ) : (
             <div className="overflow-auto max-h-[60vh]">
               <table className="w-full text-sm">
-                <caption className="sr-only">Assets of type {drilldownType?.name}</caption>
+                <caption className="sr-only">{drilldownType?.name}</caption>
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Location</th>
@@ -512,7 +513,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              Scrape Template — {templateDialog?.name}
+              {t("scrapeTemplate")} — {templateDialog?.name}
             </DialogTitle>
           </DialogHeader>
 
@@ -546,7 +547,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
             </div>
 
             <div className="space-y-1.5">
-              <Label>Template</Label>
+              <Label>{t("scrapeTemplate")}</Label>
               <Textarea
                 value={templateValue}
                 onChange={(e) => setTemplateValue(e.target.value)}
@@ -561,7 +562,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setTemplateDialog(null)}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -570,11 +571,11 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
               }}
               className="mr-auto"
             >
-              Clear template
+              {tCommon("delete")}
             </Button>
             <Button onClick={handleSaveTemplate} disabled={templateSaving}>
               {templateSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save template
+              {templateSaving ? tCommon("saving") : tCommon("save")}
             </Button>
           </DialogFooter>
         </DialogContent>

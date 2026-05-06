@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +59,9 @@ export function DeployStockDialog({
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("deploy");
+  const tCommon = useTranslations("common");
+  const tStock = useTranslations("stock");
   const [locations, setLocations] = useState<FlatLocation[]>([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [query, setQuery] = useState("");
@@ -120,11 +124,11 @@ export function DeployStockDialog({
 
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Deploy failed", description: err.error, variant: "destructive" });
+      toast({ title: t("deployFailed"), description: err.error, variant: "destructive" });
       return;
     }
 
-    toast({ title: `Deployed ${quantity} × ${itemModel} to ${selected.name}` });
+    toast({ title: t("deployedToLocation", { qty: quantity, model: itemModel, location: selected.name }) });
     onOpenChange(false);
     startTransition(() => {
       router.push(`/locations/${selected.id}`);
@@ -136,22 +140,22 @@ export function DeployStockDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Deploy &quot;{itemModel}&quot;</DialogTitle>
+          <DialogTitle>{t("title", { model: itemModel })}</DialogTitle>
         </DialogHeader>
 
         <div className="text-[12.5px] text-[#64748b] space-y-0.5">
           {isSerialized && (
-            <p>Serial: <span className="font-mono text-[#0f172a]">{itemSerial}</span></p>
+            <p>{tStock("serial")}: <span className="font-mono text-[#0f172a]">{itemSerial}</span></p>
           )}
           {!isSerialized && (
-            <p>Available: <span className="font-medium text-[#0f172a]">{availableQuantity}</span></p>
+            <p>{t("available")}: <span className="font-medium text-[#0f172a]">{availableQuantity}</span></p>
           )}
         </div>
 
         {/* Quantity selector (only for bulk items) */}
         {!isSerialized && (
           <div className="space-y-1">
-            <Label htmlFor="deploy-qty">Quantity to deploy</Label>
+            <Label htmlFor="deploy-qty">{t("quantityToDeploy")}</Label>
             <Input
               id="deploy-qty"
               type="number"
@@ -167,7 +171,7 @@ export function DeployStockDialog({
         {/* Optional serial numbers for bulk deploy */}
         {showSerialInputs && (
           <div className="space-y-2">
-            <Label className="text-[12.5px] text-[#64748b]">Serial numbers (optional)</Label>
+            <Label className="text-[12.5px] text-[#64748b]">{t("serialNumbersOptional")}</Label>
             <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
               {serialInputs.map((s, i) => (
                 <Input
@@ -178,7 +182,7 @@ export function DeployStockDialog({
                     next[i] = e.target.value;
                     setSerialInputs(next);
                   }}
-                  placeholder={`Unit ${i + 1} serial…`}
+                  placeholder={t("unitSerial", { n: i + 1 })}
                   className="font-mono text-[12.5px] h-8"
                 />
               ))}
@@ -191,7 +195,7 @@ export function DeployStockDialog({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
           <Input
             ref={searchRef}
-            placeholder="Search locations…"
+            placeholder={t("searchLocations")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-8 h-9 text-[13px]"
@@ -205,7 +209,7 @@ export function DeployStockDialog({
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex items-center justify-center h-20 text-[13px] text-[#94a3b8]">
-              No locations found
+              {t("noLocationsFound")}
             </div>
           ) : (
             <ul className="divide-y divide-[#f1f5f9]">
@@ -243,7 +247,7 @@ export function DeployStockDialog({
 
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={saving || isPending}>
-            Cancel
+            {tCommon("cancel")}
           </Button>
           <Button
             size="sm"
@@ -252,7 +256,7 @@ export function DeployStockDialog({
             className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
           >
             {saving || isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
-            Deploy to location
+            {tStock("deployTo")}
           </Button>
         </DialogFooter>
       </DialogContent>

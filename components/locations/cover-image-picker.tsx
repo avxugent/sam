@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Check, ImageOff, Loader2, Star } from "lucide-react";
@@ -26,6 +27,8 @@ export function CoverImagePicker({
   currentCoverImageId,
   onUpdate,
 }: Props) {
+  const t = useTranslations("coverImage");
+  const tCommon = useTranslations("common");
   const { toast } = useToast();
   const [selected, setSelected] = useState<string | null>(currentCoverImageId);
   const [saving, setSaving] = useState(false);
@@ -43,20 +46,20 @@ export function CoverImagePicker({
 
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
 
     setSelected(id);
     onUpdate(id);
-    toast({ title: id ? "Cover image set" : "Cover image removed" });
+    toast({ title: t("saved") });
   }
 
   if (imageAttachments.length === 0) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground border rounded-lg p-4">
         <ImageOff className="h-4 w-4 flex-shrink-0" />
-        <span>No images attached. Upload an image in the Attachments tab first.</span>
+        <span>{t("noImages")}</span>
       </div>
     );
   }
@@ -90,9 +93,15 @@ export function CoverImagePicker({
               />
               {isSelected && (
                 <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                  <div className="bg-primary text-primary-foreground rounded-full p-1">
+                  <div className="bg-primary text-primary-foreground rounded-full p-1 flex items-center gap-1">
                     <Check className="h-4 w-4" />
+                    <span className="text-xs pr-1">{t("currentCover")}</span>
                   </div>
+                </div>
+              )}
+              {!isSelected && (
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center transition-all">
+                  <span className="text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">{t("useThis")}</span>
                 </div>
               )}
               {saving && isSelected && (
@@ -116,7 +125,7 @@ export function CoverImagePicker({
           className="text-muted-foreground"
         >
           <Star className="h-3.5 w-3.5 mr-1.5" />
-          Remove cover image
+          {t("removeCover")}
         </Button>
       )}
     </div>

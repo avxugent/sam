@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Monitor, Loader2, ArrowLeft } from "lucide-react";
 
 export function ForgotPasswordClient() {
+  const t = useTranslations("auth");
+  const tField = useTranslations("field");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -43,16 +46,16 @@ export function ForgotPasswordClient() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Forgot password</CardTitle>
+            <CardTitle>{t("passwordResetTitle")}</CardTitle>
             <CardDescription>
-              Enter your email address and we&apos;ll send you a reset link.
+              {t("passwordResetSubtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {submitted ? (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  If an account with that email exists, a reset link has been sent. Check your inbox.
+                  {t("passwordResetEmailSent")}
                 </p>
                 <Link
                   href="/login"
@@ -65,11 +68,11 @@ export function ForgotPasswordClient() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{tField("email")}</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder={t("emailPlaceholder")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -79,7 +82,7 @@ export function ForgotPasswordClient() {
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Send reset link
+                  {t("passwordResetSendLink")}
                 </Button>
                 <Link
                   href="/login"

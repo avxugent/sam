@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,28 +17,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { Plus, Trash2, Save } from "lucide-react";
 import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey, ReportDefinition } from "@/lib/report-types";
 
-const FIELD_LABELS: Record<ReportFilterField, string> = {
-  typeId: "Asset Type",
-  manufacturerId: "Manufacturer",
-  locationId: "Location",
-  model: "Model",
-  serialNumber: "Serial Number",
-  hostname: "Hostname",
-  installationDate: "Installation Date",
-  invoiceDate: "Invoice Date",
-};
-
-const OP_LABELS: Record<FilterOp, string> = {
-  eq: "equals",
-  neq: "does not equal",
-  contains: "contains",
-  isNull: "is empty",
-  isNotNull: "is not empty",
-  before: "before",
-  after: "after",
-  olderThanYears: "older than (years)",
-  newerThanYears: "newer than (years)",
-};
 
 const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
   typeId: ["eq", "neq", "isNull", "isNotNull"],
@@ -50,26 +29,6 @@ const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
   invoiceDate: ["before", "after", "isNull", "isNotNull"],
 };
 
-const GROUP_BY_OPTIONS: { value: GroupByField; label: string }[] = [
-  { value: "none", label: "No grouping" },
-  { value: "type", label: "Asset Type" },
-  { value: "manufacturer", label: "Manufacturer" },
-  { value: "location", label: "Location" },
-  { value: "installationYear", label: "Installation Year" },
-];
-
-const COLUMN_OPTIONS: { value: ColumnKey; label: string }[] = [
-  { value: "model", label: "Model" },
-  { value: "serialNumber", label: "Serial Number" },
-  { value: "hostname", label: "Hostname" },
-  { value: "type", label: "Type" },
-  { value: "manufacturer", label: "Manufacturer" },
-  { value: "location", label: "Location" },
-  { value: "installationDate", label: "Installation Date" },
-  { value: "invoiceDate", label: "Invoice Date" },
-  { value: "invoiceNumber", label: "Invoice Number" },
-  { value: "notes", label: "Notes" },
-];
 
 const OPS_NEEDING_VALUE: FilterOp[] = ["eq", "neq", "contains", "before", "after", "olderThanYears", "newerThanYears"];
 
@@ -98,6 +57,53 @@ export function ReportBuilder({
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("report");
+  const tField = useTranslations("field");
+  const tCommon = useTranslations("common");
+
+  const fieldLabels: Record<ReportFilterField, string> = {
+    typeId: tField("type"),
+    manufacturerId: tField("manufacturer"),
+    locationId: tField("location"),
+    model: tField("model"),
+    serialNumber: tField("serialNumber"),
+    hostname: tField("hostname"),
+    installationDate: tField("installationDate"),
+    invoiceDate: tField("invoiceDate"),
+  };
+
+  const opLabels: Record<FilterOp, string> = {
+    eq: t("opEq"),
+    neq: t("opNeq"),
+    contains: t("opContains"),
+    isNull: t("opIsNull"),
+    isNotNull: t("opIsNotNull"),
+    before: t("opBefore"),
+    after: t("opAfter"),
+    olderThanYears: t("opOlderThanYears"),
+    newerThanYears: t("opNewerThanYears"),
+  };
+
+  const groupByOptions = [
+    { value: "none" as GroupByField, label: t("noGrouping") },
+    { value: "type" as GroupByField, label: tField("type") },
+    { value: "manufacturer" as GroupByField, label: tField("manufacturer") },
+    { value: "location" as GroupByField, label: tField("location") },
+    { value: "installationYear" as GroupByField, label: t("installationYear") },
+  ];
+
+  const columnOptions = [
+    { value: "model" as ColumnKey, label: tField("model") },
+    { value: "serialNumber" as ColumnKey, label: tField("serialNumber") },
+    { value: "hostname" as ColumnKey, label: tField("hostname") },
+    { value: "type" as ColumnKey, label: tField("type") },
+    { value: "manufacturer" as ColumnKey, label: tField("manufacturer") },
+    { value: "location" as ColumnKey, label: tField("location") },
+    { value: "installationDate" as ColumnKey, label: tField("installationDate") },
+    { value: "invoiceDate" as ColumnKey, label: tField("invoiceDate") },
+    { value: "invoiceNumber" as ColumnKey, label: tField("invoiceNumber") },
+    { value: "notes" as ColumnKey, label: tField("notes") },
+  ];
 
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
@@ -154,11 +160,11 @@ export function ReportBuilder({
 
   async function handleSave() {
     if (!name.trim()) {
-      toast({ title: "Name is required", variant: "destructive" });
+      toast({ title: t("nameRequired"), variant: "destructive" });
       return;
     }
     if (columns.length === 0) {
-      toast({ title: "Select at least one column", variant: "destructive" });
+      toast({ title: t("selectColumn"), variant: "destructive" });
       return;
     }
 
@@ -174,11 +180,11 @@ export function ReportBuilder({
       });
       if (!res.ok) {
         const err = await res.json();
-        toast({ title: "Error saving report", description: err.error, variant: "destructive" });
+        toast({ title: t("errorSaving"), description: err.error, variant: "destructive" });
         return;
       }
       const saved = await res.json();
-      toast({ title: reportId ? "Report updated" : "Report created" });
+      toast({ title: t("saved") });
       router.push(`/reports/${saved.id}`);
       router.refresh();
     } finally {
@@ -190,10 +196,10 @@ export function ReportBuilder({
     <div className="space-y-8">
       {/* Name & description */}
       <div className="space-y-4 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
-        <h2 className="text-[14px] font-semibold text-[#0f172a]">Report details</h2>
+        <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("details")}</h2>
         <div className="space-y-1.5">
           <Label htmlFor="report-name" className="text-[12.5px]">
-            Name <span aria-hidden="true" className="text-destructive">*</span>
+            {t("reportName")} <span aria-hidden="true" className="text-destructive">*</span>
           </Label>
           <Input
             id="report-name"
@@ -201,17 +207,17 @@ export function ReportBuilder({
             aria-required="true"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Assets older than 5 years"
+            placeholder={t("namePlaceholder")}
             className="h-[36px] text-[13px]"
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="report-desc" className="text-[12.5px]">Description</Label>
+          <Label htmlFor="report-desc" className="text-[12.5px]">{t("reportDescription")}</Label>
           <Input
             id="report-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional description"
+            placeholder={t("descriptionPlaceholder")}
             className="h-[36px] text-[13px]"
           />
         </div>
@@ -220,15 +226,15 @@ export function ReportBuilder({
       {/* Filters */}
       <div className="space-y-3 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-[14px] font-semibold text-[#0f172a]">Filters</h2>
+          <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("filters")}</h2>
           <Button variant="outline" size="sm" className="h-[30px] text-[12.5px] gap-1" onClick={addFilter}>
             <Plus className="h-3 w-3" />
-            Add filter
+            {t("addFilter")}
           </Button>
         </div>
 
         {filters.length === 0 && (
-          <p className="text-[12.5px] text-[#94a3b8]">No filters — report will include all assets.</p>
+          <p className="text-[12.5px] text-[#94a3b8]">{t("noFilters")}</p>
         )}
 
         <div className="space-y-2">
@@ -244,8 +250,8 @@ export function ReportBuilder({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(FIELD_LABELS) as ReportFilterField[]).map((fk) => (
-                      <SelectItem key={fk} value={fk}>{FIELD_LABELS[fk]}</SelectItem>
+                    {(Object.keys(fieldLabels) as ReportFilterField[]).map((fk) => (
+                      <SelectItem key={fk} value={fk}>{fieldLabels[fk]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -256,7 +262,7 @@ export function ReportBuilder({
                   </SelectTrigger>
                   <SelectContent>
                     {availableOps.map((op) => (
-                      <SelectItem key={op} value={op}>{OP_LABELS[op]}</SelectItem>
+                      <SelectItem key={op} value={op}>{opLabels[op]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -265,7 +271,7 @@ export function ReportBuilder({
                   options ? (
                     <Select value={f.value ?? ""} onValueChange={(v) => updateFilter(i, { value: v })}>
                       <SelectTrigger className="h-[34px] text-[12.5px] w-[180px]">
-                        <SelectValue placeholder="Select…" />
+                        <SelectValue placeholder={t("selectPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         {options.map((o) => (
@@ -288,7 +294,7 @@ export function ReportBuilder({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  aria-label={`Remove filter ${i + 1}`}
+                  aria-label={t("removeFilter", { n: i + 1 })}
                   className="h-[34px] w-[34px] p-0 text-[#94a3b8] hover:text-destructive"
                   onClick={() => removeFilter(i)}
                 >
@@ -302,13 +308,13 @@ export function ReportBuilder({
 
       {/* Group by */}
       <div className="space-y-3 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
-        <h2 className="text-[14px] font-semibold text-[#0f172a]">Group by</h2>
+        <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("groupBy")}</h2>
         <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupByField)}>
           <SelectTrigger className="h-[36px] text-[13px] w-[220px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {GROUP_BY_OPTIONS.map((o) => (
+            {groupByOptions.map((o) => (
               <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
             ))}
           </SelectContent>
@@ -317,9 +323,9 @@ export function ReportBuilder({
 
       {/* Columns */}
       <div className="space-y-3 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
-        <h2 className="text-[14px] font-semibold text-[#0f172a]">Columns</h2>
+        <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("columns")}</h2>
         <div className="flex flex-wrap gap-2">
-          {COLUMN_OPTIONS.map((c) => {
+          {columnOptions.map((c) => {
             const active = columns.includes(c.value);
             return (
               <button
@@ -337,14 +343,14 @@ export function ReportBuilder({
           })}
         </div>
         {columns.length === 0 && (
-          <p className="text-[12px] text-destructive">Select at least one column.</p>
+          <p className="text-[12px] text-destructive">{t("selectColumnError")}</p>
         )}
       </div>
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} className="gap-2 h-[38px] text-[13px]">
           <Save className="h-4 w-4" />
-          {saving ? "Saving…" : reportId ? "Save changes" : "Save report"}
+          {saving ? tCommon("saving") : reportId ? tCommon("saveChanges") : t("saveReport")}
         </Button>
       </div>
     </div>

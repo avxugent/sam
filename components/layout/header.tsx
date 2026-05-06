@@ -82,6 +82,7 @@ function getInitials(name?: string | null, email?: string | null): string {
 function SearchBar() {
   const t = useTranslations("nav");
   const tc = useTranslations("common");
+  const tAsset = useTranslations("asset");
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState("");
@@ -119,7 +120,7 @@ function SearchBar() {
         results.push({
           id: a.id,
           kind: "asset",
-          title: a.model || a.hostname || a.serialNumber || "Asset",
+          title: a.model || a.hostname || a.serialNumber || tAsset("title"),
           subtitle: [a.type?.name, a.location?.name].filter(Boolean).join(" · "),
           href: `/locations/${a.location.id}/assets/${a.id}`,
         });

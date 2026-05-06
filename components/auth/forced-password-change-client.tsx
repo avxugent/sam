@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { signOut } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,8 @@ const schema = z
 type FormData = z.infer<typeof schema>;
 
 export function ForcedPasswordChangeClient() {
+  const t = useTranslations("auth");
+  const tCommon = useTranslations("common");
   const [serverError, setServerError] = useState("");
 
   const {
@@ -70,16 +73,16 @@ export function ForcedPasswordChangeClient() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-amber-500" />
-              <CardTitle>Change your password</CardTitle>
+              <CardTitle>{t("passwordChangeTitle")}</CardTitle>
             </div>
             <CardDescription>
-              Your account requires a password change before you can continue.
+              {t("passwordChangeRequired")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="currentPassword">Current password</Label>
+                <Label htmlFor="currentPassword">{t("currentPassword")}</Label>
                 <Input
                   id="currentPassword"
                   type="password"
@@ -93,7 +96,7 @@ export function ForcedPasswordChangeClient() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="newPassword">New password</Label>
+                <Label htmlFor="newPassword">{t("newPassword")}</Label>
                 <Input
                   id="newPassword"
                   type="password"
@@ -107,7 +110,7 @@ export function ForcedPasswordChangeClient() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="confirmPassword">Confirm new password</Label>
+                <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -126,7 +129,7 @@ export function ForcedPasswordChangeClient() {
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Change password
+                {isSubmitting ? tCommon("saving") : tCommon("save")}
               </Button>
             </form>
           </CardContent>

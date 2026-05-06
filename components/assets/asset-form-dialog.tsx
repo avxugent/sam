@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Loader2, Plus, Trash2, KeyRound, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useTranslations } from "next-intl";
 
 // ── Validation helpers ──────────────────────────────────────────────────────
 
@@ -113,6 +114,10 @@ type Props = {
 export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("assetForm");
+  const tField = useTranslations("field");
+  const tCommon = useTranslations("common");
+  const tAsset = useTranslations("asset");
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
@@ -231,11 +236,11 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       const data = await res.json();
       setVaultTestResult({
         ok: data.ok === true,
-        message: data.message || data.error || "Unknown result",
+        message: data.message || data.error || t("vaultUnknown"),
         keys: data.keys,
       });
     } catch {
-      setVaultTestResult({ ok: false, message: "Request failed — check your network." });
+      setVaultTestResult({ ok: false, message: t("vaultNetworkError") });
     }
     setVaultTesting(false);
   }
@@ -266,14 +271,14 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     if (!res.ok) {
       const err = await res.json();
       toast({
-        title: "Error",
-        description: err.error || "Something went wrong.",
+        title: tCommon("error"),
+        description: err.error || tCommon("somethingWentWrong"),
         variant: "destructive",
       });
       return;
     }
 
-    toast({ title: mode === "create" ? "Asset created" : "Asset updated" });
+    toast({ title: mode === "create" ? tAsset("assetCreated") : tAsset("assetUpdated") });
     setOpen(false);
     reset({ typeId: "", manufacturerId: "", model: "", macAddresses: [], customFields: [], vaultPath: "" });
     router.refresh();
@@ -293,7 +298,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{mode === "create" ? "Add Asset" : "Edit Asset"}</DialogTitle>
+          <DialogTitle>{mode === "create" ? t("createTitle") : t("editTitle")}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -302,7 +307,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             {/* Type — required */}
             <div className="space-y-1.5">
               <Label htmlFor="asset-type">
-                Type <span aria-hidden="true" className="text-destructive">*</span>
+                {tField("type")} <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
               <Select
                 value={typeIdValue || ""}
@@ -317,10 +322,10 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                   aria-describedby={errors.typeId ? "asset-type-err" : undefined}
                   className={cn(errors.typeId && "border-destructive ring-destructive")}
                 >
-                  <SelectValue placeholder="Select type..." />
+                  <SelectValue placeholder={t("selectType")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">— Select a type —</SelectItem>
+                  <SelectItem value="_none">{t("noneType")}</SelectItem>
                   {assetTypes.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name}
@@ -336,7 +341,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             {/* Manufacturer — required */}
             <div className="space-y-1.5">
               <Label htmlFor="asset-manufacturer">
-                Manufacturer <span aria-hidden="true" className="text-destructive">*</span>
+                {tField("manufacturer")} <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
               <Select
                 value={manufacturerIdValue || ""}
@@ -351,10 +356,10 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                   aria-describedby={errors.manufacturerId ? "asset-manufacturer-err" : undefined}
                   className={cn(errors.manufacturerId && "border-destructive ring-destructive")}
                 >
-                  <SelectValue placeholder="Select manufacturer..." />
+                  <SelectValue placeholder={t("selectManufacturer")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">— Select a manufacturer —</SelectItem>
+                  <SelectItem value="_none">{t("noneManufacturer")}</SelectItem>
                   {manufacturers.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                       {m.name}
@@ -370,7 +375,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             {/* Model — required, with autocomplete */}
             <div className="space-y-1.5 relative col-span-2">
               <Label htmlFor="model">
-                Model <span aria-hidden="true" className="text-destructive">*</span>
+                {tField("model")} <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
               <Input
                 id="model"
@@ -378,7 +383,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 aria-invalid={!!errors.model}
                 aria-describedby={errors.model ? "model-err" : undefined}
                 {...register("model")}
-                placeholder="e.g. Epson EB-W06"
+                placeholder={t("modelPlaceholder")}
                 autoComplete="off"
                 className={cn(errors.model && "border-destructive")}
                 onFocus={() => setShowSuggestions(true)}
@@ -408,21 +413,21 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
             {/* Serial number */}
             <div className="space-y-1.5">
-              <Label htmlFor="serialNumber">Serial Number</Label>
+              <Label htmlFor="serialNumber">{tField("serialNumber")}</Label>
               <Input
                 id="serialNumber"
                 {...register("serialNumber")}
-                placeholder="SN-XXXX"
+                placeholder={t("serialPlaceholder")}
               />
             </div>
 
             {/* Hostname — optional, must be FQDN if filled */}
             <div className="space-y-1.5">
               <Label htmlFor="hostname">
-                Hostname
+                {tField("hostname")}
                 {hostnameSet && (
                   <span className="ml-1.5 text-xs text-muted-foreground font-normal">
-                    (MAC required)
+                    ({tAsset("macHelpText")})
                   </span>
                 )}
               </Label>
@@ -431,7 +436,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 aria-invalid={!!errors.hostname}
                 aria-describedby={errors.hostname ? "hostname-err" : "hostname-hint"}
                 {...register("hostname")}
-                placeholder="device.example.com"
+                placeholder={t("hostnamePlaceholder")}
                 className={cn(errors.hostname && "border-destructive")}
               />
               {errors.hostname && (
@@ -439,14 +444,14 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               )}
               {!errors.hostname && (
                 <p id="hostname-hint" className="text-xs text-muted-foreground">
-                  Must be a fully qualified domain name
+                  {t("hostnameHint")}
                 </p>
               )}
             </div>
 
             {/* Installation date */}
             <div className="space-y-1.5">
-              <Label htmlFor="installationDate">Installation Date</Label>
+              <Label htmlFor="installationDate">{tField("installationDate")}</Label>
               <Input
                 id="installationDate"
                 type="date"
@@ -456,17 +461,17 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
             {/* Invoice number */}
             <div className="space-y-1.5">
-              <Label htmlFor="invoiceNumber">Invoice Number</Label>
+              <Label htmlFor="invoiceNumber">{tField("invoiceNumber")}</Label>
               <Input
                 id="invoiceNumber"
                 {...register("invoiceNumber")}
-                placeholder="INV-XXXX"
+                placeholder={t("invoicePlaceholder")}
               />
             </div>
 
             {/* Invoice date */}
             <div className="space-y-1.5">
-              <Label htmlFor="invoiceDate">Invoice Date</Label>
+              <Label htmlFor="invoiceDate">{tField("invoiceDate")}</Label>
               <Input id="invoiceDate" type="date" {...register("invoiceDate")} />
             </div>
           </div>
@@ -476,14 +481,14 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             <div className="flex items-center justify-between">
               <div>
                 <Label>
-                  MAC Addresses
+                  {tField("macAddresses")}
                   {hostnameSet && !hasAnyMac && (
                     <span className="ml-1.5 text-destructive text-xs">*</span>
                   )}
                 </Label>
                 {hostnameSet && (
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Required when hostname is set
+                    {tAsset("macHelpText")}
                   </p>
                 )}
               </div>
@@ -494,7 +499,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 onClick={() => appendMac({ address: "" })}
               >
                 <Plus className="h-3.5 w-3.5 mr-1" />
-                Add MAC
+                {t("addMacAddress")}
               </Button>
             </div>
 
@@ -502,10 +507,10 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               <div key={field.id} className="flex gap-2">
                 <Input
                   {...register(`macAddresses.${i}.address`)}
-                  aria-label={`MAC address ${i + 1}`}
+                  aria-label={`${tField("macAddress")} ${i + 1}`}
                   aria-invalid={!!errors.macAddresses?.[i]?.address}
                   aria-describedby={errors.macAddresses?.[i]?.address ? `mac-err-${i}` : undefined}
-                  placeholder="AA:BB:CC:DD:EE:FF"
+                  placeholder={t("macPlaceholder")}
                   className={cn(
                     "font-mono",
                     errors.macAddresses?.[i]?.address && "border-destructive"
@@ -515,7 +520,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                   type="button"
                   variant="ghost"
                   size="icon"
-                  aria-label={`Remove MAC address ${i + 1}`}
+                  aria-label={t("removeMacAriaLabel", { n: i + 1 })}
                   onClick={() => removeMac(i)}
                   className="text-destructive hover:text-destructive flex-shrink-0"
                 >
@@ -528,7 +533,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             {macFields.map((field, i) =>
               errors.macAddresses?.[i]?.address ? (
                 <p key={`mac-err-${field.id}`} id={`mac-err-${i}`} className="text-xs text-destructive -mt-1">
-                  MAC {i + 1}: {errors.macAddresses[i]?.address?.message}
+                  {t("macLabel", { n: i + 1 })}: {errors.macAddresses[i]?.address?.message}
                 </p>
               ) : null
             )}
@@ -541,11 +546,11 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
           {/* Notes */}
           <div className="space-y-1.5">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">{tField("notes")}</Label>
             <Textarea
               id="notes"
               {...register("notes")}
-              placeholder="Any additional notes..."
+              placeholder={t("notesPlaceholder")}
               rows={3}
             />
           </div>
@@ -553,7 +558,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
           {/* Custom fields */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Custom Fields</Label>
+              <Label>{tField("customFields")}</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -561,19 +566,19 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 onClick={() => appendCf({ key: "", value: "" })}
               >
                 <Plus className="h-3.5 w-3.5 mr-1" />
-                Add Field
+                {t("addCustomField")}
               </Button>
             </div>
             {cfFields.map((field, i) => (
               <div key={field.id} className="flex gap-2">
                 <Input
                   {...register(`customFields.${i}.key`)}
-                  placeholder="Field name"
+                  placeholder={t("fieldNamePlaceholder")}
                   className="w-1/3"
                 />
                 <Input
                   {...register(`customFields.${i}.value`)}
-                  placeholder="Value"
+                  placeholder={t("fieldValuePlaceholder")}
                   className="flex-1"
                 />
                 <Button
@@ -594,19 +599,18 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             <div className="flex items-center gap-1.5">
               <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Vault Credentials (optional)
+                {tField("vaultCredentials")} ({tCommon("optional")})
               </Label>
             </div>
             <p className="text-xs text-muted-foreground">
-              Path to a HashiCorp Vault KV secret containing per-device credentials
-              used by the Prometheus scrape template (e.g.{" "}
+              {t("vaultPathHelp")} (e.g.{" "}
               <code className="bg-muted px-1 rounded">secret/av/rectest001</code>).
             </p>
             <div className="flex gap-2">
               <Input
                 id="vaultPath"
                 {...register("vaultPath")}
-                placeholder="secret/av/rectest001"
+                placeholder={t("vaultPathPlaceholder")}
                 className="font-mono text-sm flex-1"
               />
               <Button
@@ -620,7 +624,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 {vaultTesting ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  "Test"
+                  t("testVault")
                 )}
               </Button>
             </div>
@@ -657,11 +661,11 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {mode === "create" ? "Create" : "Save"}
+              {mode === "create" ? t("createSubmit") : t("updateSubmit")}
             </Button>
           </DialogFooter>
         </form>

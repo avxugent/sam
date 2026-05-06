@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { useTranslations } from "next-intl";
 import {
   Upload,
   FileText,
@@ -58,6 +59,7 @@ const COLUMN_MAPPING = [
 
 export function CsvImportClient() {
   const { toast } = useToast();
+  const t = useTranslations("import");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
@@ -81,7 +83,7 @@ export function CsvImportClient() {
 
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Preview failed", description: err.error, variant: "destructive" });
+      toast({ title: t("previewFailed"), description: err.error, variant: "destructive" });
       return;
     }
     setPreview(await res.json());
@@ -99,12 +101,12 @@ export function CsvImportClient() {
 
     const data = await res.json();
     if (!res.ok) {
-      toast({ title: "Import failed", description: data.error, variant: "destructive" });
+      toast({ title: t("importFailed"), description: data.error, variant: "destructive" });
       return;
     }
     setResult(data);
     if (data.created > 0) {
-      toast({ title: `Import complete — ${data.created} assets created` });
+      toast({ title: t("assetsCreated", { count: data.created }) });
     }
   }
 
@@ -120,11 +122,8 @@ export function CsvImportClient() {
       {/* Step 1: File selection */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Step 1 — Select CSV file</CardTitle>
-          <CardDescription>
-            Upload a semicolon- or comma-separated CSV file exported from your spreadsheet.
-            The file must include a header row.
-          </CardDescription>
+          <CardTitle className="text-base">{t("step1Title")}</CardTitle>
+          <CardDescription>{t("step1Description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <input
@@ -146,8 +145,8 @@ export function CsvImportClient() {
               }}
             >
               <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-              <p className="text-sm font-medium">Drop your CSV here or click to browse</p>
-              <p className="text-xs text-muted-foreground mt-1">Supports ; and , delimiters</p>
+              <p className="text-sm font-medium">{t("dropZone")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("dropZoneSupports")}</p>
             </div>
           ) : (
             <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
@@ -158,7 +157,7 @@ export function CsvImportClient() {
                   {(file.size / 1024).toFixed(1)} KB
                 </p>
               </div>
-              <Button variant="ghost" size="icon" aria-label="Remove selected file" className="h-8 w-8" onClick={reset}>
+              <Button variant="ghost" size="icon" aria-label={t("removeFile")} className="h-8 w-8" onClick={reset}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -174,8 +173,8 @@ export function CsvImportClient() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base">Column mapping reference</CardTitle>
-              <CardDescription>How your CSV columns map to SAM fields</CardDescription>
+              <CardTitle className="text-base">{t("mappingTitle")}</CardTitle>
+              <CardDescription>{t("mappingDescription")}</CardDescription>
             </div>
             {showMapping ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </div>
@@ -201,7 +200,7 @@ export function CsvImportClient() {
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-            Parsing file…
+            {t("parsingFile")}
           </CardContent>
         </Card>
       )}
@@ -209,18 +208,17 @@ export function CsvImportClient() {
       {preview && !result && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Step 2 — Preview</CardTitle>
+            <CardTitle className="text-base">{t("previewTitle")}</CardTitle>
             <CardDescription>
-              Detected <strong>{preview.totalRows}</strong> data rows and{" "}
-              <strong>{preview.columns.length}</strong> columns.
-              {preview.totalRows > 0 && " First 5 rows shown below."}
+              {t("detectedRows", { rows: preview.totalRows, cols: preview.columns.length })}
+              {preview.totalRows > 0 && ` ${t("firstRowsShown")}`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Detected columns */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                Detected columns
+                {t("detectedColumns")}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {preview.columns.map((col) => {
@@ -234,9 +232,9 @@ export function CsvImportClient() {
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 <span className="inline-block w-3 h-3 rounded bg-primary mr-1 align-middle" />
-                Recognised &nbsp;
+                {t("recognised")} &nbsp;
                 <span className="inline-block w-3 h-3 rounded border border-border mr-1 align-middle" />
-                Unknown (will be ignored)
+                {t("unknownColumn")}
               </p>
             </div>
 
@@ -244,7 +242,7 @@ export function CsvImportClient() {
             {preview.preview.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs border rounded-lg overflow-hidden">
-                  <caption className="sr-only">CSV preview, first {preview.preview.length} rows</caption>
+                  <caption className="sr-only">{t("previewRowCount", { n: preview.preview.length })}</caption>
                   <thead>
                     <tr className="bg-muted/50 border-b">
                       {preview.columns.map((col) => (
@@ -272,7 +270,7 @@ export function CsvImportClient() {
             <div className="flex justify-end pt-2">
               <Button onClick={handleImport} disabled={importing} size="lg">
                 {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Import {preview.totalRows} row{preview.totalRows !== 1 ? "s" : ""}
+                {t("importRows", { count: preview.totalRows })}
               </Button>
             </div>
           </CardContent>
@@ -289,18 +287,18 @@ export function CsvImportClient() {
               ) : (
                 <AlertCircle className="h-5 w-5 text-destructive" />
               )}
-              Import {result.created > 0 ? "complete" : "finished with issues"}
+              {result.created > 0 ? t("completeTitle") : t("issuesTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                 <p className="text-2xl font-bold text-green-700">{result.created}</p>
-                <p className="text-green-600 text-xs mt-1">Assets created</p>
+                <p className="text-green-600 text-xs mt-1">{t("assetsCreatedCount")}</p>
               </div>
               <div className="bg-muted rounded-lg p-4 text-center">
                 <p className="text-2xl font-bold text-muted-foreground">{result.skipped}</p>
-                <p className="text-muted-foreground text-xs mt-1">Rows skipped</p>
+                <p className="text-muted-foreground text-xs mt-1">{t("rowsSkipped")}</p>
               </div>
             </div>
 
@@ -311,7 +309,7 @@ export function CsvImportClient() {
                   onClick={() => setShowErrors((v) => !v)}
                 >
                   <AlertCircle className="h-4 w-4" />
-                  {result.errors.length} error{result.errors.length !== 1 ? "s" : ""}
+                  {t("errorsCount", { count: result.errors.length })}
                   {showErrors ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                 </button>
                 {showErrors && (
@@ -328,10 +326,10 @@ export function CsvImportClient() {
 
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={reset}>
-                Import another file
+                {t("importAnother")}
               </Button>
               <Button onClick={() => window.location.href = "/"}>
-                Go to locations
+                {t("goToLocations")}
               </Button>
             </div>
           </CardContent>

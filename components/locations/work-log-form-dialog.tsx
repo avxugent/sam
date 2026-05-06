@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useTranslations } from "next-intl";
 import { createWorkLogSchema } from "@/lib/work-log-schema";
 import type { z } from "zod";
 
@@ -78,6 +79,9 @@ export function WorkLogFormDialog({
   children,
   onSuccess,
 }: Props) {
+  const t = useTranslations("workLog");
+  const tCommon = useTranslations("common");
+  const tField = useTranslations("field");
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -152,14 +156,14 @@ export function WorkLogFormDialog({
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       toast({
-        title: "Error",
-        description: err.error || "Something went wrong.",
+        title: tCommon("error"),
+        description: err.error || tCommon("somethingWentWrong"),
         variant: "destructive",
       });
       return;
     }
 
-    toast({ title: mode === "create" ? "Work log entry added" : "Work log entry updated" });
+    toast({ title: mode === "create" ? t("entryCreated") : t("entryUpdated") });
     setOpen(false);
     reset();
     router.refresh();
@@ -184,12 +188,12 @@ export function WorkLogFormDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{mode === "create" ? "Add work log entry" : "Edit work log entry"}</DialogTitle>
+          <DialogTitle>{mode === "create" ? t("addEntry") : t("editEntry")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Asset (optional) */}
           <div className="space-y-1.5">
-            <Label htmlFor="wl-asset">Asset <span className="text-xs text-muted-foreground">(optional)</span></Label>
+            <Label htmlFor="wl-asset">{t("asset")} <span className="text-xs text-muted-foreground">({tCommon("optional")})</span></Label>
             <Select
               value={assetIdValue ?? NO_ASSET}
               onValueChange={(v) => setValue("assetId", v === NO_ASSET ? null : v, { shouldValidate: true })}
@@ -198,7 +202,7 @@ export function WorkLogFormDialog({
                 <SelectValue placeholder="No specific asset" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_ASSET}>— No specific asset —</SelectItem>
+                <SelectItem value={NO_ASSET}>— {t("noAsset")} —</SelectItem>
                 {assets.map((a) => (
                   <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>
                 ))}
@@ -226,7 +230,7 @@ export function WorkLogFormDialog({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="wl-user">
-                Performed by <span aria-hidden="true" className="text-destructive">*</span>
+                {t("performedBy")} <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
               <Select
                 value={watch("performedById") ?? currentUserId}
@@ -276,7 +280,7 @@ export function WorkLogFormDialog({
           {/* Description */}
           <div className="space-y-1.5">
             <Label htmlFor="wl-desc">
-              Description <span aria-hidden="true" className="text-destructive">*</span>
+              {tField("description")} <span aria-hidden="true" className="text-destructive">*</span>
             </Label>
             <Textarea
               id="wl-desc"
@@ -295,7 +299,7 @@ export function WorkLogFormDialog({
           {/* JIRA key (optional) */}
           <div className="space-y-1.5">
             <Label htmlFor="wl-jira">
-              JIRA issue key <span className="text-xs text-muted-foreground">(optional)</span>
+              {t("jiraIssueKey")} <span className="text-xs text-muted-foreground">({tCommon("optional")})</span>
             </Label>
             <Input
               id="wl-jira"
@@ -312,11 +316,11 @@ export function WorkLogFormDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting} className="gap-1.5">
               {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              {mode === "create" ? "Add entry" : "Save changes"}
+              {mode === "create" ? t("addEntry") : tCommon("saveChanges")}
             </Button>
           </DialogFooter>
         </form>

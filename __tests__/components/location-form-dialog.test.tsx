@@ -8,6 +8,15 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
+vi.mock("next-intl", () => ({
+  useTranslations: (ns: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const messages = require("../../messages/en.json") as Record<string, Record<string, string>>;
+    const section = messages[ns] ?? {};
+    return (key: string) => section[key] ?? key;
+  },
+}));
+
 // Mock fetch — the dialog POSTs to /api/locations
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -37,14 +46,14 @@ describe("<LocationFormDialog /> — create mode", () => {
     renderDialog();
     await openDialog();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("Add Location")).toBeInTheDocument();
+    expect(screen.getByText("Add location")).toBeInTheDocument();
   });
 
   it("shows the Name field as required", async () => {
     renderDialog();
     await openDialog();
     // Submit without filling in name
-    const submitBtn = screen.getByRole("button", { name: "Create" });
+    const submitBtn = screen.getByRole("button", { name: "Create location" });
     await userEvent.setup().click(submitBtn);
     await waitFor(() => {
       expect(screen.getByText("Name is required")).toBeInTheDocument();
@@ -58,7 +67,7 @@ describe("<LocationFormDialog /> — create mode", () => {
     const fiInput = screen.getByPlaceholderText("14.10.100.013");
     // Type only 7 digits — auto-formats to "14.10.10" which fails the regex
     await user.type(fiInput, "1410100");
-    const submitBtn = screen.getByRole("button", { name: "Create" });
+    const submitBtn = screen.getByRole("button", { name: "Create location" });
     await user.click(submitBtn);
     await waitFor(() => {
       // Should show Zod error: "Format: CC.BB.FFF.RRR ..."
@@ -89,7 +98,7 @@ describe("<LocationFormDialog /> — create mode", () => {
     const user = await openDialog();
 
     await user.type(screen.getByLabelText(/Name/), "Room 101");
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("button", { name: "Create location" }));
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
@@ -108,7 +117,7 @@ describe("<LocationFormDialog /> — create mode", () => {
     renderDialog();
     const user = await openDialog();
     await user.type(screen.getByLabelText(/Name/), "Room");
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("button", { name: "Create location" }));
 
     // Verify the fetch was called — the dialog handles the error internally via toast
     await waitFor(() => {
@@ -134,7 +143,7 @@ describe("<LocationFormDialog /> — edit mode", () => {
       </LocationFormDialog>
     );
     await userEvent.setup().click(screen.getByRole("button", { name: "Open" }));
-    expect(screen.getByText("Edit Location")).toBeInTheDocument();
+    expect(screen.getByText("Edit location")).toBeInTheDocument();
   });
 
   it("pre-fills the name field with initial data", async () => {

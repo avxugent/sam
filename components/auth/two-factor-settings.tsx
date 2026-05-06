@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { useTranslations } from "next-intl";
 import {
   ShieldCheck,
   ShieldOff,
@@ -39,6 +40,8 @@ type SetupState = "idle" | "scanning" | "verifying" | "done";
 export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("auth");
+  const tCommon = useTranslations("common");
 
   const [enabled, setEnabled] = useState(initialEnabled);
   const [setupState, setSetupState] = useState<SetupState>("idle");
@@ -72,7 +75,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
     setLoading(false);
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const data = await res.json();
@@ -97,14 +100,14 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
 
     const data = await res.json();
     if (!res.ok) {
-      toast({ title: "Invalid code", description: data.error, variant: "destructive" });
+      toast({ title: t("twoFactorInvalid"), description: data.error, variant: "destructive" });
       setEnableCode("");
       return;
     }
 
     setEnabled(true);
     setSetupState("done");
-    toast({ title: "2FA enabled", description: "Your account is now protected." });
+    toast({ title: t("twoFactorEnabled"), description: t("twoFactorEnabledDescription") });
     router.refresh();
   }
 
@@ -122,7 +125,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
 
     const data = await res.json();
     if (!res.ok) {
-      toast({ title: "Invalid code", description: data.error, variant: "destructive" });
+      toast({ title: t("twoFactorInvalid"), description: data.error, variant: "destructive" });
       setDisableCode("");
       return;
     }
@@ -130,7 +133,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
     setEnabled(false);
     setSetupState("idle");
     setDisableCode("");
-    toast({ title: "2FA disabled" });
+    toast({ title: t("twoFactorDisabled") });
     router.refresh();
   }
 
@@ -217,7 +220,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
                     {loading && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-                    Disable 2FA
+                    {t("twoFactorDisable")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -254,10 +257,9 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Set up authenticator</CardTitle>
+          <CardTitle className="text-base">{t("twoFactorSetupTitle")}</CardTitle>
           <CardDescription>
-            Scan the QR code with your authenticator app (Google Authenticator,
-            Aegis, 1Password, Authy, etc.), then enter the 6-digit code to confirm.
+            {t("twoFactorSetupSubtitle")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -282,7 +284,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
               className="text-xs text-primary hover:underline"
               onClick={() => setShowManualKey((v) => !v)}
             >
-              {showManualKey ? "Hide" : "Can't scan? Enter the key manually"}
+              {showManualKey ? t("hideManualKey") : t("cantScanKey")}
             </button>
             {showManualKey && (
               <div className="mt-2 p-3 bg-muted rounded-lg">
@@ -331,7 +333,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
                 className="flex-1"
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Activate 2FA
+                {t("twoFactorSetupConfirm")}
               </Button>
             </div>
           </form>

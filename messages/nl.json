@@ -604,7 +604,16 @@
     "deleteLinkTitle": "Link verwijderen?",
     "linkType": "Link",
     "addedBy": "Toegevoegd op {date} door {name}",
-    "addLinkSubmit": "Link toevoegen"
+    "addLinkSubmit": "Link toevoegen",
+    "editAttachment": "Bijlage bewerken",
+    "displayName": "Weergavenaam",
+    "displayNamePlaceholder": "Aangepaste naam (leeg laten voor bestandsnaam)",
+    "descriptionLabel": "Beschrijving",
+    "descriptionPlaceholder": "Optionele beschrijving…",
+    "attachmentUpdated": "Bijlage bijgewerkt",
+    "previewAlt": "Voorbeeld van {name}",
+    "openFullSize": "Volledig formaat openen",
+    "noPreview": "Geen voorbeeld beschikbaar"
   },
   "setup": {
     "title": "Welkom bij SAM",

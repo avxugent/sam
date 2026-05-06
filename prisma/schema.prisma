@@ -191,6 +191,8 @@ model Attachment {
   attachmentType String   @default("file") // "file" | "link"
   filename       String?  // null for link attachments
   originalName   String   // file original name OR link display label
+  displayName    String?  // user-editable display name; null = fall back to originalName
+  description    String?  @db.Text
   mimeType       String?  // null for link attachments
   size           Int?     // null for link attachments
   path           String?  // null for link attachments

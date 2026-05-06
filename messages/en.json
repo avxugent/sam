@@ -604,7 +604,16 @@
     "deleteLinkTitle": "Delete link?",
     "linkType": "Link",
     "addedBy": "Added {date} by {name}",
-    "addLinkSubmit": "Add link"
+    "addLinkSubmit": "Add link",
+    "editAttachment": "Edit attachment",
+    "displayName": "Display name",
+    "displayNamePlaceholder": "Custom name (leave blank to use filename)",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Optional description…",
+    "attachmentUpdated": "Attachment updated",
+    "previewAlt": "Preview of {name}",
+    "openFullSize": "Open full size",
+    "noPreview": "No preview available"
   },
   "setup": {
     "title": "Welcome to SAM",

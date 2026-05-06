@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getStorageDriver, StorageNotFoundError } from "@/lib/storage";
+import { z } from "zod";
+
+const updateSchema = z.object({
+  displayName: z.string().max(255).nullable().optional(),
+  description: z.string().max(2000).nullable().optional(),
+});
 
 /** Strip characters that could break HTTP headers or cause path traversal */
 function safeFilename(name: string): string {
@@ -17,6 +23,44 @@ function safeFilename(name: string): string {
 function contentDispositionHeader(disposition: "inline" | "attachment", filename: string): string {
   const encoded = encodeURIComponent(filename);
   return `${disposition}; filename="${filename}"; filename*=UTF-8''${encoded}`;
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { id } = await params;
+  const attachment = await prisma.attachment.findUnique({ where: { id } });
+  if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const body = await req.json();
+  const parsed = updateSchema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+
+  const updated = await prisma.attachment.update({
+    where: { id },
+    data: {
+      displayName: parsed.data.displayName ?? null,
+      description: parsed.data.description ?? null,
+    },
+    include: { uploadedBy: { select: { id: true, name: true } } },
+  });
+
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "Attachment",
+    entityId: id,
+    entityName: updated.displayName ?? updated.originalName,
+    detail: { displayName: updated.displayName, description: updated.description },
+  });
+
+  return NextResponse.json(updated);
 }
 
 export async function DELETE(

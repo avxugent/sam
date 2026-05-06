@@ -98,6 +98,7 @@ function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
 const linkSchema = z.object({
   url: z.string().url().max(2000),
   label: z.string().min(1).max(255),
+  description: z.string().max(2000).nullable().optional(),
   locationId: z.string().optional().nullable(),
   assetId: z.string().optional().nullable(),
 });
@@ -114,7 +115,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = linkSchema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
-    const { url, label, locationId, assetId } = parsed.data;
+    const { url, label, description, locationId, assetId } = parsed.data;
     if (!locationId && !assetId) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
 
     const attachment = await prisma.attachment.create({
@@ -122,6 +123,7 @@ export async function POST(req: NextRequest) {
         attachmentType: "link",
         url,
         originalName: label,
+        description: description ?? null,
         locationId: locationId || null,
         assetId: assetId || null,
         uploadedById: session.user.id,
@@ -144,6 +146,8 @@ export async function POST(req: NextRequest) {
   const file = formData.get("file") as File | null;
   const locationId = formData.get("locationId") as string | null;
   const assetId = formData.get("assetId") as string | null;
+  const rawDescription = formData.get("description") as string | null;
+  const safeDescription = rawDescription?.replace(/[\r\n]{3,}/g, "\n\n").slice(0, 2000) || null;
 
   if (!file) return NextResponse.json({ error: "No file provided." }, { status: 400 });
   if (!locationId && !assetId) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
@@ -184,6 +188,7 @@ export async function POST(req: NextRequest) {
     data: {
       filename,
       originalName: safeOriginalName,
+      description: safeDescription,
       mimeType: file.type,
       size: file.size,
       path: relativePath,

@@ -173,7 +173,7 @@ export function LocationDetailClient({
     <div className="space-y-6">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1 text-[12px] text-[#64748b] flex-wrap">
-        <Link href="/" className="hover:text-[#0f172a] transition-colors">{tCommon("home")}</Link>
+        <Link href="/locations" className="hover:text-[#0f172a] transition-colors">{tCommon("home")}</Link>
         {breadcrumbs.map((crumb, i) => (
           <span key={crumb.id} className="flex items-center gap-1">
             <ChevronRight className="h-3 w-3" />

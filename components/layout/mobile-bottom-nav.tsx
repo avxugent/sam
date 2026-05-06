@@ -17,7 +17,7 @@ type NavTab = {
 
 const tabs: NavTab[] = [
   {
-    href: "/",
+    href: "/locations",
     labelKey: "locations",
     icon: <MapPin className="h-5 w-5" />,
     match: (p) => p === "/" || p.startsWith("/locations"),

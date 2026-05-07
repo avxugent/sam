@@ -143,6 +143,7 @@ export function AssetDetailClient({
   const [decommissionNote, setDecommissionNote] = useState("");
   const [decommissioning, setDecommissioning] = useState(false);
   const [reinstating, setReinstating] = useState(false);
+  const [returningToStock, setReturningToStock] = useState(false);
 
   async function handleDecommission() {
     setDecommissioning(true);
@@ -172,6 +173,20 @@ export function AssetDetailClient({
       return;
     }
     toast({ title: tDecom("reinstated") });
+    router.refresh();
+  }
+
+  async function handleReturnToStock() {
+    setReturningToStock(true);
+    const res = await fetch(`/api/assets/${asset.id}/return-to-stock`, { method: "POST" });
+    setReturningToStock(false);
+    if (!res.ok) {
+      const err = await res.json();
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      return;
+    }
+    toast({ title: t("returnedToStock") });
+    router.push("/stock");
     router.refresh();
   }
 
@@ -298,6 +313,34 @@ export function AssetDetailClient({
               <FolderInput className="h-3.5 w-3.5" />
               {t("moveAssetButton")}
             </Button>
+
+            {/* Return to stock */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5">
+                  <Package className="h-3.5 w-3.5" />
+                  {t("returnToStock")}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t("returnToStockConfirmTitle", { name: displayName })}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("returnToStockConfirmDescription")}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleReturnToStock}
+                    disabled={returningToStock}
+                    className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+                  >
+                    {returningToStock ? t("returningToStock") : t("returnToStock")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             {/* Decommission */}
             <AlertDialog>

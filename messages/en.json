@@ -153,7 +153,12 @@
     "macHelpText": "MAC address required when hostname is set",
     "filteredFrom": "(filtered from {total})",
     "assetCount": "{count, plural, =1 {# asset} other {# assets}}",
-    "exportTitle": "Export all filtered assets"
+    "exportTitle": "Export all filtered assets",
+    "returnToStock": "Return to stock",
+    "returnToStockConfirmTitle": "Return \"{name}\" to stock?",
+    "returnToStockConfirmDescription": "This will delete the asset and add it back to the stock inventory. Asset-specific data (hostname, MAC addresses, custom fields, attachments) will be permanently lost.",
+    "returnedToStock": "Asset returned to stock",
+    "returningToStock": "Returning to stock…"
   },
   "assetForm": {
     "createTitle": "Create asset",

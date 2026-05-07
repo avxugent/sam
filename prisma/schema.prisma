@@ -300,6 +300,9 @@ model StockItem {
   reservedForLocationId String?
   invoiceNumber         String?   @db.VarChar(100)
   invoiceDate           DateTime? @db.Date
+  // JSON blob preserving item-specific data when an asset is returned to stock
+  // Shape: { macAddresses?: {address:string}[], customFields?: {key:string,value:string}[], hostname?: string, warrantyMonths?: number, vaultPath?: string }
+  metadata              String?   @db.Text
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

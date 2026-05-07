@@ -59,6 +59,19 @@ export async function POST(
     );
   }
 
+  type StoredMetadata = {
+    macAddresses?: { address: string }[];
+    customFields?: { key: string; value: string }[];
+    hostname?: string;
+    warrantyMonths?: number;
+    vaultPath?: string;
+  };
+
+  let meta: StoredMetadata | null = null;
+  if (stockItem.metadata && quantity === 1) {
+    try { meta = JSON.parse(stockItem.metadata) as StoredMetadata; } catch { /* ignore */ }
+  }
+
   const assetIds = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const newQuantity = stockItem.quantity - quantity;
 
@@ -82,6 +95,17 @@ export async function POST(
               null,
             invoiceNumber: stockItem.invoiceNumber,
             invoiceDate: stockItem.invoiceDate,
+            ...(meta && {
+              hostname: meta.hostname ?? null,
+              warrantyMonths: meta.warrantyMonths ?? null,
+              vaultPath: meta.vaultPath ?? null,
+            }),
+            ...(meta?.macAddresses?.length && {
+              macAddresses: { create: meta.macAddresses.map((m) => ({ address: m.address })) },
+            }),
+            ...(meta?.customFields?.length && {
+              customFields: { create: meta.customFields.map((f) => ({ key: f.key, value: f.value })) },
+            }),
           },
           select: { id: true },
         })

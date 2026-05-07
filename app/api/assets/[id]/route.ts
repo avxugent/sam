@@ -104,6 +104,17 @@ export async function PUT(
 
   const { macAddresses, customFields, installationDate, invoiceDate, ...assetData } = parsed.data;
 
+  const before = await prisma.asset.findUnique({
+    where: { id },
+    include: {
+      type: { select: { name: true } },
+      manufacturer: { select: { name: true } },
+      location: { select: { name: true } },
+      macAddresses: { select: { address: true } },
+      customFields: { select: { key: true, value: true } },
+    },
+  });
+
   const asset = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     if (macAddresses !== undefined) {
       await tx.macAddress.deleteMany({ where: { assetId: id } });
@@ -139,9 +150,59 @@ export async function PUT(
         manufacturer: true,
         macAddresses: true,
         customFields: true,
+        location: { select: { id: true, name: true } },
       },
     });
   });
+
+  const changes: Record<string, { from: unknown; to: unknown }> = {};
+  if (before) {
+    const d = parsed.data;
+    if (d.model !== undefined && d.model !== before.model)
+      changes["Model"] = { from: before.model ?? null, to: d.model };
+    if (d.serialNumber !== undefined && d.serialNumber !== before.serialNumber)
+      changes["Serial number"] = { from: before.serialNumber ?? null, to: d.serialNumber ?? null };
+    if (d.hostname !== undefined && (d.hostname?.trim() ?? null) !== before.hostname)
+      changes["Hostname"] = { from: before.hostname ?? null, to: d.hostname ?? null };
+    if (d.invoiceNumber !== undefined && d.invoiceNumber !== before.invoiceNumber)
+      changes["Invoice number"] = { from: before.invoiceNumber ?? null, to: d.invoiceNumber ?? null };
+    if (d.notes !== undefined && d.notes !== before.notes)
+      changes["Notes"] = { from: before.notes ?? null, to: d.notes ?? null };
+    if (d.vaultPath !== undefined && d.vaultPath !== before.vaultPath)
+      changes["Vault path"] = { from: before.vaultPath ?? null, to: d.vaultPath ?? null };
+    if (d.typeId !== undefined && d.typeId !== before.typeId)
+      changes["Type"] = { from: before.type?.name ?? before.typeId, to: asset.type?.name ?? d.typeId };
+    if (d.manufacturerId !== undefined && d.manufacturerId !== before.manufacturerId)
+      changes["Manufacturer"] = { from: before.manufacturer?.name ?? before.manufacturerId, to: asset.manufacturer?.name ?? d.manufacturerId };
+    if (d.locationId !== undefined && d.locationId !== before.locationId)
+      changes["Location"] = { from: before.location?.name ?? null, to: asset.location?.name ?? null };
+    if (installationDate !== undefined) {
+      const fromDate = before.installationDate ? before.installationDate.toISOString().split("T")[0] : null;
+      if (fromDate !== installationDate)
+        changes["Installation date"] = { from: fromDate, to: installationDate };
+    }
+    if (invoiceDate !== undefined) {
+      const fromDate = before.invoiceDate ? before.invoiceDate.toISOString().split("T")[0] : null;
+      if (fromDate !== invoiceDate)
+        changes["Invoice date"] = { from: fromDate, to: invoiceDate };
+    }
+    if (macAddresses !== undefined) {
+      const fromMacs = [...before.macAddresses.map((m) => m.address)].sort().join(", ") || null;
+      const toMacs = [...macAddresses].sort().join(", ") || null;
+      if (fromMacs !== toMacs)
+        changes["MAC addresses"] = { from: fromMacs, to: toMacs };
+    }
+    if (customFields !== undefined) {
+      const fromMap = Object.fromEntries(before.customFields.map((f) => [f.key, f.value]));
+      const toMap = Object.fromEntries(customFields.filter((f) => f.key).map((f) => [f.key, f.value]));
+      for (const key of new Set([...Object.keys(fromMap), ...Object.keys(toMap)])) {
+        const fromVal = fromMap[key] ?? null;
+        const toVal = toMap[key] ?? null;
+        if (fromVal !== toVal)
+          changes[`Custom field: ${key}`] = { from: fromVal, to: toVal };
+      }
+    }
+  }
 
   await logAudit({
     session,
@@ -150,7 +211,7 @@ export async function PUT(
     entityType: "Asset",
     entityId: id,
     entityName: asset.model ?? asset.serialNumber ?? undefined,
-    detail: { model: asset.model, typeId: asset.typeId },
+    detail: Object.keys(changes).length > 0 ? { changes } : undefined,
   });
 
   return NextResponse.json(asset);
@@ -165,8 +226,26 @@ export async function DELETE(
   if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const asset = await prisma.asset.findUnique({ where: { id }, select: { model: true, serialNumber: true } });
+  const asset = await prisma.asset.findUnique({
+    where: { id },
+    include: {
+      type: { select: { name: true } },
+      manufacturer: { select: { name: true } },
+      location: { select: { name: true } },
+    },
+  });
   await prisma.asset.delete({ where: { id } });
+
+  const snapshot: Record<string, string> = {};
+  if (asset) {
+    if (asset.model) snapshot["Model"] = asset.model;
+    if (asset.serialNumber) snapshot["Serial number"] = asset.serialNumber;
+    if (asset.type?.name) snapshot["Type"] = asset.type.name;
+    if (asset.manufacturer?.name) snapshot["Manufacturer"] = asset.manufacturer.name;
+    if (asset.location?.name) snapshot["Location"] = asset.location.name;
+    if (asset.hostname) snapshot["Hostname"] = asset.hostname;
+  }
+
   await logAudit({
     session,
     req,
@@ -174,6 +253,7 @@ export async function DELETE(
     entityType: "Asset",
     entityId: id,
     entityName: asset?.model ?? asset?.serialNumber ?? undefined,
+    detail: Object.keys(snapshot).length > 0 ? { snapshot } : undefined,
   });
   return NextResponse.json({ ok: true });
 }

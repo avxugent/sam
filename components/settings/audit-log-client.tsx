@@ -108,6 +108,48 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
     );
   }
 
+  function DetailRenderer({ detail }: { detail: string }) {
+    let parsed: unknown;
+    try { parsed = JSON.parse(detail); } catch { return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{detail}</pre>; }
+    if (typeof parsed !== "object" || parsed === null) {
+      return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{JSON.stringify(parsed, null, 2)}</pre>;
+    }
+    const obj = parsed as Record<string, unknown>;
+    if (obj.changes && typeof obj.changes === "object" && obj.changes !== null) {
+      const changes = obj.changes as Record<string, { from: unknown; to: unknown }>;
+      return (
+        <table className="text-[12px] border-separate border-spacing-y-[2px]">
+          <tbody>
+            {Object.entries(changes).map(([field, { from, to }]) => (
+              <tr key={field}>
+                <td className="pr-4 text-[#64748b] font-medium whitespace-nowrap align-top">{field}</td>
+                <td className="pr-2 text-[#dc2626] line-through align-top break-all max-w-[220px]">{String(from ?? "—")}</td>
+                <td className="pr-2 text-[#64748b] align-top">→</td>
+                <td className="text-[#16a34a] font-medium align-top break-all max-w-[220px]">{String(to ?? "—")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+    }
+    if (obj.snapshot && typeof obj.snapshot === "object" && obj.snapshot !== null) {
+      const snapshot = obj.snapshot as Record<string, unknown>;
+      return (
+        <table className="text-[12px] border-separate border-spacing-y-[2px]">
+          <tbody>
+            {Object.entries(snapshot).map(([field, value]) => (
+              <tr key={field}>
+                <td className="pr-4 text-[#64748b] font-medium whitespace-nowrap">{field}</td>
+                <td className="text-[#334155] break-all">{String(value ?? "—")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+    }
+    return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{JSON.stringify(parsed, null, 2)}</pre>;
+  }
+
   const actions = [...new Set(initialLogs.map((l) => l.action))].sort();
   const entityTypes = [...new Set(initialLogs.map((l) => l.entityType))].sort();
 
@@ -213,9 +255,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
                   {expandedId === log.id && log.detail && (
                     <tr key={`${log.id}-detail`} className="border-b border-[#e2e8f0] bg-[#f8fafc]">
                       <td colSpan={6} className="px-6 py-3">
-                        <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">
-                          {JSON.stringify(JSON.parse(log.detail), null, 2)}
-                        </pre>
+                        <DetailRenderer detail={log.detail} />
                       </td>
                     </tr>
                   )}

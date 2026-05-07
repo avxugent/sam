@@ -156,7 +156,14 @@ export async function POST(
     entityType: "Asset",
     entityId: asset.id,
     entityName: asset.model ?? asset.serialNumber ?? undefined,
-    detail: { locationId: id, typeId: asset.typeId, model: asset.model },
+    detail: {
+      snapshot: {
+        ...(asset.type ? { "Type": asset.type.name } : {}),
+        ...(asset.manufacturer ? { "Manufacturer": asset.manufacturer.name } : {}),
+        "Model": asset.model,
+        ...(asset.serialNumber ? { "Serial number": asset.serialNumber } : {}),
+      },
+    },
   });
 
   return NextResponse.json(asset, { status: 201 });

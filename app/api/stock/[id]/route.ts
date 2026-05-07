@@ -56,6 +56,19 @@ export async function PUT(
     include: { type: true, manufacturer: true },
   });
 
+  const changes: Record<string, { from: unknown; to: unknown }> = {};
+  const d = parsed.data;
+  if (d.model !== undefined && d.model !== existing.model)
+    changes["Model"] = { from: existing.model, to: d.model };
+  if (d.serialNumber !== undefined && d.serialNumber !== existing.serialNumber)
+    changes["Serial number"] = { from: existing.serialNumber ?? null, to: d.serialNumber ?? null };
+  if (d.quantity !== undefined && d.quantity !== existing.quantity)
+    changes["Quantity"] = { from: existing.quantity, to: d.quantity };
+  if (d.notes !== undefined && d.notes !== existing.notes)
+    changes["Notes"] = { from: existing.notes ?? null, to: d.notes ?? null };
+  if (d.invoiceNumber !== undefined && d.invoiceNumber !== existing.invoiceNumber)
+    changes["Invoice number"] = { from: existing.invoiceNumber ?? null, to: d.invoiceNumber ?? null };
+
   await logAudit({
     session,
     req,
@@ -63,6 +76,7 @@ export async function PUT(
     entityType: "StockItem",
     entityId: id,
     entityName: item.model,
+    detail: Object.keys(changes).length > 0 ? { changes } : undefined,
   });
 
   return NextResponse.json(item);

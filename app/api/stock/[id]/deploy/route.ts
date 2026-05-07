@@ -101,7 +101,7 @@ export async function POST(
         entityType: "Asset",
         entityId: assetId,
         entityName: stockItem.model,
-        detail: { deployedFromStockItem: id, locationId },
+        detail: { snapshot: { "Deployed from stock": stockItem.model, "Location": location.name } },
       })
     )
   );
@@ -112,7 +112,7 @@ export async function POST(
     entityType: "StockItem",
     entityId: id,
     entityName: stockItem.model,
-    detail: { deployedQuantity: quantity, locationId },
+    detail: { snapshot: { "Deployed quantity": String(quantity), "To location": location.name } },
   });
 
   return NextResponse.json({ assetIds, locationId });

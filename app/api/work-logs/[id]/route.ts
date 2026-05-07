@@ -80,12 +80,26 @@ export async function PUT(
     },
   });
 
+  const changes: Record<string, { from: unknown; to: unknown }> = {};
+  if (data.description !== undefined && data.description !== existing.description)
+    changes["Description"] = { from: existing.description, to: data.description };
+  if (data.jiraIssueKey !== undefined && (data.jiraIssueKey || null) !== existing.jiraIssueKey)
+    changes["JIRA issue"] = { from: existing.jiraIssueKey ?? null, to: data.jiraIssueKey || null };
+  if (data.performedAt !== undefined) {
+    const fromDate = existing.performedAt.toISOString().split("T")[0];
+    const toDate = data.performedAt.split("T")[0];
+    if (fromDate !== toDate)
+      changes["Performed at"] = { from: fromDate, to: toDate };
+  }
+
   await logAudit({
     session,
     req,
     action: "UPDATE",
     entityType: "WorkLog",
     entityId: id,
+    entityName: existing.description.slice(0, 60) || undefined,
+    detail: Object.keys(changes).length > 0 ? { changes } : undefined,
   });
 
   return NextResponse.json(updated);
@@ -115,6 +129,14 @@ export async function DELETE(
     action: "DELETE",
     entityType: "WorkLog",
     entityId: id,
+    entityName: existing.description.slice(0, 60) || undefined,
+    detail: {
+      snapshot: {
+        "Description": existing.description,
+        "Performed at": existing.performedAt.toISOString().split("T")[0],
+        ...(existing.jiraIssueKey ? { "JIRA issue": existing.jiraIssueKey } : {}),
+      },
+    },
   });
 
   return new NextResponse(null, { status: 204 });

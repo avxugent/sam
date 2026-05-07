@@ -19,10 +19,13 @@ export async function PUT(
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
-  const existing = await prisma.manufacturer.findFirst({
-    where: { name: parsed.data.name, NOT: { id } },
-    include: { _count: { select: { assets: true } } },
-  });
+  const [existing, current] = await Promise.all([
+    prisma.manufacturer.findFirst({
+      where: { name: parsed.data.name, NOT: { id } },
+      include: { _count: { select: { assets: true } } },
+    }),
+    prisma.manufacturer.findUnique({ where: { id }, select: { name: true } }),
+  ]);
   if (existing) {
     return NextResponse.json(
       { error: "Name already exists.", existingId: existing.id, existingName: existing.name, existingAssetCount: existing._count.assets },
@@ -39,6 +42,9 @@ export async function PUT(
       entityType: "Manufacturer",
       entityId: id,
       entityName: manufacturer.name,
+      detail: current && current.name !== manufacturer.name
+        ? { changes: { "Name": { from: current.name, to: manufacturer.name } } }
+        : undefined,
     });
     return NextResponse.json(manufacturer);
   } catch {

@@ -118,6 +118,10 @@ export async function POST(req: NextRequest) {
     const { url, label, description, locationId, assetId } = parsed.data;
     if (!locationId && !assetId) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
 
+    const parentName = locationId
+      ? ((await prisma.location.findUnique({ where: { id: locationId }, select: { name: true } }))?.name ?? locationId)
+      : ((await prisma.asset.findUnique({ where: { id: assetId! }, select: { model: true } }))?.model ?? assetId!);
+
     const attachment = await prisma.attachment.create({
       data: {
         attachmentType: "link",
@@ -137,7 +141,12 @@ export async function POST(req: NextRequest) {
       entityType: "Attachment",
       entityId: attachment.id,
       entityName: attachment.originalName,
-      detail: { type: "link", locationId: attachment.locationId, assetId: attachment.assetId },
+      detail: {
+        snapshot: {
+          "Type": "link",
+          ...(locationId ? { "Location": parentName } : { "Asset": parentName }),
+        },
+      },
     });
     return NextResponse.json(attachment, { status: 201 });
   }
@@ -201,6 +210,10 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  const fileParentName = locationId
+    ? ((await prisma.location.findUnique({ where: { id: locationId }, select: { name: true } }))?.name ?? locationId)
+    : ((await prisma.asset.findUnique({ where: { id: assetId! }, select: { model: true } }))?.model ?? assetId!);
+
   await logAudit({
     session,
     req,
@@ -208,7 +221,13 @@ export async function POST(req: NextRequest) {
     entityType: "Attachment",
     entityId: attachment.id,
     entityName: attachment.originalName,
-    detail: { type: "file", locationId: attachment.locationId, assetId: attachment.assetId },
+    detail: {
+      snapshot: {
+        "Type": "file",
+        "MIME type": file.type,
+        ...(locationId ? { "Location": fileParentName } : { "Asset": fileParentName }),
+      },
+    },
   });
 
   return NextResponse.json(attachment, { status: 201 });

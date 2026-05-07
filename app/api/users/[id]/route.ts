@@ -26,7 +26,10 @@ export async function PUT(
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
-  const target = await prisma.user.findUnique({ where: { id }, select: { provider: true } });
+  const target = await prisma.user.findUnique({
+    where: { id },
+    select: { provider: true, name: true, email: true, role: true, twoFactorRequired: true },
+  });
   if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const { password, ...data } = parsed.data;
@@ -51,6 +54,19 @@ export async function PUT(
     select: { id: true, name: true, email: true, role: true, provider: true, totpEnabled: true, mustChangePassword: true, twoFactorRequired: true, createdAt: true },
   });
 
+  const changes: Record<string, { from: unknown; to: unknown }> = {};
+  const d = parsed.data;
+  if (d.name !== undefined && d.name !== target.name)
+    changes["Name"] = { from: target.name, to: d.name };
+  if (d.email !== undefined && d.email !== target.email)
+    changes["Email"] = { from: target.email, to: d.email };
+  if (d.role !== undefined && d.role !== target.role)
+    changes["Role"] = { from: target.role, to: d.role };
+  if (d.twoFactorRequired !== undefined && d.twoFactorRequired !== target.twoFactorRequired)
+    changes["2FA required"] = { from: target.twoFactorRequired, to: d.twoFactorRequired };
+  if (password)
+    changes["Password"] = { from: "•••", to: "•••" };
+
   await logAudit({
     session,
     req,
@@ -58,7 +74,7 @@ export async function PUT(
     entityType: "User",
     entityId: id,
     entityName: user.email,
-    detail: { role: user.role, passwordChanged: !!password },
+    detail: Object.keys(changes).length > 0 ? { changes } : undefined,
   });
 
   return NextResponse.json(user);
@@ -92,6 +108,9 @@ export async function DELETE(
     entityType: "User",
     entityId: id,
     entityName: userToDelete?.email,
+    detail: userToDelete
+      ? { snapshot: { Email: userToDelete.email, Role: userToDelete.role } }
+      : undefined,
   });
   return NextResponse.json({ ok: true });
 }

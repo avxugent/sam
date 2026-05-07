@@ -50,6 +50,12 @@ export async function PATCH(
     include: { uploadedBy: { select: { id: true, name: true } } },
   });
 
+  const changes: Record<string, { from: unknown; to: unknown }> = {};
+  if (parsed.data.displayName !== undefined && parsed.data.displayName !== attachment.displayName)
+    changes["Display name"] = { from: attachment.displayName ?? null, to: parsed.data.displayName ?? null };
+  if (parsed.data.description !== undefined && parsed.data.description !== attachment.description)
+    changes["Description"] = { from: attachment.description ?? null, to: parsed.data.description ?? null };
+
   await logAudit({
     session,
     req,
@@ -57,7 +63,7 @@ export async function PATCH(
     entityType: "Attachment",
     entityId: id,
     entityName: updated.displayName ?? updated.originalName,
-    detail: { displayName: updated.displayName, description: updated.description },
+    detail: Object.keys(changes).length > 0 ? { changes } : undefined,
   });
 
   return NextResponse.json(updated);

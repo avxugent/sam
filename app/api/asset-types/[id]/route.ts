@@ -34,6 +34,11 @@ export async function PUT(
     }
   }
 
+  const before = await prisma.assetType.findUnique({
+    where: { id },
+    select: { name: true, scrapeTargetTemplate: true },
+  });
+
   try {
     const type = await prisma.assetType.update({
       where: { id },
@@ -42,6 +47,15 @@ export async function PUT(
         scrapeTargetTemplate: parsed.data.scrapeTargetTemplate ?? null,
       },
     });
+
+    const changes: Record<string, { from: unknown; to: unknown }> = {};
+    if (before) {
+      if (parsed.data.name !== undefined && parsed.data.name !== before.name)
+        changes["Name"] = { from: before.name, to: parsed.data.name };
+      if (parsed.data.scrapeTargetTemplate !== undefined && parsed.data.scrapeTargetTemplate !== before.scrapeTargetTemplate)
+        changes["Scrape template"] = { from: before.scrapeTargetTemplate ?? null, to: parsed.data.scrapeTargetTemplate ?? null };
+    }
+
     await logAudit({
       session,
       req,
@@ -49,6 +63,7 @@ export async function PUT(
       entityType: "AssetType",
       entityId: id,
       entityName: type.name,
+      detail: Object.keys(changes).length > 0 ? { changes } : undefined,
     });
     return NextResponse.json(type);
   } catch {

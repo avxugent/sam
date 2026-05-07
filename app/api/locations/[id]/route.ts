@@ -80,11 +80,17 @@ export async function PUT(
     }
   }
 
+  const before = await prisma.location.findUnique({
+    where: { id },
+    include: { parent: { select: { name: true } } },
+  });
+
   let location;
   try {
     location = await prisma.location.update({
       where: { id },
       data: parsed.data,
+      include: { parent: { select: { name: true } } },
     });
   } catch (err: unknown) {
     // P2002 = unique constraint violation (duplicate fiNumber)
@@ -102,6 +108,29 @@ export async function PUT(
     throw err;
   }
 
+  const changes: Record<string, { from: unknown; to: unknown }> = {};
+  if (before) {
+    const d = parsed.data;
+    if (d.name !== undefined && d.name !== before.name)
+      changes["Name"] = { from: before.name, to: d.name };
+    if (d.description !== undefined && d.description !== before.description)
+      changes["Description"] = { from: before.description ?? null, to: d.description ?? null };
+    if (d.fiNumber !== undefined && d.fiNumber !== before.fiNumber)
+      changes["FI number"] = { from: before.fiNumber ?? null, to: d.fiNumber ?? null };
+    if (d.address !== undefined && d.address !== before.address)
+      changes["Address"] = { from: before.address ?? null, to: d.address ?? null };
+    if (d.city !== undefined && d.city !== before.city)
+      changes["City"] = { from: before.city ?? null, to: d.city ?? null };
+    if (d.country !== undefined && d.country !== before.country)
+      changes["Country"] = { from: before.country ?? null, to: d.country ?? null };
+    if (d.parentId !== undefined && d.parentId !== before.parentId)
+      changes["Parent"] = { from: before.parent?.name ?? null, to: location.parent?.name ?? null };
+    if (d.latitude !== undefined && d.latitude !== before.latitude)
+      changes["Latitude"] = { from: before.latitude ?? null, to: d.latitude ?? null };
+    if (d.longitude !== undefined && d.longitude !== before.longitude)
+      changes["Longitude"] = { from: before.longitude ?? null, to: d.longitude ?? null };
+  }
+
   await logAudit({
     session,
     req,
@@ -109,7 +138,7 @@ export async function PUT(
     entityType: "Location",
     entityId: id,
     entityName: location.name,
-    detail: { name: location.name, fiNumber: location.fiNumber },
+    detail: Object.keys(changes).length > 0 ? { changes } : undefined,
   });
 
   return NextResponse.json(location);
@@ -133,8 +162,21 @@ export async function DELETE(
     );
   }
 
-  const loc = await prisma.location.findUnique({ where: { id }, select: { name: true } });
+  const loc = await prisma.location.findUnique({
+    where: { id },
+    select: { name: true, fiNumber: true, address: true, city: true, country: true },
+  });
   await prisma.location.delete({ where: { id } });
+
+  const snapshot: Record<string, string> = {};
+  if (loc) {
+    if (loc.name) snapshot["Name"] = loc.name;
+    if (loc.fiNumber) snapshot["FI number"] = loc.fiNumber;
+    if (loc.address) snapshot["Address"] = loc.address;
+    if (loc.city) snapshot["City"] = loc.city;
+    if (loc.country) snapshot["Country"] = loc.country;
+  }
+
   await logAudit({
     session,
     req,
@@ -142,6 +184,7 @@ export async function DELETE(
     entityType: "Location",
     entityId: id,
     entityName: loc?.name,
+    detail: Object.keys(snapshot).length > 0 ? { snapshot } : undefined,
   });
   return NextResponse.json({ ok: true });
 }

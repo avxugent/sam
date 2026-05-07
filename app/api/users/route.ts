@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     entityType: "User",
     entityId: user.id,
     entityName: user.email,
-    detail: { role: user.role },
+    detail: { snapshot: { "Name": user.name, "Email": user.email, "Role": user.role } },
   });
 
   return NextResponse.json(user, { status: 201 });

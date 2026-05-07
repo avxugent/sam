@@ -89,6 +89,14 @@ export async function POST(req: NextRequest) {
     entityType: "StockItem",
     entityId: item.id,
     entityName: item.model,
+    detail: {
+      snapshot: {
+        "Type": item.type.name,
+        ...(item.manufacturer ? { "Manufacturer": item.manufacturer.name } : {}),
+        "Model": item.model,
+        "Quantity": String(item.quantity),
+      },
+    },
   });
 
   return NextResponse.json(item, { status: 201 });

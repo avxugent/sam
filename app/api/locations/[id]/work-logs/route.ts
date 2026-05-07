@@ -78,6 +78,10 @@ export async function POST(
     },
   });
 
+  const assetName = created.asset
+    ? (created.asset.model ?? created.asset.serialNumber ?? created.asset.hostname ?? null)
+    : null;
+
   await logAudit({
     session,
     req,
@@ -85,7 +89,13 @@ export async function POST(
     entityType: "WorkLog",
     entityId: created.id,
     entityName: `Work log @ ${location.name}`,
-    detail: { locationId, assetId: created.assetId, jiraIssueKey: created.jiraIssueKey },
+    detail: {
+      snapshot: {
+        "Location": location.name,
+        ...(assetName ? { "Asset": assetName } : {}),
+        ...(created.jiraIssueKey ? { "JIRA issue": created.jiraIssueKey } : {}),
+      },
+    },
   });
 
   return NextResponse.json(created, { status: 201 });

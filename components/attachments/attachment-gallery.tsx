@@ -99,6 +99,8 @@ export function AttachmentGallery({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDisplayName, setEditDisplayName] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editUrl, setEditUrl] = useState("");
+  const [editIsLink, setEditIsLink] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Lightbox
@@ -114,6 +116,8 @@ export function AttachmentGallery({
     setEditingId(att.id);
     setEditDisplayName(att.displayName ?? "");
     setEditDescription(att.description ?? "");
+    setEditUrl(att.url ?? "");
+    setEditIsLink(att.attachmentType === "link");
   }
 
   async function handleFiles(files: FileList | null) {
@@ -169,6 +173,7 @@ export function AttachmentGallery({
       body: JSON.stringify({
         displayName: editDisplayName.trim() || null,
         description: editDescription.trim() || null,
+        ...(editIsLink && { url: editUrl.trim() || null }),
       }),
     });
     setSaving(false);
@@ -283,6 +288,19 @@ export function AttachmentGallery({
             <DialogTitle>{t("editAttachment")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSaveEdit} className="space-y-4 pt-1">
+            {editIsLink && (
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-url">{t("linkUrl")} <span className="text-destructive">*</span></Label>
+                <Input
+                  id="edit-url"
+                  type="url"
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  required
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="edit-display-name">{t("displayName")}</Label>
               <Input

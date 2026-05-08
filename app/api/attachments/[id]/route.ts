@@ -8,6 +8,7 @@ import { z } from "zod";
 const updateSchema = z.object({
   displayName: z.string().max(255).nullable().optional(),
   description: z.string().max(2000).nullable().optional(),
+  url: z.string().url().max(2048).nullable().optional(),
 });
 
 /** Strip characters that could break HTTP headers or cause path traversal */
@@ -41,11 +42,16 @@ export async function PATCH(
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
 
+  if (parsed.data.url !== undefined && attachment.attachmentType !== "link") {
+    return NextResponse.json({ error: "Cannot set URL on file attachments." }, { status: 400 });
+  }
+
   const updated = await prisma.attachment.update({
     where: { id },
     data: {
       displayName: parsed.data.displayName ?? null,
       description: parsed.data.description ?? null,
+      ...(parsed.data.url !== undefined && { url: parsed.data.url }),
     },
     include: { uploadedBy: { select: { id: true, name: true } } },
   });
@@ -55,6 +61,8 @@ export async function PATCH(
     changes["Display name"] = { from: attachment.displayName ?? null, to: parsed.data.displayName ?? null };
   if (parsed.data.description !== undefined && parsed.data.description !== attachment.description)
     changes["Description"] = { from: attachment.description ?? null, to: parsed.data.description ?? null };
+  if (parsed.data.url !== undefined && parsed.data.url !== attachment.url)
+    changes["URL"] = { from: attachment.url ?? null, to: parsed.data.url ?? null };
 
   await logAudit({
     session,

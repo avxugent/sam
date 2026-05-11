@@ -7,7 +7,7 @@ on:
       - main
     paths:
       - "doc/**"
-      - "markdown-confluence-sync.config.js"
+      - "markdown-confluence-sync.config.cjs"
 
 jobs:
   publish:

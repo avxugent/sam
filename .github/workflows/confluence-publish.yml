@@ -26,7 +26,7 @@ jobs:
           confluence-authentication: |
             {
               "basic": {
-                "username": "${{ secrets.ATLASSIAN_USERNAME }}",
+                "email": "${{ secrets.ATLASSIAN_USERNAME }}",
                 "apiToken": "${{ secrets.ATLASSIAN_API_TOKEN }}"
               }
             }

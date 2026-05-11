@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Publish to Confluence
-        uses: markdown-confluence/publish-action@v6
+        uses: markdown-confluence/publish@v1
         with:
           config-file: markdown-confluence.json
         env:

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -132,12 +131,6 @@ export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">{tField("password")}</Label>
-                  <Link
-                    href="/login/forgot-password"
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    {t("forgotPassword")}
-                  </Link>
                 </div>
                 <Input
                   id="password"

@@ -39,24 +39,9 @@ model User {
   updatedAt    DateTime @updatedAt
 
   attachments         Attachment[]
-  passwordResetTokens PasswordResetToken[]
   workLogs            WorkLog[]            @relation("WorkLogPerformer")
 
   @@map("users")
-}
-
-model PasswordResetToken {
-  id         String    @id @default(cuid())
-  userId     String
-  tokenHash  String    @unique // SHA-256 hex of the raw token; raw token is sent by email only
-  expiresAt  DateTime
-  usedAt     DateTime?
-  createdAt  DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("password_reset_tokens")
 }
 
 model Location {

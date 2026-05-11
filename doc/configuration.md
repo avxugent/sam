@@ -56,20 +56,6 @@ AWS credentials use the standard credential chain. Set `AWS_ACCESS_KEY_ID` and `
 
 ---
 
-## Email / SMTP
-
-Required for password reset emails. When `SMTP_HOST` is blank, the forgot-password endpoint accepts requests but silently skips sending.
-
-| Variable | Example | Description |
-|---|---|---|
-| `SMTP_HOST` | `smtp.example.com` | SMTP server hostname |
-| `SMTP_PORT` | `587` | SMTP port |
-| `SMTP_USER` | `noreply@example.com` | SMTP username |
-| `SMTP_PASSWORD` | — | SMTP password |
-| `SMTP_FROM` | `SAM <noreply@example.com>` | From address (RFC 5321 format) |
-
----
-
 ## Microsoft Entra ID SSO
 
 All three must be set to enable SSO. Leave blank to show local login only.

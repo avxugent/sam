@@ -128,19 +128,6 @@ The proxy:
 
 ---
 
-## Password Reset
-
-Requires SMTP configuration (`SMTP_HOST` + `SMTP_*` vars). When not configured, the endpoint accepts requests but silently skips sending.
-
-Flow:
-1. User submits email at `/login/forgot-password`
-2. API creates a `PasswordResetToken` (tokenHash stored, not the raw token)
-3. Email sent with reset link containing the raw token
-4. User clicks link → `/login/reset-password?token=...`
-5. API validates token, checks expiry, marks `usedAt`, sets new password hash
-
----
-
 ## Prometheus Endpoints
 
 `/api/prometheus/*` and `/api/assets/by-hostname` use **Bearer token** authentication instead of sessions:

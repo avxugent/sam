@@ -140,9 +140,6 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | `POST` | `/api/auth/2fa/disable` | session | Disable 2FA |
 | `GET` | `/api/auth/2fa/status` | session | Check 2FA status |
 | `POST` | `/api/auth/2fa/verify` | session | Verify TOTP code during login |
-| `POST` | `/api/auth/password-reset/request` | public | Request password reset email |
-| `POST` | `/api/auth/password-reset/validate` | public | Validate reset token |
-| `POST` | `/api/auth/password-reset/confirm` | public | Confirm reset with new password |
 
 ---
 

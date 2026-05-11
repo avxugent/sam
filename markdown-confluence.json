@@ -3,6 +3,6 @@
   "atlassianUserName": "${ATLASSIAN_USERNAME}",
   "atlassianApiToken": "${ATLASSIAN_API_TOKEN}",
   "confluenceParentId": "${CONFLUENCE_PARENT_PAGE_ID}",
-  "folderToPublishRoot": ".",
-  "contentRoot": "doc"
+  "folderToPublishRoot": "doc",
+  "contentRoot": "."
 }

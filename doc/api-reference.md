@@ -1,6 +1,6 @@
 ---
-wiki:
-  title: "API Reference"
+title: "API Reference"
+sync_to_confluence: true
 ---
 
 # API Reference

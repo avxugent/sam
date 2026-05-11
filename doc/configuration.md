@@ -1,6 +1,6 @@
 ---
-wiki:
-  title: "Configuration"
+title: "Configuration"
+sync_to_confluence: true
 ---
 
 # Configuration

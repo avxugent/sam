@@ -1,6 +1,6 @@
 ---
-wiki:
-  title: "Database"
+title: "Database"
+sync_to_confluence: true
 ---
 
 # Database

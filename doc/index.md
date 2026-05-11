@@ -1,6 +1,6 @@
 ---
-wiki:
-  title: "SAM – Simple Asset Management"
+title: "SAM – Simple Asset Management"
+sync_to_confluence: true
 ---
 
 # SAM – Simple Asset Management

@@ -1,6 +1,6 @@
 ---
-wiki:
-  title: "Integrations"
+title: "Integrations"
+sync_to_confluence: true
 ---
 
 # Integrations

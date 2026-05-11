@@ -1,6 +1,6 @@
 ---
-wiki:
-  title: "Authentication & Roles"
+title: "Authentication & Roles"
+sync_to_confluence: true
 ---
 
 # Authentication & Roles

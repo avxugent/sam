@@ -1,6 +1,6 @@
 ---
-wiki:
-  title: "Architecture"
+title: "Architecture"
+sync_to_confluence: true
 ---
 
 # Architecture

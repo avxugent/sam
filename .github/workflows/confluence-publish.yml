@@ -7,7 +7,7 @@ on:
       - main
     paths:
       - "doc/**"
-      - "markdown-confluence.json"
+      - "markdown-confluence-sync.config.js"
 
 jobs:
   publish:
@@ -16,10 +16,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Publish to Confluence
-        uses: markdown-confluence/publish-action@v5
+        uses: Telefonica/markdown-confluence-sync-action@v2
         with:
-          configFile: markdown-confluence.json
-          confluenceBaseUrl: ${{ secrets.CONFLUENCE_BASE_URL }}
-          atlassianUserName: ${{ secrets.ATLASSIAN_USERNAME }}
-          atlassianApiToken: ${{ secrets.ATLASSIAN_API_TOKEN }}
-          confluenceParentId: ${{ secrets.CONFLUENCE_PARENT_PAGE_ID }}
+          mode: tree
+          docs-dir: ./doc
+          confluence-url: ${{ secrets.CONFLUENCE_URL }}
+          confluence-space-key: ${{ secrets.CONFLUENCE_SPACE_KEY }}
+          confluence-root-page-id: ${{ secrets.CONFLUENCE_ROOT_PAGE_ID }}
+          confluence-authentication: |
+            {
+              "basic": {
+                "username": "${{ secrets.ATLASSIAN_USERNAME }}",
+                "apiToken": "${{ secrets.ATLASSIAN_API_TOKEN }}"
+              }
+            }

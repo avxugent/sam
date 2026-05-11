@@ -1,6 +1,6 @@
 ---
-wiki:
-  title: "Getting Started – Local Development"
+title: "Getting Started – Local Development"
+sync_to_confluence: true
 ---
 
 # Getting Started – Local Development

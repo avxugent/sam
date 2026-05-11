@@ -14,7 +14,7 @@ module.exports = {
     rootPageId: process.env.CONFLUENCE_ROOT_PAGE_ID,
     authentication: {
       basic: {
-        username: process.env.ATLASSIAN_USERNAME,
+        email: process.env.ATLASSIAN_USERNAME,
         apiToken: process.env.ATLASSIAN_API_TOKEN,
       },
     },

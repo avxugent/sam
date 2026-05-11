@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { MapPin } from "lucide-react";
 import { LocationBrowserClient } from "@/components/locations/location-browser-client";

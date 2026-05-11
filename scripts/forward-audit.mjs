@@ -121,7 +121,7 @@ function sendStream(kind, host, port, payloads, timeoutMs) {
         : { host, port };
     const socket = kind === "tls" ? tlsConnect(opts) : netConnect(opts);
     let timer = null;
-    const finish = (err) => { if (timer) clearTimeout(timer); try { socket.end(); } catch {} err ? reject(err) : resolve(); };
+    const finish = (err) => { if (timer) clearTimeout(timer); try { socket.end(); } catch {} if (err) reject(err); else resolve(); };
     socket.once("error", (err) => finish(err));
     socket.once(kind === "tls" ? "secureConnect" : "connect", () => {
       timer = setTimeout(() => socket.destroy(new Error(`${kind.toUpperCase()} timeout`)), timeoutMs);

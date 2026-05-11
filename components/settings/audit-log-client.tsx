@@ -4,9 +4,8 @@ import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/utils";
-import { Search, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Search, ChevronDown, ChevronUp } from "lucide-react";
 
 type AuditLog = {
   id: string;
@@ -44,6 +43,72 @@ function ActionBadge({ action }: { action: string }) {
       {action}
     </span>
   );
+}
+
+function Th({ col, label, className, sortCol, sortDir, onSort }: {
+  col: SortCol; label: string; className?: string;
+  sortCol: SortCol; sortDir: "asc" | "desc";
+  onSort: (col: SortCol) => void;
+}) {
+  const active = sortCol === col;
+  const ariaSort: "ascending" | "descending" | "none" = active
+    ? sortDir === "asc" ? "ascending" : "descending"
+    : "none";
+  return (
+    <th
+      scope="col"
+      aria-sort={ariaSort}
+      className={cn("text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap cursor-pointer select-none hover:bg-[#f1f5f9]", className)}
+      onClick={() => onSort(col)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        <SortIcon active={active} dir={sortDir} />
+      </div>
+    </th>
+  );
+}
+
+function DetailRenderer({ detail }: { detail: string }) {
+  let parsed: unknown;
+  try { parsed = JSON.parse(detail); } catch { return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{detail}</pre>; }
+  if (typeof parsed !== "object" || parsed === null) {
+    return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{JSON.stringify(parsed, null, 2)}</pre>;
+  }
+  const obj = parsed as Record<string, unknown>;
+  if (obj.changes && typeof obj.changes === "object" && obj.changes !== null) {
+    const changes = obj.changes as Record<string, { from: unknown; to: unknown }>;
+    return (
+      <table className="text-[12px] border-separate border-spacing-y-[2px]">
+        <tbody>
+          {Object.entries(changes).map(([field, { from, to }]) => (
+            <tr key={field}>
+              <td className="pr-4 text-[#64748b] font-medium whitespace-nowrap align-top">{field}</td>
+              <td className="pr-2 text-[#dc2626] line-through align-top break-all max-w-[220px]">{String(from ?? "—")}</td>
+              <td className="pr-2 text-[#64748b] align-top">→</td>
+              <td className="text-[#16a34a] font-medium align-top break-all max-w-[220px]">{String(to ?? "—")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+  if (obj.snapshot && typeof obj.snapshot === "object" && obj.snapshot !== null) {
+    const snapshot = obj.snapshot as Record<string, unknown>;
+    return (
+      <table className="text-[12px] border-separate border-spacing-y-[2px]">
+        <tbody>
+          {Object.entries(snapshot).map(([field, value]) => (
+            <tr key={field}>
+              <td className="pr-4 text-[#64748b] font-medium whitespace-nowrap">{field}</td>
+              <td className="text-[#334155] break-all">{String(value ?? "—")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+  return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{JSON.stringify(parsed, null, 2)}</pre>;
 }
 
 export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
@@ -88,68 +153,6 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
     });
   }, [filtered, sortCol, sortDir]);
 
-  function Th({ col, label, className }: { col: SortCol; label: string; className?: string }) {
-    const active = sortCol === col;
-    const ariaSort: "ascending" | "descending" | "none" = active
-      ? sortDir === "asc" ? "ascending" : "descending"
-      : "none";
-    return (
-      <th
-        scope="col"
-        aria-sort={ariaSort}
-        className={cn("text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap cursor-pointer select-none hover:bg-[#f1f5f9]", className)}
-        onClick={() => handleSort(col)}
-      >
-        <div className="flex items-center gap-1">
-          {label}
-          <SortIcon active={active} dir={sortDir} />
-        </div>
-      </th>
-    );
-  }
-
-  function DetailRenderer({ detail }: { detail: string }) {
-    let parsed: unknown;
-    try { parsed = JSON.parse(detail); } catch { return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{detail}</pre>; }
-    if (typeof parsed !== "object" || parsed === null) {
-      return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{JSON.stringify(parsed, null, 2)}</pre>;
-    }
-    const obj = parsed as Record<string, unknown>;
-    if (obj.changes && typeof obj.changes === "object" && obj.changes !== null) {
-      const changes = obj.changes as Record<string, { from: unknown; to: unknown }>;
-      return (
-        <table className="text-[12px] border-separate border-spacing-y-[2px]">
-          <tbody>
-            {Object.entries(changes).map(([field, { from, to }]) => (
-              <tr key={field}>
-                <td className="pr-4 text-[#64748b] font-medium whitespace-nowrap align-top">{field}</td>
-                <td className="pr-2 text-[#dc2626] line-through align-top break-all max-w-[220px]">{String(from ?? "—")}</td>
-                <td className="pr-2 text-[#64748b] align-top">→</td>
-                <td className="text-[#16a34a] font-medium align-top break-all max-w-[220px]">{String(to ?? "—")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      );
-    }
-    if (obj.snapshot && typeof obj.snapshot === "object" && obj.snapshot !== null) {
-      const snapshot = obj.snapshot as Record<string, unknown>;
-      return (
-        <table className="text-[12px] border-separate border-spacing-y-[2px]">
-          <tbody>
-            {Object.entries(snapshot).map(([field, value]) => (
-              <tr key={field}>
-                <td className="pr-4 text-[#64748b] font-medium whitespace-nowrap">{field}</td>
-                <td className="text-[#334155] break-all">{String(value ?? "—")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      );
-    }
-    return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{JSON.stringify(parsed, null, 2)}</pre>;
-  }
-
   const actions = [...new Set(initialLogs.map((l) => l.action))].sort();
   const entityTypes = [...new Set(initialLogs.map((l) => l.entityType))].sort();
 
@@ -192,10 +195,10 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
           <caption className="sr-only">{t("title")}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <Th col="timestamp" label={t("timestamp")} />
-              <Th col="user" label={t("user")} />
-              <Th col="action" label={t("action")} />
-              <Th col="entity" label={t("entity")} />
+              <Th col="timestamp" label={t("timestamp")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="user" label={t("user")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="action" label={t("action")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="entity" label={t("entity")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap hidden md:table-cell">{t("ip")}</th>
               <th scope="col" className="px-4 py-[10px]"><span className="sr-only">{t("details")}</span></th>
             </tr>

@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,16 +37,8 @@ import {
   FolderOpen,
   Paperclip,
   Image as ImageIcon,
-  Hash,
   Wrench,
 } from "lucide-react";
-
-function parseFiSegments(fi: string): { campus: string; building: string; floor: string; room: string } | null {
-  const parts = fi.split(".");
-  if (parts.length !== 4) return null;
-  const [campus, building, floor, room] = parts;
-  return { campus, building, floor, room };
-}
 
 type Breadcrumb = { id: string; name: string };
 

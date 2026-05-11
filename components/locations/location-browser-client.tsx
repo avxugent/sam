@@ -44,10 +44,10 @@ function LocationTreeItem({
     !selfMatches &&
     location.children.some((c) => nodeMatchesFilter(c, filterQuery));
 
-  if (isFiltering && !selfMatches && !childMatches) return null;
-
   const forceOpen = isFiltering && (selfMatches || childMatches);
   const [open, setOpen] = useState(isActive || forceOpen);
+
+  if (isFiltering && !selfMatches && !childMatches) return null;
   const totalAssets = assetCountMap[location.id] ?? 0;
 
   return (

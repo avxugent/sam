@@ -8,7 +8,6 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +37,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Trash2, Loader2, ShieldCheck, ShieldOff, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ShieldOff, ChevronUp, ChevronDown } from "lucide-react";
 
 const createSchema = z.object({
   name: z.string().min(1).max(128),
@@ -82,6 +81,32 @@ function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   return parts[0].slice(0, 2).toUpperCase();
+}
+
+function Th({ col, label, sortCol, sortDir, onSort }: {
+  col: SortCol;
+  label: string;
+  sortCol: SortCol;
+  sortDir: "asc" | "desc";
+  onSort: (col: SortCol) => void;
+}) {
+  const active = sortCol === col;
+  const ariaSort: "ascending" | "descending" | "none" = active
+    ? sortDir === "asc" ? "ascending" : "descending"
+    : "none";
+  return (
+    <th
+      scope="col"
+      aria-sort={ariaSort}
+      className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap cursor-pointer select-none hover:bg-[#f1f5f9]"
+      onClick={() => onSort(col)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        <SortIcon active={active} dir={sortDir} />
+      </div>
+    </th>
+  );
 }
 
 function RolePill({ role }: { role: string }) {
@@ -140,26 +165,6 @@ export function UsersClient({
       return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
     });
   }, [users, sortCol, sortDir]);
-
-  function Th({ col, label }: { col: SortCol; label: string }) {
-    const active = sortCol === col;
-    const ariaSort: "ascending" | "descending" | "none" = active
-      ? sortDir === "asc" ? "ascending" : "descending"
-      : "none";
-    return (
-      <th
-        scope="col"
-        aria-sort={ariaSort}
-        className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap cursor-pointer select-none hover:bg-[#f1f5f9]"
-        onClick={() => handleSort(col)}
-      >
-        <div className="flex items-center gap-1">
-          {label}
-          <SortIcon active={active} dir={sortDir} />
-        </div>
-      </th>
-    );
-  }
 
   const createForm = useForm({
     resolver: zodResolver(createSchema),
@@ -316,12 +321,12 @@ export function UsersClient({
           <caption className="sr-only">{t("title")}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <Th col="name" label={t("name")} />
-              <Th col="email" label={t("email")} />
-              <Th col="role" label={t("role")} />
+              <Th col="name" label={t("name")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="email" label={t("email")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="role" label={t("role")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("provider")}</th>
-              <Th col="twoFactor" label={t("twoFactor")} />
-              <Th col="createdAt" label={tField("created")} />
+              <Th col="twoFactor" label={t("twoFactor")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="createdAt" label={tField("created")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{tCommon("actions")}</th>
             </tr>
           </thead>

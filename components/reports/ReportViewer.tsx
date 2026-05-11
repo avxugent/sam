@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,6 @@ type Props = {
 };
 
 export function ReportViewer({ reportId, reportName, columns, result, canEdit, grafanaUrl }: Props) {
-  const router = useRouter();
   const { toast } = useToast();
   const t = useTranslations("report");
   const tCommon = useTranslations("common");

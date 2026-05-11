@@ -138,7 +138,7 @@ async function sendUdp(host: string, port: number, payloads: string[], timeoutMs
       settled = true;
       clearTimeout(timer);
       try { sock.close(); } catch { /* already closed */ }
-      err ? reject(err) : resolve();
+      if (err) reject(err); else resolve();
     };
     const timer = setTimeout(() => finish(new Error("UDP send timed out")), timeoutMs);
 
@@ -181,7 +181,7 @@ async function sendStream(
       settled = true;
       if (timer) clearTimeout(timer);
       try { socket.end(); } catch { /* already closed */ }
-      err ? reject(err) : resolve();
+      if (err) reject(err); else resolve();
     };
 
     const tlsOpts =

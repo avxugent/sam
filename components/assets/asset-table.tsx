@@ -21,7 +21,7 @@ import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
 import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown, ExternalLink, Download, ChevronLeft, ChevronRight } from "lucide-react";
-import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
+import { renderHostnameUrl } from "@/lib/hostname-template";
 import {
   Select,
   SelectContent,
@@ -73,11 +73,35 @@ function exportToCsv(assets: Asset[], filename: string, headers: string[]) {
   URL.revokeObjectURL(url);
 }
 
-function SortIcon({ col, active, dir }: { col: string; active: boolean; dir: "asc" | "desc" }) {
+function SortIcon({ active, dir }: { col: string; active: boolean; dir: "asc" | "desc" }) {
   if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
   return dir === "asc"
     ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
     : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
+}
+
+function Th({ col, label, sortCol, sortDir, onSort }: {
+  col: SortCol; label: string;
+  sortCol: SortCol | null; sortDir: "asc" | "desc";
+  onSort: (col: SortCol) => void;
+}) {
+  const active = sortCol === col;
+  const ariaSort: "ascending" | "descending" | "none" = active
+    ? sortDir === "asc" ? "ascending" : "descending"
+    : "none";
+  return (
+    <th scope="col" aria-sort={ariaSort} className="text-left text-[12px] font-medium text-[#64748b] whitespace-nowrap">
+      <button
+        type="button"
+        onClick={() => onSort(col)}
+        className="w-full text-left px-4 py-[10px] inline-flex items-center gap-1 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
+        aria-label={`Sort by ${label}${active ? `, currently ${sortDir === "asc" ? "ascending" : "descending"}` : ""}`}
+      >
+        <span className={active ? "text-[#1e64c8]" : ""}>{label}</span>
+        <SortIcon col={col} active={active} dir={sortDir} />
+      </button>
+    </th>
+  );
 }
 
 export function AssetTable({
@@ -86,14 +110,12 @@ export function AssetTable({
   userRole,
   showLocation = false,
   hostnameUrlTemplate,
-  macAddressUrlTemplate,
 }: {
   assets: Asset[];
   locationId: string;
   userRole: string;
   showLocation?: boolean;
   hostnameUrlTemplate?: string | null;
-  macAddressUrlTemplate?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -175,26 +197,6 @@ export function AssetTable({
     );
   }
 
-  function Th({ col, label }: { col: SortCol; label: string }) {
-    const active = sortCol === col;
-    const ariaSort: "ascending" | "descending" | "none" = active
-      ? sortDir === "asc" ? "ascending" : "descending"
-      : "none";
-    return (
-      <th scope="col" aria-sort={ariaSort} className="text-left text-[12px] font-medium text-[#64748b] whitespace-nowrap">
-        <button
-          type="button"
-          onClick={() => handleSort(col)}
-          className="w-full text-left px-4 py-[10px] inline-flex items-center gap-1 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
-          aria-label={`Sort by ${label}${active ? `, currently ${sortDir === "asc" ? "ascending" : "descending"}` : ""}`}
-        >
-          <span className={active ? "text-[#1e64c8]" : ""}>{label}</span>
-          <SortIcon col={col} active={active} dir={sortDir} />
-        </button>
-      </th>
-    );
-  }
-
   const colSpan = showLocation ? 8 : 7;
 
   return (
@@ -228,13 +230,13 @@ export function AssetTable({
           <caption className="sr-only">{t("assetCount", { count: sorted.length })}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <Th col="type" label={tField("type")} />
-              <Th col="manufacturer" label={tField("manufacturer")} />
-              <Th col="model" label={tField("model")} />
-              <Th col="serialNumber" label={tField("serialNumber")} />
-              <Th col="hostname" label={tField("hostname")} />
-              {showLocation && <Th col="location" label={tField("location")} />}
-              <Th col="installationDate" label={tField("installed")} />
+              <Th col="type" label={tField("type")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="manufacturer" label={tField("manufacturer")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="model" label={tField("model")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="serialNumber" label={tField("serialNumber")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="hostname" label={tField("hostname")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              {showLocation && <Th col="location" label={tField("location")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />}
+              <Th col="installationDate" label={tField("installed")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{tCommon("actions")}</th>
             </tr>
           </thead>

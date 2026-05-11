@@ -59,6 +59,25 @@ function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
     : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
 }
 
+function Th({ col, label, sortCol, sortDir, onSort }: {
+  col: SortCol; label: string;
+  sortCol: SortCol; sortDir: "asc" | "desc";
+  onSort: (col: SortCol) => void;
+}) {
+  return (
+    <th className="px-3 py-2.5 text-left">
+      <button
+        type="button"
+        onClick={() => onSort(col)}
+        className="flex items-center gap-1 text-[11px] font-semibold text-[#64748b] uppercase tracking-wide hover:text-[#0f172a] transition-colors"
+      >
+        {label}
+        <SortIcon active={sortCol === col} dir={sortDir} />
+      </button>
+    </th>
+  );
+}
+
 export function StockItemTable({
   items: initialItems,
   userRole,
@@ -125,21 +144,6 @@ export function StockItemTable({
     router.refresh();
   }
 
-  function Th({ col, label }: { col: SortCol; label: string }) {
-    return (
-      <th className="px-3 py-2.5 text-left">
-        <button
-          type="button"
-          onClick={() => toggleSort(col)}
-          className="flex items-center gap-1 text-[11px] font-semibold text-[#64748b] uppercase tracking-wide hover:text-[#0f172a] transition-colors"
-        >
-          {label}
-          <SortIcon active={sortCol === col} dir={sortDir} />
-        </button>
-      </th>
-    );
-  }
-
   return (
     <div className="space-y-3">
       {/* Search */}
@@ -163,11 +167,11 @@ export function StockItemTable({
         <table className="w-full text-[13px]">
           <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
             <tr>
-              <Th col="type" label={t("type")} />
-              <Th col="manufacturer" label={t("manufacturer")} />
-              <Th col="model" label={t("model")} />
-              <Th col="serialNumber" label={t("serial")} />
-              <Th col="quantity" label={t("qty")} />
+              <Th col="type" label={t("type")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <Th col="manufacturer" label={t("manufacturer")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <Th col="model" label={t("model")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <Th col="serialNumber" label={t("serial")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <Th col="quantity" label={t("qty")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
               {canEdit && <th className="px-3 py-2.5 w-[100px]" />}
             </tr>
           </thead>

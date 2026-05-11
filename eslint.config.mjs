@@ -32,6 +32,7 @@ const eslintConfig = defineConfig([
       //   plugin flags them as cascading-render risks but they are not.
       "react-compiler/react-compiler": "off",
       "react-hooks/set-state-in-effect": "off",
+      "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
     },
   },
 ]);

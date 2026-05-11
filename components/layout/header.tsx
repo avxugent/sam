@@ -140,7 +140,7 @@ function SearchBar() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tAsset]);
 
   useEffect(() => {
     const t = setTimeout(() => fetchQuick(query), 250);

@@ -51,7 +51,7 @@ export function TwoFactorChallenge() {
     // the signIn() call inside the verify route may not arrive in time before
     // the proxy checks the session on the next request.
     window.location.href = "/";
-  }, [code, rememberMe]);
+  }, [code, rememberMe, t]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">

@@ -80,7 +80,7 @@ export function MoveAssetDialog({
       .then((tree: LocationNode[]) => setLocations(flatten(tree)))
       .catch(() => toast({ title: tCommon("error"), variant: "destructive" }))
       .finally(() => setLoading(false));
-  }, [open, toast]);
+  }, [open, toast, tCommon]);
 
   useEffect(() => {
     if (open && !loading) {

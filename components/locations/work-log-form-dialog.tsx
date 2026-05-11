@@ -106,6 +106,7 @@ export function WorkLogFormDialog({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const assetIdValue = watch("assetId");
   const descriptionValue = watch("description");
 

@@ -30,6 +30,30 @@ function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
     : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
 }
 
+function Th({ col, label, sortCol, sortDir, onSort }: {
+  col: SortCol; label: string;
+  sortCol: SortCol | null; sortDir: "asc" | "desc";
+  onSort: (col: SortCol) => void;
+}) {
+  const active = sortCol === col;
+  const ariaSort: "ascending" | "descending" | "none" = active
+    ? sortDir === "asc" ? "ascending" : "descending"
+    : "none";
+  return (
+    <th
+      scope="col"
+      aria-sort={ariaSort}
+      className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide cursor-pointer select-none hover:bg-[#f1f5f9]"
+      onClick={() => onSort(col)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        <SortIcon active={active} dir={sortDir} />
+      </div>
+    </th>
+  );
+}
+
 export type DecommissionedAsset = {
   id: string;
   locationId: string;
@@ -93,26 +117,6 @@ export function DecommissionedTable({
     });
   }, [filtered, sortCol, sortDir]);
 
-  function Th({ col, label }: { col: SortCol; label: string }) {
-    const active = sortCol === col;
-    const ariaSort: "ascending" | "descending" | "none" = active
-      ? sortDir === "asc" ? "ascending" : "descending"
-      : "none";
-    return (
-      <th
-        scope="col"
-        aria-sort={ariaSort}
-        className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide cursor-pointer select-none hover:bg-[#f1f5f9]"
-        onClick={() => handleSort(col)}
-      >
-        <div className="flex items-center gap-1">
-          {label}
-          <SortIcon active={active} dir={sortDir} />
-        </div>
-      </th>
-    );
-  }
-
   async function handleReinstate(id: string) {
     const res = await fetch(`/api/assets/${id}/reinstate`, { method: "POST" });
     if (!res.ok) {
@@ -141,11 +145,11 @@ export function DecommissionedTable({
         <table className="w-full text-[13px]">
           <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
             <tr>
-              <Th col="type" label={tStock("type")} />
-              <Th col="model" label={tStock("model")} />
-              <Th col="serialNumber" label={tStock("serial")} />
-              <Th col="lastLocation" label={t("lastLocation")} />
-              <Th col="decommissionedAt" label={t("decommissioned")} />
+              <Th col="type" label={tStock("type")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="model" label={tStock("model")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="serialNumber" label={tStock("serial")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="lastLocation" label={t("lastLocation")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="decommissionedAt" label={t("decommissioned")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{t("note")}</th>
               {isAdmin && <th className="px-3 py-2.5 w-[60px]" />}
             </tr>

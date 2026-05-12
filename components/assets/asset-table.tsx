@@ -116,6 +116,7 @@ export function AssetTable({
   userRole: string;
   showLocation?: boolean;
   hostnameUrlTemplate?: string | null;
+  macAddressUrlTemplate?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();

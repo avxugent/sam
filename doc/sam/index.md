@@ -1,5 +1,6 @@
 ---
 title: "SAM – Simple Asset Management"
+confluence_short_name: "SAM"
 sync_to_confluence: true
 ---
 

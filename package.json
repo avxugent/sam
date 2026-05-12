@@ -1,6 +1,6 @@
 {
   "name": "sam",
-  "version": "0.2.0-alpha.6",
+  "version": "0.2.0-beta.1",
   "type": "module",
   "private": true,
   "scripts": {
@@ -16,6 +16,8 @@
     "db:clear-import:force": "node scripts/clear-import-data.mjs --force",
     "locations:add-links": "node scripts/add-location-links.mjs",
     "locations:add-links:dry-run": "node scripts/add-location-links.mjs --dry-run",
+    "locations:sync-lokalen": "node scripts/sync-lokalen.mjs",
+    "locations:sync-lokalen:dry-run": "node scripts/sync-lokalen.mjs --dry-run",
     "attachment:add": "node scripts/add-attachment.mjs",
     "export:backup": "node scripts/export-backup.mjs",
     "export:backup:dry-run": "node scripts/export-backup.mjs --dry-run",

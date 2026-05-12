@@ -18,3 +18,4 @@ Reference documentation for developers and system administrators.
 | Configuration | Environment variables reference |
 | Deployment | Docker production deployment |
 | Integrations | Prometheus, Grafana, Vault, JIRA, S3, Syslog |
+| Maintenance Scripts | CLI scripts for import, sync, backup, and audit forwarding |

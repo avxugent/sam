@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
@@ -165,11 +166,33 @@ export async function GET(req: NextRequest) {
       city: true,
       country: true,
       parentId: true,
-      _count: { select: { assets: true, children: true } },
+      _count: { select: { children: true } },
     },
     take: MAX_LOCATION_RESULTS,
     orderBy: { name: "asc" },
   });
+
+  // Count installed assets across all descendants for each matched location
+  // using a single batch recursive CTE (mirrors what the location detail page does).
+  const installedAssetCounts: Record<string, number> = {};
+  if (locations.length > 0) {
+    const locationIds = locations.map((l) => l.id);
+    const rows = await prisma.$queryRaw<{ rootId: string; assetCount: bigint }[]>`
+      WITH RECURSIVE loc_tree AS (
+        SELECT id, id AS rootId FROM locations WHERE id IN (${Prisma.join(locationIds)})
+        UNION ALL
+        SELECT l.id, lt.rootId FROM locations l
+        INNER JOIN loc_tree lt ON l.parentId = lt.id
+      )
+      SELECT lt.rootId, COUNT(a.id) AS assetCount
+      FROM loc_tree lt
+      LEFT JOIN assets a ON a.locationId = lt.id AND a.status = 'INSTALLED'
+      GROUP BY lt.rootId
+    `;
+    for (const row of rows) {
+      installedAssetCounts[row.rootId] = Number(row.assetCount);
+    }
+  }
 
   function buildLocationSnippet(l: typeof locations[number]): string {
     const parts: string[] = [];
@@ -188,6 +211,10 @@ export async function GET(req: NextRequest) {
   const locationResults = locations.map((l) => ({
     ...l,
     snippet: buildLocationSnippet(l),
+    _count: {
+      assets: installedAssetCounts[l.id] ?? 0,
+      children: l._count.children,
+    },
   }));
 
   return NextResponse.json({

@@ -5,10 +5,20 @@ on:
     branches:
       - main
       - master
+    paths-ignore:
+      - "doc/**"
+      - "**.md"
+      - "markdown-confluence-sync.config.cjs"
+      - ".github/workflows/confluence-publish.yml"
   pull_request:
     branches:
       - main
       - master
+    paths-ignore:
+      - "doc/**"
+      - "**.md"
+      - "markdown-confluence-sync.config.cjs"
+      - ".github/workflows/confluence-publish.yml"
 
 jobs:
   ci:

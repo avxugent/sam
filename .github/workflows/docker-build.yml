@@ -7,10 +7,20 @@ on:
       - master
     tags:
       - "v*.*.*"           # e.g. v1.2.3 — triggers a versioned release image
+    paths-ignore:
+      - "doc/**"
+      - "**.md"
+      - "markdown-confluence-sync.config.cjs"
+      - ".github/workflows/confluence-publish.yml"
   pull_request:
     branches:
       - main
       - master             # builds the image on PRs but does NOT push
+    paths-ignore:
+      - "doc/**"
+      - "**.md"
+      - "markdown-confluence-sync.config.cjs"
+      - ".github/workflows/confluence-publish.yml"
 
 env:
   GHCR_REGISTRY: ghcr.io

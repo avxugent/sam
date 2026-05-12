@@ -19,7 +19,20 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
 # ─────────────────────────────────────────────────────────────
-# Stage 2: Prisma CLI — isolated install for running migrations
+# Stage 2: Production-only dependencies
+#
+# Installs only non-dev dependencies. Copied into the runner image
+# under scripts/node_modules/ so maintenance scripts can run in the
+# production container (required for Nomad Actions).
+# ─────────────────────────────────────────────────────────────
+FROM base AS prod-deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev
+
+# ─────────────────────────────────────────────────────────────
+# Stage 3: Prisma CLI — isolated install for running migrations
 #
 # Installs only the `prisma` package (+ its full transitive dep tree)
 # into a separate directory so that the runner stage can invoke
@@ -115,6 +128,22 @@ RUN ln -sf /prisma-cli/node_modules/.bin/prisma /usr/local/bin/prisma \
 
 # Create uploads directory owned by the app user
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+
+# ── Maintenance scripts (for Nomad Actions) ───────────────────────────────────
+# Scripts are isolated under /app/scripts/ with their own node_modules so they
+# don't interfere with the standalone bundle. Node resolves bare imports from
+# the closest node_modules/ ancestor, so scripts/node_modules/ is picked up
+# automatically when running any script under /app/scripts/.
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+
+# Production node_modules (no devDeps) give scripts access to @prisma/client,
+# @aws-sdk/client-s3, jsdom, and other runtime dependencies.
+COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./scripts/node_modules
+
+# Overlay the Prisma-generated client from the builder stage — prod-deps has
+# the package skeleton but not the generated query engine / type definitions.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./scripts/node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/client ./scripts/node_modules/@prisma/client
 
 USER nextjs
 

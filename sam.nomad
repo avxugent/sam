@@ -157,6 +157,74 @@ EOH
         memory = 512   // MB — increase if running large imports
       }
 
+      // ── Nomad Actions ─────────────────────────────────────────────────────
+      // Run via: nomad alloc exec -task sam <alloc-id> <command>
+      // Or trigger from the Nomad UI under the allocation's "Actions" tab.
+      //
+      // Scripts run inside the production container; environment variables
+      // (DB_HOST, DB_PASSWORD, etc.) are already injected by the Vault
+      // templates above, so no .env file is needed.
+
+      // Sync location names, addresses, and photos from lokalen.ugent.be.
+      // Runs for all locations that have a FI number.
+      action "sync-lokalen-dry-run" {
+        command = "node"
+        args    = ["scripts/sync-lokalen.mjs", "--dry-run", "--skip-images"]
+      }
+
+      action "sync-lokalen" {
+        command = "node"
+        args    = ["scripts/sync-lokalen.mjs"]
+      }
+
+      // Sync metadata only (name + address) without downloading photos.
+      action "sync-lokalen-metadata-only" {
+        command = "node"
+        args    = ["scripts/sync-lokalen.mjs", "--skip-images"]
+      }
+
+      // Add a portal link attachment to every location with a FI number.
+      action "add-location-links-dry-run" {
+        command = "node"
+        args    = ["scripts/add-location-links.mjs", "--dry-run"]
+      }
+
+      action "add-location-links" {
+        command = "node"
+        args    = ["scripts/add-location-links.mjs"]
+      }
+
+      // Export a full CSV backup of all asset data.
+      // Writes to the configured S3 bucket or the local exports/ directory.
+      action "export-backup" {
+        command = "node"
+        args    = ["scripts/export-backup.mjs"]
+      }
+
+      action "export-backup-dry-run" {
+        command = "node"
+        args    = ["scripts/export-backup.mjs", "--dry-run"]
+      }
+
+      // Forward pending audit log entries to the rsyslog server.
+      action "forward-audit" {
+        command = "node"
+        args    = ["scripts/forward-audit.mjs"]
+      }
+
+      // DESTRUCTIVE: wipe all locations and assets for a clean re-import.
+      // Preserves users, asset types, and manufacturers.
+      // Run the dry-run first and verify the row counts before applying.
+      action "clear-import-data-dry-run" {
+        command = "node"
+        args    = ["scripts/clear-import-data.mjs", "--dry-run"]
+      }
+
+      action "clear-import-data-DESTRUCTIVE" {
+        command = "node"
+        args    = ["scripts/clear-import-data.mjs", "--force"]
+      }
+
       // ── Lifecycle: run db:push before the app starts ──────────────────────
       // Uncomment this block to automatically apply Prisma schema migrations
       // on every deploy. Safe for db push (idempotent); use with care for

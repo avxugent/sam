@@ -168,47 +168,47 @@ EOH
       // Sync location names, addresses, and photos from lokalen.ugent.be.
       // Runs for all locations that have a FI number.
       action "sync-lokalen-dry-run" {
-        command = "node"
+        command = "/usr/local/bin/node"
         args    = ["scripts/sync-lokalen.mjs", "--dry-run", "--skip-images"]
       }
 
       action "sync-lokalen" {
-        command = "node"
+        command = "/usr/local/bin/node"
         args    = ["scripts/sync-lokalen.mjs"]
       }
 
       // Sync metadata only (name + address) without downloading photos.
       action "sync-lokalen-metadata-only" {
-        command = "node"
+        command = "/usr/local/bin/node"
         args    = ["scripts/sync-lokalen.mjs", "--skip-images"]
       }
 
       // Add a portal link attachment to every location with a FI number.
       action "add-location-links-dry-run" {
-        command = "node"
+        command = "/usr/local/bin/node"
         args    = ["scripts/add-location-links.mjs", "--dry-run"]
       }
 
       action "add-location-links" {
-        command = "node"
+        command = "/usr/local/bin/node"
         args    = ["scripts/add-location-links.mjs"]
       }
 
       // Export a full CSV backup of all asset data.
       // Writes to the configured S3 bucket or the local exports/ directory.
       action "export-backup" {
-        command = "node"
+        command = "/usr/local/bin/node"
         args    = ["scripts/export-backup.mjs"]
       }
 
       action "export-backup-dry-run" {
-        command = "node"
+        command = "/usr/local/bin/node"
         args    = ["scripts/export-backup.mjs", "--dry-run"]
       }
 
       // Forward pending audit log entries to the rsyslog server.
       action "forward-audit" {
-        command = "node"
+        command = "/usr/local/bin/node"
         args    = ["scripts/forward-audit.mjs"]
       }
 
@@ -216,12 +216,12 @@ EOH
       // Preserves users, asset types, and manufacturers.
       // Run the dry-run first and verify the row counts before applying.
       action "clear-import-data-dry-run" {
-        command = "node"
+        command = "/usr/local/bin/node"
         args    = ["scripts/clear-import-data.mjs", "--dry-run"]
       }
 
       action "clear-import-data-DESTRUCTIVE" {
-        command = "node"
+        command = "/usr/local/bin/node"
         args    = ["scripts/clear-import-data.mjs", "--force"]
       }
 

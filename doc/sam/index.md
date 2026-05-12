@@ -12,14 +12,14 @@ SAM is a self-hosted web application for managing AV hardware assets across phys
 
 | Page | Description |
 |---|---|
-| [Getting Started](getting-started.md) | Local development setup and first run |
-| [Architecture](architecture.md) | Tech stack, project structure, key design decisions |
-| [Database](database.md) | Schema, models, and data relationships |
-| [Authentication & Roles](authentication.md) | Session auth, SSO, 2FA, role-based access |
-| [API Reference](api-reference.md) | All REST API endpoints |
-| [Configuration](configuration.md) | Environment variables reference |
-| [Deployment](deployment.md) | Docker production deployment |
-| [Integrations](integrations.md) | Prometheus, Grafana, Vault, JIRA, S3, Syslog |
+| Getting Started | Local development setup and first run |
+| Architecture | Tech stack, project structure, key design decisions |
+| Database | Schema, models, and data relationships |
+| Authentication & Roles | Session auth, SSO, 2FA, role-based access |
+| API Reference | All REST API endpoints |
+| Configuration | Environment variables reference |
+| Deployment | Docker production deployment |
+| Integrations | Prometheus, Grafana, Vault, JIRA, S3, Syslog |
 
 ## Feature Overview
 

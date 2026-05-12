@@ -12,6 +12,7 @@
 
 module.exports = {
   docsDir: "./doc",
+  mode: "tree",
   confluence: {
     url: process.env.CONFLUENCE_URL,
     spaceKey: process.env.CONFLUENCE_SPACE_KEY,

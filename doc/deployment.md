@@ -1,5 +1,5 @@
 ---
-title: "SAM - Deployment"
+title: "Deployment"
 sync_to_confluence: true
 ---
 

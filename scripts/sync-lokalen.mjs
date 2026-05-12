@@ -40,7 +40,6 @@ const prisma = new PrismaClient();
 const FIELD_LABELS = {
   name:    "name",
   address: "address",
-  city:    "city",
 };
 // Photos are served as /foto/{id} paths; all other <img> are UI chrome.
 const IMAGE_SRC_PATTERN = /\/foto\//;
@@ -288,7 +287,6 @@ async function main() {
 
     const scrapedFullName = extractFormField(document, FIELD_LABELS.name);
     const scrapedAddress  = extractFormField(document, FIELD_LABELS.address);
-    const scrapedCity     = extractFormField(document, FIELD_LABELS.city);
 
     // Portal name format: "{room}, {building}, {campus}"
     // Use only the first segment as the location name; verify the rest against ancestors.
@@ -300,7 +298,6 @@ async function main() {
       console.log(`    name    → ${JSON.stringify(scrapedFullName)} → room: ${JSON.stringify(scrapedName)}`);
       if (ancestorHints.length) console.log(`    hints   → ${JSON.stringify(ancestorHints)}`);
       console.log(`    address → ${JSON.stringify(scrapedAddress)}`);
-      console.log(`    city    → ${JSON.stringify(scrapedCity)}`);
       const urls = extractImageUrls(document, pageUrl);
       console.log(`    images  → ${urls.length} found`);
       urls.forEach(u => console.log(`              ${u}`));
@@ -330,9 +327,13 @@ async function main() {
       console.log(`    address : "${location.address ?? "(empty)"}" → "${scrapedAddress}"`);
       updates.address = scrapedAddress;
     }
-    if (scrapedCity && scrapedCity !== location.city) {
-      console.log(`    city    : "${location.city ?? "(empty)"}" → "${scrapedCity}"`);
-      updates.city = scrapedCity;
+    if (location.city !== "Gent") {
+      console.log(`    city    : "${location.city ?? "(empty)"}" → "Gent"`);
+      updates.city = "Gent";
+    }
+    if (location.country !== "Belgium") {
+      console.log(`    country : "${location.country ?? "(empty)"}" → "Belgium"`);
+      updates.country = "Belgium";
     }
 
     if (Object.keys(updates).length > 0) {

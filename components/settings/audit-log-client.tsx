@@ -228,7 +228,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
                     }}
                   >
                     <td className="px-4 py-[10px] text-[12px] font-mono text-[#64748b] whitespace-nowrap">
-                      {new Date(log.timestamp).toLocaleString()}
+                      {new Date(log.timestamp).toLocaleString("sv-SE")}
                     </td>
                     <td className="px-4 py-[10px] text-[#64748b] max-w-[160px] truncate">
                       {log.userEmail ?? <span className="italic">system</span>}

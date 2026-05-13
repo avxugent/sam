@@ -232,7 +232,7 @@ export function AssetDetailClient({
               {tDecom("bannerLabel")}
               {asset.decommissionedAt && (
                 <span className="font-normal ml-1.5 text-[#92400e]">
-                  · {new Date(asset.decommissionedAt).toLocaleDateString()}
+                  · {new Date(asset.decommissionedAt).toLocaleDateString("sv-SE")}
                 </span>
               )}
             </p>

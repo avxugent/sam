@@ -61,7 +61,7 @@ function exportToCsv(assets: Asset[], filename: string, headers: string[]) {
     a.hostname,
     a.macAddresses.map((m) => m.address).join("; "),
     a.location?.name,
-    a.installationDate ? new Date(a.installationDate).toLocaleDateString() : null,
+    a.installationDate ? new Date(a.installationDate).toLocaleDateString("sv-SE") : null,
   ].map(escapeCell).join(","));
   const csv = [headers.join(","), ...rows].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });

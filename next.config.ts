@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
@@ -39,6 +40,16 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
     },
+  },
+
+  webpack(config) {
+    // Redirect @prisma/client → generated TypeScript source so the build
+    // never attempts to load the non-existent .prisma/client/default shim.
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@prisma/client": path.resolve(__dirname, "generated/prisma/client.ts"),
+    };
+    return config;
   },
 
   async headers() {

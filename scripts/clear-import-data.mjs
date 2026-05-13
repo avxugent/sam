@@ -22,13 +22,10 @@
  * Run from the project root so that the .env file is found automatically.
  */
 
-import "./_env.mjs";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./_prisma.mjs";
 import { createInterface } from "readline";
 import { unlink } from "fs/promises";
 import { resolve } from "path";
-
-const prisma = new PrismaClient();
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

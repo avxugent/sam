@@ -140,10 +140,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 # @aws-sdk/client-s3, jsdom, and other runtime dependencies.
 COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./scripts/node_modules
 
-# Overlay the Prisma-generated client from the builder stage — prod-deps has
-# the package skeleton but not the generated query engine / type definitions.
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./scripts/node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/client ./scripts/node_modules/@prisma/client
+# Prisma 7 generates TypeScript source to generated/prisma/ (no longer in
+# node_modules/.prisma).  The _prisma.mjs helper registers tsx at runtime so
+# the generated .ts files can be imported without a separate compile step.
+COPY --from=builder --chown=nextjs:nodejs /app/generated/prisma ./scripts/generated/prisma
 
 USER nextjs
 

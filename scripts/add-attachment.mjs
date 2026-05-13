@@ -12,10 +12,7 @@
  * Run from the project root so that the .env file is found automatically.
  */
 
-import "./_env.mjs";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "./_prisma.mjs";
 
 function getArg(flag, defaultValue = null) {
   const idx = process.argv.indexOf(flag);

@@ -18,13 +18,10 @@
  * Run from the project root so that the .env file is found automatically.
  */
 
-import "./_env.mjs";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./_prisma.mjs";
 import { writeFile, mkdir } from "fs/promises";
 import { resolve, join } from "path";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-
-const prisma = new PrismaClient();
 
 const CUSTOM_FIELD_COLUMNS = [
   "GUID", "QUANTITY", "DIAGONAL", "WIDTH", "HEIGHT",

@@ -23,15 +23,12 @@
  * Run from the project root so that the .env file is found automatically.
  */
 
-import "./_env.mjs";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./_prisma.mjs";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { JSDOM } from "jsdom";
 import { mkdir, writeFile } from "fs/promises";
 import { resolve, dirname, basename } from "path";
 import { randomUUID } from "crypto";
-
-const prisma = new PrismaClient();
 
 // ── Field label → value mapping ──────────────────────────────────────────────
 // lokalen.ugent.be uses Bootstrap form-groups with a <label class="control-label">

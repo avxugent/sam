@@ -15,15 +15,12 @@
  * Run from the project root so .env is found automatically.
  */
 
-import "./_env.mjs";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./_prisma.mjs";
 import { createSocket } from "dgram";
 import { connect as netConnect } from "net";
 import { connect as tlsConnect } from "tls";
 import { readFileSync } from "fs";
 import { hostname as osHostname } from "os";
-
-const prisma = new PrismaClient();
 
 // ── arg parsing ───────────────────────────────────────────────────────────────
 

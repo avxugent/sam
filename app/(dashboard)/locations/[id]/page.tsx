@@ -25,6 +25,14 @@ export default async function LocationPage({
   const { id } = await params;
   const { hostnameUrlTemplate, macAddressUrlTemplate } = await getUrlTemplates();
 
+  const userPref = session?.user?.id
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { locationDefaultTab: true },
+      })
+    : null;
+  const locationDefaultTab = userPref?.locationDefaultTab ?? "assets";
+
   const location = await prisma.location.findUnique({
     where: { id },
     include: {
@@ -46,6 +54,7 @@ export default async function LocationPage({
   const breadcrumbs = await buildBreadcrumbs(id);
 
   const hasChildren = location._count.children > 0;
+  const defaultTab = hasChildren && locationDefaultTab === "sublocations" ? "sublocations" : "assets";
   const locationIds = hasChildren
     ? [id, ...(await getAllDescendantLocationIds(id))]
     : [id];
@@ -92,6 +101,7 @@ export default async function LocationPage({
       userRole={session?.user?.role || "VIEWER"}
       currentUserId={session?.user?.id ?? ""}
       showLocation={hasChildren}
+      defaultTab={defaultTab}
       hostnameUrlTemplate={hostnameUrlTemplate}
       macAddressUrlTemplate={macAddressUrlTemplate}
       workLogs={workLogs.map((w) => ({

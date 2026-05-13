@@ -520,7 +520,19 @@
     "profileTitle": "Profile",
     "profileSubtitle": "Manage your account.",
     "changePassword": "Change password",
-    "passwordChanged": "Password changed"
+    "passwordChanged": "Password changed",
+    "preferencesSaved": "Preferences saved",
+    "themeTitle": "Appearance",
+    "themeSubtitle": "Choose your preferred colour scheme.",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "locationNavTitle": "Location navigation",
+    "locationNavSubtitle": "Choose what you see first when opening a location that has sub-locations.",
+    "locationNavAssets": "Show assets",
+    "locationNavAssetsDesc": "Open the assets tab by default. Assets from all nested sub-locations are included.",
+    "locationNavSublocations": "Show sub-locations",
+    "locationNavSublocationsDesc": "Open the sub-locations tab by default. At the deepest level, assets are always shown."
   },
   "report": {
     "title": "Reports",

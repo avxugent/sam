@@ -520,7 +520,19 @@
     "profileTitle": "Profiel",
     "profileSubtitle": "Beheer uw account.",
     "changePassword": "Wachtwoord wijzigen",
-    "passwordChanged": "Wachtwoord gewijzigd"
+    "passwordChanged": "Wachtwoord gewijzigd",
+    "preferencesSaved": "Voorkeuren opgeslagen",
+    "themeTitle": "Weergave",
+    "themeSubtitle": "Kies uw gewenste kleurenschema.",
+    "themeLight": "Licht",
+    "themeDark": "Donker",
+    "themeSystem": "Systeem",
+    "locationNavTitle": "Locatienavigatie",
+    "locationNavSubtitle": "Kies wat u eerst ziet bij het openen van een locatie met sub-locaties.",
+    "locationNavAssets": "Assets tonen",
+    "locationNavAssetsDesc": "Open standaard het tabblad Assets. Assets van alle geneste sub-locaties zijn inbegrepen.",
+    "locationNavSublocations": "Sub-locaties tonen",
+    "locationNavSublocationsDesc": "Open standaard het tabblad Sub-locaties. Op het diepste niveau worden altijd assets getoond."
   },
   "report": {
     "title": "Rapporten",

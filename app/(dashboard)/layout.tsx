@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
+import { ThemeSync } from "@/components/theme-sync";
 
 type AssetCountRow = { id: string; totalAssets: bigint };
 
@@ -82,7 +83,7 @@ export default async function DashboardLayout({
 
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { provider: true, totpEnabled: true },
+    select: { provider: true, totpEnabled: true, theme: true },
   });
 
   const headerUser = {
@@ -96,6 +97,8 @@ export default async function DashboardLayout({
   const isAdminOrEditor = session.user.role === "ADMIN" || session.user.role === "EDITOR";
 
   return (
+    <>
+    <ThemeSync serverTheme={dbUser?.theme ?? "light"} />
     <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
       {/* Skip link — visible only on focus, jumps over the sidebar + header */}
       <a
@@ -123,5 +126,6 @@ export default async function DashboardLayout({
       {/* Mobile bottom tab bar */}
       <MobileBottomNav isAdminOrEditor={isAdminOrEditor} />
     </div>
+    </>
   );
 }

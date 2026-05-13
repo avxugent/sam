@@ -35,6 +35,10 @@ model User {
   // Forced enrollment flags (set by admin)
   mustChangePassword Boolean @default(false) // cleared after user successfully changes password
   twoFactorRequired  Boolean @default(false) // stays set; forces 2FA setup on next login
+  // UI preference: which tab opens first when navigating to a location with sub-locations
+  locationDefaultTab String  @default("assets") // "assets" | "sublocations"
+  // UI preference: colour scheme
+  theme              String  @default("light")  // "light" | "dark" | "system"
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

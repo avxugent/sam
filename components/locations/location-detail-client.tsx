@@ -101,6 +101,7 @@ export function LocationDetailClient({
   userRole,
   currentUserId,
   showLocation = false,
+  defaultTab = "assets",
   hostnameUrlTemplate,
   macAddressUrlTemplate,
   workLogs = [],
@@ -114,6 +115,7 @@ export function LocationDetailClient({
   userRole: string;
   currentUserId?: string;
   showLocation?: boolean;
+  defaultTab?: string;
   hostnameUrlTemplate?: string | null;
   macAddressUrlTemplate?: string | null;
   workLogs?: WorkLogEntry[];
@@ -313,7 +315,7 @@ export function LocationDetailClient({
       )}
 
       {/* Tabs */}
-      <Tabs defaultValue="assets">
+      <Tabs defaultValue={defaultTab}>
         <TabsList className="flex-wrap h-auto gap-0 border-b border-[#e2e8f0] bg-transparent rounded-none p-0">
           <TabsTrigger
             value="assets"

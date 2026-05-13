@@ -9,11 +9,26 @@ const schema = z.object({
   currentPassword: z.string().optional(),
   newPassword: z.string().min(8).max(128).optional(),
   confirmPassword: z.string().optional(),
+  locationDefaultTab: z.enum(["assets", "sublocations"]).optional(),
+  theme: z.enum(["light", "dark", "system"]).optional(),
 }).superRefine(({ newPassword, confirmPassword }, ctx) => {
   if (newPassword && newPassword !== confirmPassword) {
     ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: "Passwords do not match." });
   }
 });
+
+export async function GET() {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, name: true, email: true, role: true, provider: true, locationDefaultTab: true, theme: true },
+  });
+  if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
+
+  return NextResponse.json(user);
+}
 
 export async function PATCH(req: NextRequest) {
   const session = await auth();
@@ -25,7 +40,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { name, currentPassword, newPassword } = parsed.data;
+  const { name, currentPassword, newPassword, locationDefaultTab, theme } = parsed.data;
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -37,6 +52,14 @@ export async function PATCH(req: NextRequest) {
 
   if (name !== undefined) {
     updateData.name = name;
+  }
+
+  if (locationDefaultTab !== undefined) {
+    updateData.locationDefaultTab = locationDefaultTab;
+  }
+
+  if (theme !== undefined) {
+    updateData.theme = theme;
   }
 
   if (newPassword) {

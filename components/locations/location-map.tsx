@@ -74,10 +74,7 @@ export function LocationMap({
     setSearching(true);
     setSearchResults([]);
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`,
-        { headers: { "Accept-Language": "en" } }
-      );
+      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
       const data: NominatimResult[] = await res.json();
       setSearchResults(data);
       if (data.length === 0) {

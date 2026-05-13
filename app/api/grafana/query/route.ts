@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkPrometheusAuth } from "@/lib/prometheus-auth";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 
 type AdhocFilter = {
   key: string;

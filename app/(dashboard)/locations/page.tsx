@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { MapPin } from "lucide-react";
 import { LocationBrowserClient } from "@/components/locations/location-browser-client";
 import type { LocationNode } from "@/components/locations/location-browser-client";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 
 type AssetCountRow = { id: string; totalAssets: bigint };
 

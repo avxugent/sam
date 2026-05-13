@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -210,9 +210,8 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
               </tr>
             ) : (
               sorted.map((log) => (
-                <>
+                <Fragment key={log.id}>
                   <tr
-                    key={log.id}
                     role={log.detail ? "button" : undefined}
                     tabIndex={log.detail ? 0 : undefined}
                     aria-expanded={log.detail ? expandedId === log.id : undefined}
@@ -256,13 +255,13 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
                     </td>
                   </tr>
                   {expandedId === log.id && log.detail && (
-                    <tr key={`${log.id}-detail`} className="border-b border-[#e2e8f0] bg-[#f8fafc]">
+                    <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
                       <td colSpan={6} className="px-6 py-3">
                         <DetailRenderer detail={log.detail} />
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))
             )}
           </tbody>

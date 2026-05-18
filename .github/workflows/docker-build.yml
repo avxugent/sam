@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"           # only build on release tags, e.g. v1.2.3
+  workflow_dispatch:       # allow manual trigger from the Actions UI
 
 env:
   GHCR_REGISTRY: ghcr.io

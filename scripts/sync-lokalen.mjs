@@ -3,13 +3,14 @@
  *
  * Crawls https://lokalen.ugent.be/lokaal/{fiNumber} for every SAM location
  * that has a fiNumber, then:
- *   - Corrects the location name if it differs from the portal
- *   - Updates address and city from the portal
- *   - Downloads photos and saves them as file attachments
+ *   - Corrects the location name if it differs from the portal (always synced)
+ *   - Fills in address/city/country ONLY when those fields are currently empty
+ *   - Downloads photos and saves them as file attachments ONLY if the location
+ *     has no existing image attachments yet
  *   - Sets the first downloaded photo as cover image if none is set
  *
- * Idempotent: images are skipped if an attachment already exists with the
- * source URL in its description field. Use --force to re-download anyway.
+ * Existing address data and existing images are never overwritten.
+ * Use --force to re-download images even when images already exist.
  *
  * Usage:
  *   node scripts/sync-lokalen.mjs                           # all locations
@@ -320,16 +321,19 @@ async function main() {
       console.log(`    name    : "${location.name}" → "${scrapedName}"`);
       updates.name = scrapedName;
     }
-    if (scrapedAddress && scrapedAddress !== location.address) {
-      console.log(`    address : "${location.address ?? "(empty)"}" → "${scrapedAddress}"`);
+    // Address fields: only fill in when currently empty — never overwrite existing data
+    if (scrapedAddress && !location.address) {
+      console.log(`    address : "(empty)" → "${scrapedAddress}"`);
       updates.address = scrapedAddress;
+    } else if (scrapedAddress && location.address && scrapedAddress !== location.address) {
+      console.log(`    address : kept existing "${location.address}" (portal: "${scrapedAddress}")`);
     }
-    if (location.city !== "Gent") {
-      console.log(`    city    : "${location.city ?? "(empty)"}" → "Gent"`);
+    if (!location.city) {
+      console.log(`    city    : "(empty)" → "Gent"`);
       updates.city = "Gent";
     }
-    if (location.country !== "Belgium") {
-      console.log(`    country : "${location.country ?? "(empty)"}" → "Belgium"`);
+    if (!location.country) {
+      console.log(`    country : "(empty)" → "Belgium"`);
       updates.country = "Belgium";
     }
 
@@ -350,6 +354,21 @@ async function main() {
     // ── Image sync ───────────────────────────────────────────────────────────
     if (!skipImages) {
       const imageUrls = extractImageUrls(document, pageUrl);
+
+      // Check if location already has any image attachments — if so, skip download
+      // entirely unless --force is passed. Existing images are never overwritten.
+      const existingImageCount = await prisma.attachment.count({
+        where: { locationId: location.id, mimeType: { startsWith: "image/" } },
+      });
+      const hasExistingImages = existingImageCount > 0;
+
+      if (hasExistingImages && !force) {
+        if (imageUrls.length > 0) {
+          console.log(`    images  : skipped — location already has ${existingImageCount} image(s) (use --force to re-download)`);
+        } else if (Object.keys(updates).length === 0) {
+          console.log(`    (no changes)`);
+        }
+      } else {
 
       if (imageUrls.length === 0 && Object.keys(updates).length === 0) {
         console.log(`    (no changes)`);
@@ -452,6 +471,7 @@ async function main() {
           console.log(`    WOULD SET cover image`);
         }
       }
+      } // end else (no existing images / force)
     }
 
     console.log("");

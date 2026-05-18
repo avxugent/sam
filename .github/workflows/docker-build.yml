@@ -2,25 +2,8 @@ name: Build and publish Docker image
 
 on:
   push:
-    branches:
-      - main
-      - master
     tags:
-      - "v*.*.*"           # e.g. v1.2.3 — triggers a versioned release image
-    paths-ignore:
-      - "doc/**"
-      - "**.md"
-      - "markdown-confluence-sync.config.cjs"
-      - ".github/workflows/confluence-publish.yml"
-  pull_request:
-    branches:
-      - main
-      - master             # builds the image on PRs but does NOT push
-    paths-ignore:
-      - "doc/**"
-      - "**.md"
-      - "markdown-confluence-sync.config.cjs"
-      - ".github/workflows/confluence-publish.yml"
+      - "v*.*.*"           # only build on release tags, e.g. v1.2.3
 
 env:
   GHCR_REGISTRY: ghcr.io
@@ -46,9 +29,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       # ── 3. Log in to registries ───────────────────────────────────────────
-      # Skipped on pull_request events (GITHUB_TOKEN is read-only there).
       - name: Log in to GitHub Container Registry
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v4
         with:
           registry: ${{ env.GHCR_REGISTRY }}
@@ -56,7 +37,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -75,18 +55,14 @@ jobs:
             ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_NAME }}
             ${{ env.DOCKERHUB_IMAGE }}
           tags: |
-            # branch name for every push to main/master
-            type=ref,event=branch
-            # PR number (image built but not pushed)
-            type=ref,event=pr
             # raw tag name for tag pushes (e.g. v1.2.3)
             type=ref,event=tag
             # stripped semver from tag (e.g. v1.2.3 → 1.2.3)
             type=semver,pattern={{version}}
             # major.minor from tag (e.g. v1.2.3 → 1.2)
             type=semver,pattern={{major}}.{{minor}}
-            # 'latest' on every non-PR push (branch and tag)
-            type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
+            # 'latest' on every release tag push
+            type=raw,value=latest
             # short commit SHA for traceability (always added)
             type=sha,prefix=sha-,format=short
 
@@ -99,7 +75,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -120,7 +96,6 @@ jobs:
 
       # ── 6. Print image digest for traceability ────────────────────────────
       - name: Print image digest
-        if: github.event_name != 'pull_request'
         run: |
           echo "Image pushed:"
           echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n' | sed 's/^/  /'

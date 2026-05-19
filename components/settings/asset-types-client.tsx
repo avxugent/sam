@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ type AssetType = {
   id: string;
   name: string;
   scrapeTargetTemplate: string | null;
+  prometheusExposed: boolean;
   _count: { assets: number };
 };
 
@@ -173,7 +175,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     }
     const item = await res.json();
     setTypes((prev) =>
-      [...prev, { ...item, scrapeTargetTemplate: null, _count: { assets: 0 } }].sort(
+      [...prev, { ...item, scrapeTargetTemplate: null, prometheusExposed: true, _count: { assets: 0 } }].sort(
         (a, b) => a.name.localeCompare(b.name)
       )
     );
@@ -277,6 +279,24 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     toast({ title: t("typeDeleted") });
   }
 
+  async function handleTogglePrometheusExposed(id: string, current: boolean) {
+    const res = await fetch(`/api/asset-types/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prometheusExposed: !current }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      return;
+    }
+    setTypes((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, prometheusExposed: !current } : item
+      )
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Add form */}
@@ -302,6 +322,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
           types.map((item) => {
             const isExpanded = expandedIds.has(item.id);
             const hasTemplate = !!item.scrapeTargetTemplate?.trim();
+            const isExcluded = !item.prometheusExposed;
 
             return (
               <div key={item.id}>
@@ -359,6 +380,15 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                         >
                           <Activity className="h-3 w-3" />
                           Scrape configured
+                        </Badge>
+                      )}
+
+                      {isExcluded && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs text-amber-600 border-amber-300 bg-amber-50"
+                        >
+                          {t("prometheusExposedDisabled")}
                         </Badge>
                       )}
 
@@ -428,6 +458,26 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                 {/* Expandable scrape config panel */}
                 {isExpanded && (
                   <div className="px-4 pb-4 bg-muted/30 border-t">
+                    {/* Prometheus SD toggle */}
+                    <div className="pt-3 pb-3 border-b">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id={`prometheus-exposed-${item.id}`}
+                          checked={item.prometheusExposed}
+                          onCheckedChange={() => handleTogglePrometheusExposed(item.id, item.prometheusExposed)}
+                        />
+                        <div className="space-y-0.5">
+                          <label
+                            htmlFor={`prometheus-exposed-${item.id}`}
+                            className="text-sm font-medium cursor-pointer"
+                          >
+                            {t("prometheusExposed")}
+                          </label>
+                          <p className="text-xs text-muted-foreground">{t("prometheusExposedHelp")}</p>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="pt-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">

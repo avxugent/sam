@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
       vaultPath: true,
       locationId: true,
       type: {
-        select: { name: true, scrapeTargetTemplate: true },
+        select: { name: true, scrapeTargetTemplate: true, prometheusExposed: true },
       },
       manufacturer: { select: { name: true } },
     },
@@ -127,6 +127,7 @@ export async function GET(req: NextRequest) {
 
   for (const asset of assets) {
     if (!asset.hostname) continue;
+    if (asset.type && !asset.type.prometheusExposed) continue;
 
     // Resolve location metadata
     const ancestors = await getLocationPath(asset.locationId);

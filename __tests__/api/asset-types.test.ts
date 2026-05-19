@@ -154,6 +154,23 @@ describe("PUT /api/asset-types/[id]", () => {
     }), { params });
     expect(res.status).toBe(200);
   });
+
+  it("updates prometheusExposed flag", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    vi.mocked(prisma.assetType.findUnique).mockResolvedValue({ id: "type-1", name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: true } as never);
+    vi.mocked(prisma.assetType.findFirst).mockResolvedValue(null as never);
+    mockUpdate.mockResolvedValue({ id: "type-1", name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: false } as never);
+    const res = await PUT(makeIdReq("PUT", { prometheusExposed: false }), { params });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.prometheusExposed).toBe(false);
+  });
+
+  it("rejects non-boolean prometheusExposed", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    const res = await PUT(makeIdReq("PUT", { prometheusExposed: "yes" }), { params });
+    expect(res.status).toBe(400);
+  });
 });
 
 // ── DELETE /api/asset-types/[id] ──────────────────────────────────────────────

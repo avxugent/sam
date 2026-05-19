@@ -91,6 +91,7 @@ model AssetType {
   //   __param_user__={vault_username}
   //   __param_password__={vault_password}
   scrapeTargetTemplate String? @db.Text
+  prometheusExposed    Boolean  @default(true)
   createdAt            DateTime @default(now())
 
   assets      Asset[]

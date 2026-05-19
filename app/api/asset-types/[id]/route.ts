@@ -8,6 +8,7 @@ import { logAudit } from "@/lib/audit";
 const schema = z.object({
   name: z.string().min(1).max(255).optional(),
   scrapeTargetTemplate: z.string().max(10000).optional().nullable(),
+  prometheusExposed: z.boolean().optional(),
 });
 
 export async function PUT(
@@ -36,7 +37,7 @@ export async function PUT(
 
   const before = await prisma.assetType.findUnique({
     where: { id },
-    select: { name: true, scrapeTargetTemplate: true },
+    select: { name: true, scrapeTargetTemplate: true, prometheusExposed: true },
   });
 
   // Check for name conflict before attempting update
@@ -59,6 +60,7 @@ export async function PUT(
       data: {
         ...(parsed.data.name !== undefined && { name: parsed.data.name }),
         scrapeTargetTemplate: parsed.data.scrapeTargetTemplate ?? null,
+        ...(parsed.data.prometheusExposed !== undefined && { prometheusExposed: parsed.data.prometheusExposed }),
       },
     });
 
@@ -68,6 +70,8 @@ export async function PUT(
         changes["Name"] = { from: before.name, to: parsed.data.name };
       if (parsed.data.scrapeTargetTemplate !== undefined && parsed.data.scrapeTargetTemplate !== before.scrapeTargetTemplate)
         changes["Scrape template"] = { from: before.scrapeTargetTemplate ?? null, to: parsed.data.scrapeTargetTemplate ?? null };
+      if (parsed.data.prometheusExposed !== undefined && parsed.data.prometheusExposed !== before.prometheusExposed)
+        changes["Prometheus exposed"] = { from: before.prometheusExposed, to: parsed.data.prometheusExposed };
     }
 
     await logAudit({

@@ -439,7 +439,10 @@
     "presetDeleted": "Preset verwijderd",
     "deletePreset": "Preset verwijderen",
     "newPresetPlaceholder": "Nieuwe presetnaam (bijv. Filter reinigen)",
-    "presetDescPlaceholder": "Optionele standaardbeschrijving"
+    "presetDescPlaceholder": "Optionele standaardbeschrijving",
+    "prometheusExposed": "Blootstellen aan Prometheus SD",
+    "prometheusExposedHelp": "Als ingeschakeld, worden assets van dit type met een hostnaam opgenomen in de Prometheus HTTP service discovery-respons.",
+    "prometheusExposedDisabled": "Uitgesloten van SD"
   },
   "manufacturers": {
     "title": "Fabrikanten",

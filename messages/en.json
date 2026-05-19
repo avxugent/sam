@@ -439,7 +439,10 @@
     "presetDeleted": "Preset deleted",
     "deletePreset": "Delete preset",
     "newPresetPlaceholder": "New preset name (e.g. Clean filter)",
-    "presetDescPlaceholder": "Optional default description"
+    "presetDescPlaceholder": "Optional default description",
+    "prometheusExposed": "Expose to Prometheus SD",
+    "prometheusExposedHelp": "When enabled, assets of this type with a hostname are included in the Prometheus HTTP service discovery response.",
+    "prometheusExposedDisabled": "Excluded from SD"
   },
   "manufacturers": {
     "title": "Manufacturers",

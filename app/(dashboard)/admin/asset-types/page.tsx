@@ -13,6 +13,7 @@ export default async function AssetTypesPage() {
       id: true,
       name: true,
       scrapeTargetTemplate: true,
+      prometheusExposed: true,
       _count: { select: { assets: true } },
     },
   });

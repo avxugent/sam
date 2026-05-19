@@ -39,6 +39,20 @@ export async function PUT(
     select: { name: true, scrapeTargetTemplate: true },
   });
 
+  // Check for name conflict before attempting update
+  if (parsed.data.name !== undefined) {
+    const conflict = await prisma.assetType.findFirst({
+      where: { name: parsed.data.name, NOT: { id } },
+      select: { id: true, name: true },
+    });
+    if (conflict) {
+      return NextResponse.json(
+        { error: `An asset type named "${parsed.data.name}" already exists.`, conflict: "name", existingId: conflict.id },
+        { status: 409 }
+      );
+    }
+  }
+
   try {
     const type = await prisma.assetType.update({
       where: { id },
@@ -67,7 +81,7 @@ export async function PUT(
     });
     return NextResponse.json(type);
   } catch {
-    return NextResponse.json({ error: "Name already exists or not found." }, { status: 400 });
+    return NextResponse.json({ error: "Asset type not found." }, { status: 404 });
   }
 }
 

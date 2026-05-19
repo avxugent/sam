@@ -140,6 +140,15 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     }
   }
 
+  // Merge conflict dialog state
+  const [mergeConflict, setMergeConflict] = useState<{
+    sourceId: string;
+    sourceName: string;
+    targetId: string;
+    targetName: string;
+  } | null>(null);
+  const [merging, setMerging] = useState(false);
+
   // Template editor dialog state
   const [templateDialog, setTemplateDialog] = useState<AssetType | null>(null);
   const [templateValue, setTemplateValue] = useState("");
@@ -174,13 +183,19 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
 
   async function handleEditName(id: string) {
     if (!editName.trim()) return;
+    const newNameTrimmed = editName.trim();
     const res = await fetch(`/api/asset-types/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editName.trim() }),
+      body: JSON.stringify({ name: newNameTrimmed }),
     });
     if (!res.ok) {
       const err = await res.json();
+      if (res.status === 409 && err.conflict === "name" && err.existingId) {
+        const sourceName = types.find((x) => x.id === id)?.name ?? id;
+        setMergeConflict({ sourceId: id, sourceName, targetId: err.existingId, targetName: newNameTrimmed });
+        return;
+      }
       toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
@@ -192,6 +207,26 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     );
     setEditingId(null);
     toast({ title: t("typeUpdated") });
+  }
+
+  async function handleMerge() {
+    if (!mergeConflict) return;
+    setMerging(true);
+    const res = await fetch(`/api/asset-types/${mergeConflict.sourceId}/merge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetId: mergeConflict.targetId }),
+    });
+    setMerging(false);
+    if (!res.ok) {
+      const err = await res.json();
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      return;
+    }
+    setTypes((prev) => prev.filter((x) => x.id !== mergeConflict.sourceId));
+    setMergeConflict(null);
+    setEditingId(null);
+    toast({ title: t("typeMerged") });
   }
 
   async function handleSaveTemplate() {
@@ -580,6 +615,34 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Merge conflict dialog */}
+      <AlertDialog open={!!mergeConflict} onOpenChange={(open) => { if (!open) setMergeConflict(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("mergeConflictTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("mergeConflictDescription", {
+                source: mergeConflict?.sourceName ?? "",
+                target: mergeConflict?.targetName ?? "",
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setMergeConflict(null)}>
+              {t("mergeConflictChangeName")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleMerge}
+              disabled={merging}
+              className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+            >
+              {merging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("mergeConflictMerge")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

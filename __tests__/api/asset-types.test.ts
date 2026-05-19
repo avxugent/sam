@@ -7,6 +7,7 @@ vi.mock("@/lib/prisma", () => ({
     assetType: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -117,11 +118,22 @@ describe("PUT /api/asset-types/[id]", () => {
 
   it("updates name as admin", async () => {
     mockAuth.mockResolvedValue(adminSession() as never);
+    vi.mocked(prisma.assetType.findFirst).mockResolvedValue(null as never);
     mockUpdate.mockResolvedValue({ id: "type-1", name: "Updated" } as never);
     const res = await PUT(makeIdReq("PUT", { name: "Updated" }), { params });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.name).toBe("Updated");
+  });
+
+  it("returns 409 with existingId when name already taken", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    vi.mocked(prisma.assetType.findFirst).mockResolvedValue({ id: "type-2", name: "Existing" } as never);
+    const res = await PUT(makeIdReq("PUT", { name: "Existing" }), { params });
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.conflict).toBe("name");
+    expect(body.existingId).toBe("type-2");
   });
 
   it("returns 400 for invalid template syntax", async () => {

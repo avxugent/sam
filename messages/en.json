@@ -663,7 +663,9 @@
     "tooMany": "Showing first 50 results. Refine your search to narrow down.",
     "assets": "Assets",
     "locations": "Locations",
-    "results": "Search results"
+    "results": "Search results",
+    "previous": "Previous",
+    "page": "Page"
   },
   "coverImage": {
     "title": "Cover image",

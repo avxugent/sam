@@ -663,7 +663,9 @@
     "tooMany": "De eerste 50 resultaten worden getoond. Verfijn uw zoekopdracht om af te bakenen.",
     "assets": "Assets",
     "locations": "Locaties",
-    "results": "Zoekresultaten"
+    "results": "Zoekresultaten",
+    "previous": "Vorige",
+    "page": "Pagina"
   },
   "coverImage": {
     "title": "Hoofdfoto",

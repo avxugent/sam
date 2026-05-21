@@ -1,5 +1,5 @@
 /**
- * GET /api/search?q=<query>
+ * GET /api/search?q=<query>&page=<page>
  *
  * Full-text search across all asset attributes:
  *   - model, serialNumber, hostname, invoiceNumber, notes
@@ -11,7 +11,7 @@
  * Also searches locations independently:
  *   - name, description, fiNumber, address, city
  *
- * Returns up to 50 asset results and 20 location results, ordered by
+ * Returns paginated results (50 assets / 20 locations per page), ordered by
  * relevance (number of matching fields, most specific first).
  *
  * Authentication: standard NextAuth session.
@@ -22,8 +22,8 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
-const MAX_ASSET_RESULTS = 50;
-const MAX_LOCATION_RESULTS = 20;
+const ASSET_PAGE_SIZE = 50;
+const LOCATION_PAGE_SIZE = 20;
 const MIN_QUERY_LENGTH = 2;
 
 export async function GET(req: NextRequest) {
@@ -32,58 +32,92 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim() ?? "";
+  const pageParam = parseInt(searchParams.get("page") ?? "1", 10);
+  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
   if (q.length < MIN_QUERY_LENGTH) {
-    return NextResponse.json({ assets: [], locations: [], query: q });
+    return NextResponse.json({ assets: [], locations: [], query: q, total: 0, totalAssets: 0, totalLocations: 0, page: 1, assetPages: 0, locationPages: 0 });
   }
 
-  // ── Asset search ────────────────────────────────────────────────────────────
-  // We search across many fields using OR conditions. Prisma's `where` with
-  // nested OR handles this cleanly and avoids raw SQL injection risk.
-  const assets = await prisma.asset.findMany({
-    where: {
-      status: "INSTALLED",
-      OR: [
-        { model: { contains: q } },
-        { serialNumber: { contains: q } },
-        { hostname: { contains: q } },
-        { invoiceNumber: { contains: q } },
-        { notes: { contains: q } },
-        { type: { name: { contains: q } } },
-        { manufacturer: { name: { contains: q } } },
-        { macAddresses: { some: { address: { contains: q } } } },
-        { customFields: { some: { value: { contains: q } } } },
-        { customFields: { some: { key: { contains: q } } } },
-        { location: { name: { contains: q } } },
-        { location: { fiNumber: { contains: q } } },
-        { location: { address: { contains: q } } },
-        { location: { city: { contains: q } } },
-      ],
-    },
-    select: {
-      id: true,
-      model: true,
-      serialNumber: true,
-      hostname: true,
-      invoiceNumber: true,
-      notes: true,
-      locationId: true,
-      type: { select: { id: true, name: true } },
-      manufacturer: { select: { id: true, name: true } },
-      macAddresses: { select: { address: true } },
-      customFields: { select: { key: true, value: true } },
-      location: {
-        select: {
-          id: true,
-          name: true,
-          fiNumber: true,
-          parentId: true,
+  const assetWhere = {
+    status: "INSTALLED",
+    OR: [
+      { model: { contains: q } },
+      { serialNumber: { contains: q } },
+      { hostname: { contains: q } },
+      { invoiceNumber: { contains: q } },
+      { notes: { contains: q } },
+      { type: { name: { contains: q } } },
+      { manufacturer: { name: { contains: q } } },
+      { macAddresses: { some: { address: { contains: q } } } },
+      { customFields: { some: { value: { contains: q } } } },
+      { customFields: { some: { key: { contains: q } } } },
+      { location: { name: { contains: q } } },
+      { location: { fiNumber: { contains: q } } },
+      { location: { address: { contains: q } } },
+      { location: { city: { contains: q } } },
+    ],
+  } satisfies Prisma.AssetWhereInput;
+
+  const locationWhere = {
+    OR: [
+      { name: { contains: q } },
+      { description: { contains: q } },
+      { fiNumber: { contains: q } },
+      { address: { contains: q } },
+      { city: { contains: q } },
+      { country: { contains: q } },
+    ],
+  } satisfies Prisma.LocationWhereInput;
+
+  const [totalAssets, totalLocations, assets, locations] = await Promise.all([
+    prisma.asset.count({ where: assetWhere }),
+    prisma.location.count({ where: locationWhere }),
+    prisma.asset.findMany({
+      where: assetWhere,
+      select: {
+        id: true,
+        model: true,
+        serialNumber: true,
+        hostname: true,
+        invoiceNumber: true,
+        notes: true,
+        locationId: true,
+        type: { select: { id: true, name: true } },
+        manufacturer: { select: { id: true, name: true } },
+        macAddresses: { select: { address: true } },
+        customFields: { select: { key: true, value: true } },
+        location: {
+          select: {
+            id: true,
+            name: true,
+            fiNumber: true,
+            parentId: true,
+          },
         },
       },
-    },
-    take: MAX_ASSET_RESULTS,
-    orderBy: { updatedAt: "desc" },
-  });
+      skip: (page - 1) * ASSET_PAGE_SIZE,
+      take: ASSET_PAGE_SIZE,
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.location.findMany({
+      where: locationWhere,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        fiNumber: true,
+        address: true,
+        city: true,
+        country: true,
+        parentId: true,
+        _count: { select: { children: true } },
+      },
+      skip: (page - 1) * LOCATION_PAGE_SIZE,
+      take: LOCATION_PAGE_SIZE,
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   // Score each asset by how many fields matched — puts the most relevant results first
   const ql = q.toLowerCase();
@@ -145,33 +179,6 @@ export async function GET(req: NextRequest) {
     _score: a._score,
   }));
 
-  // ── Location search ─────────────────────────────────────────────────────────
-  const locations = await prisma.location.findMany({
-    where: {
-      OR: [
-        { name: { contains: q } },
-        { description: { contains: q } },
-        { fiNumber: { contains: q } },
-        { address: { contains: q } },
-        { city: { contains: q } },
-        { country: { contains: q } },
-      ],
-    },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      fiNumber: true,
-      address: true,
-      city: true,
-      country: true,
-      parentId: true,
-      _count: { select: { children: true } },
-    },
-    take: MAX_LOCATION_RESULTS,
-    orderBy: { name: "asc" },
-  });
-
   // Count installed assets across all descendants for each matched location
   // using a single batch recursive CTE (mirrors what the location detail page does).
   const installedAssetCounts: Record<string, number> = {};
@@ -221,6 +228,11 @@ export async function GET(req: NextRequest) {
     query: q,
     assets: assetResults,
     locations: locationResults,
-    total: assetResults.length + locationResults.length,
+    total: totalAssets + totalLocations,
+    totalAssets,
+    totalLocations,
+    page,
+    assetPages: Math.ceil(totalAssets / ASSET_PAGE_SIZE),
+    locationPages: Math.ceil(totalLocations / LOCATION_PAGE_SIZE),
   });
 }

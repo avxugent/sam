@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
@@ -10,6 +10,7 @@ import {
   Search,
   Loader2,
   ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 
 type AssetResult = {
@@ -41,6 +42,11 @@ type SearchResponse = {
   assets: AssetResult[];
   locations: LocationResult[];
   total: number;
+  totalAssets: number;
+  totalLocations: number;
+  page: number;
+  assetPages: number;
+  locationPages: number;
 };
 
 function Highlight({ text, query }: { text: string; query: string }) {
@@ -58,21 +64,60 @@ function Highlight({ text, query }: { text: string; query: string }) {
   );
 }
 
+function Pagination({
+  page,
+  totalPages,
+  onPage,
+}: {
+  page: number;
+  totalPages: number;
+  onPage: (p: number) => void;
+}) {
+  const tSearch = useTranslations("search");
+  const tCommon = useTranslations("common");
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between pt-[6px] pb-[10px] px-[4px]">
+      <button
+        onClick={() => onPage(page - 1)}
+        disabled={page <= 1}
+        className="flex items-center gap-1 text-[12px] text-[#1e64c8] font-medium disabled:text-[#94a3b8] disabled:cursor-not-allowed hover:underline"
+      >
+        <ChevronLeft className="h-3.5 w-3.5" />
+        {tSearch("previous")}
+      </button>
+      <span className="text-[12px] text-[#64748b]">
+        {tSearch("page")} {page} {tCommon("of")} {totalPages}
+      </span>
+      <button
+        onClick={() => onPage(page + 1)}
+        disabled={page >= totalPages}
+        className="flex items-center gap-1 text-[12px] text-[#1e64c8] font-medium disabled:text-[#94a3b8] disabled:cursor-not-allowed hover:underline"
+      >
+        {tCommon("next")}
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 export function SearchResults() {
   const t = useTranslations("search");
   const searchParams = useSearchParams();
+  const router = useRouter();
   const q = searchParams.get("q") ?? "";
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
 
   const [results, setResults] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const doSearch = useCallback(async (query: string) => {
+  const doSearch = useCallback(async (query: string, pg: number) => {
     if (query.length < 2) { setResults(null); return; }
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&page=${pg}`);
       if (!res.ok) throw new Error("Search failed");
       setResults(await res.json());
     } catch {
@@ -81,7 +126,13 @@ export function SearchResults() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { doSearch(q); }, [q, doSearch]);
+  useEffect(() => { doSearch(q, page); }, [q, page, doSearch]);
+
+  function goToPage(newPage: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(newPage));
+    router.push(`/search?${params.toString()}`);
+  }
 
   if (!q) {
     return (
@@ -141,8 +192,13 @@ export function SearchResults() {
             <section>
               <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#64748b] mb-[10px]">
                 {t("assets")}
+                {results.totalAssets > 0 && (
+                  <span className="ml-2 font-normal normal-case tracking-normal text-[#94a3b8]">
+                    ({results.totalAssets})
+                  </span>
+                )}
               </h2>
-              <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden mb-[22px]">
+              <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden mb-[4px]">
                 {results.assets.map((asset) => {
                   const displayName = asset.model || asset.hostname || asset.serialNumber || "Unnamed asset";
                   return (
@@ -179,6 +235,7 @@ export function SearchResults() {
                   );
                 })}
               </div>
+              <Pagination page={results.page} totalPages={results.assetPages} onPage={goToPage} />
             </section>
           )}
 
@@ -186,8 +243,13 @@ export function SearchResults() {
             <section>
               <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#64748b] mb-[10px]">
                 {t("locations")}
+                {results.totalLocations > 0 && (
+                  <span className="ml-2 font-normal normal-case tracking-normal text-[#94a3b8]">
+                    ({results.totalLocations})
+                  </span>
+                )}
               </h2>
-              <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden mb-[22px]">
+              <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden mb-[4px]">
                 {results.locations.map((location) => (
                   <Link
                     key={location.id}
@@ -220,6 +282,7 @@ export function SearchResults() {
                   </Link>
                 ))}
               </div>
+              <Pagination page={results.page} totalPages={results.locationPages} onPage={goToPage} />
             </section>
           )}
         </>

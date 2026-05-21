@@ -9,6 +9,8 @@ vi.mock("@/lib/prisma", () => ({
       delete: vi.fn(),
     },
     auditLog: { create: vi.fn() },
+    location: { findUnique: vi.fn() },
+    asset: { findUnique: vi.fn() },
   },
 }));
 

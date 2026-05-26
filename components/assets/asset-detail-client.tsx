@@ -24,7 +24,6 @@ import {
   ChevronRight,
   Pencil,
   Trash2,
-  Monitor,
   Package,
   KeyRound,
   Lock,
@@ -41,6 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
+import { getAssetTypeIcon } from "@/lib/asset-type-icon";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
 
 type Attachment = {
@@ -203,6 +203,7 @@ export function AssetDetailClient({
   }
 
   const displayName = asset.model || asset.serialNumber || t("unnamedAsset");
+  const AssetTypeIcon = getAssetTypeIcon(asset.type?.name);
 
   return (
     <div className="space-y-6">
@@ -271,7 +272,7 @@ export function AssetDetailClient({
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-            <Monitor className="h-4 w-4 text-[#1e64c8]" />
+            <AssetTypeIcon className="h-4 w-4 text-[#1e64c8]" />
           </div>
           <div>
             <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">{displayName}</h1>

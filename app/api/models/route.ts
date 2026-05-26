@@ -8,14 +8,29 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "";
+  const typeId = searchParams.get("typeId") || undefined;
+  const manufacturerId = searchParams.get("manufacturerId") || undefined;
 
-  const models = await prisma.asset.findMany({
-    where: q ? { model: { contains: q } } : { model: { not: null } },
-    select: { model: true },
-    distinct: ["model"],
+  const assets = await prisma.asset.findMany({
+    where: {
+      model: q ? { contains: q } : { not: null },
+      ...(typeId ? { typeId } : {}),
+      ...(manufacturerId ? { manufacturerId } : {}),
+    },
+    select: { model: true, typeId: true, manufacturerId: true },
     orderBy: { model: "asc" },
-    take: 20,
+    take: 200,
   });
 
-  return NextResponse.json(models.map((m: { model: string | null }) => m.model).filter(Boolean));
+  // Deduplicate by model name, keep first occurrence
+  const seen = new Set<string>();
+  const result: { model: string; typeId: string | null; manufacturerId: string | null }[] = [];
+  for (const a of assets) {
+    if (!a.model || seen.has(a.model)) continue;
+    seen.add(a.model);
+    result.push({ model: a.model, typeId: a.typeId, manufacturerId: a.manufacturerId });
+    if (result.length >= 20) break;
+  }
+
+  return NextResponse.json(result);
 }

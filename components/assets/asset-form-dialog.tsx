@@ -96,6 +96,7 @@ type FormData = z.infer<typeof schema>;
 
 type AssetType = { id: string; name: string };
 type Manufacturer = { id: string; name: string };
+type ModelSuggestion = { model: string; typeId: string | null; manufacturerId: string | null };
 
 type VaultTestResult = {
   ok: boolean;
@@ -157,7 +158,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
-  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
+  const [modelSuggestions, setModelSuggestions] = useState<ModelSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [manufacturerSearch, setManufacturerSearch] = useState("");
   const [showManufacturerDropdown, setShowManufacturerDropdown] = useState(false);
@@ -257,18 +258,21 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     setManufacturerSearch(m ? m.name : "");
   }, [manufacturerIdValue, manufacturers]);
 
-  // Model autocomplete
+  // Model autocomplete — filtered by selected type and manufacturer
   useEffect(() => {
     if (!modelValue || modelValue.length < 2) {
       setModelSuggestions([]);
       return;
     }
     const timer = setTimeout(async () => {
-      const res = await fetch(`/api/models?q=${encodeURIComponent(modelValue)}`);
+      const params = new URLSearchParams({ q: modelValue });
+      if (typeIdValue) params.set("typeId", typeIdValue);
+      if (manufacturerIdValue) params.set("manufacturerId", manufacturerIdValue);
+      const res = await fetch(`/api/models?${params}`);
       if (res.ok) setModelSuggestions(await res.json());
     }, 300);
     return () => clearTimeout(timer);
-  }, [modelValue]);
+  }, [modelValue, typeIdValue, manufacturerIdValue]);
 
   async function handleTestVault() {
     const path = vaultPathValue?.trim();
@@ -466,15 +470,21 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md overflow-hidden">
                   {modelSuggestions.map((s) => (
                     <button
-                      key={s}
+                      key={s.model}
                       type="button"
                       className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
                       onMouseDown={() => {
-                        setValue("model", s, { shouldValidate: true });
+                        setValue("model", s.model, { shouldValidate: true });
+                        if (!typeIdValue && s.typeId) {
+                          setValue("typeId", s.typeId, { shouldValidate: true });
+                        }
+                        if (!manufacturerIdValue && s.manufacturerId) {
+                          setValue("manufacturerId", s.manufacturerId, { shouldValidate: true });
+                        }
                         setShowSuggestions(false);
                       }}
                     >
-                      {s}
+                      {s.model}
                     </button>
                   ))}
                 </div>

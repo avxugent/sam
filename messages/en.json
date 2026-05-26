@@ -190,7 +190,14 @@
     "vaultUnknown": "Unknown result",
     "vaultNetworkError": "Request failed — check your network.",
     "macLabel": "MAC {n}:",
-    "removeMacAriaLabel": "Remove MAC address {n}"
+    "removeMacAriaLabel": "Remove MAC address {n}",
+    "errTypeRequired": "Type is required",
+    "errManufacturerRequired": "Manufacturer is required",
+    "errModelRequired": "Model is required",
+    "errMacRequired": "MAC address is required",
+    "errMacInvalid": "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
+    "errHostnameFqdn": "Hostname must be a fully qualified domain name (e.g. device.example.com)",
+    "errMacRequiredForHostname": "At least one MAC address is required when a hostname is set."
   },
   "location": {
     "title": "Location",
@@ -237,7 +244,9 @@
     "fiInUse": "This FI number is already assigned to another location.",
     "createSubmit": "Create location",
     "updateSubmit": "Save changes",
-    "fiNumberTypingHint": "Keep typing — format: CC.BB.FFF.RRR"
+    "fiNumberTypingHint": "Keep typing — format: CC.BB.FFF.RRR",
+    "errNameRequired": "Name is required",
+    "errFiNumberFormat": "Format: CC.BB.FFF.RRR (e.g. 14.10.100.013)"
   },
   "stock": {
     "title": "Stock",
@@ -276,7 +285,11 @@
     "rowsPerPage": "Rows per page",
     "searchStock": "Search stock…",
     "createSubmit": "Add to stock",
-    "updateSubmit": "Save changes"
+    "updateSubmit": "Save changes",
+    "errTypeRequired": "Type is required",
+    "errModelRequired": "Model is required",
+    "errQuantityMin": "Quantity must be at least 1",
+    "errQuantitySerial": "Quantity must be 1 when a serial number is set."
   },
   "decommissioned": {
     "title": "Decommissioned",
@@ -608,7 +621,10 @@
     "entryCreated": "Work log entry added",
     "entryUpdated": "Work log entry updated",
     "entryDeleted": "Work log entry deleted",
-    "deleteConfirmTitle": "Delete work log entry?"
+    "deleteConfirmTitle": "Delete work log entry?",
+    "errDateFormat": "Date must be YYYY-MM-DD",
+    "errDescriptionRequired": "Description is required",
+    "errJiraKeyFormat": "Format: e.g. AVT-123"
   },
   "attachment": {
     "title": "Attachments",

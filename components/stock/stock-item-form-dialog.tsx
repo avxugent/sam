@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
@@ -67,6 +67,26 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
   const t = useTranslations("stock");
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
+
+  const validationSchema = useMemo(() => z.object({
+    typeId: z.string().min(1, t("errTypeRequired")),
+    manufacturerId: z.string().optional(),
+    model: z.string().min(1, t("errModelRequired")).max(255),
+    serialNumber: z.string().max(100).optional(),
+    quantity: z.number().int().min(1, t("errQuantityMin")),
+    notes: z.string().max(5000).optional(),
+    invoiceNumber: z.string().max(100).optional(),
+    invoiceDate: z.string().optional(),
+  }).superRefine((data, ctx) => {
+    if (data.serialNumber?.trim() && data.quantity > 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["quantity"],
+        message: t("errQuantitySerial"),
+      });
+    }
+  }), [t]);
+
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
@@ -82,7 +102,7 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
     control,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(validationSchema),
     defaultValues: { quantity: 1 },
   });
 

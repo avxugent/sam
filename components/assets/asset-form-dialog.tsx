@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -118,6 +118,42 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const tField = useTranslations("field");
   const tCommon = useTranslations("common");
   const tAsset = useTranslations("asset");
+
+  const validationSchema = useMemo(() => {
+    const macSchema = z.object({
+      address: z.string().min(1, t("errMacRequired")).regex(MAC_REGEX, t("errMacInvalid")),
+    });
+    return z.object({
+      typeId: z.string().min(1, t("errTypeRequired")),
+      manufacturerId: z.string().min(1, t("errManufacturerRequired")),
+      model: z.string().min(1, t("errModelRequired")).max(255),
+      serialNumber: z.string().max(100).optional(),
+      hostname: z.string().max(255).optional().refine(
+        (v) => !v || v.trim() === "" || FQDN_REGEX.test(v.trim()),
+        t("errHostnameFqdn")
+      ),
+      installationDate: z.string().optional(),
+      invoiceNumber: z.string().max(100).optional(),
+      invoiceDate: z.string().optional(),
+      notes: z.string().max(5000).optional(),
+      vaultPath: z.string().max(500).optional(),
+      macAddresses: z.array(macSchema),
+      customFields: z.array(z.object({ key: z.string(), value: z.string() })),
+    }).superRefine((data, ctx) => {
+      const hostnameSet = !!data.hostname?.trim();
+      const hasValidMac = data.macAddresses.some(
+        (m) => m.address.trim() !== "" && MAC_REGEX.test(m.address.trim())
+      );
+      if (hostnameSet && !hasValidMac) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["macAddresses"],
+          message: t("errMacRequiredForHostname"),
+        });
+      }
+    });
+  }, [t]);
+
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
@@ -137,7 +173,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     control,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(validationSchema),
     defaultValues: {
       typeId: "",
       manufacturerId: "",

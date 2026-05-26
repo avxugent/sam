@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,7 +27,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { createWorkLogSchema } from "@/lib/work-log-schema";
-import type { z } from "zod";
+import { z } from "zod";
 
 type FormData = z.infer<typeof createWorkLogSchema>;
 
@@ -82,6 +82,16 @@ export function WorkLogFormDialog({
   const t = useTranslations("workLog");
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
+
+  const JIRA_KEY_REGEX = /^[A-Z][A-Z0-9_]+-\d+$/;
+  const validationSchema = useMemo(() => z.object({
+    assetId: z.string().min(1).optional().nullable(),
+    performedById: z.string().min(1).optional(),
+    performedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t("errDateFormat")).optional(),
+    description: z.string().min(1, t("errDescriptionRequired")).max(5000),
+    jiraIssueKey: z.string().regex(JIRA_KEY_REGEX, t("errJiraKeyFormat")).optional().nullable().or(z.literal("")),
+  }), [t]);
+
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -96,7 +106,7 @@ export function WorkLogFormDialog({
     watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    resolver: zodResolver(createWorkLogSchema),
+    resolver: zodResolver(validationSchema),
     defaultValues: {
       assetId: initialData?.assetId ?? null,
       performedById: initialData?.performedById ?? currentUserId,

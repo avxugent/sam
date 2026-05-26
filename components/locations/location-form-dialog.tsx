@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -102,6 +102,15 @@ export function LocationFormDialog({
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
 
+  const validationSchema = useMemo(() => z.object({
+    name: z.string().min(1, t("errNameRequired")).max(255),
+    description: z.string().max(2000).optional(),
+    fiNumber: z.string().regex(FI_REGEX, t("errFiNumberFormat")).optional().or(z.literal("")),
+    address: z.string().max(500).optional(),
+    city: z.string().max(255).optional(),
+    country: z.string().max(100).optional(),
+  }), [t]);
+
   const {
     register,
     handleSubmit,
@@ -110,7 +119,7 @@ export function LocationFormDialog({
     control,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(validationSchema),
     defaultValues: {
       name: initialData?.name || "",
       description: initialData?.description || "",

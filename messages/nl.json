@@ -190,7 +190,14 @@
     "vaultUnknown": "Onbekend resultaat",
     "vaultNetworkError": "Verzoek mislukt — controleer uw netwerk.",
     "macLabel": "MAC {n}:",
-    "removeMacAriaLabel": "MAC-adres {n} verwijderen"
+    "removeMacAriaLabel": "MAC-adres {n} verwijderen",
+    "errTypeRequired": "Type is verplicht",
+    "errManufacturerRequired": "Fabrikant is verplicht",
+    "errModelRequired": "Model is verplicht",
+    "errMacRequired": "MAC-adres is verplicht",
+    "errMacInvalid": "Ongeldig MAC-adres (verwacht AA:BB:CC:DD:EE:FF)",
+    "errHostnameFqdn": "Hostname moet een volledig gekwalificeerde domeinnaam zijn (bv. device.example.com)",
+    "errMacRequiredForHostname": "Minstens één MAC-adres is verplicht als er een hostname is ingesteld."
   },
   "location": {
     "title": "Locatie",
@@ -237,7 +244,9 @@
     "fiInUse": "Dit FI-nummer is al toegewezen aan een andere locatie.",
     "createSubmit": "Locatie aanmaken",
     "updateSubmit": "Wijzigingen opslaan",
-    "fiNumberTypingHint": "Blijf typen — formaat: CC.BB.FFF.RRR"
+    "fiNumberTypingHint": "Blijf typen — formaat: CC.BB.FFF.RRR",
+    "errNameRequired": "Naam is verplicht",
+    "errFiNumberFormat": "Formaat: CC.BB.FFF.RRR (bv. 14.10.100.013)"
   },
   "stock": {
     "title": "Voorraad",
@@ -276,7 +285,11 @@
     "rowsPerPage": "Rijen per pagina",
     "searchStock": "Voorraad zoeken…",
     "createSubmit": "Toevoegen aan voorraad",
-    "updateSubmit": "Wijzigingen opslaan"
+    "updateSubmit": "Wijzigingen opslaan",
+    "errTypeRequired": "Type is verplicht",
+    "errModelRequired": "Model is verplicht",
+    "errQuantityMin": "Hoeveelheid moet minimaal 1 zijn",
+    "errQuantitySerial": "Hoeveelheid moet 1 zijn als er een serienummer is ingesteld."
   },
   "decommissioned": {
     "title": "Buiten dienst",
@@ -608,7 +621,10 @@
     "entryCreated": "Werklog-vermelding toegevoegd",
     "entryUpdated": "Werklog-vermelding bijgewerkt",
     "entryDeleted": "Werklog-vermelding verwijderd",
-    "deleteConfirmTitle": "Werklog-vermelding verwijderen?"
+    "deleteConfirmTitle": "Werklog-vermelding verwijderen?",
+    "errDateFormat": "Datum moet in het formaat JJJJ-MM-DD zijn",
+    "errDescriptionRequired": "Beschrijving is verplicht",
+    "errJiraKeyFormat": "Formaat: bv. AVT-123"
   },
   "attachment": {
     "title": "Bijlagen",

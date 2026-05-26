@@ -157,7 +157,7 @@ export async function DELETE(
   const childCount = await prisma.location.count({ where: { parentId: id } });
   if (childCount > 0) {
     return NextResponse.json(
-      { error: "Cannot delete a location that has sub-locations. Remove them first." },
+      { error: "HAS_SUBLOCATIONS" },
       { status: 400 }
     );
   }

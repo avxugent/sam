@@ -229,7 +229,8 @@
     "workLogHeading": "Work Log",
     "coverImageHeading": "Cover Image",
     "coverImageHelp": "Choose one of the image attachments as the cover photo shown at the top of this page.",
-    "workLogSubtitle": "Maintenance, repairs, and other work performed at this location."
+    "workLogSubtitle": "Maintenance, repairs, and other work performed at this location.",
+    "deleteHasSubLocations": "Cannot delete a location that has sub-locations. Remove them first."
   },
   "locationForm": {
     "createTitle": "Add location",

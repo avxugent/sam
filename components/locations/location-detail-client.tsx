@@ -148,7 +148,10 @@ export function LocationDetailClient({
     const res = await fetch(`/api/locations/${location.id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const description = err.error === "HAS_SUBLOCATIONS"
+        ? t("deleteHasSubLocations")
+        : err.error;
+      toast({ title: tCommon("error"), description, variant: "destructive" });
       return;
     }
     toast({ title: t("locationDeleted") });

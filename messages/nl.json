@@ -229,7 +229,8 @@
     "workLogHeading": "Werklog",
     "coverImageHeading": "Hoofdfoto",
     "coverImageHelp": "Kies een afbeelding uit de bijlagen als hoofdfoto bovenaan deze pagina.",
-    "workLogSubtitle": "Onderhoud, reparaties en ander werk op deze locatie."
+    "workLogSubtitle": "Onderhoud, reparaties en ander werk op deze locatie.",
+    "deleteHasSubLocations": "Kan een locatie met sublocaties niet verwijderen. Verwijder ze eerst."
   },
   "locationForm": {
     "createTitle": "Locatie toevoegen",

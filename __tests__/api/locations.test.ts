@@ -202,7 +202,7 @@ describe("DELETE /api/locations/[id]", () => {
     const res = await DELETE(makeIdReq("DELETE"), { params });
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/sub-locations/);
+    expect(body.error).toBe("HAS_SUBLOCATIONS");
   });
 
   it("deletes location when no children exist", async () => {

@@ -11,11 +11,7 @@
  */
 
 import "./_env.mjs";
-import { register } from "node:module";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-
-// Bootstrap tsx so subsequent dynamic imports can load .ts files
-register("tsx/esm", import.meta.url);
 
 const { PrismaClient } = await import("../generated/prisma/client.ts");
 

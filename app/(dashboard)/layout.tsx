@@ -5,6 +5,8 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { ThemeSync } from "@/components/theme-sync";
+import { AppFooter } from "@/components/layout/app-footer";
+import { version } from "@/package.json";
 
 type AssetCountRow = { id: string; totalAssets: bigint };
 
@@ -122,6 +124,7 @@ export default async function DashboardLayout({
         <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto p-6 lg:p-7 pb-[74px] lg:pb-6 focus:outline-none">
           {children}
         </main>
+        <AppFooter version={version} />
       </div>
       {/* Mobile bottom tab bar */}
       <MobileBottomNav isAdminOrEditor={isAdminOrEditor} />

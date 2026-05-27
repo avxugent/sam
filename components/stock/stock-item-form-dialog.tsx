@@ -100,6 +100,7 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
     setValue,
     trigger,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(validationSchema),
@@ -107,6 +108,8 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
   });
 
   const serialNumber = useWatch({ control, name: "serialNumber" });
+  const typeIdValue = watch("typeId");
+  const manufacturerIdValue = watch("manufacturerId");
 
   // Lock quantity to 1 when serial is set
   useEffect(() => {
@@ -203,8 +206,8 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
           <div className="space-y-1">
             <Label htmlFor="typeId">{tField("type")} <span className="text-destructive">*</span></Label>
             <Select
+              value={typeIdValue ?? ""}
               onValueChange={(v) => { setValue("typeId", v, { shouldValidate: true }); }}
-              defaultValue=""
             >
               <SelectTrigger id="typeId" className={cn(errors.typeId && "border-destructive")}>
                 <SelectValue placeholder={t("selectType")} />
@@ -222,8 +225,8 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
           <div className="space-y-1">
             <Label htmlFor="manufacturerId">{tField("manufacturer")}</Label>
             <Select
+              value={manufacturerIdValue ?? ""}
               onValueChange={(v) => setValue("manufacturerId", v, { shouldValidate: true })}
-              defaultValue=""
             >
               <SelectTrigger id="manufacturerId">
                 <SelectValue placeholder={t("selectManufacturer")} />

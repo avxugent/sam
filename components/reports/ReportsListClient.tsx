@@ -108,10 +108,9 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
                   </td>
                   <td className="px-4 py-[11px]">
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" className="h-[28px] px-2 text-[12px] gap-1" asChild>
-                        <Link href={`/reports/${r.id}`}>
-                          <Play className="h-3 w-3" aria-hidden="true" />
-                          {t("run")}
+                      <Button variant="ghost" size="sm" className="h-[28px] w-[28px] p-0" asChild>
+                        <Link href={`/reports/${r.id}`} aria-label={`${t("run")} ${r.name}`}>
+                          <Play className="h-3.5 w-3.5 text-[#1e64c8]" />
                         </Link>
                       </Button>
                       {canEdit && (

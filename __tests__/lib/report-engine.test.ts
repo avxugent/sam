@@ -9,6 +9,7 @@ vi.mock("@/lib/prisma", () => ({
     assetType: { findMany: vi.fn() },
     manufacturer: { findMany: vi.fn() },
     location: { findMany: vi.fn() },
+    $queryRaw: vi.fn(),
   },
 }));
 
@@ -20,6 +21,7 @@ const mockGroupBy = vi.mocked(prisma.asset.groupBy);
 const mockTypeFindMany = vi.mocked(prisma.assetType.findMany);
 const mockMfFindMany = vi.mocked(prisma.manufacturer.findMany);
 const mockLocFindMany = vi.mocked(prisma.location.findMany);
+const mockQueryRaw = vi.mocked(prisma.$queryRaw);
 
 // ── translateFilters ────────────────────────────────────────────────────────
 
@@ -120,6 +122,7 @@ describe("runReport()", () => {
         location: { id: "loc1", name: "Room 101" },
       } as never,
     ]);
+    mockQueryRaw.mockResolvedValue([{ id: "loc1", name: "Room 101", parentId: null }] as never);
 
     const result = await runReport({
       filters: [],
@@ -132,6 +135,33 @@ describe("runReport()", () => {
     expect(result.rows[0].type).toBe("Laptop");
     expect(result.rows[0].location).toBe("Room 101");
     expect(result.groups).toEqual([]);
+  });
+
+  it("resolves full location path separated by dash", async () => {
+    mockFindMany.mockResolvedValue([
+      {
+        id: "a1",
+        model: "HP Elite",
+        serialNumber: null,
+        hostname: null,
+        locationId: "room1",
+        installationDate: null,
+        invoiceDate: null,
+        invoiceNumber: null,
+        notes: null,
+        type: null,
+        manufacturer: null,
+        location: { id: "room1", name: "Room A" },
+      } as never,
+    ]);
+    mockQueryRaw.mockResolvedValue([
+      { id: "campus1", name: "Campus 14", parentId: null },
+      { id: "building1", name: "Building 10", parentId: "campus1" },
+      { id: "room1", name: "Room A", parentId: "building1" },
+    ] as never);
+
+    const result = await runReport({ filters: [], groupBy: "none", columns: ["location"] });
+    expect(result.rows[0].location).toBe("Campus 14 - Building 10 - Room A");
   });
 
   it("groups by type", async () => {
@@ -168,7 +198,7 @@ describe("runReport()", () => {
     mockGroupBy.mockResolvedValue([
       { locationId: "l1", _count: { id: 2 } } as never,
     ]);
-    mockLocFindMany.mockResolvedValue([{ id: "l1", name: "Lab A" }] as never);
+    mockQueryRaw.mockResolvedValue([{ id: "l1", name: "Lab A", parentId: null }] as never);
 
     const result = await runReport({ filters: [], groupBy: "location", columns: ["model"] });
     expect(result.groups).toContainEqual({ label: "Lab A", count: 2 });
@@ -180,6 +210,7 @@ describe("runReport()", () => {
       { id: "a2", model: null, serialNumber: null, hostname: null, locationId: "l1", installationDate: new Date("2020-07-01"), invoiceDate: null, invoiceNumber: null, notes: null, type: null, manufacturer: null, location: { id: "l1", name: "X" } } as never,
       { id: "a3", model: null, serialNumber: null, hostname: null, locationId: "l1", installationDate: new Date("2022-01-01"), invoiceDate: null, invoiceNumber: null, notes: null, type: null, manufacturer: null, location: { id: "l1", name: "X" } } as never,
     ]);
+    mockQueryRaw.mockResolvedValue([{ id: "l1", name: "X", parentId: null }] as never);
 
     const result = await runReport({ filters: [], groupBy: "installationYear", columns: ["model"] });
     expect(result.groups).toContainEqual({ label: "2020", count: 2 });

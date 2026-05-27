@@ -76,6 +76,35 @@ export function findFiNumber(ancestors: LocationAncestor[]): string | null {
   return null;
 }
 
+/**
+ * Fetches all locations once and resolves full path strings (root → leaf)
+ * for each requested ID. Returns a map of locationId → path string.
+ * Separator defaults to " - " for display contexts like reports.
+ */
+export async function resolveLocationPathsBatch(
+  locationIds: string[],
+  separator = " - "
+): Promise<Map<string, string>> {
+  if (locationIds.length === 0) return new Map();
+
+  type Row = { id: string; name: string; parentId: string | null };
+  const allLocs = await prisma.$queryRaw<Row[]>`SELECT id, name, parentId FROM locations`;
+
+  const byId = new Map<string, Row>(allLocs.map((l) => [l.id, l]));
+
+  const result = new Map<string, string>();
+  for (const id of locationIds) {
+    const path: string[] = [];
+    let cur: Row | undefined = byId.get(id);
+    while (cur) {
+      path.unshift(cur.name);
+      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+    }
+    if (path.length > 0) result.set(id, path.join(separator));
+  }
+  return result;
+}
+
 // CUID format used by Prisma @default(cuid())
 const CUID_REGEX = /^[0-9a-z]{25}$/;
 

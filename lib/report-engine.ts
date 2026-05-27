@@ -1,5 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { resolveLocationPathsBatch } from "@/lib/location-path";
 import type {
   ReportDefinition,
   ReportFilter,
@@ -72,6 +73,11 @@ export async function runReport(definition: ReportDefinition): Promise<ReportRes
     take: 5000,
   });
 
+  const uniqueLocationIds = [
+    ...new Set(assets.map((a) => a.locationId).filter((id): id is string => id !== null)),
+  ];
+  const locationPathMap = await resolveLocationPathsBatch(uniqueLocationIds);
+
   const rows: ReportRow[] = assets.map((a) => ({
     id: a.id,
     model: a.model,
@@ -79,7 +85,7 @@ export async function runReport(definition: ReportDefinition): Promise<ReportRes
     hostname: a.hostname,
     type: a.type?.name ?? null,
     manufacturer: a.manufacturer?.name ?? null,
-    location: a.location?.name ?? null,
+    location: a.locationId ? (locationPathMap.get(a.locationId) ?? a.location?.name ?? null) : null,
     locationId: a.locationId,
     installationDate: a.installationDate ? a.installationDate.toISOString().split("T")[0] : null,
     invoiceDate: a.invoiceDate ? a.invoiceDate.toISOString().split("T")[0] : null,
@@ -103,10 +109,12 @@ export async function runReport(definition: ReportDefinition): Promise<ReportRes
     groups = gb.map((g) => ({ label: g.manufacturerId ? (mfMap[g.manufacturerId] ?? "Unknown") : "No manufacturer", count: g._count.id }));
   } else if (definition.groupBy === "location") {
     const gb = await prisma.asset.groupBy({ by: ["locationId"], where, _count: { id: true } });
-    const locIds = gb.map((g) => g.locationId);
-    const locs = await prisma.location.findMany({ where: { id: { in: locIds } }, select: { id: true, name: true } });
-    const locMap = Object.fromEntries(locs.map((l) => [l.id, l.name]));
-    groups = gb.map((g) => ({ label: locMap[g.locationId] ?? "Unknown", count: g._count.id }));
+    const locIds = gb.map((g) => g.locationId).filter((id): id is string => id !== null);
+    const groupPathMap = await resolveLocationPathsBatch(locIds);
+    groups = gb.map((g) => ({
+      label: g.locationId ? (groupPathMap.get(g.locationId) ?? "Unknown") : "No location",
+      count: g._count.id,
+    }));
   } else if (definition.groupBy === "installationYear") {
     const yearMap = new Map<string, number>();
     for (const a of assets) {

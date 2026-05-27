@@ -688,7 +688,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
               className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
             >
               {merging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("mergeConflictMerge")}
+              {t("mergeConflictMerge", { target: mergeConflict?.targetName ?? "" })}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -26,6 +26,33 @@ const updateSchema = z
     }
   });
 
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const item = await prisma.stockItem.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      typeId: true,
+      manufacturerId: true,
+      model: true,
+      serialNumber: true,
+      quantity: true,
+      notes: true,
+      invoiceNumber: true,
+      invoiceDate: true,
+    },
+  });
+  if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  return NextResponse.json(item);
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

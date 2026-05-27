@@ -126,10 +126,10 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
                           variant="ghost"
                           size="sm"
                           aria-label={`${t("deleteReport")} ${r.name}`}
-                          className="h-[28px] px-2 text-[12px] text-[#94a3b8] hover:text-destructive"
+                          className="h-[28px] px-2 text-[12px] hover:bg-[#fee2e2]"
                           onClick={() => setDeleteId(r.id)}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3 w-3 text-[#ef4444]" />
                         </Button>
                       )}
                     </div>

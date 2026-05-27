@@ -39,6 +39,8 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
 export type StockItem = {
   id: string;
+  typeId: string;
+  manufacturerId: string | null;
   model: string;
   serialNumber: string | null;
   quantity: number;

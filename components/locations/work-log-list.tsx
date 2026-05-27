@@ -121,8 +121,8 @@ export function WorkLogList({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            aria-label="Search work log"
-            placeholder="Search work log…"
+            aria-label={t("searchPlaceholder")}
+            placeholder={t("searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 h-[36px] text-[13px] rounded-[8px]"

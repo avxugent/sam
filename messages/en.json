@@ -625,7 +625,8 @@
     "deleteConfirmTitle": "Delete work log entry?",
     "errDateFormat": "Date must be YYYY-MM-DD",
     "errDescriptionRequired": "Description is required",
-    "errJiraKeyFormat": "Format: e.g. AVT-123"
+    "errJiraKeyFormat": "Format: e.g. AVT-123",
+    "searchPlaceholder": "Search work log…"
   },
   "attachment": {
     "title": "Attachments",

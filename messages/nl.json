@@ -625,7 +625,8 @@
     "deleteConfirmTitle": "Werklog-vermelding verwijderen?",
     "errDateFormat": "Datum moet in het formaat JJJJ-MM-DD zijn",
     "errDescriptionRequired": "Beschrijving is verplicht",
-    "errJiraKeyFormat": "Formaat: bv. AVT-123"
+    "errJiraKeyFormat": "Formaat: bv. AVT-123",
+    "searchPlaceholder": "Werklog doorzoeken…"
   },
   "attachment": {
     "title": "Bijlagen",

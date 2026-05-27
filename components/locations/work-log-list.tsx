@@ -150,12 +150,12 @@ export function WorkLogList({
           <Wrench className="h-10 w-10 mx-auto mb-3 text-[#94a3b8] opacity-60" />
           <p className="text-[14px] text-[#64748b] mb-1">{t("noEntries")}</p>
           <p className="text-[12px] text-[#94a3b8]">
-            {canCreate ? "Record what was done at this location." : "Entries will appear here when technicians log work."}
+            {canCreate ? t("noEntriesHint") : t("noEntriesViewerHint")}
           </p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-10 border border-[#e2e8f0] rounded-[10px] bg-white">
-          <p className="text-[13px] text-[#64748b]">No entries match your search</p>
+          <p className="text-[13px] text-[#64748b]">{t("noSearchResults")}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -267,7 +267,7 @@ export function WorkLogList({
           <AlertDialogHeader>
             <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This cannot be undone. The entry will be permanently removed.
+              {t("deleteConfirmDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

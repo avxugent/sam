@@ -197,7 +197,8 @@
     "errMacRequired": "MAC address is required",
     "errMacInvalid": "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
     "errHostnameFqdn": "Hostname must be a fully qualified domain name (e.g. device.example.com)",
-    "errMacRequiredForHostname": "At least one MAC address is required when a hostname is set."
+    "errMacRequiredForHostname": "At least one MAC address is required when a hostname is set.",
+    "vaultKeys": "Keys:"
   },
   "location": {
     "title": "Location",
@@ -626,7 +627,16 @@
     "errDateFormat": "Date must be YYYY-MM-DD",
     "errDescriptionRequired": "Description is required",
     "errJiraKeyFormat": "Format: e.g. AVT-123",
-    "searchPlaceholder": "Search work log…"
+    "searchPlaceholder": "Search work log…",
+    "noEntriesHint": "Record what was done at this location.",
+    "noEntriesViewerHint": "Entries will appear here when technicians log work.",
+    "noSearchResults": "No entries match your search",
+    "deleteConfirmDescription": "This cannot be undone. The entry will be permanently removed.",
+    "noSpecificAsset": "No specific asset",
+    "date": "Date",
+    "quickPresets": "Quick presets",
+    "loadingPresets": "Loading presets…",
+    "descriptionPlaceholder": "Describe what was done…"
   },
   "attachment": {
     "title": "Attachments",

@@ -197,7 +197,8 @@
     "errMacRequired": "MAC-adres is verplicht",
     "errMacInvalid": "Ongeldig MAC-adres (verwacht AA:BB:CC:DD:EE:FF)",
     "errHostnameFqdn": "Hostname moet een volledig gekwalificeerde domeinnaam zijn (bv. device.example.com)",
-    "errMacRequiredForHostname": "Minstens één MAC-adres is verplicht als er een hostname is ingesteld."
+    "errMacRequiredForHostname": "Minstens één MAC-adres is verplicht als er een hostname is ingesteld.",
+    "vaultKeys": "Sleutels:"
   },
   "location": {
     "title": "Locatie",
@@ -626,7 +627,16 @@
     "errDateFormat": "Datum moet in het formaat JJJJ-MM-DD zijn",
     "errDescriptionRequired": "Beschrijving is verplicht",
     "errJiraKeyFormat": "Formaat: bv. AVT-123",
-    "searchPlaceholder": "Werklog doorzoeken…"
+    "searchPlaceholder": "Werklog doorzoeken…",
+    "noEntriesHint": "Noteer wat er op deze locatie is gedaan.",
+    "noEntriesViewerHint": "Vermeldingen verschijnen hier wanneer technici werk registreren.",
+    "noSearchResults": "Geen vermeldingen gevonden voor uw zoekopdracht",
+    "deleteConfirmDescription": "Dit kan niet ongedaan worden gemaakt. De vermelding wordt permanent verwijderd.",
+    "noSpecificAsset": "Geen specifieke asset",
+    "date": "Datum",
+    "quickPresets": "Snelle presets",
+    "loadingPresets": "Presets laden…",
+    "descriptionPlaceholder": "Beschrijf wat er is gedaan…"
   },
   "attachment": {
     "title": "Bijlagen",

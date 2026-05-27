@@ -726,7 +726,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                   <p>{vaultTestResult.message}</p>
                   {vaultTestResult.ok && vaultTestResult.keys && (
                     <p className="mt-0.5 text-green-700">
-                      Keys:{" "}
+                      {t("vaultKeys")}{" "}
                       {vaultTestResult.keys.map((k) => (
                         <code key={k} className="bg-green-100 px-1 rounded mr-1">
                           {k}

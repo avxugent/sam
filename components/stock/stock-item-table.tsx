@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { StockItemFormDialog } from "@/components/stock/stock-item-form-dialog";
+import { StockItemFormDialog, type StockItemInitialData } from "@/components/stock/stock-item-form-dialog";
 import { DeployStockDialog } from "@/components/stock/deploy-stock-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -212,7 +212,25 @@ export function StockItemTable({
                         >
                           <ArrowRightFromLine className="h-3.5 w-3.5" />
                         </Button>
-                        <StockItemFormDialog mode="edit" itemId={item.id} onSuccess={() => router.refresh()}>
+                        <StockItemFormDialog
+                          mode="edit"
+                          itemId={item.id}
+                          initialData={{
+                            typeId: item.typeId,
+                            typeName: item.type.name,
+                            manufacturerId: item.manufacturerId ?? null,
+                            manufacturerName: item.manufacturer?.name ?? null,
+                            model: item.model,
+                            serialNumber: item.serialNumber ?? null,
+                            quantity: item.quantity,
+                            notes: item.notes ?? null,
+                            invoiceNumber: item.invoiceNumber ?? null,
+                            invoiceDate: item.invoiceDate
+                              ? new Date(item.invoiceDate).toISOString().slice(0, 10)
+                              : null,
+                          } satisfies StockItemInitialData}
+                          onSuccess={() => router.refresh()}
+                        >
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-[#f1f5f9]">
                             <Pencil className="h-3.5 w-3.5 text-[#64748b]" />
                           </Button>

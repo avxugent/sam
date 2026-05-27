@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
-import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -25,7 +24,8 @@ export default async function RootLayout({
   return (
     <html lang={locale} className="h-full" suppressHydrationWarning>
       <body className="h-full antialiased">
-        <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* eslint-disable-next-line @next/next/no-before-interactive-script-outside-document */}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <ThemeProvider>
           <NextIntlClientProvider locale={locale} messages={messages}>
             {children}

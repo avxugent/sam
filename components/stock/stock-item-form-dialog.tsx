@@ -23,45 +23,47 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-const schema = z
-  .object({
-    typeId: z.string().min(1, "Type is required"),
-    manufacturerId: z.string().optional(),
-    model: z.string().min(1, "Model is required").max(255),
-    serialNumber: z.string().max(100).optional(),
-    quantity: z.number().int().min(1, "Quantity must be at least 1"),
-    notes: z.string().max(5000).optional(),
-    invoiceNumber: z.string().max(100).optional(),
-    invoiceDate: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.serialNumber?.trim() && data.quantity > 1) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["quantity"],
-        message: "Quantity must be 1 when a serial number is set.",
-      });
-    }
-  });
+type FormData = {
+  typeId: string;
+  manufacturerId?: string;
+  model: string;
+  serialNumber?: string;
+  quantity: number;
+  notes?: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+};
 
-type FormData = z.infer<typeof schema>;
 type AssetType = { id: string; name: string };
 type Manufacturer = { id: string; name: string };
+
+export type StockItemInitialData = {
+  typeId: string;
+  typeName: string;
+  manufacturerId: string | null;
+  manufacturerName: string | null;
+  model: string;
+  serialNumber: string | null;
+  quantity: number;
+  notes: string | null;
+  invoiceNumber: string | null;
+  invoiceDate: string | null;
+};
 
 type Props = {
   mode: "create" | "edit";
   itemId?: string;
+  initialData?: StockItemInitialData;
   children: React.ReactNode;
   onSuccess?: () => void;
 };
 
-export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props) {
+export function StockItemFormDialog({ mode, itemId, initialData, children, onSuccess }: Props) {
   const router = useRouter();
   const { toast } = useToast();
   const t = useTranslations("stock");
@@ -87,9 +89,13 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
     }
   }), [t]);
 
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  // Initialised synchronously from prop so the value is ready before any fetch completes
+  const [selectedTypeId, setSelectedTypeId] = useState(initialData?.typeId ?? "");
+  const [selectedMfgId, setSelectedMfgId] = useState(initialData?.manufacturerId ?? "");
   const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -100,16 +106,24 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
     setValue,
     trigger,
     control,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(validationSchema),
-    defaultValues: { quantity: 1 },
+    defaultValues: {
+      quantity: initialData?.quantity ?? 1,
+      typeId: initialData?.typeId ?? "",
+      manufacturerId: initialData?.manufacturerId ?? "",
+      model: initialData?.model ?? "",
+      serialNumber: initialData?.serialNumber ?? "",
+      notes: initialData?.notes ?? "",
+      invoiceNumber: initialData?.invoiceNumber ?? "",
+      invoiceDate: initialData?.invoiceDate ?? "",
+    },
   });
 
   const serialNumber = useWatch({ control, name: "serialNumber" });
-  const typeIdValue = watch("typeId");
-  const manufacturerIdValue = watch("manufacturerId");
+
+  useEffect(() => { setMounted(true); }, []);
 
   // Lock quantity to 1 when serial is set
   useEffect(() => {
@@ -118,36 +132,17 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
     }
   }, [serialNumber, setValue]);
 
-  // Fetch reference data when dialog opens
+  // Fetch dropdown options when dialog opens
   useEffect(() => {
     if (!open) return;
     Promise.all([
       fetch("/api/asset-types").then((r) => r.json()),
       fetch("/api/manufacturers").then((r) => r.json()),
     ]).then(([types, mfrs]) => {
-      setAssetTypes(types);
-      setManufacturers(mfrs);
+      setAssetTypes(types as AssetType[]);
+      setManufacturers(mfrs as Manufacturer[]);
     });
-
-    if (mode === "edit" && itemId) {
-      fetch(`/api/stock/${itemId}`)
-        .then((r) => r.json())
-        .then((item) => {
-          reset({
-            typeId: item.typeId ?? "",
-            manufacturerId: item.manufacturerId ?? "",
-            model: item.model ?? "",
-            serialNumber: item.serialNumber ?? "",
-            quantity: item.quantity ?? 1,
-            notes: item.notes ?? "",
-            invoiceNumber: item.invoiceNumber ?? "",
-            invoiceDate: item.invoiceDate
-              ? new Date(item.invoiceDate).toISOString().slice(0, 10)
-              : "",
-          });
-        });
-    }
-  }, [open, mode, itemId, reset]);
+  }, [open]);
 
   const fetchModelSuggestions = useCallback(async (q: string) => {
     if (!q || q.length < 2) { setModelSuggestions([]); return; }
@@ -159,7 +154,11 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
 
   function handleClose() {
     setOpen(false);
-    if (mode === "create") reset({ quantity: 1 });
+    if (mode === "create") {
+      reset({ quantity: 1, typeId: "", manufacturerId: "", model: "", serialNumber: "", notes: "", invoiceNumber: "", invoiceDate: "" });
+      setSelectedTypeId("");
+      setSelectedMfgId("");
+    }
     setModelSuggestions([]);
     setShowSuggestions(false);
   }
@@ -193,6 +192,15 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
     router.refresh();
   }
 
+  // Label for the type trigger: use assetTypes once loaded, fall back to initialData name
+  const typeLabel = assetTypes.find((at) => at.id === selectedTypeId)?.name
+    ?? (selectedTypeId ? (initialData?.typeName ?? t("selectType")) : t("selectType"));
+
+  const mfgLabel = manufacturers.find((m) => m.id === selectedMfgId)?.name
+    ?? (selectedMfgId ? (initialData?.manufacturerName ?? t("selectManufacturer")) : t("selectManufacturer"));
+
+  if (!mounted) return <>{children}</>;
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -206,15 +214,20 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
           <div className="space-y-1">
             <Label htmlFor="typeId">{tField("type")} <span className="text-destructive">*</span></Label>
             <Select
-              value={typeIdValue ?? ""}
-              onValueChange={(v) => { setValue("typeId", v, { shouldValidate: true }); }}
+              value={selectedTypeId}
+              onValueChange={(v) => {
+                setSelectedTypeId(v);
+                setValue("typeId", v, { shouldValidate: true });
+              }}
             >
               <SelectTrigger id="typeId" className={cn(errors.typeId && "border-destructive")}>
-                <SelectValue placeholder={t("selectType")} />
+                <span className={cn("truncate", !selectedTypeId && "text-muted-foreground")}>
+                  {typeLabel}
+                </span>
               </SelectTrigger>
               <SelectContent>
-                {assetTypes.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                {assetTypes.map((at) => (
+                  <SelectItem key={at.id} value={at.id}>{at.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -225,11 +238,16 @@ export function StockItemFormDialog({ mode, itemId, children, onSuccess }: Props
           <div className="space-y-1">
             <Label htmlFor="manufacturerId">{tField("manufacturer")}</Label>
             <Select
-              value={manufacturerIdValue ?? ""}
-              onValueChange={(v) => setValue("manufacturerId", v, { shouldValidate: true })}
+              value={selectedMfgId}
+              onValueChange={(v) => {
+                setSelectedMfgId(v);
+                setValue("manufacturerId", v, { shouldValidate: true });
+              }}
             >
               <SelectTrigger id="manufacturerId">
-                <SelectValue placeholder={t("selectManufacturer")} />
+                <span className={cn("truncate", !selectedMfgId && "text-muted-foreground")}>
+                  {mfgLabel}
+                </span>
               </SelectTrigger>
               <SelectContent>
                 {manufacturers.map((m) => (

@@ -101,7 +101,7 @@ export default async function DashboardLayout({
   return (
     <>
     <ThemeSync serverTheme={dbUser?.theme ?? "light"} />
-    <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
+    <div className="flex flex-col h-screen bg-[#f8fafc]">
       {/* Skip link — visible only on focus, jumps over the sidebar + header */}
       <a
         href="#main-content"
@@ -109,25 +109,27 @@ export default async function DashboardLayout({
       >
         Skip to main content
       </a>
-      {/* Sidebar — hidden on mobile, visible on lg+ */}
-      <Sidebar
-        locationTree={locationTree}
-        userRole={session.user.role}
-        assetCountMap={assetCountMap}
-        stockItemCount={stockItemCount}
-        stockTypes={stockTypes}
-        decommissionedCount={decommissionedCount}
-      />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Header user={headerUser} />
-        {/* pb-[58px] on mobile to clear bottom nav; none on lg */}
-        <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto p-6 lg:p-7 pb-[74px] lg:pb-6 focus:outline-none">
-          {children}
-        </main>
-        <AppFooter version={version} />
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar — hidden on mobile, visible on lg+ */}
+        <Sidebar
+          locationTree={locationTree}
+          userRole={session.user.role}
+          assetCountMap={assetCountMap}
+          stockItemCount={stockItemCount}
+          stockTypes={stockTypes}
+          decommissionedCount={decommissionedCount}
+        />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <Header user={headerUser} />
+          {/* pb-[58px] on mobile to clear bottom nav; none on lg */}
+          <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto p-6 lg:p-7 pb-[74px] lg:pb-6 focus:outline-none">
+            {children}
+          </main>
+        </div>
+        {/* Mobile bottom tab bar */}
+        <MobileBottomNav isAdminOrEditor={isAdminOrEditor} />
       </div>
-      {/* Mobile bottom tab bar */}
-      <MobileBottomNav isAdminOrEditor={isAdminOrEditor} />
+      <AppFooter version={version} />
     </div>
     </>
   );

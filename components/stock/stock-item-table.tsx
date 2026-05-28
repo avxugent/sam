@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -100,6 +100,8 @@ export function StockItemTable({
   const [deployItem, setDeployItem] = useState<StockItem | null>(null);
 
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
+
+  useEffect(() => { setItems(initialItems); }, [initialItems]);
 
   function toggleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));

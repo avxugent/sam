@@ -480,7 +480,7 @@ export function LocationDetailClient({
             users={users}
             currentUserId={currentUserId ?? ""}
             userRole={userRole}
-            jiraBaseUrl={jiraEnabled ? jiraBaseUrl : null}
+            jiraBaseUrl={jiraBaseUrl}
           />
         </TabsContent>
 

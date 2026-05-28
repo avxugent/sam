@@ -16,6 +16,7 @@ const COLUMN_LABELS: Record<ColumnKey, string> = {
   invoiceDate: "Invoice Date",
   invoiceNumber: "Invoice Number",
   notes: "Notes",
+  lastChanged: "Last Modified",
 };
 
 function escapeCell(v: string | null | undefined): string {

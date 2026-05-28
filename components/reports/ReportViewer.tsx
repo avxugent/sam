@@ -51,6 +51,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
     invoiceDate: tField("invoiceDate"),
     invoiceNumber: tField("invoiceNumber"),
     notes: tField("notes"),
+    lastChanged: tField("lastModified"),
   };
 
   const filtered = result.rows.filter((row) => {

@@ -13,6 +13,10 @@ function yearsAgo(n: number): Date {
   return new Date(Date.now() - n * 365.25 * 24 * 60 * 60 * 1000);
 }
 
+function daysAgo(n: number): Date {
+  return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+}
+
 export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInput {
   const conditions: Prisma.AssetWhereInput[] = [];
 
@@ -33,6 +37,21 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
       else if (op === "contains" && value) conditions.push({ [field]: { contains: value } });
       else if (op === "isNull") conditions.push({ [field]: null });
       else if (op === "isNotNull") conditions.push({ [field]: { not: null } });
+      continue;
+    }
+
+    if (field === "lastChanged") {
+      if (op === "newerThanDays" && value) {
+        const n = parseFloat(value);
+        if (!isNaN(n)) conditions.push({ updatedAt: { gt: daysAgo(n) } });
+      } else if (op === "olderThanDays" && value) {
+        const n = parseFloat(value);
+        if (!isNaN(n)) conditions.push({ updatedAt: { lt: daysAgo(n) } });
+      } else if (op === "before" && value) {
+        conditions.push({ updatedAt: { lt: new Date(value) } });
+      } else if (op === "after" && value) {
+        conditions.push({ updatedAt: { gt: new Date(value) } });
+      }
       continue;
     }
 
@@ -91,6 +110,7 @@ export async function runReport(definition: ReportDefinition): Promise<ReportRes
     invoiceDate: a.invoiceDate ? a.invoiceDate.toISOString().split("T")[0] : null,
     invoiceNumber: a.invoiceNumber,
     notes: a.notes,
+    lastChanged: a.updatedAt ? a.updatedAt.toISOString().split("T")[0] : null,
   }));
 
   let groups: GroupCount[] = [];

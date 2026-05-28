@@ -27,10 +27,11 @@ const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
   hostname: ["eq", "neq", "contains", "isNull", "isNotNull"],
   installationDate: ["before", "after", "olderThanYears", "newerThanYears", "isNull", "isNotNull"],
   invoiceDate: ["before", "after", "isNull", "isNotNull"],
+  lastChanged: ["newerThanDays", "olderThanDays", "before", "after"],
 };
 
 
-const OPS_NEEDING_VALUE: FilterOp[] = ["eq", "neq", "contains", "before", "after", "olderThanYears", "newerThanYears"];
+const OPS_NEEDING_VALUE: FilterOp[] = ["eq", "neq", "contains", "before", "after", "olderThanYears", "newerThanYears", "newerThanDays", "olderThanDays"];
 
 type AssetOption = { id: string; name: string };
 
@@ -70,6 +71,7 @@ export function ReportBuilder({
     hostname: tField("hostname"),
     installationDate: tField("installationDate"),
     invoiceDate: tField("invoiceDate"),
+    lastChanged: tField("lastModified"),
   };
 
   const opLabels: Record<FilterOp, string> = {
@@ -82,6 +84,8 @@ export function ReportBuilder({
     after: t("opAfter"),
     olderThanYears: t("opOlderThanYears"),
     newerThanYears: t("opNewerThanYears"),
+    newerThanDays: t("opNewerThanDays"),
+    olderThanDays: t("opOlderThanDays"),
   };
 
   const groupByOptions = [
@@ -103,6 +107,7 @@ export function ReportBuilder({
     { value: "invoiceDate" as ColumnKey, label: tField("invoiceDate") },
     { value: "invoiceNumber" as ColumnKey, label: tField("invoiceNumber") },
     { value: "notes" as ColumnKey, label: tField("notes") },
+    { value: "lastChanged" as ColumnKey, label: tField("lastModified") },
   ];
 
   const [name, setName] = useState(initialName);
@@ -146,8 +151,8 @@ export function ReportBuilder({
 
   function valueInputType(field: ReportFilterField, op: FilterOp): "text" | "number" | "date" | "none" {
     if (!OPS_NEEDING_VALUE.includes(op)) return "none";
-    if (op === "olderThanYears" || op === "newerThanYears") return "number";
-    if (field === "installationDate" || field === "invoiceDate") return "date";
+    if (op === "olderThanYears" || op === "newerThanYears" || op === "newerThanDays" || op === "olderThanDays") return "number";
+    if (field === "installationDate" || field === "invoiceDate" || field === "lastChanged") return "date";
     return "text";
   }
 

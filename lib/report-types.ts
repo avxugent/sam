@@ -7,7 +7,9 @@ export type FilterOp =
   | "before"
   | "after"
   | "olderThanYears"
-  | "newerThanYears";
+  | "newerThanYears"
+  | "newerThanDays"
+  | "olderThanDays";
 
 export type ReportFilterField =
   | "typeId"
@@ -17,7 +19,8 @@ export type ReportFilterField =
   | "serialNumber"
   | "hostname"
   | "installationDate"
-  | "invoiceDate";
+  | "invoiceDate"
+  | "lastChanged";
 
 export type ReportFilter = {
   field: ReportFilterField;
@@ -42,7 +45,8 @@ export type ColumnKey =
   | "installationDate"
   | "invoiceDate"
   | "invoiceNumber"
-  | "notes";
+  | "notes"
+  | "lastChanged";
 
 export type ReportDefinition = {
   filters: ReportFilter[];
@@ -63,6 +67,7 @@ export type ReportRow = {
   invoiceDate: string | null;
   invoiceNumber: string | null;
   notes: string | null;
+  lastChanged: string | null;
 };
 
 export type GroupCount = {

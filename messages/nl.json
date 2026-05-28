@@ -595,6 +595,8 @@
     "opAfter": "na",
     "opOlderThanYears": "ouder dan (jaren)",
     "opNewerThanYears": "nieuwer dan (jaren)",
+    "opNewerThanDays": "nieuwer dan (dagen)",
+    "opOlderThanDays": "ouder dan (dagen)",
     "nameRequired": "Naam is verplicht",
     "selectColumn": "Selecteer minstens één kolom",
     "errorSaving": "Fout bij opslaan van rapport",

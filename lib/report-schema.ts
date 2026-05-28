@@ -10,6 +10,8 @@ const filterOpSchema = z.enum([
   "after",
   "olderThanYears",
   "newerThanYears",
+  "newerThanDays",
+  "olderThanDays",
 ]);
 
 const filterFieldSchema = z.enum([
@@ -21,6 +23,7 @@ const filterFieldSchema = z.enum([
   "hostname",
   "installationDate",
   "invoiceDate",
+  "lastChanged",
 ]);
 
 const reportFilterSchema = z.object({
@@ -48,6 +51,7 @@ const columnKeySchema = z.enum([
   "invoiceDate",
   "invoiceNumber",
   "notes",
+  "lastChanged",
 ]);
 
 export const reportDefinitionSchema = z.object({

@@ -595,6 +595,8 @@
     "opAfter": "after",
     "opOlderThanYears": "older than (years)",
     "opNewerThanYears": "newer than (years)",
+    "opNewerThanDays": "newer than (days)",
+    "opOlderThanDays": "older than (days)",
     "nameRequired": "Name is required",
     "selectColumn": "Select at least one column",
     "errorSaving": "Error saving report",

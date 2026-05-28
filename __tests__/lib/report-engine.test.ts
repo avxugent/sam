@@ -96,6 +96,37 @@ describe("translateFilters()", () => {
     const result = translateFilters([{ field: "installationDate", op: "olderThanYears", value: "abc" }]);
     expect(result).toEqual({});
   });
+
+  it("translates lastChanged newerThanDays", () => {
+    const before = new Date();
+    const result = translateFilters([{ field: "lastChanged", op: "newerThanDays", value: "7" }]);
+    const condition = (result as { AND: { updatedAt?: { gt: Date } }[] }).AND[0];
+    expect(condition.updatedAt?.gt).toBeInstanceOf(Date);
+    expect(condition.updatedAt!.gt.getTime()).toBeLessThanOrEqual(before.getTime());
+  });
+
+  it("translates lastChanged olderThanDays", () => {
+    const result = translateFilters([{ field: "lastChanged", op: "olderThanDays", value: "30" }]);
+    const condition = (result as { AND: { updatedAt?: { lt: Date } }[] }).AND[0];
+    expect(condition.updatedAt?.lt).toBeInstanceOf(Date);
+  });
+
+  it("translates lastChanged before ISO date", () => {
+    const result = translateFilters([{ field: "lastChanged", op: "before", value: "2024-01-01" }]);
+    const condition = (result as { AND: { updatedAt?: { lt: Date } }[] }).AND[0];
+    expect(condition.updatedAt?.lt).toBeInstanceOf(Date);
+  });
+
+  it("translates lastChanged after ISO date", () => {
+    const result = translateFilters([{ field: "lastChanged", op: "after", value: "2024-06-01" }]);
+    const condition = (result as { AND: { updatedAt?: { gt: Date } }[] }).AND[0];
+    expect(condition.updatedAt?.gt).toBeInstanceOf(Date);
+  });
+
+  it("ignores lastChanged newerThanDays with non-numeric value", () => {
+    const result = translateFilters([{ field: "lastChanged", op: "newerThanDays", value: "abc" }]);
+    expect(result).toEqual({});
+  });
 });
 
 // ── runReport ───────────────────────────────────────────────────────────────
@@ -117,6 +148,7 @@ describe("runReport()", () => {
         invoiceDate: null,
         invoiceNumber: null,
         notes: null,
+        updatedAt: new Date("2024-03-01"),
         type: { name: "Laptop" },
         manufacturer: { name: "Dell" },
         location: { id: "loc1", name: "Room 101" },

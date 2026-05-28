@@ -210,12 +210,15 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                     })}
                     <td className="px-4 py-[10px] text-right">
                       {row.locationId && (
-                        <Button variant="ghost" size="sm" className="h-[26px] px-2 text-[12px]" asChild>
-                          <Link
-                            href={`/locations/${row.locationId}/assets/${row.id}`}
-                            aria-label={`${tCommon("view")} ${row.model || row.hostname || row.serialNumber || row.id}`}
-                          >
-                            {tCommon("view")}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
+                          aria-label={`${tCommon("view")} ${row.model || row.hostname || row.serialNumber || row.id}`}
+                          asChild
+                        >
+                          <Link href={`/locations/${row.locationId}/assets/${row.id}`}>
+                            <ExternalLink className="h-3.5 w-3.5 text-[#1e64c8]" />
                           </Link>
                         </Button>
                       )}

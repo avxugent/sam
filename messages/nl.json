@@ -562,7 +562,7 @@
     "appTitle": "Applicatietitel",
     "appTitleHelp": "De naam die wordt getoond in het browsertabblad en de zijbalk.",
     "logo": "Logo",
-    "logoHelp": "Vervangt het standaard icoon en de naam in de zijbalk en koptekst. Aanbevolen afmeting: minimaal 120 × 40 px. Toegestaan: PNG, JPEG, SVG, WebP.",
+    "logoHelp": "Vervangt het standaard Monitor-icoon in de zijbalk, koptekst en het inlogscherm. Vierkante afbeelding aanbevolen (bijv. 32×32 of 64×64 px). Toegestaan: PNG, JPEG, SVG, WebP.",
     "favicon": "Browsericon (favicon)",
     "faviconHelp": "Wordt getoond in browsertabbladen en bladwijzers. Toegestaan: ICO, PNG, SVG.",
     "uploadLogo": "Logo uploaden",

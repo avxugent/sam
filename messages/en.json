@@ -562,7 +562,7 @@
     "appTitle": "Application title",
     "appTitleHelp": "The name shown in the browser tab and sidebar.",
     "logo": "Logo",
-    "logoHelp": "Replaces the default icon and name in the sidebar and header. Recommended size: at least 120 × 40 px. Accepted: PNG, JPEG, SVG, WebP.",
+    "logoHelp": "Replaces the default Monitor icon in the sidebar, header, and login screen. Square image recommended (e.g. 32×32 or 64×64 px). Accepted: PNG, JPEG, SVG, WebP.",
     "favicon": "Browser icon (favicon)",
     "faviconHelp": "Shown in browser tabs and bookmarks. Accepted: ICO, PNG, SVG.",
     "uploadLogo": "Upload logo",

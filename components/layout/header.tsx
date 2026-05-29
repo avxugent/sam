@@ -312,13 +312,11 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
       <Link href="/" className="flex items-center gap-1.5 mr-1 lg:hidden flex-shrink-0">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt={appTitle} className="h-6 max-w-[120px] object-contain" />
+          <img src={logoUrl} alt="" className="h-5 w-5 object-contain flex-shrink-0" />
         ) : (
-          <>
-            <Monitor className="h-5 w-5 text-[#1e64c8]" strokeWidth={2} />
-            <span className="font-bold text-[16px] text-[#0f172a]">{appTitle}</span>
-          </>
+          <Monitor className="h-5 w-5 text-[#1e64c8] flex-shrink-0" strokeWidth={2} />
         )}
+        <span className="font-bold text-[16px] text-[#0f172a]">{appTitle}</span>
       </Link>
 
       {/* Search bar */}

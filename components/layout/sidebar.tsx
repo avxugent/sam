@@ -198,13 +198,11 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
       <div className="flex items-center gap-2 px-4 h-[56px] border-b flex-shrink-0">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt={appTitle} className="h-7 max-w-[160px] object-contain" />
+          <img src={logoUrl} alt="" className="h-5 w-5 object-contain flex-shrink-0" />
         ) : (
-          <>
-            <Monitor className="h-5 w-5 text-[#1e64c8]" strokeWidth={2} />
-            <span className="font-bold text-[16px] text-[#0f172a] tracking-tight">{appTitle}</span>
-          </>
+          <Monitor className="h-5 w-5 text-[#1e64c8] flex-shrink-0" strokeWidth={2} />
         )}
+        <span className="font-bold text-[16px] text-[#0f172a] tracking-tight">{appTitle}</span>
       </div>
 
       {/* Single scrollable area for both sections */}

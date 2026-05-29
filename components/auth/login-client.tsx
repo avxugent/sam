@@ -75,13 +75,11 @@ export function LoginClient({ ssoEnabled, appTitle = "SAM", logoUrl = null }: { 
         <div className="flex items-center justify-center gap-2 mb-8">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt={appTitle} className="h-10 max-w-[200px] object-contain" />
+            <img src={logoUrl} alt="" className="h-8 w-8 object-contain flex-shrink-0" />
           ) : (
-            <>
-              <Monitor className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold">{appTitle}</span>
-            </>
+            <Monitor className="h-8 w-8 text-primary flex-shrink-0" />
           )}
+          <span className="text-2xl font-bold">{appTitle}</span>
         </div>
 
         <Card>

@@ -239,7 +239,7 @@ export function BrandingSettingsClient({
         {hasLogo ? (
           <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] inline-block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/api/branding/logo?v=${logoVersion}`} alt="Logo" className="h-10 max-w-[200px] object-contain" />
+            <img src={`/api/branding/logo?v=${logoVersion}`} alt="Logo" className="h-8 w-8 object-contain" />
           </div>
         ) : (
           <div className="p-4 bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">

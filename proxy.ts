@@ -34,6 +34,12 @@ export const proxy = auth(async (req) => {
     return NextResponse.next();
   }
 
+  // Branding assets (logo, favicon) are public so they render on the login page
+  // and in browser tabs without a session.
+  if (pathname.startsWith("/api/branding/")) {
+    return NextResponse.next();
+  }
+
   // ── Unauthenticated → redirect to login ────────────────────────────────
   if (!req.auth) {
     const loginUrl = new URL("/login", req.url);

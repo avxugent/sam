@@ -73,7 +73,7 @@ export default async function DashboardLayout({
 
   const assetCountMap = await getRecursiveAssetCounts();
 
-  const [stockItemCount, decommissionedCount, stockTypes] = await Promise.all([
+  const [stockItemCount, decommissionedCount, stockTypes, brandingSettings] = await Promise.all([
     prisma.stockItem.count().catch(() => 0),
     prisma.asset.count({ where: { status: "DECOMMISSIONED" } }).catch(() => 0),
     prisma.assetType.findMany({
@@ -81,7 +81,14 @@ export default async function DashboardLayout({
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }).catch(() => [] as { id: string; name: string }[]),
+    prisma.appSetting.findMany({
+      where: { key: { in: ["app.title", "branding.logoStorageKey"] } },
+    }).catch(() => []),
   ]);
+
+  const brandingMap = Object.fromEntries(brandingSettings.map((s) => [s.key, s.value]));
+  const appTitle = brandingMap["app.title"] || "SAM";
+  const logoUrl = brandingMap["branding.logoStorageKey"] ? "/api/branding/logo" : null;
 
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -118,9 +125,11 @@ export default async function DashboardLayout({
           stockItemCount={stockItemCount}
           stockTypes={stockTypes}
           decommissionedCount={decommissionedCount}
+          appTitle={appTitle}
+          logoUrl={logoUrl}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
-          <Header user={headerUser} />
+          <Header user={headerUser} appTitle={appTitle} logoUrl={logoUrl} />
           {/* pb-[58px] on mobile to clear bottom nav; none on lg */}
           <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto p-6 lg:p-7 pb-[74px] lg:pb-6 focus:outline-none">
             {children}

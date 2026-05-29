@@ -36,6 +36,8 @@ type SidebarProps = {
   stockItemCount?: number;
   stockTypes?: StockTypeNode[];
   decommissionedCount?: number;
+  appTitle?: string;
+  logoUrl?: string | null;
 };
 
 function nodeMatchesFilter(node: LocationNode, query: string): boolean {
@@ -164,7 +166,7 @@ function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
 }
 
 
-export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount = 0, stockTypes = [], decommissionedCount = 0 }: SidebarProps) {
+export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount = 0, stockTypes = [], decommissionedCount = 0, appTitle = "SAM", logoUrl = null }: SidebarProps) {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const isStockPath = pathname === "/stock" || pathname.startsWith("/stock") || pathname === "/decommissioned";
@@ -194,8 +196,15 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
     <aside className="w-[248px] flex-shrink-0 border-r bg-white flex flex-col h-full overflow-hidden hidden lg:flex">
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 h-[56px] border-b flex-shrink-0">
-        <Monitor className="h-5 w-5 text-[#1e64c8]" strokeWidth={2} />
-        <span className="font-bold text-[16px] text-[#0f172a] tracking-tight">SAM</span>
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt={appTitle} className="h-7 max-w-[160px] object-contain" />
+        ) : (
+          <>
+            <Monitor className="h-5 w-5 text-[#1e64c8]" strokeWidth={2} />
+            <span className="font-bold text-[16px] text-[#0f172a] tracking-tight">{appTitle}</span>
+          </>
+        )}
       </div>
 
       {/* Single scrollable area for both sections */}

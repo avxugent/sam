@@ -23,7 +23,7 @@ function MicrosoftLogo() {
   );
 }
 
-export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
+export function LoginClient({ ssoEnabled, appTitle = "SAM", logoUrl = null }: { ssoEnabled: boolean; appTitle?: string; logoUrl?: string | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -73,8 +73,15 @@ export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
     <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-2 mb-8">
-          <Monitor className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold">SAM</span>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt={appTitle} className="h-10 max-w-[200px] object-contain" />
+          ) : (
+            <>
+              <Monitor className="h-8 w-8 text-primary" />
+              <span className="text-2xl font-bold">{appTitle}</span>
+            </>
+          )}
         </div>
 
         <Card>

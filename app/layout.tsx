@@ -4,11 +4,28 @@ import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AppBackground } from "@/components/layout/app-background";
+import { prisma } from "@/lib/prisma";
 
-export const metadata: Metadata = {
-  title: "SAM – Simple Asset Management",
-  description: "Manage AV hardware assets across your facilities",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.appSetting.findMany({
+    where: { key: { in: ["app.title", "branding.faviconStorageKey"] } },
+  });
+  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const appTitle = map["app.title"] || "SAM";
+  const hasFavicon = !!map["branding.faviconStorageKey"];
+
+  return {
+    title: {
+      default: `${appTitle} – Simple Asset Management`,
+      template: `%s – ${appTitle}`,
+    },
+    description: "Manage AV hardware assets across your facilities",
+    ...(hasFavicon
+      ? { icons: [{ rel: "icon", url: "/api/branding/favicon" }] }
+      : {}),
+  };
+}
 
 // Runs synchronously before hydration to prevent flash of wrong theme
 const themeScript = `(function(){var t=localStorage.getItem('sam-theme')||'light';if(t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark');})()`;
@@ -21,6 +38,11 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
 
+  const bgSetting = await prisma.appSetting.findUnique({
+    where: { key: "branding.backgroundMode" },
+  });
+  const backgroundMode = bgSetting?.value ?? "";
+
   return (
     <html lang={locale} className="h-full" suppressHydrationWarning>
       <body className="h-full antialiased">
@@ -32,6 +54,7 @@ export default async function RootLayout({
             <Toaster />
           </NextIntlClientProvider>
         </ThemeProvider>
+        <AppBackground backgroundMode={backgroundMode} />
       </body>
     </html>
   );

@@ -295,7 +295,7 @@ function SearchBar() {
   );
 }
 
-export function Header({ user }: { user: HeaderUser }) {
+export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: HeaderUser; appTitle?: string; logoUrl?: string | null }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const initials = getInitials(user.name, user.email);
@@ -310,8 +310,15 @@ export function Header({ user }: { user: HeaderUser }) {
     <header className="h-[56px] border-b border-[#e2e8f0] flex items-center gap-3 px-4 bg-white flex-shrink-0 z-30">
       {/* Logo — mobile only (sidebar is hidden on mobile) */}
       <Link href="/" className="flex items-center gap-1.5 mr-1 lg:hidden flex-shrink-0">
-        <Monitor className="h-5 w-5 text-[#1e64c8]" strokeWidth={2} />
-        <span className="font-bold text-[16px] text-[#0f172a]">SAM</span>
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt={appTitle} className="h-6 max-w-[120px] object-contain" />
+        ) : (
+          <>
+            <Monitor className="h-5 w-5 text-[#1e64c8]" strokeWidth={2} />
+            <span className="font-bold text-[16px] text-[#0f172a]">{appTitle}</span>
+          </>
+        )}
       </Link>
 
       {/* Search bar */}

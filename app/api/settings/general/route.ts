@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const GENERAL_KEYS = ["hostname.urlTemplate", "macAddress.urlTemplate"] as const;
 
@@ -48,6 +49,18 @@ export async function PUT(req: NextRequest) {
       create: { key: "macAddress.urlTemplate", value: macAddressUrlTemplate ?? "" },
     }),
   ]);
+
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "Setting",
+    entityName: "General settings",
+    detail: {
+      "hostname.urlTemplate": hostnameUrlTemplate ?? "",
+      "macAddress.urlTemplate": macAddressUrlTemplate ?? "",
+    },
+  });
 
   return NextResponse.json({ ok: true });
 }

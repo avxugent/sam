@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const schema = z.object({
   name: z.string().min(1).max(128).optional(),
@@ -89,6 +90,23 @@ export async function PATCH(req: NextRequest) {
     data: updateData,
     select: { id: true, name: true, email: true, role: true, provider: true },
   });
+
+  // Audit identity/security changes only. Pure preference toggles
+  // (theme, locationDefaultTab) are intentionally not logged as audit noise.
+  const auditEvents: string[] = [];
+  if (updateData.passwordHash !== undefined) auditEvents.push("Password changed");
+  if (updateData.name !== undefined) auditEvents.push("Name changed");
+  if (auditEvents.length > 0) {
+    await logAudit({
+      session,
+      req,
+      action: "UPDATE",
+      entityType: "User",
+      entityId: updated.id,
+      entityName: updated.email ?? undefined,
+      detail: { event: auditEvents.join(", ") },
+    });
+  }
 
   return NextResponse.json(updated);
 }

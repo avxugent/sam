@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getStorageDriver } from "@/lib/storage";
+import { logAudit } from "@/lib/audit";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/x-icon",
@@ -19,9 +20,9 @@ export async function POST(req: Request) {
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const formData = await req.formData();
-  const file = formData.get("file");
+  const file = formData.get("file") as File | null;
 
-  if (!(file instanceof File)) {
+  if (!file) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
@@ -53,10 +54,19 @@ export async function POST(req: Request) {
     }),
   ]);
 
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "Setting",
+    entityName: "Branding settings",
+    detail: { event: "Favicon uploaded", contentType: file.type },
+  });
+
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -68,6 +78,15 @@ export async function DELETE() {
     prisma.appSetting.deleteMany({ where: { key: "branding.faviconStorageKey" } }),
     prisma.appSetting.deleteMany({ where: { key: "branding.faviconContentType" } }),
   ]);
+
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "Setting",
+    entityName: "Branding settings",
+    detail: { event: "Favicon removed" },
+  });
 
   return NextResponse.json({ ok: true });
 }

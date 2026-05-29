@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const setupSchema = z.object({
   name: z.string().min(1),
@@ -29,8 +30,18 @@ export async function POST(req: NextRequest) {
     const { name, email, password } = parsed.data;
     const passwordHash = await bcrypt.hash(password, 13);
 
-    await prisma.user.create({
+    const admin = await prisma.user.create({
       data: { name, email, passwordHash, role: "ADMIN" },
+    });
+
+    await logAudit({
+      session: null,
+      req,
+      action: "CREATE",
+      entityType: "User",
+      entityId: admin.id,
+      entityName: admin.email,
+      detail: { event: "Initial admin created during setup", role: "ADMIN" },
     });
 
     return NextResponse.json({ ok: true });

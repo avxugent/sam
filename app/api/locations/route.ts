@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 // FI number format: CC.BB.FFF.RRR  e.g. "14.10.100.013"
 const FI_NUMBER_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{3}$/;
@@ -86,6 +87,15 @@ export async function POST(req: NextRequest) {
     }
     throw err;
   }
+
+  await logAudit({
+    session,
+    req,
+    action: "CREATE",
+    entityType: "Location",
+    entityId: location.id,
+    entityName: location.name,
+  });
 
   return NextResponse.json(location, { status: 201 });
 }

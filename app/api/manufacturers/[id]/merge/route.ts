@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const schema = z.object({ targetId: z.string().min(1) });
 
@@ -39,6 +40,19 @@ export async function POST(
     });
     await tx.manufacturer.delete({ where: { id } });
     return result.count;
+  });
+
+  await logAudit({
+    session,
+    req,
+    action: "DELETE",
+    entityType: "Manufacturer",
+    entityId: id,
+    entityName: source.name,
+    detail: {
+      mergedInto: { id: targetId, name: target.name },
+      assetsMoved: movedCount,
+    },
   });
 
   return NextResponse.json({ ok: true, movedCount });

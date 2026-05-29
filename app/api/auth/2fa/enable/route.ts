@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/totp";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
 const schema = z.object({ code: z.string().min(6).max(6) });
@@ -53,6 +54,16 @@ export async function POST(req: NextRequest) {
   await prisma.user.update({
     where: { id: session.user.id },
     data: { totpEnabled: true },
+  });
+
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "User",
+    entityId: session.user.id,
+    entityName: session.user.email ?? undefined,
+    detail: { event: "2FA enabled" },
   });
 
   // When this is a forced-setup session (needs2FASetup=true in JWT), re-issue a

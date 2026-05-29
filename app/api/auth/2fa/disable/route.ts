@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/totp";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
 const schema = z.object({
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: targetId },
-    select: { provider: true, totpEnabled: true, totpSecret: true },
+    select: { provider: true, totpEnabled: true, totpSecret: true, email: true },
   });
   if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
   if (user.provider !== "credentials") {
@@ -67,6 +68,19 @@ export async function POST(req: NextRequest) {
   await prisma.user.update({
     where: { id: targetId },
     data: { totpEnabled: false, totpSecret: null },
+  });
+
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "User",
+    entityId: targetId,
+    entityName: user.email ?? undefined,
+    detail: {
+      event: "2FA disabled",
+      ...(isSelf ? {} : { adminOverride: true }),
+    },
   });
 
   return NextResponse.json({ ok: true, message: "2FA has been disabled." });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateReportSchema } from "@/lib/report-schema";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -39,10 +40,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     },
   });
 
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "Report",
+    entityId: updated.id,
+    entityName: updated.name,
+    detail: name !== undefined && name !== report.name
+      ? { changes: { "Name": { from: report.name, to: updated.name } } }
+      : undefined,
+  });
+
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -52,5 +65,15 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.report.delete({ where: { id } });
+
+  await logAudit({
+    session,
+    req,
+    action: "DELETE",
+    entityType: "Report",
+    entityId: id,
+    entityName: report.name,
+  });
+
   return new NextResponse(null, { status: 204 });
 }

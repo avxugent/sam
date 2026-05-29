@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const schema = z.object({
   appTitle: z.string().min(1).max(100).optional(),
@@ -72,5 +73,19 @@ export async function PUT(req: NextRequest) {
   }
 
   await Promise.all(ops);
+
+  const detail: Record<string, unknown> = {};
+  if (parsed.data.appTitle !== undefined) detail["app.title"] = parsed.data.appTitle;
+  if (parsed.data.backgroundMode !== undefined) detail["branding.backgroundMode"] = parsed.data.backgroundMode || "(none)";
+
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "Setting",
+    entityName: "Branding settings",
+    detail,
+  });
+
   return NextResponse.json({ ok: true });
 }

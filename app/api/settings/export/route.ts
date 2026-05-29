@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const schema = z.object({
   cronExpression: z.string().max(100).optional().nullable(),
@@ -53,6 +54,15 @@ export async function PUT(req: NextRequest) {
       create: { key, value },
     });
   }
+
+  await logAudit({
+    session,
+    req,
+    action: "UPDATE",
+    entityType: "Setting",
+    entityName: "Export settings",
+    detail: Object.fromEntries(entries.map((e) => [e.key, e.value])),
+  });
 
   return NextResponse.json({ ok: true });
 }

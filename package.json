@@ -19,6 +19,8 @@
     "locations:sync-lokalen": "node --import tsx/esm scripts/sync-lokalen.mjs",
     "locations:sync-lokalen:dry-run": "node --import tsx/esm scripts/sync-lokalen.mjs --dry-run",
     "attachment:add": "node --import tsx/esm scripts/add-attachment.mjs",
+    "assets:resolve-hostnames": "node --import tsx/esm scripts/resolve-ip-hostnames.mjs",
+    "assets:resolve-hostnames:dry-run": "node --import tsx/esm scripts/resolve-ip-hostnames.mjs --dry-run",
     "export:backup": "node --import tsx/esm scripts/export-backup.mjs",
     "export:backup:dry-run": "node --import tsx/esm scripts/export-backup.mjs --dry-run",
     "user:reset-password": "node --import tsx/esm scripts/reset-password.mjs",

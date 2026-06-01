@@ -70,6 +70,29 @@ node scripts/add-location-links.mjs --force
 
 ---
 
+### `resolve-ip-hostnames.mjs`
+
+**npm alias:** `npm run assets:resolve-hostnames` (dry-run: `npm run assets:resolve-hostnames:dry-run`)
+
+One-off migration helper. Older imports left bare IP addresses in the `Asset.hostname` field. This script finds every asset whose hostname is an IPv4/IPv6 address, performs a reverse-DNS (PTR) lookup, and rewrites the hostname to the resolved FQDN (lowercased, trailing dot stripped). Assets whose IP has no PTR record — or whose PTR resolves back to an IP — are left untouched and reported as unresolved. DNS failures never abort the run.
+
+```bash
+node scripts/resolve-ip-hostnames.mjs
+node scripts/resolve-ip-hostnames.mjs --dry-run
+node scripts/resolve-ip-hostnames.mjs --asset-id <id>
+node scripts/resolve-ip-hostnames.mjs --dns-server 10.0.0.1,10.0.0.2
+node scripts/resolve-ip-hostnames.mjs --timeout 8000
+```
+
+| Flag | Description |
+|---|---|
+| `--dry-run` | Preview without writing |
+| `--asset-id <id>` | Process a single asset |
+| `--dns-server <ips>` | Override resolver(s), comma-separated (default: system resolvers) |
+| `--timeout <ms>` | Per-lookup timeout (default: `5000`) |
+
+---
+
 ### `sync-lokalen.mjs`
 
 **npm alias:** `npm run locations:sync-lokalen`

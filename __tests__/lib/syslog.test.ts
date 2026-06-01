@@ -196,6 +196,38 @@ describe("formatRfc5424()", () => {
     const out = formatRfc5424(baseEntry);
     expect(out.startsWith(`<${10 * 8 + 6}>`)).toBe(true);
   });
+
+  it("honours a valid custom SYSLOG_FACILITY", () => {
+    vi.stubEnv("SYSLOG_FACILITY", "1");
+    const out = formatRfc5424(baseEntry);
+    expect(out.startsWith(`<${1 * 8 + 6}>`)).toBe(true);
+  });
+
+  it("ignores a non-numeric SYSLOG_FACILITY", () => {
+    vi.stubEnv("SYSLOG_FACILITY", "abc");
+    const out = formatRfc5424(baseEntry);
+    expect(out.startsWith(`<${10 * 8 + 6}>`)).toBe(true);
+  });
+
+  it("emits '-' for the user field when both userEmail and userId are null", () => {
+    const out = formatRfc5424({ ...baseEntry, userEmail: null, userId: null });
+    const json = JSON.parse(out.split(" - ")[1].slice(1));
+    expect(json.user).toBeNull();
+  });
+
+  it("emits null detail when entry.detail is null", () => {
+    const out = formatRfc5424({ ...baseEntry, detail: null });
+    const json = JSON.parse(out.split(" - ")[1].slice(1));
+    expect(json.detail).toBeNull();
+  });
+
+  it("uses custom SYSLOG_HOSTNAME and SYSLOG_APP_NAME", () => {
+    vi.stubEnv("SYSLOG_HOSTNAME", "myhost");
+    vi.stubEnv("SYSLOG_APP_NAME", "myapp");
+    const out = formatRfc5424(baseEntry);
+    expect(out).toContain("myhost");
+    expect(out).toContain("myapp");
+  });
 });
 
 // ── forwardAuditEntry / forwardAuditBatch ────────────────────────────────────
@@ -221,6 +253,25 @@ describe("forwardAuditEntry() — UDP transport", () => {
     expect(sock.sent[0].host).toBe("logs.example.com");
     expect(sock.sent[0].port).toBe(1514);
     expect(sock.closed).toBe(true);
+  });
+
+  it("falls back to the default port for an out-of-range SYSLOG_PORT", async () => {
+    vi.stubEnv("SYSLOG_PORT", "99999");
+    await forwardAuditEntry(baseEntry);
+    expect(FakeUdp.__last.sent[0].port).toBe(514);
+  });
+
+  it("falls back to the default port for a non-numeric SYSLOG_PORT", async () => {
+    vi.stubEnv("SYSLOG_PORT", "abc");
+    await forwardAuditEntry(baseEntry);
+    expect(FakeUdp.__last.sent[0].port).toBe(514);
+  });
+
+  it("defaults to UDP transport for an unknown SYSLOG_TRANSPORT", async () => {
+    vi.stubEnv("SYSLOG_TRANSPORT", "carrier-pigeon");
+    const ok = await forwardAuditEntry(baseEntry);
+    expect(ok).toBe(true);
+    expect(FakeUdp.__last.sent).toHaveLength(1);
   });
 
   it("returns false on UDP send error", async () => {

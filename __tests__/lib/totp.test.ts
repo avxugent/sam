@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import speakeasy from "speakeasy";
-import { generateTotpSecret, verifyTotpCode } from "@/lib/totp";
+import { generateTotpSecret, verifyTotpCode, generateQrCodeDataUrl } from "@/lib/totp";
 
 // ── generateTotpSecret ───────────────────────────────────────────────────────
 
@@ -67,5 +67,15 @@ describe("verifyTotpCode()", () => {
     });
     // Should still be accepted due to window=1
     expect(verifyTotpCode(base32, prevToken)).toBe(true);
+  });
+});
+
+// ── generateQrCodeDataUrl ─────────────────────────────────────────────────────
+
+describe("generateQrCodeDataUrl()", () => {
+  it("returns a PNG data URL for an otpauth URI", async () => {
+    const { otpauthUrl } = generateTotpSecret("qr@example.com");
+    const dataUrl = await generateQrCodeDataUrl(otpauthUrl);
+    expect(dataUrl).toMatch(/^data:image\/png;base64,/);
   });
 });

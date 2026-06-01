@@ -47,8 +47,10 @@ export default defineConfig({
         "app/api/vault/**",
         "app/api/auth/2fa/**",
         "app/api/assets/by-hostname/**",
-        "app/api/assets/[id]/**",
-        "app/api/auth/[...nextauth]/**",
+        // Bracket dir names ([id], [...nextauth]) are read as glob char-classes,
+        // so use single-segment wildcards to match the dynamic route folders.
+        "app/api/assets/*/**",
+        "app/api/auth/*/route.ts",
         // UI-only components without meaningful logic (pass-through wrappers)
         "components/ui/toast.tsx",
         "components/ui/toaster.tsx",

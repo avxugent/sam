@@ -196,6 +196,45 @@ describe("runReport()", () => {
     expect(result.rows[0].location).toBe("Campus 14 - Building 10 - Room A");
   });
 
+  it("maps a row with all optional fields null (no location, no dates)", async () => {
+    mockFindMany.mockResolvedValue([
+      {
+        id: "a0", model: null, serialNumber: null, hostname: null, locationId: null,
+        installationDate: null, invoiceDate: null, invoiceNumber: null, notes: null,
+        updatedAt: null, type: null, manufacturer: null, location: null,
+      } as never,
+    ]);
+    const result = await runReport({ filters: [], groupBy: "none", columns: ["model", "location"] });
+    expect(result.total).toBe(1);
+    const r = result.rows[0];
+    expect(r.model).toBeNull();
+    expect(r.type).toBeNull();
+    expect(r.manufacturer).toBeNull();
+    expect(r.location).toBeNull();
+    expect(r.installationDate).toBeNull();
+    expect(r.invoiceDate).toBeNull();
+    expect(r.lastChanged).toBeNull();
+    // no location ids → resolveLocationPathsBatch not queried
+    expect(mockQueryRaw).not.toHaveBeenCalled();
+  });
+
+  it("falls back to location.name when the path map misses the id", async () => {
+    mockFindMany.mockResolvedValue([
+      {
+        id: "a1", model: "M", serialNumber: null, hostname: null, locationId: "lz",
+        installationDate: new Date("2021-06-01"), invoiceDate: new Date("2021-07-01"),
+        invoiceNumber: "INV", notes: "n", updatedAt: new Date("2024-01-01"),
+        type: { name: "T" }, manufacturer: { name: "Mf" }, location: { id: "lz", name: "Fallback Room" },
+      } as never,
+    ]);
+    // path map resolves a DIFFERENT id, so lookup misses → location.name fallback
+    mockQueryRaw.mockResolvedValue([{ id: "other", name: "x", parentId: null }] as never);
+    const result = await runReport({ filters: [], groupBy: "none", columns: ["location"] });
+    expect(result.rows[0].location).toBe("Fallback Room");
+    expect(result.rows[0].installationDate).toBe("2021-06-01");
+    expect(result.rows[0].invoiceDate).toBe("2021-07-01");
+  });
+
   it("groups by type", async () => {
     mockFindMany.mockResolvedValue([]);
     mockGroupBy.mockResolvedValue([

@@ -11,6 +11,7 @@ import {
   buildLocationPathString,
   findFiNumber,
   getAllDescendantLocationIds,
+  resolveLocationPath,
   type LocationAncestor,
 } from "@/lib/location-path";
 import { prisma } from "@/lib/prisma";
@@ -148,5 +149,23 @@ describe("getAllDescendantLocationIds()", () => {
     mockQueryRaw.mockResolvedValueOnce([] as never);
     const result = await getAllDescendantLocationIds(validId);
     expect(result).toEqual([]);
+  });
+});
+
+describe("resolveLocationPath()", () => {
+  it("returns ancestors ordered root→leaf from the recursive query", async () => {
+    mockQueryRaw.mockResolvedValueOnce([
+      { id: "campus", name: "Campus", fiNumber: "14.00.000.000", depth: 2 },
+      { id: "bldg", name: "Building", fiNumber: "14.10.000.000", depth: 1 },
+      { id: "room", name: "Room", fiNumber: "14.10.100.013", depth: 0 },
+    ] as never);
+    const result = await resolveLocationPath("room");
+    expect(result.map((a) => a.id)).toEqual(["campus", "bldg", "room"]);
+    expect(result[2].fiNumber).toBe("14.10.100.013");
+  });
+
+  it("returns an empty array when the location has no rows", async () => {
+    mockQueryRaw.mockResolvedValueOnce([] as never);
+    expect(await resolveLocationPath("missing")).toEqual([]);
   });
 });

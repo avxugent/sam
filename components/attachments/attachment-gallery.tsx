@@ -39,6 +39,8 @@ import {
   ExternalLink,
   Pencil,
   ZoomIn,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 type Attachment = {
@@ -105,7 +107,29 @@ export function AttachmentGallery({
 
   // Lightbox
   const [lightboxId, setLightboxId] = useState<string | null>(null);
-  const lightboxAttachment = attachments.find((a) => a.id === lightboxId);
+  const previewable = attachments.filter((a) =>
+    a.attachmentType !== "link" && isPreviewableImage(a.mimeType)
+  );
+  const lightboxIndex = previewable.findIndex((a) => a.id === lightboxId);
+  const lightboxAttachment = lightboxIndex >= 0 ? previewable[lightboxIndex] : undefined;
+  const hasMultiple = previewable.length > 1;
+
+  function showAdjacent(delta: number) {
+    if (lightboxIndex < 0 || previewable.length === 0) return;
+    const next = (lightboxIndex + delta + previewable.length) % previewable.length;
+    setLightboxId(previewable[next].id);
+  }
+
+  useEffect(() => {
+    if (!lightboxId) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "ArrowRight") showAdjacent(1);
+      else if (e.key === "ArrowLeft") showAdjacent(-1);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lightboxId, previewable.length]);
 
   function updateAttachments(next: Attachment[]) {
     setAttachments(next);
@@ -343,12 +367,39 @@ export function AttachmentGallery({
           </DialogHeader>
           {lightboxAttachment && (
             <div className="flex flex-col items-center gap-3 p-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`/api/attachments/${lightboxAttachment.id}`}
-                alt={t("previewAlt", { name: label(lightboxAttachment) })}
-                className="max-h-[70vh] max-w-full rounded-[8px] object-contain"
-              />
+              <div className="relative flex w-full items-center justify-center">
+                {hasMultiple && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label={tCommon("previous")}
+                    className="absolute left-1 z-10 h-9 w-9 rounded-full bg-white/90 shadow-sm"
+                    onClick={() => showAdjacent(-1)}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/attachments/${lightboxAttachment.id}`}
+                  alt={t("previewAlt", { name: label(lightboxAttachment) })}
+                  className="max-h-[70vh] max-w-full rounded-[8px] object-contain"
+                />
+                {hasMultiple && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label={tCommon("next")}
+                    className="absolute right-1 z-10 h-9 w-9 rounded-full bg-white/90 shadow-sm"
+                    onClick={() => showAdjacent(1)}
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                )}
+              </div>
+              {hasMultiple && (
+                <p className="text-[11.5px] text-[#94a3b8]">{lightboxIndex + 1} / {previewable.length}</p>
+              )}
               {lightboxAttachment.description && (
                 <p className="text-[13px] text-[#64748b] text-center max-w-lg">{lightboxAttachment.description}</p>
               )}

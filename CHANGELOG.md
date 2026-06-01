@@ -20,6 +20,151 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Attachment preview dialog now navigates between images: prev/next arrows, ← → arrow keys, wrap-around, and a position counter. Cycles only through previewable images.
 
+### Tests
+- Raised coverage above the 80% gate with meaningful tests.
+
+---
+
+## [1.0.0-rc.7] - 2026-05-29
+
+### Added
+- Audit log now records all remaining user actions; added audit smoke tests.
+
+### Fixed
+- Footer date/time is localized to the app locale instead of the browser default.
+- Branding logo replaces the Monitor icon only; the title text is always shown.
+
+---
+
+## [1.0.0-rc.6] - 2026-05-29
+
+### Added
+- Configurable branding: custom title, logo, favicon, and per-environment background.
+
+---
+
+## [1.0.0-rc.5] - 2026-05-29
+
+### Added
+- Reports: last-changed filter and column.
+
+---
+
+## [1.0.0-rc.4] - 2026-05-28
+
+### Fixed
+- Jira: show the link when only `JIRA_BASE_URL` is configured.
+- Reports: replaced the "view" text button with an icon; run button is icon-only for consistency.
+- Stock: table state now syncs after `router.refresh()`.
+- Layout: footer moved outside the scroll region so it spans the full width.
+- i18n: added the `reinstate` key to the decommissioned namespace.
+
+### Changed
+- `docker-build.sh`: added `--help`/`-h` usage documentation.
+
+---
+
+## [1.0.0-rc.2] - 2026-05-27
+
+### Added
+- Layout: footer with a live clock and the app version.
+
+### Fixed
+- Stock: added `typeId` and `manufacturerId` to the `StockItem` type.
+- Reports: run button is now icon-only for consistency.
+
+### Changed
+- Added `docker-build.sh` for local CI-equivalent builds.
+
+---
+
+## [1.0.0-rc.1] - 2026-05-27
+
+### Added
+- Reports: show the full location path in report output.
+
+### Fixed
+- Asset types: resolved the `prometheusExposed` client mismatch and i18n variable.
+- Stock: added the missing GET handler for a stock item by id; edit dialog now populates and shows current type and manufacturer values.
+- Reports: delete button is red to match other pages.
+- i18n: translated remaining hardcoded strings in the work log and asset form, the work log search placeholder, and the sublocation deletion error message.
+
+---
+
+## [0.2.0-beta.10] - 2026-05-26
+
+### Added
+- Assets: type-based icon instead of a fixed monitor icon.
+- Assets: manufacturer field is now an autocomplete combobox; model autocomplete is filtered by type/manufacturer and prepopulated on select.
+- i18n: translated form validation error messages.
+- `scripts/reset-password.mjs` — admin password reset script.
+
+### Fixed
+- Scripts: fixed the tsx loader.
+
+---
+
+## [0.2.0-beta.9] - 2026-05-21
+
+### Added
+- Search: results paginate beyond 50 assets / 20 locations.
+
+### Tests
+- Added unit tests for the paginated search API.
+
+---
+
+## [0.2.0-beta.8] - 2026-05-19
+
+### Added
+- Asset types: `prometheusExposed` toggle for Service Discovery filtering.
+- Asset types: offer to merge when renaming to an existing type name.
+
+### Changed
+- `sync-lokalen`: preserves existing address data and images.
+- CI: added `workflow_dispatch` to the Docker workflow for manual triggers.
+
+---
+
+## [0.2.0-beta.7] - 2026-05-13
+
+### Fixed
+- Docker: updated maintenance scripts for Prisma 7.
+
+### Security
+- Override `@hono/node-server` to `>=1.19.13`.
+
+---
+
+## [0.2.0-beta.6] - 2026-05-13
+
+### Fixed
+- Build (Prisma 7): replaced all `@prisma/client` imports with `@/generated/prisma/client`, aliased `@prisma/client` → `generated/prisma/client.ts` in webpack, and added `mariadb` and `@prisma/adapter-mariadb` to `serverExternalPackages`.
+
+---
+
+## [0.2.0-beta.5] - 2026-05-13
+
+### Changed
+- Upgraded Prisma 6 → 7.
+
+### Fixed
+- Dark mode: amber/decommission button hover and warning colors are now readable.
+- SSR: resolved hydration mismatches and a script tag warning.
+- Audit: moved the `key` prop to the Fragment to silence the React list-key warning.
+- i18n: escaped ICU placeholders in `hostnameTemplateHelp` and `macAddressTemplateHelp`.
+
+---
+
+## [0.2.0-beta.4] - 2026-05-13
+
+### Added
+- Profile: dark mode and location navigation preferences.
+- This changelog (`CHANGELOG.md`).
+
+### Fixed
+- Map: proxy Nominatim geocoding through `/api/geocode`.
+
 ---
 
 ## [0.2.0-beta.3] - 2026-05-12

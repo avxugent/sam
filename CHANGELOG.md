@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.1] - 2026-06-01
+
+### Added
+- Attachment preview dialog now navigates between images: prev/next arrows, ← → arrow keys, wrap-around, and a position counter. Cycles only through previewable images.
+
+---
+
 ## [0.2.0-beta.3] - 2026-05-12
 
 ### Added

@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.3] - 2026-06-01
+
+### Fixed
+- Maintenance scripts run via Nomad Actions failed with `ERR_MODULE_NOT_FOUND` for the generated Prisma 7 client. The shared `_prisma.mjs` helper now self-registers the tsx loader (so plain `node` invocations without `--import tsx/esm` work) and resolves the generated client from either the dev (`../generated/prisma`) or Docker runner (`scripts/generated/prisma`) layout. Fixes every Nomad maintenance action.
+
+### Added
+- Nomad Actions for the `resolve-ip-hostnames` migration script (dry-run and apply).
+
+---
+
 ## [1.0.2] - 2026-06-01
 
 ### Added

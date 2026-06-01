@@ -373,7 +373,7 @@ export function AttachmentGallery({
                     variant="outline"
                     size="icon"
                     aria-label={tCommon("previous")}
-                    className="absolute left-1 z-10 h-9 w-9 rounded-full bg-white/90 shadow-sm"
+                    className="absolute left-1 z-10 h-9 w-9 rounded-full bg-background/90 text-foreground shadow-sm"
                     onClick={() => showAdjacent(-1)}
                   >
                     <ChevronLeft className="h-5 w-5" />
@@ -390,7 +390,7 @@ export function AttachmentGallery({
                     variant="outline"
                     size="icon"
                     aria-label={tCommon("next")}
-                    className="absolute right-1 z-10 h-9 w-9 rounded-full bg-white/90 shadow-sm"
+                    className="absolute right-1 z-10 h-9 w-9 rounded-full bg-background/90 text-foreground shadow-sm"
                     onClick={() => showAdjacent(1)}
                   >
                     <ChevronRight className="h-5 w-5" />

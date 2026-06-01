@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.2] - 2026-06-01
+
+### Added
+- `scripts/resolve-ip-hostnames.mjs` — migration helper that reverse-DNS resolves bare IP addresses left in `Asset.hostname` by older imports and rewrites them to the resolved FQDN. Supports `--dry-run`, `--asset-id`, `--dns-server`, and `--timeout`. npm aliases: `assets:resolve-hostnames` / `:dry-run`.
+
+### Fixed
+- Attachment preview navigation arrows were invisible in dark mode (hardcoded white background); now use theme tokens.
+
+---
+
 ## [1.0.1] - 2026-06-01
 
 ### Added

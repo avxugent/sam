@@ -194,6 +194,19 @@ EOH
         args    = ["scripts/add-location-links.mjs"]
       }
 
+      // Reverse-DNS resolve bare IP addresses left in Asset.hostname by older
+      // imports, rewriting them to the resolved FQDN. Unresolvable IPs are
+      // left untouched. Run the dry-run first to preview the changes.
+      action "resolve-ip-hostnames-dry-run" {
+        command = "/usr/local/bin/node"
+        args    = ["scripts/resolve-ip-hostnames.mjs", "--dry-run"]
+      }
+
+      action "resolve-ip-hostnames" {
+        command = "/usr/local/bin/node"
+        args    = ["scripts/resolve-ip-hostnames.mjs"]
+      }
+
       // Export a full CSV backup of all asset data.
       // Writes to the configured S3 bucket or the local exports/ directory.
       action "export-backup" {

@@ -13,7 +13,7 @@ export default async function AuditLogPage() {
   });
 
   return (
-    <div className="max-w-6xl">
+    <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Audit Log</h1>
         <p className="text-muted-foreground mt-1">

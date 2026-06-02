@@ -86,7 +86,7 @@ export default async function AllLocationsPage() {
   const locationTree = rawTree.map(toNode);
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-4">
       <div className="flex items-start gap-3">
         <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
           <MapPin className="h-4 w-4 text-[#1e64c8]" />

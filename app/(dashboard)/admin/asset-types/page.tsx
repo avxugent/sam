@@ -19,7 +19,7 @@ export default async function AssetTypesPage() {
   });
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Asset Types</h1>
         <p className="text-muted-foreground mt-1">

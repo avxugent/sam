@@ -234,6 +234,8 @@
     "deleteHasSubLocations": "Kan een locatie met sublocaties niet verwijderen. Verwijder ze eerst.",
     "moveLocationButton": "Verplaatsen",
     "moveTitle": "\"{name}\" verplaatsen",
+    "searchLocations": "Locaties zoeken…",
+    "noLocationsFound": "Geen locaties gevonden",
     "moveToLocationButton": "Locatie verplaatsen",
     "locationMoved": "Verplaatst naar {name}",
     "moveConfirmTitle": "\"{name}\" verplaatsen?",

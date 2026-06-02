@@ -234,6 +234,8 @@
     "deleteHasSubLocations": "Cannot delete a location that has sub-locations. Remove them first.",
     "moveLocationButton": "Move",
     "moveTitle": "Move \"{name}\"",
+    "searchLocations": "Search locations…",
+    "noLocationsFound": "No locations found",
     "moveToLocationButton": "Move location",
     "locationMoved": "Moved to {name}",
     "moveConfirmTitle": "Move \"{name}\"?",

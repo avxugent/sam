@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.5] - 2026-06-02
+
+### Added
+- Move a location to a new parent from the location detail page. The picker excludes the location itself, its descendants, and its current parent. When the location (or its sub-locations) has assets, a confirmation dialog warns that the assets move along with it. The API guards parent changes server-side, rejecting cycles (moving a location into itself or one of its own sub-locations).
+
+### Fixed
+- The asset detail action toolbar could push the **Move** button off-screen for assets with long names; the toolbar now wraps so all actions stay reachable.
+
+---
+
 ## [1.0.4] - 2026-06-02
 
 ### Changed

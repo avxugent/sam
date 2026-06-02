@@ -269,8 +269,8 @@ export function AssetDetailClient({
       )}
 
       {/* Page header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3 min-w-0">
           <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
             <AssetTypeIcon className="h-4 w-4 text-[#1e64c8]" />
           </div>
@@ -292,7 +292,7 @@ export function AssetDetailClient({
         </div>
 
         {canEdit && !isDecommissioned && (
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex gap-2 flex-wrap justify-end">
             <AssetFormDialog
               mode="edit"
               assetId={asset.id}

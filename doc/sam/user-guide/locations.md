@@ -43,6 +43,12 @@ A **cover image** can be pinned to a location — it appears as a hero image at 
 
 Click the **Edit** button on the location detail page. Change any fields and click **Save**.
 
+## Moving a location
+
+Click **Move** on the location detail page, then pick a new parent location. A location cannot be moved into itself or into one of its own sub-locations. If the location (or any of its sub-locations) has assets assigned, a dialog asks you to confirm — the assets move along with the location. Cancel to leave everything where it is.
+
+> Requires Editor or Admin role.
+
 ## Reordering sub-locations
 
 On the Sub-locations tab, drag and drop rows to change the display order.

@@ -10,14 +10,17 @@ vi.mock("@/lib/prisma", () => ({
     attachment: { findUnique: vi.fn() },
   },
 }));
+vi.mock("@/lib/location-path", () => ({ getAllDescendantLocationIds: vi.fn() }));
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
+import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { GET, PUT, DELETE } from "@/app/api/locations/[id]/route";
 
 const mockAuth = vi.mocked(auth);
 const mockLogAudit = vi.mocked(logAudit);
+const mockDescendants = vi.mocked(getAllDescendantLocationIds);
 const session = (role = "ADMIN") => ({ user: { id: "u1", role, email: "a@b.com" } });
 const params = (id = "loc1") => Promise.resolve({ id });
 function put(body: object) {
@@ -27,7 +30,10 @@ function del() {
   return new NextRequest("http://localhost/api/locations/loc1", { method: "DELETE" });
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockDescendants.mockResolvedValue([]);
+});
 
 describe("GET /api/locations/[id]", () => {
   it("401 unauthenticated", async () => {
@@ -113,6 +119,30 @@ describe("PUT /api/locations/[id]", () => {
     const res = await PUT(put({ coverImageId: "att1" }), { params: params() });
     expect(res.status).toBe(200);
     expect(mockLogAudit).toHaveBeenCalledWith(expect.objectContaining({ detail: undefined }));
+  });
+
+  it("400 when moving a location into itself", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    const res = await PUT(put({ parentId: "loc1" }), { params: params() });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/its own parent/);
+  });
+
+  it("400 when the target parent does not exist", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue(null as never);
+    const res = await PUT(put({ parentId: "p2" }), { params: params() });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/does not exist/);
+  });
+
+  it("400 when moving a location into one of its own sub-locations", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ id: "p2" } as never);
+    mockDescendants.mockResolvedValue(["p2"]);
+    const res = await PUT(put({ parentId: "p2" }), { params: params() });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/sub-location/);
   });
 
   it("handles a missing 'before' record (no changes block)", async () => {

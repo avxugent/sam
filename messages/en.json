@@ -231,7 +231,14 @@
     "coverImageHeading": "Cover Image",
     "coverImageHelp": "Choose one of the image attachments as the cover photo shown at the top of this page.",
     "workLogSubtitle": "Maintenance, repairs, and other work performed at this location.",
-    "deleteHasSubLocations": "Cannot delete a location that has sub-locations. Remove them first."
+    "deleteHasSubLocations": "Cannot delete a location that has sub-locations. Remove them first.",
+    "moveLocationButton": "Move",
+    "moveTitle": "Move \"{name}\"",
+    "moveToLocationButton": "Move location",
+    "locationMoved": "Moved to {name}",
+    "moveConfirmTitle": "Move \"{name}\"?",
+    "moveConfirmAssets": "{count} {count, plural, =1 {asset} other {assets}} assigned under this location will move with it.",
+    "moveWithAssets": "Move with assets"
   },
   "locationForm": {
     "createTitle": "Add location",

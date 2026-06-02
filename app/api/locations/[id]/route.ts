@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { getAllDescendantLocationIds } from "@/lib/location-path";
 
 // FI number format: CC.BB.FFF.RRR  e.g. "14.10.100.013"
 const FI_NUMBER_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{3}$/;
@@ -75,6 +76,34 @@ export async function PUT(
     if (!cover || cover.locationId !== id || !cover.mimeType?.startsWith("image/")) {
       return NextResponse.json(
         { error: "Invalid cover image: must be an image attachment of this location." },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Validate parent move: prevent cycles and dangling references
+  if (parsed.data.parentId !== undefined && parsed.data.parentId !== null) {
+    const newParentId = parsed.data.parentId;
+    if (newParentId === id) {
+      return NextResponse.json(
+        { error: "A location cannot be its own parent." },
+        { status: 400 }
+      );
+    }
+    const target = await prisma.location.findUnique({
+      where: { id: newParentId },
+      select: { id: true },
+    });
+    if (!target) {
+      return NextResponse.json(
+        { error: "Target location does not exist." },
+        { status: 400 }
+      );
+    }
+    const descendants = await getAllDescendantLocationIds(id);
+    if (descendants.includes(newParentId)) {
+      return NextResponse.json(
+        { error: "Cannot move a location into one of its own sub-locations." },
         { status: 400 }
       );
     }

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
+import { MoveLocationDialog } from "@/components/locations/move-location-dialog";
 import { AssetTable } from "@/components/assets/asset-table";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
@@ -38,6 +39,7 @@ import {
   Paperclip,
   Image as ImageIcon,
   Wrench,
+  FolderInput,
 } from "lucide-react";
 
 type Breadcrumb = { id: string; name: string };
@@ -97,6 +99,7 @@ type Location = {
 export function LocationDetailClient({
   location,
   assets,
+  subtreeAssetCount = 0,
   breadcrumbs,
   userRole,
   currentUserId,
@@ -111,6 +114,7 @@ export function LocationDetailClient({
 }: {
   location: Location;
   assets: Asset[];
+  subtreeAssetCount?: number;
   breadcrumbs: Breadcrumb[];
   userRole: string;
   currentUserId?: string;
@@ -130,6 +134,7 @@ export function LocationDetailClient({
   const tNav = useTranslations("nav");
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
 
+  const [moveOpen, setMoveOpen] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>(location.attachments);
   const [coverImageId, setCoverImageId] = useState<string | null>(location.coverImageId ?? null);
   const [mapData, setMapData] = useState({
@@ -284,6 +289,15 @@ export function LocationDetailClient({
         </div>
         {canEdit && (
           <div className="ml-auto flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMoveOpen(true)}
+              className="h-8 text-[13px] rounded-[7px] border-[#e2e8f0] gap-1.5"
+            >
+              <FolderInput className="h-3.5 w-3.5" />
+              {t("moveLocationButton")}
+            </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 text-[#ef4444] border-[#fecaca] hover:bg-red-50 text-[13px] rounded-[7px]">
@@ -502,6 +516,17 @@ export function LocationDetailClient({
           </TabsContent>
         )}
       </Tabs>
+
+      {canEdit && (
+        <MoveLocationDialog
+          open={moveOpen}
+          onOpenChange={setMoveOpen}
+          locationId={location.id}
+          locationName={location.name}
+          currentParentId={location.parent?.id ?? null}
+          assetCount={subtreeAssetCount}
+        />
+      )}
     </div>
   );
 }

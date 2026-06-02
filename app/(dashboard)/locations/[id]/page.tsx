@@ -71,6 +71,10 @@ export default async function LocationPage({
     orderBy: { createdAt: "desc" },
   });
 
+  const subtreeAssetCount = await prisma.asset.count({
+    where: { locationId: { in: locationIds } },
+  });
+
   const workLogs = await prisma.workLog.findMany({
     where: { locationId: id },
     include: {
@@ -97,6 +101,7 @@ export default async function LocationPage({
     <LocationDetailClient
       location={location}
       assets={assets}
+      subtreeAssetCount={subtreeAssetCount}
       breadcrumbs={breadcrumbs}
       userRole={session?.user?.role || "VIEWER"}
       currentUserId={session?.user?.id ?? ""}

@@ -231,7 +231,14 @@
     "coverImageHeading": "Hoofdfoto",
     "coverImageHelp": "Kies een afbeelding uit de bijlagen als hoofdfoto bovenaan deze pagina.",
     "workLogSubtitle": "Onderhoud, reparaties en ander werk op deze locatie.",
-    "deleteHasSubLocations": "Kan een locatie met sublocaties niet verwijderen. Verwijder ze eerst."
+    "deleteHasSubLocations": "Kan een locatie met sublocaties niet verwijderen. Verwijder ze eerst.",
+    "moveLocationButton": "Verplaatsen",
+    "moveTitle": "\"{name}\" verplaatsen",
+    "moveToLocationButton": "Locatie verplaatsen",
+    "locationMoved": "Verplaatst naar {name}",
+    "moveConfirmTitle": "\"{name}\" verplaatsen?",
+    "moveConfirmAssets": "{count} {count, plural, =1 {asset} other {assets}} onder deze locatie worden mee verplaatst.",
+    "moveWithAssets": "Verplaatsen met assets"
   },
   "locationForm": {
     "createTitle": "Locatie toevoegen",

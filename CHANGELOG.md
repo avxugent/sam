@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.6] - 2026-06-02
+
+### Added
+- Renaming a location to a name that already exists under the same parent now offers to **merge** the two instead of creating a duplicate. Confirming moves the edited location's assets, sub-locations, attachments and work logs into the existing location and deletes the edited one. A new `POST /api/locations/[id]/merge` endpoint performs the merge transactionally and rejects self/cross-parent merges.
+
+---
+
 ## [1.0.5] - 2026-06-02
 
 ### Added

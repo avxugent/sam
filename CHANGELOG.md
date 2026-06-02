@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.4] - 2026-06-02
+
+### Changed
+- Listing/data views (Locations, Audit Log, Users, Asset Types) now fill the full available width instead of being constrained by a fixed `max-w-*` wrapper. Forms remain narrow for readability.
+
+---
+
 ## [1.0.3] - 2026-06-01
 
 ### Fixed

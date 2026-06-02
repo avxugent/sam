@@ -13,6 +13,16 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,6 +107,8 @@ export function LocationFormDialog({
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [fiRaw, setFiRaw] = useState(initialData?.fiNumber || "");
+  const [mergeTarget, setMergeTarget] = useState<{ id: string; name: string } | null>(null);
+  const [merging, setMerging] = useState(false);
   const t = useTranslations("locationForm");
   const tLoc = useTranslations("location");
   const tCommon = useTranslations("common");
@@ -158,6 +170,12 @@ export function LocationFormDialog({
 
     if (!res.ok) {
       const err = await res.json();
+      // Renaming onto an existing sibling name — offer to merge instead of
+      // creating a duplicate.
+      if (err.error === "LOCATION_NAME_EXISTS" && err.targetId) {
+        setMergeTarget({ id: err.targetId, name: err.targetName });
+        return;
+      }
       toast({
         title: tCommon("error"),
         description: err.error || tCommon("somethingWentWrong"),
@@ -170,6 +188,37 @@ export function LocationFormDialog({
     setOpen(false);
     setFiRaw("");
     reset();
+    router.refresh();
+    onSuccess?.();
+  }
+
+  async function handleMerge() {
+    if (!mergeTarget) return;
+    setMerging(true);
+    const res = await fetch(`/api/locations/${locationId}/merge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetId: mergeTarget.id }),
+    });
+    setMerging(false);
+
+    if (!res.ok) {
+      const err = await res.json();
+      toast({
+        title: tCommon("error"),
+        description: err.error || tCommon("somethingWentWrong"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const targetId = mergeTarget.id;
+    toast({ title: tLoc("locationMerged") });
+    setMergeTarget(null);
+    setOpen(false);
+    setFiRaw("");
+    reset();
+    router.push(`/locations/${targetId}`);
     router.refresh();
     onSuccess?.();
   }
@@ -191,6 +240,7 @@ export function LocationFormDialog({
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-lg">
@@ -326,5 +376,31 @@ export function LocationFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={mergeTarget !== null} onOpenChange={(v) => !v && setMergeTarget(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{tLoc("mergeConfirmTitle")}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {tLoc("mergeConfirmDescription", { name: mergeTarget?.name ?? "" })}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={merging}>{tCommon("cancel")}</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              void handleMerge();
+            }}
+            disabled={merging}
+            className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+          >
+            {merging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {tLoc("mergeButton")}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

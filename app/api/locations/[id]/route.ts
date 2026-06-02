@@ -114,6 +114,23 @@ export async function PUT(
     include: { parent: { select: { name: true } } },
   });
 
+  // Detect a name collision with a sibling (same parent). Rather than silently
+  // creating a duplicate, signal the client so it can offer to merge instead.
+  if (before && parsed.data.name !== undefined && parsed.data.name !== before.name) {
+    const effectiveParentId =
+      parsed.data.parentId !== undefined ? parsed.data.parentId : before.parentId;
+    const duplicate = await prisma.location.findFirst({
+      where: { parentId: effectiveParentId, name: parsed.data.name, id: { not: id } },
+      select: { id: true, name: true },
+    });
+    if (duplicate) {
+      return NextResponse.json(
+        { error: "LOCATION_NAME_EXISTS", targetId: duplicate.id, targetName: duplicate.name },
+        { status: 409 }
+      );
+    }
+  }
+
   let location;
   try {
     location = await prisma.location.update({

@@ -160,4 +160,49 @@ describe("<LocationFormDialog /> — edit mode", () => {
     const nameInput = screen.getByDisplayValue("Campus A");
     expect(nameInput).toBeInTheDocument();
   });
+
+  it("offers to merge on a name collision, then POSTs the merge", async () => {
+    mockFetch.mockReset();
+    mockFetch.mockImplementation((_url: string, opts?: { method?: string }) => {
+      if (opts?.method === "PUT") {
+        return Promise.resolve({
+          ok: false,
+          json: async () => ({ error: "LOCATION_NAME_EXISTS", targetId: "loc-2", targetName: "Campus B" }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({ id: "loc-2" }) });
+    });
+
+    render(
+      <LocationFormDialog
+        mode="edit"
+        locationId="loc-1"
+        initialData={{ name: "Campus A", description: null }}
+      >
+        <button>Open</button>
+      </LocationFormDialog>
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Open" }));
+
+    const nameInput = screen.getByDisplayValue("Campus A");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Campus B");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    // Collision -> merge confirmation surfaces instead of an error toast
+    const mergeBtn = await screen.findByRole("button", { name: "Merge" });
+    await user.click(mergeBtn);
+
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/locations/loc-1/merge",
+        expect.objectContaining({ method: "POST" })
+      )
+    );
+    const body = JSON.parse(
+      mockFetch.mock.calls.find((c) => c[0] === "/api/locations/loc-1/merge")![1].body
+    );
+    expect(body.targetId).toBe("loc-2");
+  });
 });

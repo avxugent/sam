@@ -6,7 +6,7 @@ vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
-    location: { findUnique: vi.fn(), update: vi.fn(), delete: vi.fn(), count: vi.fn() },
+    location: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn(), delete: vi.fn(), count: vi.fn() },
     attachment: { findUnique: vi.fn() },
   },
 }));
@@ -119,6 +119,17 @@ describe("PUT /api/locations/[id]", () => {
     const res = await PUT(put({ coverImageId: "att1" }), { params: params() });
     expect(res.status).toBe(200);
     expect(mockLogAudit).toHaveBeenCalledWith(expect.objectContaining({ detail: undefined }));
+  });
+
+  it("409 LOCATION_NAME_EXISTS when renaming onto a sibling", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ id: "loc1", name: "Old", parentId: "p1", parent: null } as never);
+    vi.mocked(prisma.location.findFirst).mockResolvedValue({ id: "loc2", name: "New" } as never);
+    const res = await PUT(put({ name: "New" }), { params: params() });
+    expect(res.status).toBe(409);
+    const j = await res.json();
+    expect(j).toEqual({ error: "LOCATION_NAME_EXISTS", targetId: "loc2", targetName: "New" });
+    expect(prisma.location.update).not.toHaveBeenCalled();
   });
 
   it("400 when moving a location into itself", async () => {

@@ -43,6 +43,8 @@ A **cover image** can be pinned to a location — it appears as a hero image at 
 
 Click the **Edit** button on the location detail page. Change any fields and click **Save**.
 
+If you rename a location to a name that already exists under the same parent, SAM does not create a duplicate. Instead it offers to **merge** the two: confirming moves all of the edited location's assets, sub-locations, attachments and work logs into the existing location and then deletes the edited one. Cancel to leave both untouched and pick a different name.
+
 ## Moving a location
 
 Click **Move** on the location detail page, then pick a new parent location. A location cannot be moved into itself or into one of its own sub-locations. If the location (or any of its sub-locations) has assets assigned, a dialog asks you to confirm — the assets move along with the location. Cancel to leave everything where it is.

@@ -240,7 +240,11 @@
     "locationMoved": "Moved to {name}",
     "moveConfirmTitle": "Move \"{name}\"?",
     "moveConfirmAssets": "{count} {count, plural, =1 {asset} other {assets}} assigned under this location will move with it.",
-    "moveWithAssets": "Move with assets"
+    "moveWithAssets": "Move with assets",
+    "mergeConfirmTitle": "Merge into existing location?",
+    "mergeConfirmDescription": "A location named \"{name}\" already exists here. Merging moves all of this location's assets, sub-locations, attachments and work logs into it, then deletes this one. This cannot be undone.",
+    "mergeButton": "Merge",
+    "locationMerged": "Locations merged"
   },
   "locationForm": {
     "createTitle": "Add location",

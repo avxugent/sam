@@ -4,6 +4,9 @@
  * Crawls https://lokalen.ugent.be/lokaal/{fiNumber} for every SAM location
  * that has a fiNumber, then:
  *   - Corrects the location name if it differs from the portal (always synced)
+ *   - Corrects the parent building + campus names when they differ from the
+ *     portal, and fills in their derived FI numbers (always synced).
+ *     Campus FI = first group + zeroes; building FI = first two groups + zeroes.
  *   - Fills in address/city/country ONLY when those fields are currently empty
  *   - Downloads photos and saves them as file attachments ONLY if the location
  *     has no existing image attachments yet
@@ -198,20 +201,34 @@ function extractImageUrls(document, pageUrl) {
     .filter((url, i, arr) => arr.indexOf(url) === i);
 }
 
-// Walk up the location tree and return parent names ordered from direct parent to root.
-async function loadAncestorNames(locationId) {
-  const names = [];
+// Walk up the location tree and return ancestor records ordered from direct parent to root.
+async function loadAncestors(locationId) {
+  const ancestors = [];
   let current = await prisma.location.findUnique({ where: { id: locationId }, select: { parentId: true } });
   while (current?.parentId) {
     const parent = await prisma.location.findUnique({
       where: { id: current.parentId },
-      select: { name: true, parentId: true },
+      select: { id: true, name: true, fiNumber: true, parentId: true },
     });
     if (!parent) break;
-    names.push(parent.name);
+    ancestors.push(parent);
     current = parent;
   }
-  return names;
+  return ancestors;
+}
+
+// Derive the building + campus FI numbers from a room's fiNumber.
+// Format is dot-separated groups (e.g. "14.10.100.013"):
+//   campus   = first group, remaining groups zeroed → "14.00.000.000"
+//   building = first two groups, remaining groups zeroed → "14.10.000.000"
+function deriveAncestorFiNumbers(fiNumber) {
+  const parts = (fiNumber ?? "").split(".");
+  if (parts.length < 3) return null;
+  const zero = (s) => "0".repeat(s.length);
+  return {
+    campusFi:   [parts[0], ...parts.slice(1).map(zero)].join("."),
+    buildingFi: [parts[0], parts[1], ...parts.slice(2).map(zero)].join("."),
+  };
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────
@@ -302,18 +319,6 @@ async function main() {
       console.log("");
     }
 
-    // Check ancestor hints against the location tree
-    if (ancestorHints.length > 0) {
-      const ancestorNames = await loadAncestorNames(location.id);
-      for (const hint of ancestorHints) {
-        const hl = hint.toLowerCase();
-        const matched = ancestorNames.some(n => n.toLowerCase().includes(hl) || hl.includes(n.toLowerCase()));
-        if (!matched) {
-          console.log(`    WARN    : portal says ancestor "${hint}" but not found in tree [${ancestorNames.join(" > ")}]`);
-        }
-      }
-    }
-
     // ── Metadata sync ────────────────────────────────────────────────────────
     const updates = {};
 
@@ -349,6 +354,49 @@ async function main() {
       updated++;
     } else if (!skipImages) {
       // will print changes from image section below, or "(no changes)"
+    }
+
+    // ── Ancestor (building + campus) sync ──────────────────────────────────────
+    // Portal name format is "{room}, {building}, {campus}"; the matching ancestors
+    // in the tree are the direct parent (building) and its parent (campus).
+    // Correct their names when they differ and fill in derived FI numbers.
+    if (ancestorHints.length > 0) {
+      const ancestors = await loadAncestors(location.id);
+      const derived   = deriveAncestorFiNumbers(location.fiNumber);
+
+      // ancestorHints[0] ↔ ancestors[0] (building); ancestorHints[1] ↔ ancestors[1] (campus)
+      const layers = [
+        { label: "building", hint: ancestorHints[0], ancestor: ancestors[0], fiNumber: derived?.buildingFi },
+        { label: "campus",   hint: ancestorHints[1], ancestor: ancestors[1], fiNumber: derived?.campusFi },
+      ];
+
+      for (const layer of layers) {
+        if (!layer.hint || !layer.ancestor) continue;
+        const ancUpdates = {};
+        if (layer.hint !== layer.ancestor.name) {
+          console.log(`    ${layer.label.padEnd(8)}: "${layer.ancestor.name}" → "${layer.hint}"`);
+          ancUpdates.name = layer.hint;
+        }
+        if (layer.fiNumber && layer.fiNumber !== layer.ancestor.fiNumber) {
+          console.log(`    ${layer.label.padEnd(8)}: fiNumber "${layer.ancestor.fiNumber ?? "(empty)"}" → "${layer.fiNumber}"`);
+          ancUpdates.fiNumber = layer.fiNumber;
+        }
+        if (Object.keys(ancUpdates).length > 0) {
+          if (!dryRun) {
+            try {
+              await prisma.location.update({ where: { id: layer.ancestor.id }, data: ancUpdates });
+            } catch (err) {
+              if (err.code === "P2002") {
+                console.error(`    ERROR updating ${layer.label}: fiNumber "${ancUpdates.fiNumber}" already in use (P2002)`);
+              } else {
+                console.error(`    ERROR updating ${layer.label}: ${err.message}`);
+              }
+              errors++;
+            }
+          }
+          updated++;
+        }
+      }
     }
 
     // ── Image sync ───────────────────────────────────────────────────────────

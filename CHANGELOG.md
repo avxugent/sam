@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.7] - 2026-06-05
+
+### Changed
+- The `sync-lokalen` maintenance script now also corrects the parent **building** and **campus** location names when they differ from the lokalen.ugent.be portal (previously it only warned). It additionally fills in their FI numbers, derived from the room's FI number: the campus gets the first group followed by zeroes (e.g. `14.00.000.000`) and the building the first two groups followed by zeroes (e.g. `14.10.000.000`).
+
+---
+
 ## [1.0.6] - 2026-06-02
 
 ### Added

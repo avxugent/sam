@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 import { MoveLocationDialog } from "@/components/locations/move-location-dialog";
@@ -135,6 +136,9 @@ export function LocationDetailClient({
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
 
   const [moveOpen, setMoveOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [cascadeConfirmed, setCascadeConfirmed] = useState(false);
+  const hasSubLocations = location._count.children > 0;
   const [attachments, setAttachments] = useState<Attachment[]>(location.attachments);
   const [coverImageId, setCoverImageId] = useState<string | null>(location.coverImageId ?? null);
   const [mapData, setMapData] = useState({
@@ -150,7 +154,10 @@ export function LocationDetailClient({
   const coverImage = attachments.find((a) => a.id === coverImageId && a.mimeType?.startsWith("image/"));
 
   async function handleDelete() {
-    const res = await fetch(`/api/locations/${location.id}`, { method: "DELETE" });
+    const url = hasSubLocations
+      ? `/api/locations/${location.id}?cascade=true`
+      : `/api/locations/${location.id}`;
+    const res = await fetch(url, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json();
       const description = err.error === "HAS_SUBLOCATIONS"
@@ -298,7 +305,13 @@ export function LocationDetailClient({
               <FolderInput className="h-3.5 w-3.5" />
               {t("moveLocationButton")}
             </Button>
-            <AlertDialog>
+            <AlertDialog
+              open={deleteOpen}
+              onOpenChange={(o) => {
+                setDeleteOpen(o);
+                if (!o) setCascadeConfirmed(false);
+              }}
+            >
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 text-[#ef4444] border-[#fecaca] hover:bg-red-50 text-[13px] rounded-[7px]">
                   <Trash2 className="h-3.5 w-3.5 mr-1" />
@@ -309,13 +322,26 @@ export function LocationDetailClient({
                 <AlertDialogHeader>
                   <AlertDialogTitle>{t("deleteConfirmTitle", { name: location.name })}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {t("deleteConfirmDescription")}
+                    {hasSubLocations
+                      ? t("deleteConfirmDescriptionWithSubs", { count: location._count.children })
+                      : t("deleteConfirmDescription")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                {hasSubLocations && (
+                  <label className="flex items-start gap-2 text-sm">
+                    <Checkbox
+                      checked={cascadeConfirmed}
+                      onCheckedChange={(c) => setCascadeConfirmed(c === true)}
+                      className="mt-0.5"
+                    />
+                    <span>{t("deleteCascadeConfirm", { count: location._count.children })}</span>
+                  </label>
+                )}
                 <AlertDialogFooter>
                   <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDelete}
+                    disabled={hasSubLocations && !cascadeConfirmed}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
                     {tCommon("delete")}

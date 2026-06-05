@@ -53,7 +53,7 @@ Key validated fields:
 | `GET` | `/api/locations/[id]` | VIEWER | Get location with ancestor path |
 | `PUT` | `/api/locations/[id]` | EDITOR | Update location (returns `409 LOCATION_NAME_EXISTS` with `targetId` when the new name collides with a sibling) |
 | `POST` | `/api/locations/[id]/merge` | EDITOR | Merge this location into a sibling (`targetId`): moves its assets, sub-locations, attachments and work logs to the target, then deletes it |
-| `DELETE` | `/api/locations/[id]` | EDITOR | Delete (blocked if assets or children exist) |
+| `DELETE` | `/api/locations/[id]` | EDITOR | Delete location and its assets. Blocked with `400 HAS_SUBLOCATIONS` if children exist, unless `?cascade=true` is passed — then the whole sub-tree is deleted |
 | `GET` | `/api/locations/[id]/assets` | VIEWER | Assets in location |
 | `GET` | `/api/locations/[id]/attachments` | VIEWER | Location attachments |
 | `POST` | `/api/locations/[id]/work-logs` | EDITOR | Create work log for location |

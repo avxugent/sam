@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.8] - 2026-06-05
+
+### Changed
+- Deleting a location that has sub-locations is now possible. The confirmation dialog shows an extra checkbox requiring you to acknowledge that every sub-location — and all assets and attachments they contain — will be permanently deleted and cannot be recovered. The `DELETE /api/locations/[id]` endpoint accepts a `?cascade=true` flag that removes the whole sub-tree transactionally; without it, deleting a location with children still returns `400 HAS_SUBLOCATIONS`.
+
+---
+
 ## [1.0.7] - 2026-06-05
 
 ### Changed

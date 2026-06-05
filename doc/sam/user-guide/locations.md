@@ -57,7 +57,7 @@ On the Sub-locations tab, drag and drop rows to change the display order.
 
 ## Deleting a location
 
-Click **Delete** on the location detail page. A location can only be deleted when it has no assets and no sub-locations. Move or delete these first.
+Click **Delete** on the location detail page. The location and all its assets and attachments are permanently removed. If the location has sub-locations, the confirmation dialog requires you to tick an extra checkbox acknowledging that every sub-location (and everything inside it) will also be permanently deleted and cannot be recovered.
 
 > Requires Editor or Admin role.
 

@@ -200,8 +200,10 @@ export async function DELETE(
 
   const { id } = await params;
 
+  const cascade = req.nextUrl.searchParams.get("cascade") === "true";
+
   const childCount = await prisma.location.count({ where: { parentId: id } });
-  if (childCount > 0) {
+  if (childCount > 0 && !cascade) {
     return NextResponse.json(
       { error: "HAS_SUBLOCATIONS" },
       { status: 400 }
@@ -212,7 +214,26 @@ export async function DELETE(
     where: { id },
     select: { name: true, fiNumber: true, address: true, city: true, country: true },
   });
-  await prisma.location.delete({ where: { id } });
+
+  if (childCount > 0) {
+    // Delete the whole subtree. The Location → parent relation is onDelete:
+    // Restrict, so descendants must be removed deepest-first. Assets,
+    // attachments and work logs cascade per location automatically.
+    const subtree = await prisma.$queryRaw<{ id: string; depth: number }[]>`
+      WITH RECURSIVE loc_tree AS (
+        SELECT id, 0 AS depth FROM locations WHERE id = ${id}
+        UNION ALL
+        SELECT l.id, lt.depth + 1 FROM locations l
+        INNER JOIN loc_tree lt ON l.parentId = lt.id
+      )
+      SELECT id, depth FROM loc_tree ORDER BY depth DESC
+    `;
+    await prisma.$transaction(
+      subtree.map((row) => prisma.location.delete({ where: { id: row.id } }))
+    );
+  } else {
+    await prisma.location.delete({ where: { id } });
+  }
 
   const snapshot: Record<string, string> = {};
   if (loc) {

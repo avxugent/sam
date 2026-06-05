@@ -12,6 +12,8 @@ vi.mock("@/lib/prisma", () => ({
       delete: vi.fn(),
       count: vi.fn(),
     },
+    $queryRaw: vi.fn(),
+    $transaction: vi.fn(),
   },
 }));
 
@@ -213,5 +215,21 @@ describe("DELETE /api/locations/[id]", () => {
     const res = await DELETE(makeIdReq("DELETE"), { params });
     expect(res.status).toBe(200);
     expect((await res.json()).ok).toBe(true);
+  });
+
+  it("cascade-deletes the subtree when cascade=true and children exist", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    mockCount.mockResolvedValue(2);
+    mockFindUnique.mockResolvedValue({ name: "Building", fiNumber: null, address: null, city: null, country: null } as never);
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      { id: "child-1", depth: 1 },
+      { id: "loc-1", depth: 0 },
+    ] as never);
+    vi.mocked(prisma.$transaction).mockResolvedValue([] as never);
+    const req = new NextRequest("http://localhost/api/locations/loc-1?cascade=true", { method: "DELETE" });
+    const res = await DELETE(req, { params });
+    expect(res.status).toBe(200);
+    expect((await res.json()).ok).toBe(true);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 });

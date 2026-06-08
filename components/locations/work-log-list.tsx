@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Pencil, Trash2, Wrench, Package } from "lucide-react";
-import { WorkLogFormDialog, type WorkLogAssetOption, type WorkLogUserOption } from "@/components/locations/work-log-form-dialog";
+import { WorkLogFormDialog, type WorkLogAssetOption, type WorkLogUserOption, type WorkLogItemOption } from "@/components/locations/work-log-form-dialog";
 import { JiraIssueBadge } from "@/components/locations/jira-issue-badge";
 import { useTranslations } from "next-intl";
 import { formatDate } from "@/lib/utils";
@@ -28,6 +28,7 @@ export type WorkLogEntry = {
   description: string;
   jiraIssueKey: string | null;
   performedBy: { id: string; name: string; email: string };
+  item: { id: string; name: string } | null;
   asset: {
     id: string;
     model: string | null;
@@ -42,6 +43,7 @@ type Props = {
   entries: WorkLogEntry[];
   assets: WorkLogAssetOption[];
   users: WorkLogUserOption[];
+  items: WorkLogItemOption[];
   currentUserId: string;
   userRole: string;
   jiraBaseUrl: string | null;
@@ -66,6 +68,7 @@ export function WorkLogList({
   entries: initialEntries,
   assets,
   users,
+  items,
   currentUserId,
   userRole,
   jiraBaseUrl,
@@ -93,6 +96,7 @@ export function WorkLogList({
       e.description.toLowerCase().includes(q) ||
       e.performedBy.name?.toLowerCase().includes(q) ||
       e.jiraIssueKey?.toLowerCase().includes(q) ||
+      e.item?.name.toLowerCase().includes(q) ||
       assetLabel(e.asset).toLowerCase().includes(q)
     );
   });
@@ -134,6 +138,7 @@ export function WorkLogList({
             locationId={locationId}
             assets={assets}
             users={users}
+            items={items}
             currentUserId={currentUserId}
           >
             <Button size="sm" className="h-[36px] gap-1.5 bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
@@ -185,6 +190,12 @@ export function WorkLogList({
                       <span className="text-[12px] text-[#64748b]">•</span>
                       <span className="text-[12px] text-[#64748b]">{formatDate(entry.performedAt)}</span>
 
+                      {entry.item && (
+                        <span className="inline-flex items-center text-[10px] font-semibold bg-[#fef3c7] text-[#92400e] px-1.5 py-0.5 rounded-[4px]">
+                          {entry.item.name}
+                        </span>
+                      )}
+
                       {entry.asset && (
                         <>
                           <span className="text-[12px] text-[#64748b]">•</span>
@@ -209,9 +220,11 @@ export function WorkLogList({
                     </div>
 
                     {/* Description */}
-                    <p className="text-[13px] text-[#334155] whitespace-pre-wrap break-words">
-                      {entry.description}
-                    </p>
+                    {entry.description && (
+                      <p className="text-[13px] text-[#334155] whitespace-pre-wrap break-words">
+                        {entry.description}
+                      </p>
+                    )}
                   </div>
 
                   {/* Actions */}
@@ -223,6 +236,7 @@ export function WorkLogList({
                         workLogId={entry.id}
                         initialData={{
                           assetId: entry.asset?.id ?? null,
+                          itemId: entry.item?.id ?? null,
                           performedById: entry.performedBy.id,
                           performedAt: entry.performedAt.split("T")[0],
                           description: entry.description,
@@ -230,6 +244,7 @@ export function WorkLogList({
                         }}
                         assets={assets}
                         users={users}
+                        items={items}
                         currentUserId={currentUserId}
                       >
                         <Button

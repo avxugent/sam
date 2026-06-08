@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { runReport } from "@/lib/report-engine";
 import { reportDefinitionSchema } from "@/lib/report-schema";
 import { ReportViewer } from "@/components/reports/ReportViewer";
+import { LocationReportViewer } from "@/components/reports/LocationReportViewer";
+import { isLocationReport } from "@/lib/report-types";
 import { BarChart2 } from "lucide-react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
@@ -51,14 +53,27 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <ReportViewer
-        reportId={report.id}
-        reportName={report.name}
-        columns={definition.columns}
-        result={result}
-        canEdit={canEdit}
-        grafanaUrl={grafanaUrl}
-      />
+      {isLocationReport(definition) ? (
+        result.source === "location" && (
+          <LocationReportViewer
+            reportId={report.id}
+            reportName={report.name}
+            result={result}
+            canEdit={canEdit}
+          />
+        )
+      ) : (
+        result.source === "asset" && (
+          <ReportViewer
+            reportId={report.id}
+            reportName={report.name}
+            columns={definition.columns}
+            result={result}
+            canEdit={canEdit}
+            grafanaUrl={grafanaUrl}
+          />
+        )
+      )}
     </div>
   );
 }

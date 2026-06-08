@@ -217,7 +217,7 @@ describe("GET /api/reports/[id]/run", () => {
   it("runs report and returns result", async () => {
     mockAuth.mockResolvedValue(viewerSession() as never);
     mockFindUnique.mockResolvedValue(SAMPLE_REPORT as never);
-    mockRunReport.mockResolvedValue({ rows: [], groups: [], total: 0 });
+    mockRunReport.mockResolvedValue({ source: "asset", rows: [], groups: [], total: 0 });
     const res = await runGet(makeReq("http://localhost/api/reports/r1/run", "GET"), { params: Promise.resolve({ id: "r1" }) });
     expect(res.status).toBe(200);
     const data = await res.json();

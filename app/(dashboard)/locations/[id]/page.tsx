@@ -79,6 +79,7 @@ export default async function LocationPage({
     where: { locationId: id },
     include: {
       performedBy: { select: { id: true, name: true, email: true } },
+      item: { select: { id: true, name: true } },
       asset: {
         select: {
           id: true,
@@ -95,6 +96,11 @@ export default async function LocationPage({
   const users = await prisma.user.findMany({
     select: { id: true, name: true, email: true },
     orderBy: { name: "asc" },
+  });
+
+  const workLogItems = await prisma.workLogItem.findMany({
+    orderBy: [{ order: "asc" }, { name: "asc" }],
+    select: { id: true, name: true, description: true },
   });
 
   return (
@@ -115,9 +121,11 @@ export default async function LocationPage({
         description: w.description,
         jiraIssueKey: w.jiraIssueKey,
         performedBy: w.performedBy,
+        item: w.item,
         asset: w.asset,
       }))}
       users={users.map((u) => ({ id: u.id, label: u.name + (u.email ? ` (${u.email})` : "") }))}
+      workLogItems={workLogItems}
       jiraEnabled={isJiraConfigured()}
       jiraBaseUrl={process.env.JIRA_BASE_URL ?? null}
     />

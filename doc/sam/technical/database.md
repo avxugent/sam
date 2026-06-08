@@ -245,10 +245,24 @@ Maintenance and work history entries for locations and assets.
 | `id` | string (cuid) | Primary key |
 | `locationId` | string? | FK to Location |
 | `assetId` | string? | FK to Asset |
+| `itemId` | string? | FK to WorkLogItem (`onDelete: SetNull`) — optional fixed item |
 | `performedById` | string | FK to User |
 | `performedAt` | DateTime | Date work was performed |
-| `description` | string | What was done |
+| `description` | string | What was done (empty string allowed when an item is set) |
 | `jiraIssueKey` | string? | Optional JIRA issue key (e.g., `AVT-123`) |
+
+---
+
+### WorkLogItem
+
+Admin-defined fixed work log items (e.g. *Review asset list*). Selecting one on a work log lets a location be tracked and reported on.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string (cuid) | Primary key |
+| `name` | string | Display name (`@unique`) |
+| `description` | string? | Optional description |
+| `order` | int | Sort order (default 0) |
 
 ---
 

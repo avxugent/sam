@@ -28,7 +28,7 @@ import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
 import { CoverImagePicker } from "@/components/locations/cover-image-picker";
 import { LocationMap } from "@/components/locations/location-map";
 import { WorkLogList, type WorkLogEntry } from "@/components/locations/work-log-list";
-import type { WorkLogAssetOption, WorkLogUserOption } from "@/components/locations/work-log-form-dialog";
+import type { WorkLogAssetOption, WorkLogUserOption, WorkLogItemOption } from "@/components/locations/work-log-form-dialog";
 import {
   ChevronRight,
   Pencil,
@@ -110,6 +110,7 @@ export function LocationDetailClient({
   macAddressUrlTemplate,
   workLogs = [],
   users = [],
+  workLogItems = [],
   jiraEnabled = false,
   jiraBaseUrl = null,
 }: {
@@ -125,6 +126,7 @@ export function LocationDetailClient({
   macAddressUrlTemplate?: string | null;
   workLogs?: WorkLogEntry[];
   users?: WorkLogUserOption[];
+  workLogItems?: WorkLogItemOption[];
   jiraEnabled?: boolean;
   jiraBaseUrl?: string | null;
 }) {
@@ -518,6 +520,7 @@ export function LocationDetailClient({
               typeId: a.type?.id ?? null,
             }))}
             users={users}
+            items={workLogItems}
             currentUserId={currentUserId ?? ""}
             userRole={userRole}
             jiraBaseUrl={jiraBaseUrl}

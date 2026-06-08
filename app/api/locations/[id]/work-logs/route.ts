@@ -16,6 +16,7 @@ export async function GET(
     where: { locationId: id },
     include: {
       performedBy: { select: { id: true, name: true, email: true } },
+      item: { select: { id: true, name: true } },
       asset: {
         select: {
           id: true,
@@ -59,13 +60,15 @@ export async function POST(
     data: {
       locationId,
       assetId: data.assetId || null,
+      itemId: data.itemId || null,
       performedById,
       performedAt,
-      description: data.description,
+      description: data.description ?? "",
       jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null,
     },
     include: {
       performedBy: { select: { id: true, name: true, email: true } },
+      item: { select: { id: true, name: true } },
       asset: {
         select: {
           id: true,
@@ -92,6 +95,7 @@ export async function POST(
     detail: {
       snapshot: {
         "Location": location.name,
+        ...(created.item ? { "Item": created.item.name } : {}),
         ...(assetName ? { "Asset": assetName } : {}),
         ...(created.jiraIssueKey ? { "JIRA issue": created.jiraIssueKey } : {}),
       },

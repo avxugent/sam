@@ -54,11 +54,28 @@ const columnKeySchema = z.enum([
   "lastChanged",
 ]);
 
-export const reportDefinitionSchema = z.object({
+const assetReportDefinitionSchema = z.object({
+  source: z.literal("asset").optional(),
   filters: z.array(reportFilterSchema).max(20),
   groupBy: groupBySchema,
   columns: z.array(columnKeySchema).min(1).max(10),
 });
+
+const locationReportDefinitionSchema = z.object({
+  source: z.literal("location"),
+  itemIds: z.array(z.string().min(1).max(64)).min(1).max(50),
+  status: z.enum(["all", "filled", "notFilled"]),
+  periodCount: z.number().int().positive().max(1000).optional(),
+  periodUnit: z.enum(["days", "months", "years"]).optional(),
+});
+
+// Location schema is tried first so a `source: "location"` definition matches
+// it; everything else (including legacy reports with no `source`) falls through
+// to the asset schema.
+export const reportDefinitionSchema = z.union([
+  locationReportDefinitionSchema,
+  assetReportDefinitionSchema,
+]);
 
 export const createReportSchema = z.object({
   name: z.string().min(1).max(255),

@@ -105,6 +105,33 @@ export async function resolveLocationPathsBatch(
   return result;
 }
 
+/**
+ * Like resolveLocationPathsBatch, but returns the ordered ancestor *names*
+ * (root → leaf) for each requested ID instead of a joined string. Lets callers
+ * group by tree level (e.g. campus = [0], building = [1]).
+ */
+export async function resolveAncestorNamesBatch(
+  locationIds: string[]
+): Promise<Map<string, string[]>> {
+  if (locationIds.length === 0) return new Map();
+
+  type Row = { id: string; name: string; parentId: string | null };
+  const allLocs = await prisma.$queryRaw<Row[]>`SELECT id, name, parentId FROM locations`;
+  const byId = new Map<string, Row>(allLocs.map((l) => [l.id, l]));
+
+  const result = new Map<string, string[]>();
+  for (const id of locationIds) {
+    const names: string[] = [];
+    let cur: Row | undefined = byId.get(id);
+    while (cur) {
+      names.unshift(cur.name);
+      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+    }
+    if (names.length > 0) result.set(id, names);
+  }
+  return result;
+}
+
 // CUID format used by Prisma @default(cuid())
 const CUID_REGEX = /^[0-9a-z]{25}$/;
 

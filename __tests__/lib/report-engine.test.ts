@@ -13,7 +13,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { translateFilters, runReport } from "@/lib/report-engine";
+import { translateFilters, runAssetReport } from "@/lib/report-engine";
 import { prisma } from "@/lib/prisma";
 
 const mockFindMany = vi.mocked(prisma.asset.findMany);
@@ -156,7 +156,7 @@ describe("runReport()", () => {
     ]);
     mockQueryRaw.mockResolvedValue([{ id: "loc1", name: "Room 101", parentId: null }] as never);
 
-    const result = await runReport({
+    const result = await runAssetReport({
       filters: [],
       groupBy: "none",
       columns: ["model", "type", "location"],
@@ -192,7 +192,7 @@ describe("runReport()", () => {
       { id: "room1", name: "Room A", parentId: "building1" },
     ] as never);
 
-    const result = await runReport({ filters: [], groupBy: "none", columns: ["location"] });
+    const result = await runAssetReport({ filters: [], groupBy: "none", columns: ["location"] });
     expect(result.rows[0].location).toBe("Campus 14 - Building 10 - Room A");
   });
 
@@ -204,7 +204,7 @@ describe("runReport()", () => {
         updatedAt: null, type: null, manufacturer: null, location: null,
       } as never,
     ]);
-    const result = await runReport({ filters: [], groupBy: "none", columns: ["model", "location"] });
+    const result = await runAssetReport({ filters: [], groupBy: "none", columns: ["model", "location"] });
     expect(result.total).toBe(1);
     const r = result.rows[0];
     expect(r.model).toBeNull();
@@ -229,7 +229,7 @@ describe("runReport()", () => {
     ]);
     // path map resolves a DIFFERENT id, so lookup misses → location.name fallback
     mockQueryRaw.mockResolvedValue([{ id: "other", name: "x", parentId: null }] as never);
-    const result = await runReport({ filters: [], groupBy: "none", columns: ["location"] });
+    const result = await runAssetReport({ filters: [], groupBy: "none", columns: ["location"] });
     expect(result.rows[0].location).toBe("Fallback Room");
     expect(result.rows[0].installationDate).toBe("2021-06-01");
     expect(result.rows[0].invoiceDate).toBe("2021-07-01");
@@ -243,7 +243,7 @@ describe("runReport()", () => {
     ]);
     mockTypeFindMany.mockResolvedValue([{ id: "t1", name: "Projector" }] as never);
 
-    const result = await runReport({
+    const result = await runAssetReport({
       filters: [],
       groupBy: "type",
       columns: ["model"],
@@ -260,7 +260,7 @@ describe("runReport()", () => {
     ]);
     mockMfFindMany.mockResolvedValue([{ id: "m1", name: "Epson" }] as never);
 
-    const result = await runReport({ filters: [], groupBy: "manufacturer", columns: ["model"] });
+    const result = await runAssetReport({ filters: [], groupBy: "manufacturer", columns: ["model"] });
     expect(result.groups).toContainEqual({ label: "Epson", count: 5 });
   });
 
@@ -271,7 +271,7 @@ describe("runReport()", () => {
     ]);
     mockQueryRaw.mockResolvedValue([{ id: "l1", name: "Lab A", parentId: null }] as never);
 
-    const result = await runReport({ filters: [], groupBy: "location", columns: ["model"] });
+    const result = await runAssetReport({ filters: [], groupBy: "location", columns: ["model"] });
     expect(result.groups).toContainEqual({ label: "Lab A", count: 2 });
   });
 
@@ -283,7 +283,7 @@ describe("runReport()", () => {
     ]);
     mockQueryRaw.mockResolvedValue([{ id: "l1", name: "X", parentId: null }] as never);
 
-    const result = await runReport({ filters: [], groupBy: "installationYear", columns: ["model"] });
+    const result = await runAssetReport({ filters: [], groupBy: "installationYear", columns: ["model"] });
     expect(result.groups).toContainEqual({ label: "2020", count: 2 });
     expect(result.groups).toContainEqual({ label: "2022", count: 1 });
   });

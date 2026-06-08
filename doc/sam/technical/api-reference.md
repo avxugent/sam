@@ -154,6 +154,15 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | `PUT` | `/api/work-logs/[id]` | EDITOR | Update work log |
 | `DELETE` | `/api/work-logs/[id]` | EDITOR | Delete work log |
 
+### Work log items (fixed)
+
+| Method | Path | Min role | Description |
+|---|---|---|---|
+| `GET` | `/api/work-log-items` | VIEWER | List fixed work log items |
+| `POST` | `/api/work-log-items` | ADMIN | Create a fixed work log item (409 on duplicate name) |
+| `PUT` | `/api/work-log-items/[id]` | ADMIN | Update a fixed work log item |
+| `DELETE` | `/api/work-log-items/[id]` | ADMIN | Delete a fixed work log item (clears it from referencing work logs) |
+
 ---
 
 ## Import / Export

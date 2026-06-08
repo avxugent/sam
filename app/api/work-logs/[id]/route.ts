@@ -16,6 +16,7 @@ export async function GET(
     where: { id },
     include: {
       performedBy: { select: { id: true, name: true, email: true } },
+      item: { select: { id: true, name: true } },
       asset: {
         select: {
           id: true,
@@ -61,13 +62,15 @@ export async function PUT(
     where: { id },
     data: {
       ...(data.assetId !== undefined ? { assetId: data.assetId || null } : {}),
+      ...(data.itemId !== undefined ? { itemId: data.itemId || null } : {}),
       ...(data.performedById !== undefined ? { performedById: data.performedById } : {}),
       ...(data.performedAt !== undefined ? { performedAt: new Date(data.performedAt) } : {}),
-      ...(data.description !== undefined ? { description: data.description } : {}),
+      ...(data.description !== undefined ? { description: data.description ?? "" } : {}),
       ...(data.jiraIssueKey !== undefined ? { jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null } : {}),
     },
     include: {
       performedBy: { select: { id: true, name: true, email: true } },
+      item: { select: { id: true, name: true } },
       asset: {
         select: {
           id: true,

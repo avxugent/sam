@@ -247,6 +247,7 @@ model WorkLog {
   id            String   @id @default(cuid())
   locationId    String
   assetId       String?            // optional — null for location-wide work
+  itemId        String?            // optional — fixed work-log item (e.g. "Review asset list")
   performedById String             // user who performed the work
   performedAt   DateTime @db.Date  // when the work was done
   description   String   @db.Text
@@ -254,15 +255,32 @@ model WorkLog {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  location    Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  asset       Asset?   @relation(fields: [assetId], references: [id], onDelete: SetNull)
-  performedBy User     @relation("WorkLogPerformer", fields: [performedById], references: [id])
+  location    Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  asset       Asset?       @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  item        WorkLogItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  performedBy User         @relation("WorkLogPerformer", fields: [performedById], references: [id])
 
   @@index([locationId])
   @@index([assetId])
+  @@index([itemId])
   @@index([performedById])
   @@index([performedAt])
   @@map("work_logs")
+}
+
+// Fixed, admin-defined work-log items (e.g. "Review asset list").
+// Selecting one on a work-log entry lets a location be tracked/reported
+// as having that recurring task done.
+model WorkLogItem {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  workLogs WorkLog[]
+
+  @@map("work_log_items")
 }
 
 model MaintenancePreset {

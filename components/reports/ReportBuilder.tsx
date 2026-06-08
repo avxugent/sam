@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Trash2, Save } from "lucide-react";
-import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey, ReportDefinition } from "@/lib/report-types";
+import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey, ReportDefinition, ReportSource, LocationReportStatus, LocationReportPeriodUnit } from "@/lib/report-types";
+import { isLocationReport } from "@/lib/report-types";
 
 
 const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
@@ -43,6 +44,7 @@ type Props = {
   assetTypes: AssetOption[];
   manufacturers: AssetOption[];
   locations: AssetOption[];
+  workLogItems: AssetOption[];
 };
 
 const DEFAULT_COLUMNS: ColumnKey[] = ["type", "manufacturer", "model", "serialNumber", "hostname", "location", "installationDate"];
@@ -55,6 +57,7 @@ export function ReportBuilder({
   assetTypes,
   manufacturers,
   locations,
+  workLogItems,
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
@@ -110,12 +113,41 @@ export function ReportBuilder({
     { value: "lastChanged" as ColumnKey, label: tField("lastModified") },
   ];
 
+  const initLocation = initialDefinition && isLocationReport(initialDefinition) ? initialDefinition : null;
+  const initAsset = initialDefinition && !isLocationReport(initialDefinition) ? initialDefinition : null;
+
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
-  const [filters, setFilters] = useState<ReportFilter[]>(initialDefinition?.filters ?? []);
-  const [groupBy, setGroupBy] = useState<GroupByField>(initialDefinition?.groupBy ?? "none");
-  const [columns, setColumns] = useState<ColumnKey[]>(initialDefinition?.columns ?? DEFAULT_COLUMNS);
+  const [source, setSource] = useState<ReportSource>(initLocation ? "location" : "asset");
+  const [filters, setFilters] = useState<ReportFilter[]>(initAsset?.filters ?? []);
+  const [groupBy, setGroupBy] = useState<GroupByField>(initAsset?.groupBy ?? "none");
+  const [columns, setColumns] = useState<ColumnKey[]>(initAsset?.columns ?? DEFAULT_COLUMNS);
+  const [itemIds, setItemIds] = useState<string[]>(initLocation?.itemIds ?? []);
+  const [locationStatus, setLocationStatus] = useState<LocationReportStatus>(initLocation?.status ?? "all");
+  const [periodCount, setPeriodCount] = useState<string>(initLocation?.periodCount ? String(initLocation.periodCount) : "");
+  const [periodUnit, setPeriodUnit] = useState<LocationReportPeriodUnit>(initLocation?.periodUnit ?? "years");
   const [saving, setSaving] = useState(false);
+
+  function toggleItem(id: string) {
+    setItemIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+  }
+
+  const sourceOptions = [
+    { value: "asset" as ReportSource, label: t("sourceAsset") },
+    { value: "location" as ReportSource, label: t("sourceLocation") },
+  ];
+
+  const statusOptions = [
+    { value: "all" as LocationReportStatus, label: t("statusAll") },
+    { value: "filled" as LocationReportStatus, label: t("statusFilled") },
+    { value: "notFilled" as LocationReportStatus, label: t("statusNotFilled") },
+  ];
+
+  const periodUnitOptions = [
+    { value: "days" as LocationReportPeriodUnit, label: t("unitDays") },
+    { value: "months" as LocationReportPeriodUnit, label: t("unitMonths") },
+    { value: "years" as LocationReportPeriodUnit, label: t("unitYears") },
+  ];
 
   function addFilter() {
     setFilters((prev) => [...prev, { field: "typeId", op: "eq", value: "" }]);
@@ -168,12 +200,29 @@ export function ReportBuilder({
       toast({ title: t("nameRequired"), variant: "destructive" });
       return;
     }
-    if (columns.length === 0) {
-      toast({ title: t("selectColumn"), variant: "destructive" });
-      return;
+
+    let definition: ReportDefinition;
+    if (source === "location") {
+      if (itemIds.length === 0) {
+        toast({ title: t("selectItem"), variant: "destructive" });
+        return;
+      }
+      const count = parseInt(periodCount, 10);
+      const hasPeriod = Number.isFinite(count) && count > 0;
+      definition = {
+        source: "location",
+        itemIds,
+        status: locationStatus,
+        ...(hasPeriod ? { periodCount: count, periodUnit } : {}),
+      };
+    } else {
+      if (columns.length === 0) {
+        toast({ title: t("selectColumn"), variant: "destructive" });
+        return;
+      }
+      definition = { source: "asset", filters, groupBy, columns };
     }
 
-    const definition: ReportDefinition = { filters, groupBy, columns };
     setSaving(true);
     try {
       const url = reportId ? `/api/reports/${reportId}` : "/api/reports";
@@ -228,7 +277,101 @@ export function ReportBuilder({
         </div>
       </div>
 
+      {/* Report type */}
+      <div className="space-y-3 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
+        <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("reportType")}</h2>
+        <Select value={source} onValueChange={(v) => setSource(v as ReportSource)}>
+          <SelectTrigger className="h-[36px] text-[13px] w-[220px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {sourceOptions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[12px] text-[#94a3b8]">
+          {source === "location" ? t("sourceLocationHelp") : t("sourceAssetHelp")}
+        </p>
+      </div>
+
+      {/* Location report config */}
+      {source === "location" && (
+        <div className="space-y-4 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
+          <div className="space-y-2">
+            <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("workLogItems")}</h2>
+            {workLogItems.length === 0 ? (
+              <p className="text-[12.5px] text-[#94a3b8]">{t("noWorkLogItems")}</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {workLogItems.map((it) => {
+                  const active = itemIds.includes(it.id);
+                  return (
+                    <button
+                      key={it.id}
+                      type="button"
+                      onClick={() => toggleItem(it.id)}
+                      className={`px-3 py-1 rounded-full text-[12px] font-medium border transition-colors ${
+                        active
+                          ? "bg-[#1e64c8] text-white border-[#1e64c8]"
+                          : "bg-white text-[#64748b] border-[#e2e8f0] hover:border-[#1e64c8] hover:text-[#1e64c8]"
+                      }`}
+                    >
+                      {it.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {itemIds.length === 0 && workLogItems.length > 0 && (
+              <p className="text-[12px] text-destructive">{t("selectItemError")}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("statusFilter")}</h2>
+            <Select value={locationStatus} onValueChange={(v) => setLocationStatus(v as LocationReportStatus)}>
+              <SelectTrigger className="h-[36px] text-[13px] w-[220px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("timeWindow")}</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-[12.5px] text-[#64748b]">{t("withinLast")}</span>
+              <Input
+                type="number"
+                min={1}
+                value={periodCount}
+                onChange={(e) => setPeriodCount(e.target.value)}
+                placeholder={t("anyTimePlaceholder")}
+                className="h-[34px] text-[12.5px] w-[90px]"
+                aria-label={t("timeWindow")}
+              />
+              <Select value={periodUnit} onValueChange={(v) => setPeriodUnit(v as LocationReportPeriodUnit)}>
+                <SelectTrigger className="h-[34px] text-[12.5px] w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {periodUnitOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-[12px] text-[#94a3b8]">{t("timeWindowHelp")}</p>
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
+      {source === "asset" && (
+      <>
       <div className="space-y-3 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("filters")}</h2>
@@ -351,6 +494,8 @@ export function ReportBuilder({
           <p className="text-[12px] text-destructive">{t("selectColumnError")}</p>
         )}
       </div>
+      </>
+      )}
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} className="gap-2 h-[38px] text-[13px]">

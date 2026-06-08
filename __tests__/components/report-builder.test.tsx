@@ -17,7 +17,7 @@ global.fetch = mockFetch as never;
 
 import { ReportBuilder } from "@/components/reports/ReportBuilder";
 
-const OPTS = { assetTypes: [{ id: "t1", name: "Laptop" }], manufacturers: [{ id: "m1", name: "Dell" }], locations: [{ id: "l1", name: "Room 1" }] };
+const OPTS = { assetTypes: [{ id: "t1", name: "Laptop" }], manufacturers: [{ id: "m1", name: "Dell" }], locations: [{ id: "l1", name: "Room 1" }], workLogItems: [{ id: "wi1", name: "Review asset list" }] };
 
 function renderBuilder(props = {}) {
   return render(<ReportBuilder {...OPTS} {...props} />);
@@ -103,6 +103,47 @@ describe("<ReportBuilder />", () => {
     await waitFor(() =>
       expect(mockFetch).toHaveBeenCalledWith("/api/reports/r1", expect.objectContaining({ method: "PUT" }))
     );
+  });
+
+  it("renders the location report config from an initial location definition", () => {
+    renderBuilder({ initialDefinition: { source: "location", itemIds: ["wi1"], status: "all" } });
+    expect(screen.getByText("workLogItems")).toBeInTheDocument();
+    expect(screen.getByText("statusFilter")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Review asset list" })).toBeInTheDocument();
+  });
+
+  it("blocks saving a location report with no items selected", async () => {
+    const user = userEvent.setup();
+    renderBuilder({ initialName: "Coverage", initialDefinition: { source: "location", itemIds: [], status: "all" } });
+    await user.click(screen.getByRole("button", { name: "saveReport" }));
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "selectItem", variant: "destructive" }));
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("POSTs a location report with the selected items", async () => {
+    const user = userEvent.setup();
+    renderBuilder({ initialName: "Coverage", initialDefinition: { source: "location", itemIds: [], status: "all" } });
+    await user.click(screen.getByRole("button", { name: "Review asset list" })); // select item chip
+    await user.click(screen.getByRole("button", { name: "saveReport" }));
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith("/api/reports", expect.objectContaining({ method: "POST" }))
+    );
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.definition.source).toBe("location");
+    expect(body.definition.itemIds).toEqual(["wi1"]);
+    expect(body.definition.status).toBe("all");
+  });
+
+  it("includes the time window in a location report definition", async () => {
+    const user = userEvent.setup();
+    renderBuilder({ initialName: "Coverage", initialDefinition: { source: "location", itemIds: ["wi1"], status: "notFilled" } });
+    await user.type(screen.getByLabelText("timeWindow"), "1");
+    await user.click(screen.getByRole("button", { name: "saveReport" }));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.definition.periodCount).toBe(1);
+    expect(body.definition.periodUnit).toBe("years");
+    expect(body.definition.status).toBe("notFilled");
   });
 
   it("shows an error toast when saving fails", async () => {

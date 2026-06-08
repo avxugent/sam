@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.9] - 2026-06-08
+
+### Added
+- **Fixed work log items.** Admins can define a list of reusable work log items (e.g. *Review asset list*) under **Admin → Settings → Work log items**. When adding a work log entry on a location or asset, technicians can tag it with one of these items; the description then becomes optional (the item alone records the entry). Managed via `GET/POST /api/work-log-items` and `PUT/DELETE /api/work-log-items/[id]` (admin only).
+- **Location reports.** The report builder gains a report-type selector. *Location* reports produce a coverage matrix over the fixed work log items: every leaf location (no sub-locations) is a row and each selected item is a column showing whether it is filled in (with the date of the most recent entry) or not. Rows are grouped by campus then building, with rooms alphabetical. A **Show** filter limits rows to all / only filled / only not filled, and an optional **time window** (e.g. *within the last 1 year*) makes the check periodic — combine it with *Only not filled in* to list locations whose review is overdue. Results export to CSV.
+
+---
+
 ## [1.0.8] - 2026-06-05
 
 ### Changed

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { runReport } from "@/lib/report-engine";
 import { reportDefinitionSchema } from "@/lib/report-schema";
+import { isLocationReport } from "@/lib/report-types";
 import type { ReportDefinition, ColumnKey } from "@/lib/report-types";
 
 const COLUMN_LABELS: Record<ColumnKey, string> = {
@@ -41,14 +42,35 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Report definition is invalid" }, { status: 422 });
   }
 
-  const { rows } = await runReport(definition);
-  const cols = definition.columns;
+  const result = await runReport(definition);
 
-  const header = cols.map((c) => COLUMN_LABELS[c]).join(",");
-  const csvRows = rows.map((row) =>
-    cols.map((c) => escapeCell(row[c] as string | null)).join(",")
-  );
-  const csv = [header, ...csvRows].join("\n");
+  let csv: string;
+  if (isLocationReport(definition) && result.source === "location") {
+    const header = ["Campus", "Building", "Room", "FI number", ...result.itemColumns.map((c) => c.name)].join(",");
+    const csvRows = result.rows.map((row) =>
+      [
+        escapeCell(row.campus),
+        escapeCell(row.building),
+        escapeCell(row.name),
+        escapeCell(row.fiNumber),
+        ...result.itemColumns.map((c) => {
+          const s = row.items[c.id];
+          if (s?.filled) return escapeCell(`Filled${s.date ? ` (${s.date})` : ""}`);
+          return escapeCell(s?.date ? `Overdue (${s.date})` : "Not filled");
+        }),
+      ].join(",")
+    );
+    csv = [header, ...csvRows].join("\n");
+  } else if (!isLocationReport(definition) && result.source === "asset") {
+    const cols = definition.columns;
+    const header = cols.map((c) => COLUMN_LABELS[c]).join(",");
+    const csvRows = result.rows.map((row) =>
+      cols.map((c) => escapeCell(row[c] as string | null)).join(",")
+    );
+    csv = [header, ...csvRows].join("\n");
+  } else {
+    csv = "";
+  }
 
   return new NextResponse(csv, {
     headers: {

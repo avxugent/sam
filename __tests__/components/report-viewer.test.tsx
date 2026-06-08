@@ -10,13 +10,14 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch as never;
 
 import { ReportViewer } from "@/components/reports/ReportViewer";
-import type { ReportResult, ColumnKey } from "@/lib/report-types";
+import type { AssetReportResult, ColumnKey } from "@/lib/report-types";
 
 function row(over: Record<string, unknown> = {}) {
   return { id: "a1", model: "XPS", serialNumber: "SN1", hostname: "h1", type: "Laptop", manufacturer: "Dell", location: "Room 1", locationId: "l1", installationDate: null, invoiceDate: null, invoiceNumber: null, notes: null, lastChanged: null, ...over };
 }
 const COLUMNS: ColumnKey[] = ["model", "type", "serialNumber", "location"];
-const RESULT: ReportResult = {
+const RESULT: AssetReportResult = {
+  source: "asset",
   rows: [row(), row({ id: "a2", model: "U27", type: "Monitor", serialNumber: "SN2", location: "Room 2", locationId: "l2" })],
   groups: [{ label: "Laptop", count: 1 }, { label: "Monitor", count: 1 }],
   total: 2,

@@ -72,7 +72,7 @@ describe("GET /api/reports/[id]/export", () => {
   it("runs the report and streams CSV with a sanitized filename", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
     vi.mocked(prisma.report.findUnique).mockResolvedValue({ id: "r1", name: "Q1 / Report!", definition: VALID_DEF } as never);
-    vi.mocked(runReport).mockResolvedValue({ rows: [{ model: "XPS" }], groups: [], total: 1 } as never);
+    vi.mocked(runReport).mockResolvedValue({ source: "asset", rows: [{ model: "XPS" }], groups: [], total: 1 } as never);
     const res = await exportReport(req(), { params });
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="Q1___Report_.csv"');

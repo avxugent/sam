@@ -13,14 +13,15 @@ vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToas
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;
 
-import { WorkLogFormDialog, type WorkLogAssetOption, type WorkLogUserOption } from "@/components/locations/work-log-form-dialog";
+import { WorkLogFormDialog, type WorkLogAssetOption, type WorkLogUserOption, type WorkLogItemOption } from "@/components/locations/work-log-form-dialog";
 
 const ASSETS: WorkLogAssetOption[] = [{ id: "a1", label: "XPS", typeId: "t1" }];
 const USERS: WorkLogUserOption[] = [{ id: "u1", label: "Alice" }];
+const ITEMS: WorkLogItemOption[] = [{ id: "wi1", name: "Review asset list", description: null }];
 
 function renderDialog(mode: "create" | "edit" = "create", extra = {}) {
   return render(
-    <WorkLogFormDialog mode={mode} locationId="l1" assets={ASSETS} users={USERS} currentUserId="u1" {...extra}>
+    <WorkLogFormDialog mode={mode} locationId="l1" assets={ASSETS} users={USERS} items={ITEMS} currentUserId="u1" {...extra}>
       <button>Add entry</button>
     </WorkLogFormDialog>
   );
@@ -117,6 +118,7 @@ describe("<WorkLogFormDialog /> edit", () => {
         initialData={{ assetId: null, performedById: "u1", performedAt: "2024-01-02", description: "old text", jiraIssueKey: null }}
         assets={ASSETS}
         users={USERS}
+        items={ITEMS}
         currentUserId="u1"
       >
         <button>Edit</button>

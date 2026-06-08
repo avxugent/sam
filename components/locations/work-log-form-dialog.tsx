@@ -42,6 +42,12 @@ export type WorkLogUserOption = {
   label: string;
 };
 
+export type WorkLogItemOption = {
+  id: string;
+  name: string;
+  description: string | null;
+};
+
 type Preset = { id: string; name: string; description: string | null };
 
 type Props = {
@@ -50,6 +56,7 @@ type Props = {
   workLogId?: string;
   initialData?: {
     assetId?: string | null;
+    itemId?: string | null;
     performedById?: string;
     performedAt?: string;
     description?: string;
@@ -57,12 +64,14 @@ type Props = {
   };
   assets: WorkLogAssetOption[];
   users: WorkLogUserOption[];
+  items: WorkLogItemOption[];
   currentUserId: string;
   children: React.ReactNode;
   onSuccess?: () => void;
 };
 
 const NO_ASSET = "__none__";
+const NO_ITEM = "__none__";
 
 function todayIsoDate(): string {
   return new Date().toISOString().split("T")[0];
@@ -75,6 +84,7 @@ export function WorkLogFormDialog({
   initialData,
   assets,
   users,
+  items,
   currentUserId,
   children,
   onSuccess,
@@ -86,10 +96,15 @@ export function WorkLogFormDialog({
   const JIRA_KEY_REGEX = /^[A-Z][A-Z0-9_]+-\d+$/;
   const validationSchema = useMemo(() => z.object({
     assetId: z.string().min(1).optional().nullable(),
+    itemId: z.string().min(1).optional().nullable(),
     performedById: z.string().min(1).optional(),
     performedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t("errDateFormat")).optional(),
-    description: z.string().min(1, t("errDescriptionRequired")).max(5000),
+    description: z.string().max(5000).optional().nullable(),
     jiraIssueKey: z.string().regex(JIRA_KEY_REGEX, t("errJiraKeyFormat")).optional().nullable().or(z.literal("")),
+  }).superRefine((data, ctx) => {
+    if (!data.itemId && !data.description?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["description"], message: t("errDescriptionRequired") });
+    }
   }), [t]);
 
   const router = useRouter();
@@ -109,6 +124,7 @@ export function WorkLogFormDialog({
     resolver: zodResolver(validationSchema),
     defaultValues: {
       assetId: initialData?.assetId ?? null,
+      itemId: initialData?.itemId ?? null,
       performedById: initialData?.performedById ?? currentUserId,
       performedAt: initialData?.performedAt ?? todayIsoDate(),
       description: initialData?.description ?? "",
@@ -118,6 +134,7 @@ export function WorkLogFormDialog({
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const assetIdValue = watch("assetId");
+  const itemIdValue = watch("itemId");
   const descriptionValue = watch("description");
 
   // Fetch presets when an asset (with a type) is selected
@@ -155,6 +172,10 @@ export function WorkLogFormDialog({
     const payload = {
       ...data,
       assetId: data.assetId === NO_ASSET ? null : data.assetId || null,
+      itemId: data.itemId === NO_ITEM ? null : data.itemId || null,
+      // Send null (not "") so an item-only entry passes the API's non-empty
+      // description rule.
+      description: data.description?.trim() ? data.description : null,
       jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null,
     };
 
@@ -186,6 +207,7 @@ export function WorkLogFormDialog({
     if (v) {
       reset({
         assetId: initialData?.assetId ?? null,
+        itemId: initialData?.itemId ?? null,
         performedById: initialData?.performedById ?? currentUserId,
         performedAt: initialData?.performedAt ?? todayIsoDate(),
         description: initialData?.description ?? "",
@@ -220,6 +242,27 @@ export function WorkLogFormDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Work log item (optional) */}
+          {items.length > 0 && (
+            <div className="space-y-1.5">
+              <Label htmlFor="wl-item">{t("item")} <span className="text-xs text-muted-foreground">({tCommon("optional")})</span></Label>
+              <Select
+                value={itemIdValue ?? NO_ITEM}
+                onValueChange={(v) => setValue("itemId", v === NO_ITEM ? null : v, { shouldValidate: true })}
+              >
+                <SelectTrigger id="wl-item">
+                  <SelectValue placeholder={t("noItem")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_ITEM}>— {t("noItem")} —</SelectItem>
+                  {items.map((it) => (
+                    <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Date + performed-by */}
           <div className="grid grid-cols-2 gap-3">
@@ -291,7 +334,12 @@ export function WorkLogFormDialog({
           {/* Description */}
           <div className="space-y-1.5">
             <Label htmlFor="wl-desc">
-              {tField("description")} <span aria-hidden="true" className="text-destructive">*</span>
+              {tField("description")}{" "}
+              {itemIdValue ? (
+                <span className="text-xs text-muted-foreground">({tCommon("optional")})</span>
+              ) : (
+                <span aria-hidden="true" className="text-destructive">*</span>
+              )}
             </Label>
             <Textarea
               id="wl-desc"

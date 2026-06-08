@@ -84,7 +84,11 @@ Download a full CSV export of all assets. The export includes all fields, MAC ad
 
 **Administration → Settings**
 
-Application-wide configuration managed through the UI. Changes take effect immediately without a server restart.
+Application-wide configuration managed through the UI. Changes take effect immediately without a server restart. This includes:
+
+- **General** — hostname / MAC address URL templates.
+- **Branding** — site name, logo, favicon, background.
+- **Work log items** — define fixed work log items (e.g. *Review asset list*) that technicians can select on a location's work log. These power location coverage reports. See [Work Logs](work-logs.md#fixed-work-log-items).
 
 ---
 

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Download, Pencil, Search, ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
-import type { ReportResult, ColumnKey } from "@/lib/report-types";
+import type { AssetReportResult, ColumnKey } from "@/lib/report-types";
 
 
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
@@ -21,7 +21,7 @@ type Props = {
   reportId: string;
   reportName: string;
   columns: ColumnKey[];
-  result: ReportResult;
+  result: AssetReportResult;
   canEdit: boolean;
   grafanaUrl?: string | null;
 };

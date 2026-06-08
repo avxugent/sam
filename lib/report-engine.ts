@@ -1,13 +1,19 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { resolveLocationPathsBatch } from "@/lib/location-path";
+import { resolveLocationPathsBatch, resolveAncestorNamesBatch } from "@/lib/location-path";
 import type {
   ReportDefinition,
+  AssetReportDefinition,
+  LocationReportDefinition,
   ReportFilter,
   ReportRow,
   GroupCount,
   ReportResult,
+  AssetReportResult,
+  LocationReportResult,
+  LocationReportRow,
 } from "@/lib/report-types";
+import { isLocationReport } from "@/lib/report-types";
 
 function yearsAgo(n: number): Date {
   return new Date(Date.now() - n * 365.25 * 24 * 60 * 60 * 1000);
@@ -15,6 +21,14 @@ function yearsAgo(n: number): Date {
 
 function daysAgo(n: number): Date {
   return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+}
+
+function periodCutoff(count: number, unit: "days" | "months" | "years"): Date {
+  const d = new Date();
+  if (unit === "days") d.setDate(d.getDate() - count);
+  else if (unit === "months") d.setMonth(d.getMonth() - count);
+  else d.setFullYear(d.getFullYear() - count);
+  return d;
 }
 
 export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInput {
@@ -79,6 +93,13 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
 }
 
 export async function runReport(definition: ReportDefinition): Promise<ReportResult> {
+  if (isLocationReport(definition)) {
+    return runLocationReport(definition);
+  }
+  return runAssetReport(definition);
+}
+
+export async function runAssetReport(definition: AssetReportDefinition): Promise<AssetReportResult> {
   const where = translateFilters(definition.filters);
 
   const assets = await prisma.asset.findMany({
@@ -148,5 +169,129 @@ export async function runReport(definition: ReportDefinition): Promise<ReportRes
 
   groups.sort((a, b) => b.count - a.count);
 
-  return { rows, groups, total: rows.length };
+  return { source: "asset", rows, groups, total: rows.length };
+}
+
+/**
+ * Builds a per-location coverage matrix for the selected fixed work-log items.
+ * Rows are leaf locations (locations with no children). A location "has" an
+ * item filled in when at least one work-log entry references that item.
+ */
+export async function runLocationReport(
+  definition: LocationReportDefinition
+): Promise<LocationReportResult> {
+  const itemIds = [...new Set(definition.itemIds)];
+
+  // Column headers, in the order the user selected them.
+  const items = await prisma.workLogItem.findMany({
+    where: { id: { in: itemIds } },
+    select: { id: true, name: true },
+  });
+  const itemNameById = new Map(items.map((i) => [i.id, i.name]));
+  const itemColumns = itemIds
+    .filter((id) => itemNameById.has(id))
+    .map((id) => ({ id, name: itemNameById.get(id)! }));
+
+  // Leaf locations only.
+  const leaves = await prisma.location.findMany({
+    where: { children: { none: {} } },
+    select: { id: true, name: true, fiNumber: true },
+  });
+  const leafIds = leaves.map((l) => l.id);
+
+  // Resolve the full ancestor chain (root → leaf) for every leaf in one query,
+  // so we can derive campus / building grouping labels and the path string.
+  const ancestorsById = await resolveAncestorNamesBatch(leafIds);
+
+  // Cutoff for the optional time window. "Filled" means the latest entry is on
+  // or after this date; when no window is set, any entry counts.
+  const cutoff = definition.periodCount && definition.periodUnit
+    ? periodCutoff(definition.periodCount, definition.periodUnit)
+    : null;
+
+  // Latest work-log per (location, item). Ordered newest-first so the first
+  // entry we see for each pair is the most recent.
+  const logs = itemColumns.length === 0 || leafIds.length === 0
+    ? []
+    : await prisma.workLog.findMany({
+        where: { itemId: { in: itemColumns.map((c) => c.id) }, locationId: { in: leafIds } },
+        select: {
+          locationId: true,
+          itemId: true,
+          performedAt: true,
+          performedBy: { select: { name: true } },
+        },
+        orderBy: { performedAt: "desc" },
+      });
+
+  // locationId -> itemId -> latest entry
+  const latest = new Map<string, Map<string, { performedAt: Date; performedBy: string | null }>>();
+  for (const log of logs) {
+    if (!log.itemId) continue;
+    let perItem = latest.get(log.locationId);
+    if (!perItem) {
+      perItem = new Map();
+      latest.set(log.locationId, perItem);
+    }
+    if (!perItem.has(log.itemId)) {
+      perItem.set(log.itemId, {
+        performedAt: log.performedAt,
+        performedBy: log.performedBy?.name ?? null,
+      });
+    }
+  }
+
+  const allRows: LocationReportRow[] = leaves.map((loc) => {
+    const perItem = latest.get(loc.id);
+    const ancestors = ancestorsById.get(loc.id) ?? [loc.name];
+    const itemsStatus: LocationReportRow["items"] = {};
+    for (const col of itemColumns) {
+      const hit = perItem?.get(col.id);
+      // Within window (or ever, when no window) — but always surface the last date.
+      const filled = !!hit && (!cutoff || hit.performedAt >= cutoff);
+      itemsStatus[col.id] = {
+        filled,
+        date: hit ? hit.performedAt.toISOString().split("T")[0] : null,
+        performedBy: hit?.performedBy ?? null,
+      };
+    }
+    return {
+      id: loc.id,
+      locationId: loc.id,
+      name: loc.name,
+      path: ancestors.join(" - "),
+      fiNumber: loc.fiNumber,
+      campus: ancestors[0] ?? null,
+      building: ancestors[1] ?? null,
+      items: itemsStatus,
+    };
+  });
+
+  // Group by campus, then building, then room name alphabetically.
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+  allRows.sort((a, b) =>
+    collator.compare(a.campus ?? "", b.campus ?? "") ||
+    collator.compare(a.building ?? "", b.building ?? "") ||
+    collator.compare(a.name, b.name)
+  );
+
+  const isFullyFilled = (row: LocationReportRow) =>
+    itemColumns.length > 0 && itemColumns.every((c) => row.items[c.id]?.filled);
+
+  const rows = allRows.filter((row) => {
+    if (definition.status === "filled") return isFullyFilled(row);
+    if (definition.status === "notFilled") return !isFullyFilled(row);
+    return true;
+  });
+
+  const filledCount = allRows.filter(isFullyFilled).length;
+
+  return {
+    source: "location",
+    itemColumns,
+    rows,
+    total: rows.length,
+    filledCount,
+    notFilledCount: allRows.length - filledCount,
+  };
 }

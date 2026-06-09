@@ -40,14 +40,14 @@ export async function resolveLocationPath(
 }
 
 /**
- * Parses a FI number string (CC.BB.FFF.RRR) into its four segments.
- * Returns null if the format does not match.
+ * Parses a FI number string (CC.BB.FFF.RR(R)) into its four segments.
+ * The last (room) segment may be 2 or 3 digits. Returns null if it doesn't match.
  */
 export function parseFiNumber(
   fi: string | null | undefined
 ): { campus: string; building: string; floor: string; room: string } | null {
   if (!fi) return null;
-  const match = fi.match(/^(\d{2})\.(\d{2})\.(\d{3})\.(\d{3})$/);
+  const match = fi.match(/^(\d{2})\.(\d{2})\.(\d{3})\.(\d{2,3})$/);
   if (!match) return null;
   return {
     campus: match[1],

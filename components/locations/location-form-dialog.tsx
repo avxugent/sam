@@ -31,8 +31,9 @@ import { Loader2, Hash } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 
-// FI number: CC.BB.FFF.RRR  e.g. "14.10.100.013"
-const FI_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{3}$/;
+// FI number: CC.BB.FFF.RR(R)  e.g. "14.10.100.13" or "14.10.100.013"
+// Last (room) segment may be 2 or 3 digits.
+const FI_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{2,3}$/;
 
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(255),

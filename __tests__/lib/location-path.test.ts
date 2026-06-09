@@ -41,6 +41,15 @@ describe("parseFiNumber()", () => {
     });
   });
 
+  it("accepts a 2-digit room segment", () => {
+    expect(parseFiNumber("14.10.100.13")).toEqual({
+      campus: "14",
+      building: "10",
+      floor: "100",
+      room: "13",
+    });
+  });
+
   it("returns null for null input", () => {
     expect(parseFiNumber(null)).toBeNull();
   });
@@ -62,7 +71,8 @@ describe("parseFiNumber()", () => {
     expect(parseFiNumber("1.10.100.013")).toBeNull();   // CC must be 2 digits
     expect(parseFiNumber("14.1.100.013")).toBeNull();   // BB must be 2 digits
     expect(parseFiNumber("14.10.10.013")).toBeNull();   // FFF must be 3 digits
-    expect(parseFiNumber("14.10.100.13")).toBeNull();   // RRR must be 3 digits
+    expect(parseFiNumber("14.10.100.1")).toBeNull();    // room must be 2-3 digits
+    expect(parseFiNumber("14.10.100.0134")).toBeNull(); // room max 3 digits
   });
 
   it("returns null for non-numeric segments", () => {

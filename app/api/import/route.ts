@@ -9,10 +9,10 @@ import { logAudit } from "@/lib/audit";
 // DIAGONAL;WIDTH;HEIGHT;MIC_TYPE;FREQUENCY;MAC;IP_HOSTNAME;ROOM_LOCATION;
 // INSTALL_DATE;INTEGRATOR;CONTACTPERSOON;Factuurdatum;Factuurnummer
 //
-// FI NUMMER format: CC.BB.FFF.RRR (e.g. 14.10.100.013)
+// FI NUMMER format: CC.BB.FFF.RR(R) (e.g. 14.10.100.13 or 14.10.100.013)
 // It is stored on the room-level location (LOKAAL).
-
-const FI_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{3}$/;
+// Last (room) segment may be 2 or 3 digits.
+const FI_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{2,3}$/;
 
 // Re-export csvValue under short alias for local readability
 const v = csvValue;

@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.10] - 2026-06-09
+
+### Fixed
+- FI number validation now accepts a 2- or 3-digit room (last) segment, e.g. `14.10.100.13` as well as `14.10.100.013`. Previously the location form, the create/update location API, and CSV import all required exactly 3 digits, rejecting valid 2-digit room numbers. Existing 3-digit values remain valid.
+
+---
+
 ## [1.0.9] - 2026-06-08
 
 ### Added

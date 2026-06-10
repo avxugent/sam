@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.11] - 2026-06-10
+
+### Fixed
+- Forms no longer crash when the browser's automatic page translation (Google Translate, Edge, Chrome built-in) is enabled. Translation rewrites the DOM text nodes, which broke React reconciliation on any form with conditional text — observed as 2FA setup and work log entry creation failing. The root `<html>` element now sets `translate="no"`, disabling browser auto-translation app-wide (the app already provides its own localisation via next-intl, so no translation capability is lost).
+
+---
+
 ## [1.0.10] - 2026-06-09
 
 ### Fixed

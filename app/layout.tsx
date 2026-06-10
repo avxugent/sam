@@ -44,7 +44,7 @@ export default async function RootLayout({
   const backgroundMode = bgSetting?.value ?? "";
 
   return (
-    <html lang={locale} className="h-full" suppressHydrationWarning>
+    <html lang={locale} translate="no" className="h-full" suppressHydrationWarning>
       <body className="h-full antialiased">
         {/* eslint-disable-next-line @next/next/no-before-interactive-script-outside-document */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

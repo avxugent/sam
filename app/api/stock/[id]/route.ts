@@ -4,6 +4,9 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 
+const MAC_REGEX =
+  /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$|^([0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$/;
+
 const updateSchema = z
   .object({
     typeId: z.string().min(1).optional(),
@@ -15,6 +18,12 @@ const updateSchema = z
     reservedForLocationId: z.string().optional().nullable(),
     invoiceNumber: z.string().max(100).optional().nullable(),
     invoiceDate: z.string().optional().nullable(),
+    macAddress: z
+      .string()
+      .regex(MAC_REGEX, "Invalid MAC address")
+      .optional()
+      .nullable()
+      .or(z.literal("")),
   })
   .superRefine((data, ctx) => {
     if (data.serialNumber && data.quantity !== undefined && data.quantity > 1) {
@@ -71,7 +80,22 @@ export async function PUT(
     return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { invoiceDate, ...rest } = parsed.data;
+  const { invoiceDate, macAddress, ...rest } = parsed.data;
+
+  // Merge MAC into the metadata blob, preserving any other keys (hostname,
+  // customFields, …) that may have been stored when the item came from an asset.
+  let metadataUpdate: { metadata: string | null } | Record<string, never> = {};
+  if (macAddress !== undefined) {
+    let meta: Record<string, unknown> = {};
+    if (existing.metadata) {
+      try { meta = JSON.parse(existing.metadata) as Record<string, unknown>; } catch { /* ignore */ }
+    }
+    const mac = macAddress?.trim();
+    if (mac) meta.macAddresses = [{ address: mac }];
+    else delete meta.macAddresses;
+    metadataUpdate = { metadata: Object.keys(meta).length > 0 ? JSON.stringify(meta) : null };
+  }
+
   const item = await prisma.stockItem.update({
     where: { id },
     data: {
@@ -79,6 +103,7 @@ export async function PUT(
       ...(invoiceDate !== undefined
         ? { invoiceDate: invoiceDate ? new Date(invoiceDate) : null }
         : {}),
+      ...metadataUpdate,
     },
     include: { type: true, manufacturer: true },
   });

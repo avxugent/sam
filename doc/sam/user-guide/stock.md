@@ -25,6 +25,7 @@ Use the **search box** to filter by type, model, serial number, or manufacturer.
    - **Model** — required
    - **Serial number** — enter if the item has a fixed serial; leave blank for bulk items
    - **Quantity** — for bulk items without individual serials
+   - **MAC address** — optional; carried over to the asset when a single unit is deployed
    - **Invoice number** — optional purchase reference
    - **Notes** — optional
    - **Reserved for location** — optionally link to the location this item is destined for

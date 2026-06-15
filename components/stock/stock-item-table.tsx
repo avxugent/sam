@@ -48,9 +48,21 @@ export type StockItem = {
   invoiceDate: Date | string | null;
   notes: string | null;
   reservedForLocationId: string | null;
+  metadata: string | null;
   type: { id: string; name: string };
   manufacturer: { id: string; name: string } | null;
 };
+
+// The first MAC address stored in the item's metadata blob, if any.
+function macFromMetadata(metadata: string | null): string {
+  if (!metadata) return "";
+  try {
+    const meta = JSON.parse(metadata) as { macAddresses?: { address: string }[] };
+    return meta.macAddresses?.[0]?.address ?? "";
+  } catch {
+    return "";
+  }
+}
 
 type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "quantity";
 
@@ -232,6 +244,7 @@ export function StockItemTable({
                             invoiceDate: item.invoiceDate
                               ? new Date(item.invoiceDate).toISOString().slice(0, 10)
                               : null,
+                            macAddress: macFromMetadata(item.metadata),
                           } satisfies StockItemInitialData}
                           onSuccess={() => router.refresh()}
                         >

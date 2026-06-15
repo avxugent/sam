@@ -41,6 +41,7 @@ const EDIT_DATA: StockItemInitialData = {
   notes: "spare",
   invoiceNumber: null,
   invoiceDate: null,
+  macAddress: null,
 };
 
 async function openCreate() {

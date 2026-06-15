@@ -16,8 +16,8 @@ global.fetch = mockFetch as never;
 import { StockItemTable, type StockItem } from "@/components/stock/stock-item-table";
 
 const ITEMS: StockItem[] = [
-  { id: "s1", typeId: "at1", type: { id: "at1", name: "Laptop" }, manufacturerId: "m1", manufacturer: { id: "m1", name: "Dell" }, model: "XPS", serialNumber: "SN1", quantity: 1, invoiceNumber: null, invoiceDate: null, notes: null, reservedForLocationId: null },
-  { id: "s2", typeId: "at2", type: { id: "at2", name: "Monitor" }, manufacturerId: null, manufacturer: null, model: "U27", serialNumber: null, quantity: 7, invoiceNumber: null, invoiceDate: null, notes: null, reservedForLocationId: null },
+  { id: "s1", typeId: "at1", type: { id: "at1", name: "Laptop" }, manufacturerId: "m1", manufacturer: { id: "m1", name: "Dell" }, model: "XPS", serialNumber: "SN1", quantity: 1, invoiceNumber: null, invoiceDate: null, notes: null, reservedForLocationId: null, metadata: null },
+  { id: "s2", typeId: "at2", type: { id: "at2", name: "Monitor" }, manufacturerId: null, manufacturer: null, model: "U27", serialNumber: null, quantity: 7, invoiceNumber: null, invoiceDate: null, notes: null, reservedForLocationId: null, metadata: null },
 ];
 
 const renderTable = (items = ITEMS, userRole = "ADMIN") => render(<StockItemTable items={items} userRole={userRole} />);

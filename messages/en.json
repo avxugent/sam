@@ -306,7 +306,8 @@
     "errTypeRequired": "Type is required",
     "errModelRequired": "Model is required",
     "errQuantityMin": "Quantity must be at least 1",
-    "errQuantitySerial": "Quantity must be 1 when a serial number is set."
+    "errQuantitySerial": "Quantity must be 1 when a serial number is set.",
+    "errMacInvalid": "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)"
   },
   "decommissioned": {
     "title": "Decommissioned",

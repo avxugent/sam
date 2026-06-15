@@ -28,6 +28,10 @@ import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
+// IEEE 802 MAC address — colon, hyphen, or dot-separated, upper or lower case.
+const MAC_REGEX =
+  /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$|^([0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$/;
+
 type FormData = {
   typeId: string;
   manufacturerId?: string;
@@ -37,6 +41,7 @@ type FormData = {
   notes?: string;
   invoiceNumber?: string;
   invoiceDate?: string;
+  macAddress?: string;
 };
 
 type AssetType = { id: string; name: string };
@@ -53,6 +58,7 @@ export type StockItemInitialData = {
   notes: string | null;
   invoiceNumber: string | null;
   invoiceDate: string | null;
+  macAddress: string | null;
 };
 
 type Props = {
@@ -79,6 +85,11 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     notes: z.string().max(5000).optional(),
     invoiceNumber: z.string().max(100).optional(),
     invoiceDate: z.string().optional(),
+    macAddress: z
+      .string()
+      .regex(MAC_REGEX, t("errMacInvalid"))
+      .optional()
+      .or(z.literal("")),
   }).superRefine((data, ctx) => {
     if (data.serialNumber?.trim() && data.quantity > 1) {
       ctx.addIssue({
@@ -118,6 +129,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
       notes: initialData?.notes ?? "",
       invoiceNumber: initialData?.invoiceNumber ?? "",
       invoiceDate: initialData?.invoiceDate ?? "",
+      macAddress: initialData?.macAddress ?? "",
     },
   });
 
@@ -155,7 +167,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   function handleClose() {
     setOpen(false);
     if (mode === "create") {
-      reset({ quantity: 1, typeId: "", manufacturerId: "", model: "", serialNumber: "", notes: "", invoiceNumber: "", invoiceDate: "" });
+      reset({ quantity: 1, typeId: "", manufacturerId: "", model: "", serialNumber: "", notes: "", invoiceNumber: "", invoiceDate: "", macAddress: "" });
       setSelectedTypeId("");
       setSelectedMfgId("");
     }
@@ -177,6 +189,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
         notes: data.notes || null,
         invoiceNumber: data.invoiceNumber || null,
         invoiceDate: data.invoiceDate || null,
+        macAddress: data.macAddress?.trim() || null,
       }),
     });
 
@@ -322,6 +335,19 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
               />
               {errors.quantity && <p className="text-xs text-destructive">{errors.quantity.message}</p>}
             </div>
+          </div>
+
+          {/* MAC address */}
+          <div className="space-y-1">
+            <Label htmlFor="macAddress">{tField("macAddress")}</Label>
+            <Input
+              id="macAddress"
+              {...register("macAddress")}
+              placeholder="AA:BB:CC:DD:EE:FF"
+              className={cn("font-mono text-[12.5px]", errors.macAddress && "border-destructive")}
+              autoComplete="off"
+            />
+            {errors.macAddress && <p className="text-xs text-destructive">{errors.macAddress.message}</p>}
           </div>
 
           {/* Invoice */}

@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.12] - 2026-06-15
+
+### Added
+- Stock items now have an optional **MAC address** field on the create and edit forms. The MAC is stored on the item and carried over to the asset when a single unit is deployed (matching the existing hostname and custom-field carry-over behaviour).
+
+---
+
 ## [1.0.11] - 2026-06-10
 
 ### Fixed

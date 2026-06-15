@@ -4,6 +4,9 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 
+const MAC_REGEX =
+  /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$|^([0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$/;
+
 const createSchema = z
   .object({
     typeId: z.string().min(1, "Type is required"),
@@ -15,6 +18,12 @@ const createSchema = z
     reservedForLocationId: z.string().optional().nullable(),
     invoiceNumber: z.string().max(100).optional().nullable(),
     invoiceDate: z.string().optional().nullable(),
+    macAddress: z
+      .string()
+      .regex(MAC_REGEX, "Invalid MAC address")
+      .optional()
+      .nullable()
+      .or(z.literal("")),
   })
   .superRefine((data, ctx) => {
     if (data.serialNumber && data.quantity > 1) {
@@ -68,7 +77,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { invoiceDate, ...rest } = parsed.data;
+  const { invoiceDate, macAddress, ...rest } = parsed.data;
+  const mac = macAddress?.trim();
   const item = await prisma.stockItem.create({
     data: {
       ...rest,
@@ -78,6 +88,7 @@ export async function POST(req: NextRequest) {
       reservedForLocationId: rest.reservedForLocationId ?? null,
       invoiceNumber: rest.invoiceNumber ?? null,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
+      metadata: mac ? JSON.stringify({ macAddresses: [{ address: mac }] }) : null,
     },
     include: { type: true, manufacturer: true },
   });

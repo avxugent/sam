@@ -306,7 +306,8 @@
     "errTypeRequired": "Type is verplicht",
     "errModelRequired": "Model is verplicht",
     "errQuantityMin": "Hoeveelheid moet minimaal 1 zijn",
-    "errQuantitySerial": "Hoeveelheid moet 1 zijn als er een serienummer is ingesteld."
+    "errQuantitySerial": "Hoeveelheid moet 1 zijn als er een serienummer is ingesteld.",
+    "errMacInvalid": "Ongeldig MAC-adres (verwacht AA:BB:CC:DD:EE:FF)"
   },
   "decommissioned": {
     "title": "Buiten dienst",

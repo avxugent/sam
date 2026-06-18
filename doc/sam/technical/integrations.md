@@ -122,7 +122,11 @@ Many AV devices cannot expose Prometheus metrics directly and are monitored via 
 | `{model}` | Asset model |
 | `{manufacturer}` | Manufacturer name |
 | `{fi_number}` | Location FI number |
-| `{vault_<key>}` | Value of `<key>` from the Vault secret at the asset's Vault path |
+| `{vault_path}` | The asset's Vault path — a **non-secret reference**, not the credential |
+
+> **Credentials never appear in the SD output.** SAM does not read device
+> passwords. The template passes only the `{vault_path}` reference; the external
+> exporter reads the secret from Vault itself and uses it to scrape the device.
 
 **Example — Pearl recorder exporter:**
 
@@ -130,14 +134,17 @@ Many AV devices cannot expose Prometheus metrics directly and are monitored via 
 __address__=https://pearlexporter.example.com
 __metrics_path__=/probe
 __param_target__=https://{hostname_fqdn}
-__param_user__={vault_username}
-__param_password__={vault_password}
+__param_vault_path__={vault_path}
 ```
 
 This tells Prometheus to scrape:
 ```
-https://pearlexporter.example.com/probe?target=https://device001.example.com&user=admin&password=...
+https://pearlexporter.example.com/probe?target=https://device001.example.com&vault_path=secret/av/device001
 ```
+
+The exporter receives `vault_path`, looks up `username`/`password` in Vault
+(using its own Vault credentials), and authenticates to the device. No password
+is ever present in the SD JSON, in Prometheus, or in its debug pages/logs.
 
 Assets of a type **without** a template use their hostname directly as the scrape target.
 
@@ -158,7 +165,22 @@ Accepts session cookie **or** Bearer token — making it usable from both browse
 
 ## HashiCorp Vault
 
-Required only when Prometheus scrape templates use `{vault_*}` placeholders. SAM fetches per-device credentials from Vault at SD refresh time.
+Vault is the **machine source of truth** for per-device credentials. The external
+exporter reads each device's secret from Vault at scrape time, keyed by the
+`{vault_path}` reference SAM emits in the SD output (see *Scrape Target
+Templates* above). **SAM itself does not read device passwords** — its only Vault
+use is the asset-form **Test** button, which lists key names (never values) so an
+operator can confirm a path before the exporter relies on it.
+
+> **Source-of-truth split.** End users keep these passwords in **Bitwarden**
+> (browser autofill, easy UX); machines read them from **Vault**. The two stores
+> are maintained independently today — when a credential changes, update both.
+> Bitwarden Password Manager is zero-knowledge, so there is no server-side API to
+> read item passwords; a one-way Bitwarden→Vault sync would remove the
+> double-entry but is not currently implemented.
+
+The exporter needs its **own** Vault credentials (token or AppRole) to resolve
+secrets. The `VAULT_*` variables below configure SAM's Test button only.
 
 ### Configuration
 
@@ -190,12 +212,12 @@ In the asset form, click **Test** next to the Vault path field. SAM verifies con
 
 ### Graceful degradation
 
-If Vault is unavailable or a path is missing:
-- The asset still appears in the SD output
-- Credential values are empty
-- `sam_vault_missing="true"` label is added — alertable in Prometheus
+The SD endpoint never reads Vault, so Vault availability does not affect SD
+generation. If the exporter cannot resolve a secret at scrape time, the device's
+probe simply fails — alertable in Prometheus via `up == 0`.
 
-The Vault client (`lib/vault.ts`) uses native `fetch`, returns `null` on any error, and never throws. Vault errors never crash the SD endpoint for all targets.
+The Vault client (`lib/vault.ts`, used by the Test button) uses native `fetch`,
+returns `null` on any error, and never throws.
 
 ---
 

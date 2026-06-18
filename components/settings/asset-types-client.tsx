@@ -64,20 +64,19 @@ type DrilldownAsset = {
 
 const TEMPLATE_PLACEHOLDER = `# Lines starting with # are comments.
 # Format: key=value (one per line)
-# Available variables: {hostname_fqdn}, {serial}, {model}, {manufacturer}, {fi_number}
-# Vault variables:     {vault_<key>}  (key name from the Vault secret)
+# Available variables: {hostname_fqdn}, {serial}, {model}, {manufacturer}, {fi_number}, {vault_path}
+# {vault_path} is the asset's Vault path reference — the exporter reads the secret itself.
 
 # Pearl recorder exporter example:
 # __address__=https://pearlexporterdev.ugent.be
 # __metrics_path__=/probe
 # __param_target__=https://{hostname_fqdn}
-# __param_user__={vault_username}
-# __param_password__={vault_password}`;
+# __param_vault_path__={vault_path}`;
 
 function TemplatePreview({ template }: { template: string }) {
   if (!template.trim()) return null;
   const errors = validateTemplate(template);
-  const { standard, vault } = getUsedVariables(template);
+  const { standard } = getUsedVariables(template);
 
   return (
     <div className="space-y-2 mt-2">
@@ -97,16 +96,11 @@ function TemplatePreview({ template }: { template: string }) {
           <p className="text-xs text-green-700">Template syntax is valid</p>
         </div>
       )}
-      {(standard.length > 0 || vault.length > 0) && (
+      {standard.length > 0 && (
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           {standard.map((v) => (
             <code key={v} className="bg-muted px-1.5 py-0.5 rounded">
               {"{" + v + "}"}
-            </code>
-          ))}
-          {vault.map((v) => (
-            <code key={v} className="bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded">
-              {"{vault_" + v + "}"}
             </code>
           ))}
         </div>

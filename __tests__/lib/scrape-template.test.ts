@@ -3,8 +3,6 @@ import {
   renderScrapeTemplate,
   validateTemplate,
   getUsedVariables,
-  getVaultPlaceholders,
-  templateNeedsVault,
   type TemplateVars,
 } from "@/lib/scrape-template";
 
@@ -14,6 +12,7 @@ const baseVars: TemplateVars = {
   model: "Pearl-2",
   manufacturer: "Epson",
   fi_number: "14.10.100.013",
+  vault_path: "secret/av/rectest001",
 };
 
 // ── renderScrapeTemplate ────────────────────────────────────────────────────
@@ -22,8 +21,7 @@ describe("renderScrapeTemplate()", () => {
   it("substitutes {hostname_fqdn}", () => {
     const { labels } = renderScrapeTemplate(
       "__address__=https://exporter.example.com\n__param_target__=https://{hostname_fqdn}",
-      baseVars,
-      null
+      baseVars
     );
     expect(labels["__param_target__"]).toBe("https://rectest001.ugent.be");
     expect(labels["__address__"]).toBe("https://exporter.example.com");
@@ -36,68 +34,54 @@ describe("renderScrapeTemplate()", () => {
       "c={model}",
       "d={manufacturer}",
       "e={fi_number}",
+      "f={vault_path}",
     ].join("\n");
-    const { labels } = renderScrapeTemplate(template, baseVars, null);
+    const { labels } = renderScrapeTemplate(template, baseVars);
     expect(labels["a"]).toBe("rectest001.ugent.be");
     expect(labels["b"]).toBe("SN-12345");
     expect(labels["c"]).toBe("Pearl-2");
     expect(labels["d"]).toBe("Epson");
     expect(labels["e"]).toBe("14.10.100.013");
+    expect(labels["f"]).toBe("secret/av/rectest001");
   });
 
-  it("injects Vault secret values", () => {
-    const template = "__param_user__={vault_username}\n__param_password__={vault_password}";
-    const vault = { username: "admin", password: "secret123" };
-    const { labels, hasUnresolvedVaultPlaceholders } = renderScrapeTemplate(
-      template,
-      baseVars,
-      vault
+  it("renders {vault_path} as the reference, not a secret", () => {
+    const { labels } = renderScrapeTemplate(
+      "__param_vault_path__={vault_path}",
+      baseVars
     );
-    expect(labels["__param_user__"]).toBe("admin");
-    expect(labels["__param_password__"]).toBe("secret123");
-    expect(hasUnresolvedVaultPlaceholders).toBe(false);
+    expect(labels["__param_vault_path__"]).toBe("secret/av/rectest001");
   });
 
-  it("marks unresolved Vault placeholders when secret is null", () => {
-    const { hasUnresolvedVaultPlaceholders } = renderScrapeTemplate(
-      "__param_password__={vault_password}",
-      baseVars,
-      null
-    );
-    expect(hasUnresolvedVaultPlaceholders).toBe(true);
-  });
-
-  it("marks unresolved when vault key is missing from secret", () => {
-    const { labels, hasUnresolvedVaultPlaceholders } = renderScrapeTemplate(
-      "__param_password__={vault_password}",
-      baseVars,
-      { username: "admin" } // 'password' key missing
-    );
-    expect(labels["__param_password__"]).toBe(""); // replaced with empty
-    expect(hasUnresolvedVaultPlaceholders).toBe(true);
+  it("renders {vault_path} empty when the asset has no vault path", () => {
+    const { labels } = renderScrapeTemplate("__param_vault_path__={vault_path}", {
+      ...baseVars,
+      vault_path: "",
+    });
+    expect(labels["__param_vault_path__"]).toBe("");
   });
 
   it("ignores blank lines and comments", () => {
     const template = "# This is a comment\n\n__address__=https://example.com\n# another comment";
-    const { labels } = renderScrapeTemplate(template, baseVars, null);
+    const { labels } = renderScrapeTemplate(template, baseVars);
     expect(Object.keys(labels)).toHaveLength(1);
     expect(labels["__address__"]).toBe("https://example.com");
   });
 
   it("handles lines without '=' gracefully", () => {
-    const { labels } = renderScrapeTemplate("not-a-kv-pair\n__k__=v", baseVars, null);
+    const { labels } = renderScrapeTemplate("not-a-kv-pair\n__k__=v", baseVars);
     expect(labels["__k__"]).toBe("v");
     expect(Object.keys(labels)).toHaveLength(1);
   });
 
   it("returns empty labels for empty template", () => {
-    const { labels } = renderScrapeTemplate("", baseVars, null);
+    const { labels } = renderScrapeTemplate("", baseVars);
     expect(labels).toEqual({});
   });
 
   it("preserves URL encoding in values (no double-encoding)", () => {
     const template = "__param_target__=https://{hostname_fqdn}/path?a=b&c=d";
-    const { labels } = renderScrapeTemplate(template, baseVars, null);
+    const { labels } = renderScrapeTemplate(template, baseVars);
     expect(labels["__param_target__"]).toBe(
       "https://rectest001.ugent.be/path?a=b&c=d"
     );
@@ -140,61 +124,20 @@ describe("validateTemplate()", () => {
 
 describe("getUsedVariables()", () => {
   it("detects standard variable usage", () => {
-    const { standard, vault } = getUsedVariables(
+    const { standard } = getUsedVariables(
       "__t__={hostname_fqdn}\n__s__={serial}"
     );
     expect(standard).toContain("hostname_fqdn");
     expect(standard).toContain("serial");
-    expect(vault).toHaveLength(0);
   });
 
-  it("detects vault variable usage", () => {
-    const { vault, standard } = getUsedVariables(
-      "__u__={vault_username}\n__p__={vault_password}"
-    );
-    expect(vault).toContain("username");
-    expect(vault).toContain("password");
+  it("detects {vault_path} usage", () => {
+    const { standard } = getUsedVariables("__p__={vault_path}");
+    expect(standard).toContain("vault_path");
+  });
+
+  it("returns empty array for empty template", () => {
+    const { standard } = getUsedVariables("");
     expect(standard).toHaveLength(0);
-  });
-
-  it("returns empty arrays for empty template", () => {
-    const { standard, vault } = getUsedVariables("");
-    expect(standard).toHaveLength(0);
-    expect(vault).toHaveLength(0);
-  });
-});
-
-// ── getVaultPlaceholders ────────────────────────────────────────────────────
-
-describe("getVaultPlaceholders()", () => {
-  it("extracts vault placeholder key names", () => {
-    const keys = getVaultPlaceholders("{vault_user} {vault_pass}");
-    expect(keys).toContain("user");
-    expect(keys).toContain("pass");
-  });
-
-  it("deduplicates repeated placeholders", () => {
-    const keys = getVaultPlaceholders("{vault_token} {vault_token}");
-    expect(keys).toHaveLength(1);
-  });
-
-  it("returns empty array when no vault placeholders", () => {
-    expect(getVaultPlaceholders("{hostname_fqdn}")).toHaveLength(0);
-  });
-});
-
-// ── templateNeedsVault ──────────────────────────────────────────────────────
-
-describe("templateNeedsVault()", () => {
-  it("returns true when vault placeholder is present", () => {
-    expect(templateNeedsVault("__p__={vault_password}")).toBe(true);
-  });
-
-  it("returns false when no vault placeholder", () => {
-    expect(templateNeedsVault("__a__={hostname_fqdn}")).toBe(false);
-  });
-
-  it("returns false for empty string", () => {
-    expect(templateNeedsVault("")).toBe(false);
   });
 });

@@ -11,10 +11,9 @@
  * labels are included so Prometheus routes scrape requests to the correct
  * external exporter rather than directly to the device.
  *
- * Credential injection: if the template contains {vault_<key>} placeholders
- * and the asset has a vaultPath set, SAM fetches the secret from Vault
- * and substitutes the values. Assets with missing Vault config get the
- * label sam_vault_missing="true" so operators can alert on them.
+ * Credentials are never placed in the SD output. A template may emit the
+ * asset's Vault path as a non-secret reference via {vault_path}; the external
+ * exporter reads the secret from Vault itself and uses it to scrape the device.
  *
  * Authentication: Bearer token via PROMETHEUS_SD_TOKEN env var, or an active
  * admin session cookie (so admins can browse the endpoint directly).
@@ -50,10 +49,8 @@ import {
   buildLocationPathString,
   findFiNumber,
 } from "@/lib/location-path";
-import { readVaultSecret } from "@/lib/vault";
 import {
   renderScrapeTemplate,
-  templateNeedsVault,
   type TemplateVars,
 } from "@/lib/scrape-template";
 
@@ -97,23 +94,11 @@ export async function GET(req: NextRequest) {
     Awaited<ReturnType<typeof resolveLocationPath>>
   >();
 
-  // vaultPath → secret key/value map (or null on failure)
-  const vaultCache = new Map<string, Record<string, string> | null>();
-
   async function getLocationPath(locationId: string) {
     if (!locationPathCache.has(locationId)) {
       locationPathCache.set(locationId, await resolveLocationPath(locationId));
     }
     return locationPathCache.get(locationId)!;
-  }
-
-  async function getVaultSecret(
-    vaultPath: string
-  ): Promise<Record<string, string> | null> {
-    if (!vaultCache.has(vaultPath)) {
-      vaultCache.set(vaultPath, await readVaultSecret(vaultPath));
-    }
-    return vaultCache.get(vaultPath)!;
   }
 
   // ── Build target groups ────────────────────────────────────────────────────
@@ -160,42 +145,20 @@ export async function GET(req: NextRequest) {
     const template = asset.type?.scrapeTargetTemplate;
 
     if (template?.trim()) {
-      // Build the variable map from asset fields
+      // Build the variable map from asset fields. vault_path is a non-secret
+      // reference — the exporter resolves the actual credential from Vault.
       const vars: TemplateVars = {
         hostname_fqdn: asset.hostname,
         serial: asset.serialNumber ?? "",
         model: asset.model ?? "",
         manufacturer: asset.manufacturer?.name ?? "",
         fi_number: fiNumber ?? "",
+        vault_path: asset.vaultPath ?? "",
       };
 
-      // Fetch Vault secret if needed
-      let vaultSecrets: Record<string, string> | null = null;
-      let vaultMissing = false;
-
-      if (templateNeedsVault(template)) {
-        if (asset.vaultPath) {
-          vaultSecrets = await getVaultSecret(asset.vaultPath);
-          if (!vaultSecrets) {
-            // Vault lookup failed (connection error, 404, etc.)
-            vaultMissing = true;
-          }
-        } else {
-          // No vaultPath configured on this asset
-          vaultMissing = true;
-        }
-      }
-
-      // Render the template
-      const { labels: templateLabels, hasUnresolvedVaultPlaceholders } =
-        renderScrapeTemplate(template, vars, vaultSecrets);
-
-      // Merge rendered __labels__ into the target group labels
+      // Render the template and merge __labels__ into the target group labels
+      const { labels: templateLabels } = renderScrapeTemplate(template, vars);
       Object.assign(labels, templateLabels);
-
-      if (vaultMissing || hasUnresolvedVaultPlaceholders) {
-        labels.sam_vault_missing = "true";
-      }
     }
 
     groups.push({

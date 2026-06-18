@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.13] - 2026-06-18
+
+### Security
+- Device credentials are no longer rendered into the Prometheus HTTP Service Discovery output. Previously `/api/prometheus/sd` fetched each device's secret from Vault and embedded the password in `__param_password__` labels, exposing every credential in plaintext to anyone holding `PROMETHEUS_SD_TOKEN` (and in Prometheus's own service-discovery debug pages and logs).
+
+### Changed
+- Scrape target templates now pass a non-secret `{vault_path}` reference instead of `{vault_<key>}` secret placeholders. The external exporter resolves the actual credential from Vault itself using its own Vault access. SAM no longer reads device passwords; its only Vault use is the asset-form **Test** button (lists key names, never values). **Migration:** update existing asset-type templates — replace `__param_user__={vault_username}` / `__param_password__={vault_password}` with `__param_vault_path__={vault_path}` (or the param your exporter expects).
+
+---
+
 ## [1.0.12] - 2026-06-15
 
 ### Added

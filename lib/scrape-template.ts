@@ -19,8 +19,8 @@
  * Example template (Pearl recorder exporter):
  *   __address__=https://pearlexporterdev.ugent.be
  *   __metrics_path__=/probe
- *   __param_target__=https://{hostname_fqdn}
- *   __param_vault_path__={vault_path}
+ *   __param_target=https://{hostname_fqdn}
+ *   __param_vault_path={vault_path}
  */
 
 export type TemplateVars = {

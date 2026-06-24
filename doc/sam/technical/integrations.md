@@ -133,8 +133,8 @@ Many AV devices cannot expose Prometheus metrics directly and are monitored via 
 ```
 __address__=https://pearlexporter.example.com
 __metrics_path__=/probe
-__param_target__=https://{hostname_fqdn}
-__param_vault_path__={vault_path}
+__param_target=https://{hostname_fqdn}
+__param_vault_path={vault_path}
 ```
 
 This tells Prometheus to scrape:
@@ -145,6 +145,12 @@ https://pearlexporter.example.com/probe?target=https://device001.example.com&vau
 The exporter receives `vault_path`, looks up `username`/`password` in Vault
 (using its own Vault credentials), and authenticates to the device. No password
 is ever present in the SD JSON, in Prometheus, or in its debug pages/logs.
+
+When a template sets `__address__`, that address — not the device hostname —
+becomes the scrape target, so Prometheus queries the exporter rather than the
+device. Any `https://`/`http://` scheme on `__address__` is lifted into the
+`__scheme__` label automatically (Prometheus requires `__address__` to be
+`host[:port]` only).
 
 Assets of a type **without** a template use their hostname directly as the scrape target.
 

@@ -161,8 +161,23 @@ export async function GET(req: NextRequest) {
       Object.assign(labels, templateLabels);
     }
 
+    // The target string becomes __address__. Prometheus fills group labels only
+    // where unset, so a template-provided __address__ would be silently dropped
+    // if we always used the hostname here. Pull it out so the exporter address
+    // wins; __address__ is host[:port] only, so lift any scheme into __scheme__.
+    let address = asset.hostname;
+    if (labels.__address__) {
+      address = labels.__address__;
+      delete labels.__address__;
+      const schemeMatch = /^(https?):\/\/(.+)$/.exec(address);
+      if (schemeMatch) {
+        labels.__scheme__ = schemeMatch[1];
+        address = schemeMatch[2];
+      }
+    }
+
     groups.push({
-      targets: [asset.hostname],
+      targets: [address],
       labels,
     });
   }

@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.14] - 2026-06-24
+
+### Fixed
+- Prometheus now scrapes the **exporter** instead of the device for asset types whose scrape template sets `__address__`. Previously the device hostname was always used as the target group address, so a template pointing Prometheus at an external exporter was silently ignored and Prometheus connected directly to the device (e.g. `dial tcp …: no route to host`). The template `__address__` now becomes the scrape target, and any `http(s)://` scheme is lifted into the `__scheme__` label.
+- Corrected scrape-template documentation and UI examples: Prometheus URL parameters use `__param_<name>` (e.g. `__param_target`), not `__param_<name>__`. The trailing `__` produced a malformed parameter name (`target__`). **Migration:** update existing asset-type templates to drop the trailing `__` from any `__param_*` lines.
+
+---
+
 ## [1.0.13] - 2026-06-18
 
 ### Security

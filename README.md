@@ -188,9 +188,9 @@ Many AV devices cannot expose Prometheus metrics directly and are instead monito
 ```
 __address__=https://pearlexporterdev.ugent.be
 __metrics_path__=/probe
-__param_target__=https://{hostname_fqdn}
-__param_user__={vault_username}
-__param_password__={vault_password}
+__param_target=https://{hostname_fqdn}
+__param_user={vault_username}
+__param_password={vault_password}
 ```
 
 This results in Prometheus making a request to:

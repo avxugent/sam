@@ -70,8 +70,8 @@ const TEMPLATE_PLACEHOLDER = `# Lines starting with # are comments.
 # Pearl recorder exporter example:
 # __address__=https://pearlexporterdev.ugent.be
 # __metrics_path__=/probe
-# __param_target__=https://{hostname_fqdn}
-# __param_vault_path__={vault_path}`;
+# __param_target=https://{hostname_fqdn}
+# __param_vault_path={vault_path}`;
 
 function TemplatePreview({ template }: { template: string }) {
   if (!template.trim()) return null;
@@ -621,7 +621,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                 <span className="font-medium text-foreground">Pearl example:</span>{" "}
                 <code className="bg-muted px-1 rounded">__address__=https://pearlexporter.example.com</code>{" "}
                 <code className="bg-muted px-1 rounded">__metrics_path__=/probe</code>{" "}
-                <code className="bg-muted px-1 rounded">__param_target__=https://&#123;hostname_fqdn&#125;</code>
+                <code className="bg-muted px-1 rounded">__param_target=https://&#123;hostname_fqdn&#125;</code>
               </p>
             </div>
 

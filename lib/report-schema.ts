@@ -12,6 +12,8 @@ const filterOpSchema = z.enum([
   "newerThanYears",
   "newerThanDays",
   "olderThanDays",
+  "hasItem",
+  "notHasItem",
 ]);
 
 const filterFieldSchema = z.enum([
@@ -24,6 +26,7 @@ const filterFieldSchema = z.enum([
   "installationDate",
   "invoiceDate",
   "lastChanged",
+  "workLogItem",
 ]);
 
 const reportFilterSchema = z.object({

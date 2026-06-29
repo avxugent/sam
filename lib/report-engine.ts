@@ -54,6 +54,15 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
       continue;
     }
 
+    if (field === "workLogItem") {
+      // "filled in" = the asset has at least one work-log entry referencing
+      // this item; "not filled in" = it has none. Combine with a typeId filter
+      // to track a work task across all assets of one type.
+      if (op === "hasItem" && value) conditions.push({ workLogs: { some: { itemId: value } } });
+      else if (op === "notHasItem" && value) conditions.push({ workLogs: { none: { itemId: value } } });
+      continue;
+    }
+
     if (field === "lastChanged") {
       if (op === "newerThanDays" && value) {
         const n = parseFloat(value);

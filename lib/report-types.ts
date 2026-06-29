@@ -9,7 +9,9 @@ export type FilterOp =
   | "olderThanYears"
   | "newerThanYears"
   | "newerThanDays"
-  | "olderThanDays";
+  | "olderThanDays"
+  | "hasItem"
+  | "notHasItem";
 
 export type ReportFilterField =
   | "typeId"
@@ -20,7 +22,8 @@ export type ReportFilterField =
   | "hostname"
   | "installationDate"
   | "invoiceDate"
-  | "lastChanged";
+  | "lastChanged"
+  | "workLogItem";
 
 export type ReportFilter = {
   field: ReportFilterField;

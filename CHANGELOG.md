@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.0] - 2026-06-29
+
+### Added
+- Asset reports gain a **Work log item** filter field with *is filled in* / *is not filled in* operators. Picking a [fixed work log item](doc/sam/user-guide/work-logs.md) restricts the report to assets that do (or do not) have a work log entry tagged with that item. Combine it with an asset-type filter to track a recurring work task across every asset of one type (e.g. *all projectors whose firmware-check item is not filled in*).
+
+---
+
 ## [1.0.14] - 2026-06-24
 
 ### Fixed

@@ -127,6 +127,31 @@ describe("translateFilters()", () => {
     const result = translateFilters([{ field: "lastChanged", op: "newerThanDays", value: "abc" }]);
     expect(result).toEqual({});
   });
+
+  it("translates workLogItem hasItem to a some-relation filter", () => {
+    const result = translateFilters([{ field: "workLogItem", op: "hasItem", value: "item-1" }]);
+    expect(result).toEqual({ AND: [{ workLogs: { some: { itemId: "item-1" } } }] });
+  });
+
+  it("translates workLogItem notHasItem to a none-relation filter", () => {
+    const result = translateFilters([{ field: "workLogItem", op: "notHasItem", value: "item-1" }]);
+    expect(result).toEqual({ AND: [{ workLogs: { none: { itemId: "item-1" } } }] });
+  });
+
+  it("ignores workLogItem filter with no value", () => {
+    const result = translateFilters([{ field: "workLogItem", op: "hasItem" }]);
+    expect(result).toEqual({});
+  });
+
+  it("combines a type filter with a workLogItem filter", () => {
+    const result = translateFilters([
+      { field: "typeId", op: "eq", value: "t1" },
+      { field: "workLogItem", op: "notHasItem", value: "item-1" },
+    ]);
+    expect(result).toEqual({
+      AND: [{ typeId: "t1" }, { workLogs: { none: { itemId: "item-1" } } }],
+    });
+  });
 });
 
 // ── runReport ───────────────────────────────────────────────────────────────

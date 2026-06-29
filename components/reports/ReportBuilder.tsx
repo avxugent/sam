@@ -29,10 +29,11 @@ const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
   installationDate: ["before", "after", "olderThanYears", "newerThanYears", "isNull", "isNotNull"],
   invoiceDate: ["before", "after", "isNull", "isNotNull"],
   lastChanged: ["newerThanDays", "olderThanDays", "before", "after"],
+  workLogItem: ["hasItem", "notHasItem"],
 };
 
 
-const OPS_NEEDING_VALUE: FilterOp[] = ["eq", "neq", "contains", "before", "after", "olderThanYears", "newerThanYears", "newerThanDays", "olderThanDays"];
+const OPS_NEEDING_VALUE: FilterOp[] = ["eq", "neq", "contains", "before", "after", "olderThanYears", "newerThanYears", "newerThanDays", "olderThanDays", "hasItem", "notHasItem"];
 
 type AssetOption = { id: string; name: string };
 
@@ -75,6 +76,7 @@ export function ReportBuilder({
     installationDate: tField("installationDate"),
     invoiceDate: tField("invoiceDate"),
     lastChanged: tField("lastModified"),
+    workLogItem: tField("workLogItem"),
   };
 
   const opLabels: Record<FilterOp, string> = {
@@ -89,6 +91,8 @@ export function ReportBuilder({
     newerThanYears: t("opNewerThanYears"),
     newerThanDays: t("opNewerThanDays"),
     olderThanDays: t("opOlderThanDays"),
+    hasItem: t("opHasItem"),
+    notHasItem: t("opNotHasItem"),
   };
 
   const groupByOptions = [
@@ -192,6 +196,7 @@ export function ReportBuilder({
     if (field === "typeId") return assetTypes;
     if (field === "manufacturerId") return manufacturers;
     if (field === "locationId") return locations;
+    if (field === "workLogItem") return workLogItems;
     return null;
   }
 

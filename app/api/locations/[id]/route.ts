@@ -25,6 +25,7 @@ const updateSchema = z.object({
   latitude: z.number().min(-90).max(90).optional().nullable(),
   longitude: z.number().min(-180).max(180).optional().nullable(),
   coverImageId: z.string().optional().nullable(),
+  inMaintenance: z.boolean().optional(),
 });
 
 export async function GET(
@@ -77,6 +78,18 @@ export async function PUT(
     if (!cover || cover.locationId !== id || !cover.mimeType?.startsWith("image/")) {
       return NextResponse.json(
         { error: "Invalid cover image: must be an image attachment of this location." },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Only rooms (leaf locations) may be placed in maintenance. Un-setting is
+  // always allowed, even if the location later gained children.
+  if (parsed.data.inMaintenance === true) {
+    const childCount = await prisma.location.count({ where: { parentId: id } });
+    if (childCount > 0) {
+      return NextResponse.json(
+        { error: "Only rooms (locations without sub-locations) can be placed in maintenance." },
         { status: 400 }
       );
     }
@@ -176,6 +189,8 @@ export async function PUT(
       changes["Latitude"] = { from: before.latitude ?? null, to: d.latitude ?? null };
     if (d.longitude !== undefined && d.longitude !== before.longitude)
       changes["Longitude"] = { from: before.longitude ?? null, to: d.longitude ?? null };
+    if (d.inMaintenance !== undefined && d.inMaintenance !== before.inMaintenance)
+      changes["In maintenance"] = { from: before.inMaintenance, to: d.inMaintenance };
   }
 
   await logAudit({

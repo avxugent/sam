@@ -38,6 +38,7 @@ type AssetRow = {
   serialNumber: string | null;
   vaultPath: string | null;
   locationId: string;
+  location: { inMaintenance: boolean } | null;
   type: { name: string; scrapeTargetTemplate: string | null; prometheusExposed: boolean } | null;
   manufacturer: { name: string } | null;
 };
@@ -50,6 +51,7 @@ function asset(overrides: Partial<AssetRow> = {}): AssetRow {
     serialNumber: "SN1",
     vaultPath: "secret/av/rectest001",
     locationId: "loc1",
+    location: { inMaintenance: false },
     type: { name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: true },
     manufacturer: { name: "Epiphan" },
     ...overrides,
@@ -119,6 +121,18 @@ describe("GET /api/prometheus/sd", () => {
       asset({
         type: { name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: false },
       }),
+    ] as never);
+
+    const res = await GET(req());
+    const groups = await res.json();
+    expect(groups).toHaveLength(0);
+    expect(res.headers.get("X-SAM-Target-Count")).toBe("0");
+  });
+
+  it("skips assets whose room is in maintenance", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    mockFindMany.mockResolvedValue([
+      asset({ location: { inMaintenance: true } }),
     ] as never);
 
     const res = await GET(req());

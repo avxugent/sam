@@ -17,6 +17,7 @@ import {
   Search,
   X,
   Package,
+  Wrench,
 } from "lucide-react";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 import { StockNavItems } from "@/components/layout/stock-nav-items";
@@ -24,6 +25,7 @@ import { StockNavItems } from "@/components/layout/stock-nav-items";
 type LocationNode = {
   id: string;
   name: string;
+  inMaintenance?: boolean;
   children: LocationNode[];
 };
 
@@ -112,6 +114,9 @@ function LocationTreeItem({
           <span className="truncate">
             {selfMatches ? <mark className="bg-yellow-100 text-inherit rounded-[2px]">{location.name}</mark> : location.name}
           </span>
+          {location.inMaintenance && (
+            <Wrench className="h-3 w-3 flex-shrink-0 stroke-amber-500" aria-label="In maintenance" />
+          )}
         </Link>
 
         {totalAssets > 0 && (

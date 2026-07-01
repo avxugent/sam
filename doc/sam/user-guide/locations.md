@@ -51,6 +51,14 @@ Click **Move** on the location detail page, then pick a new parent location. A l
 
 > Requires Editor or Admin role.
 
+## Placing a room in maintenance
+
+Only **rooms** (locations with no sub-locations) can be placed in maintenance. Open the room's detail page and click **Place in maintenance**, or use the maintenance button on the room's card under its parent location. An amber wrench badge then marks the room on its detail page, on its card, and in the left-hand location tree.
+
+While a room is in maintenance, its assets are excluded from Prometheus service discovery — Prometheus stops scraping those devices without you having to decommission or delete them. Click **End maintenance** to resume scraping. Buildings and campuses do not offer this option; put the individual rooms in maintenance instead.
+
+> Requires Editor or Admin role.
+
 ## Reordering sub-locations
 
 On the Sub-locations tab, drag and drop rows to change the display order.

@@ -81,6 +81,7 @@ Hierarchical tree of physical spaces (campus, building, floor, room, …).
 | `latitude` | float? | Map pin |
 | `longitude` | float? | Map pin |
 | `coverImageId` | string? | FK to Attachment used as hero image |
+| `inMaintenance` | boolean | Default `false`. When `true`, assets in this room are excluded from Prometheus service discovery. Only rooms (leaf locations, no children) may be set — the API rejects it on a location with sub-locations |
 
 `fiNumber` has a `@unique` constraint. Duplicate inserts return Prisma error `P2002` → API returns 409.
 

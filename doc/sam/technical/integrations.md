@@ -26,7 +26,9 @@ PROMETHEUS_SD_TOKEN="<generated-token>"
 
 ### Endpoint 1: HTTP Service Discovery (`/api/prometheus/sd`)
 
-Returns every asset with a hostname as a Prometheus `http_sd_configs` target group, labelled with SAM metadata. Prometheus polls this endpoint and attaches the labels to all metrics scraped from those devices.
+Returns every installed asset with a hostname as a Prometheus `http_sd_configs` target group, labelled with SAM metadata. Prometheus polls this endpoint and attaches the labels to all metrics scraped from those devices.
+
+Excluded from the target list: assets whose type has Prometheus exposure disabled, and assets in a **room that is in maintenance** (`Location.inMaintenance`). Placing a room in maintenance is the intended way to temporarily stop scraping its devices without decommissioning them; clearing the flag makes the targets reappear.
 
 **Labels attached to each target:**
 

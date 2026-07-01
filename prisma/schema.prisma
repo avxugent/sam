@@ -64,6 +64,9 @@ model Location {
   longitude      Float?
   // Cover image: references an Attachment id (image)
   coverImageId   String?
+  // When true, assets in this room are excluded from Prometheus service
+  // discovery. Only rooms (leaf locations) may be placed in maintenance.
+  inMaintenance  Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

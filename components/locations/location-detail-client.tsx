@@ -51,6 +51,7 @@ type LocationChild = {
   description?: string | null;
   fiNumber?: string | null;
   coverImageId?: string | null;
+  inMaintenance?: boolean;
   _count: { assets: number; children: number };
 };
 
@@ -91,6 +92,7 @@ type Location = {
   latitude?: number | null;
   longitude?: number | null;
   coverImageId?: string | null;
+  inMaintenance?: boolean;
   parent?: { id: string; name: string; parentId?: string | null } | null;
   children: LocationChild[];
   attachments: Attachment[];
@@ -150,6 +152,32 @@ export function LocationDetailClient({
     latitude: location.latitude,
     longitude: location.longitude,
   });
+
+  const [selfMaintenance, setSelfMaintenance] = useState(location.inMaintenance ?? false);
+  const [children, setChildren] = useState<LocationChild[]>(location.children);
+  const [maintPendingId, setMaintPendingId] = useState<string | null>(null);
+
+  // Toggle a room's maintenance flag. Rooms only — the caller gates on leaf
+  // status; the API rejects setting it on a location with sub-locations.
+  async function toggleMaintenance(targetId: string, current: boolean) {
+    setMaintPendingId(targetId);
+    const res = await fetch(`/api/locations/${targetId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inMaintenance: !current }),
+    });
+    setMaintPendingId(null);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      return;
+    }
+    const next = !current;
+    if (targetId === location.id) setSelfMaintenance(next);
+    else setChildren((prev) => prev.map((c) => (c.id === targetId ? { ...c, inMaintenance: next } : c)));
+    toast({ title: next ? t("maintenanceEnabled") : t("maintenanceDisabled") });
+    router.refresh();
+  }
 
   const handleAttachmentUpdate = (updated: Attachment[]) => setAttachments(updated);
 
@@ -232,6 +260,12 @@ export function LocationDetailClient({
               {location.fiNumber}
             </span>
           )}
+          {selfMaintenance && (
+            <span className="inline-flex items-center gap-1 font-semibold text-[11px] text-[#0f172a] bg-amber-400 border border-amber-300 px-2 py-[2px] rounded-[5px] mt-1 ml-2">
+              <Wrench className="h-3 w-3" />
+              {t("inMaintenance")}
+            </span>
+          )}
           {hasAddress && (
             <p className="text-[12.5px] text-white/75 flex items-center gap-1.5 mt-1">
               <MapPin className="h-3.5 w-3.5" />
@@ -243,6 +277,22 @@ export function LocationDetailClient({
         {/* Buttons top-right */}
         {canEdit && (
           <div className="absolute top-4 right-4 flex gap-2">
+            {!hasSubLocations && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => toggleMaintenance(location.id, selfMaintenance)}
+                disabled={maintPendingId === location.id}
+                className={`h-8 rounded-[7px] border gap-1.5 text-[13px] backdrop-blur-[4px] ${
+                  selfMaintenance
+                    ? "border-amber-300 bg-amber-400 text-[#0f172a] hover:brightness-95"
+                    : "border-white/30 bg-white/15 text-white hover:bg-white/25"
+                }`}
+              >
+                <Wrench className="h-3.5 w-3.5" />
+                {selfMaintenance ? t("endMaintenance") : t("startMaintenance")}
+              </Button>
+            )}
             <LocationFormDialog
               mode="edit"
               locationId={location.id}
@@ -447,23 +497,52 @@ export function LocationDetailClient({
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[14px]">
-              {location.children.map((child) => (
-                <Link key={child.id} href={`/locations/${child.id}`}>
-                  <div className="bg-white border border-[#e2e8f0] rounded-[10px] p-[18px_20px] hover:border-[rgba(30,100,200,0.5)] transition-colors cursor-pointer">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <MapPin className="h-3.5 w-3.5 fill-[#1e64c8] stroke-[#1e64c8] flex-shrink-0" />
-                      <span className="text-[13.5px] font-semibold text-[#0f172a]">{child.name}</span>
-                    </div>
-                    {child.fiNumber && (
-                      <p className="font-mono text-[11px] text-[#64748b] mb-2">{child.fiNumber}</p>
+              {children.map((child) => {
+                const isRoom = child._count.children === 0;
+                return (
+                  <div
+                    key={child.id}
+                    className="bg-white border border-[#e2e8f0] rounded-[10px] p-[18px_20px] hover:border-[rgba(30,100,200,0.5)] transition-colors"
+                  >
+                    <Link href={`/locations/${child.id}`} className="block cursor-pointer">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <MapPin className="h-3.5 w-3.5 fill-[#1e64c8] stroke-[#1e64c8] flex-shrink-0" />
+                        <span className="text-[13.5px] font-semibold text-[#0f172a]">{child.name}</span>
+                        {child.inMaintenance && (
+                          <span className="inline-flex items-center gap-1 font-semibold text-[10px] text-[#92400e] bg-amber-100 border border-amber-300 px-1.5 py-[1px] rounded-[4px]">
+                            <Wrench className="h-2.5 w-2.5" />
+                            {t("inMaintenance")}
+                          </span>
+                        )}
+                      </div>
+                      {child.fiNumber && (
+                        <p className="font-mono text-[11px] text-[#64748b] mb-2">{child.fiNumber}</p>
+                      )}
+                      <div className="flex gap-3 text-[12px] text-[#64748b]">
+                        <span>{t("directAssets", { count: child._count.assets })}</span>
+                        <span>{t("subLocations", { count: child._count.children })}</span>
+                      </div>
+                    </Link>
+                    {canEdit && isRoom && (
+                      <div className="mt-2 pt-2 border-t border-[#f1f5f9]">
+                        <button
+                          type="button"
+                          onClick={() => toggleMaintenance(child.id, !!child.inMaintenance)}
+                          disabled={maintPendingId === child.id}
+                          className={`inline-flex items-center gap-1 text-[12px] font-medium transition-colors ${
+                            child.inMaintenance
+                              ? "text-[#92400e] hover:text-[#78350f]"
+                              : "text-[#64748b] hover:text-[#1e64c8]"
+                          }`}
+                        >
+                          <Wrench className="h-3 w-3" />
+                          {child.inMaintenance ? t("endMaintenance") : t("startMaintenance")}
+                        </button>
+                      </div>
                     )}
-                    <div className="flex gap-3 text-[12px] text-[#64748b]">
-                      <span>{t("directAssets", { count: child._count.assets })}</span>
-                      <span>{t("subLocations", { count: child._count.children })}</span>
-                    </div>
                   </div>
-                </Link>
-              ))}
+                );
+              })}
               {/* Add sub-location card */}
               {canEdit && (
                 <LocationFormDialog mode="create" parentId={location.id}>

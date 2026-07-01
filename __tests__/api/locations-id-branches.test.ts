@@ -164,6 +164,30 @@ describe("PUT /api/locations/[id]", () => {
     expect(res.status).toBe(200);
     expect(mockLogAudit).toHaveBeenCalledWith(expect.objectContaining({ detail: undefined }));
   });
+
+  it("places a leaf room in maintenance and audits the change", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.location.count).mockResolvedValue(0 as never); // no children → is a room
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ id: "loc1", name: "Room", inMaintenance: false, parent: null } as never);
+    vi.mocked(prisma.location.update).mockResolvedValue({ id: "loc1", name: "Room", parent: null } as never);
+    const res = await PUT(put({ inMaintenance: true }), { params: params() });
+    expect(res.status).toBe(200);
+    expect(vi.mocked(prisma.location.update)).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ inMaintenance: true }) })
+    );
+    expect(mockLogAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { changes: { "In maintenance": { from: false, to: true } } } })
+    );
+  });
+
+  it("400 when placing a non-leaf location in maintenance", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.location.count).mockResolvedValue(3 as never); // has children → not a room
+    const res = await PUT(put({ inMaintenance: true }), { params: params() });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/Only rooms/);
+    expect(prisma.location.update).not.toHaveBeenCalled();
+  });
 });
 
 describe("DELETE /api/locations/[id]", () => {

@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
       serialNumber: true,
       vaultPath: true,
       locationId: true,
+      location: { select: { inMaintenance: true } },
       type: {
         select: { name: true, scrapeTargetTemplate: true, prometheusExposed: true },
       },
@@ -113,6 +114,8 @@ export async function GET(req: NextRequest) {
   for (const asset of assets) {
     if (!asset.hostname) continue;
     if (asset.type && !asset.type.prometheusExposed) continue;
+    // Room in maintenance — its assets are not scrape targets.
+    if (asset.location?.inMaintenance) continue;
 
     // Resolve location metadata
     const ancestors = await getLocationPath(asset.locationId);

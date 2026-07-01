@@ -112,6 +112,8 @@
     "updated": "Updated",
     "lastModified": "Last Modified",
     "installed": "Installed",
+    "decommissioned": "Decommissioned",
+    "status": "Status",
     "campus": "Campus",
     "building": "Building",
     "floor": "Floor",

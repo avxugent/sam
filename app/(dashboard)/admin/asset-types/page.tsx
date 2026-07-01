@@ -14,7 +14,9 @@ export default async function AssetTypesPage() {
       name: true,
       scrapeTargetTemplate: true,
       prometheusExposed: true,
-      _count: { select: { assets: true } },
+      // Count active assets only — decommissioned ones are excluded from the
+      // badge and drilldown (the drilldown API defaults to INSTALLED too).
+      _count: { select: { assets: { where: { status: "INSTALLED" } } } },
     },
   });
 

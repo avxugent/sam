@@ -36,15 +36,31 @@ describe("GET /api/asset-types/[id]/assets", () => {
     mockAuth.mockResolvedValue(null as never);
     expect((await listAssets(new Request("http://x"), { params: params("t1") })).status).toBe(401);
   });
-  it("returns assets filtered by the type id", async () => {
+  it("returns active assets by default (INSTALLED only)", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
     vi.mocked(prisma.asset.findMany).mockResolvedValue([{ id: "a1", model: "M" }] as never);
     const res = await listAssets(new Request("http://x"), { params: params("t1") });
     expect(res.status).toBe(200);
     expect(vi.mocked(prisma.asset.findMany)).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { typeId: "t1" } })
+      expect.objectContaining({ where: { typeId: "t1", status: "INSTALLED" } })
     );
     expect(await res.json()).toEqual([{ id: "a1", model: "M" }]);
+  });
+  it("lists decommissioned assets with ?status=DECOMMISSIONED", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER") as never);
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([] as never);
+    await listAssets(new Request("http://x?status=DECOMMISSIONED"), { params: params("t1") });
+    expect(vi.mocked(prisma.asset.findMany)).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { typeId: "t1", status: "DECOMMISSIONED" } })
+    );
+  });
+  it("lists all statuses with ?status=all", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER") as never);
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([] as never);
+    await listAssets(new Request("http://x?status=all"), { params: params("t1") });
+    expect(vi.mocked(prisma.asset.findMany)).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { typeId: "t1" } })
+    );
   });
 });
 

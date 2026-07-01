@@ -69,7 +69,7 @@ Key validated fields:
 | `GET` | `/api/asset-types/[id]` | VIEWER | Get detail |
 | `PUT` | `/api/asset-types/[id]` | ADMIN | Update (including scrape template) |
 | `DELETE` | `/api/asset-types/[id]` | ADMIN | Delete |
-| `GET` | `/api/asset-types/[id]/assets` | VIEWER | Assets of this type |
+| `GET` | `/api/asset-types/[id]/assets` | VIEWER | Active assets of this type. `?status=DECOMMISSIONED` lists decommissioned only; `?status=all` lists both |
 | `POST` | `/api/asset-types/[id]/presets` | ADMIN | Create maintenance preset |
 | `GET` | `/api/asset-types/presets/[id]` | VIEWER | Get preset |
 | `PUT` | `/api/asset-types/presets/[id]` | ADMIN | Update preset |

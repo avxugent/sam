@@ -23,6 +23,7 @@ const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
   typeId: ["eq", "neq", "isNull", "isNotNull"],
   manufacturerId: ["eq", "neq", "isNull", "isNotNull"],
   locationId: ["eq", "neq", "isNull", "isNotNull"],
+  status: ["eq", "neq"],
   model: ["eq", "neq", "contains", "isNull", "isNotNull"],
   serialNumber: ["eq", "neq", "contains", "isNull", "isNotNull"],
   hostname: ["eq", "neq", "contains", "isNull", "isNotNull"],
@@ -70,6 +71,7 @@ export function ReportBuilder({
     typeId: tField("type"),
     manufacturerId: tField("manufacturer"),
     locationId: tField("location"),
+    status: tField("status"),
     model: tField("model"),
     serialNumber: tField("serialNumber"),
     hostname: tField("hostname"),
@@ -115,6 +117,11 @@ export function ReportBuilder({
     { value: "invoiceNumber" as ColumnKey, label: tField("invoiceNumber") },
     { value: "notes" as ColumnKey, label: tField("notes") },
     { value: "lastChanged" as ColumnKey, label: tField("lastModified") },
+  ];
+
+  const assetStatusOptions: AssetOption[] = [
+    { id: "INSTALLED", name: tField("installed") },
+    { id: "DECOMMISSIONED", name: tField("decommissioned") },
   ];
 
   const initLocation = initialDefinition && isLocationReport(initialDefinition) ? initialDefinition : null;
@@ -196,6 +203,7 @@ export function ReportBuilder({
     if (field === "typeId") return assetTypes;
     if (field === "manufacturerId") return manufacturers;
     if (field === "locationId") return locations;
+    if (field === "status") return assetStatusOptions;
     if (field === "workLogItem") return workLogItems;
     return null;
   }

@@ -17,6 +17,7 @@ export type ReportFilterField =
   | "typeId"
   | "manufacturerId"
   | "locationId"
+  | "status"
   | "model"
   | "serialNumber"
   | "hostname"

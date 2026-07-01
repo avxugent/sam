@@ -112,6 +112,8 @@
     "updated": "Bijgewerkt",
     "lastModified": "Laatst gewijzigd",
     "installed": "Geïnstalleerd",
+    "decommissioned": "Buiten dienst",
+    "status": "Status",
     "campus": "Campus",
     "building": "Gebouw",
     "floor": "Verdieping",

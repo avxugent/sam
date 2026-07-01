@@ -152,6 +152,26 @@ describe("translateFilters()", () => {
       AND: [{ typeId: "t1" }, { workLogs: { none: { itemId: "item-1" } } }],
     });
   });
+
+  it("translates status eq INSTALLED", () => {
+    const result = translateFilters([{ field: "status", op: "eq", value: "INSTALLED" }]);
+    expect(result).toEqual({ AND: [{ status: "INSTALLED" }] });
+  });
+
+  it("translates status neq DECOMMISSIONED", () => {
+    const result = translateFilters([{ field: "status", op: "neq", value: "DECOMMISSIONED" }]);
+    expect(result).toEqual({ AND: [{ status: { not: "DECOMMISSIONED" } }] });
+  });
+
+  it("ignores status filter with an unknown value", () => {
+    const result = translateFilters([{ field: "status", op: "eq", value: "BOGUS" }]);
+    expect(result).toEqual({});
+  });
+
+  it("ignores status filter with no value", () => {
+    const result = translateFilters([{ field: "status", op: "eq" }]);
+    expect(result).toEqual({});
+  });
 });
 
 // ── runReport ───────────────────────────────────────────────────────────────

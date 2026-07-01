@@ -20,6 +20,7 @@ const filterFieldSchema = z.enum([
   "typeId",
   "manufacturerId",
   "locationId",
+  "status",
   "model",
   "serialNumber",
   "hostname",

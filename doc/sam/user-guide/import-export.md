@@ -27,7 +27,7 @@ The CSV file must have a header row. The following column names are recognised:
 | `BRAND` | No | Manufacturer name (created if not exists) |
 | `MODEL` | No | Asset model |
 | `SERIAL` | No | Serial number |
-| `MAC` | No | MAC address |
+| `MAC` | No | MAC address(es), comma/semicolon/pipe-separated for multiple |
 | `IP_HOSTNAME` | No | Hostname |
 | `INSTALL_DATE` | No | Installation date (ISO format or DD/MM/YYYY) |
 | `Factuurnummer` | No | Invoice number |
@@ -46,6 +46,8 @@ Additional columns not listed above are imported as **custom fields** on the ass
 5. Review the **results**: how many assets were created, how many rows were skipped, and any errors.
 
 > Each import row creates a new asset. There is no duplicate detection — re-importing the same file creates duplicate assets.
+
+> MAC addresses are normalized to `AA:BB:CC:DD:EE:FF` on import regardless of the source format (no separator, hyphens, lowercase, Cisco dot-grouping). A value that can't be normalized (wrong digit count, non-hex characters) is imported as-is and listed in the results as an error for manual review.
 
 > Requires Editor or Admin role.
 

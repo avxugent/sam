@@ -93,6 +93,40 @@ node scripts/resolve-ip-hostnames.mjs --timeout 8000
 
 ---
 
+### `fix-scientific-notation-serials.mjs`
+
+**npm alias:** `npm run assets:fix-serial-numbers` (dry-run: `npm run assets:fix-serial-numbers:dry-run`)
+
+One-off cleanup. Legacy Excel exports sometimes wrote large serial numbers in scientific notation (e.g. `1,50304E+13`) before the CSV was imported, so the mangled text ended up stored verbatim in `Asset.serialNumber`. The mantissa only carries a handful of significant digits, so the original value can't be reconstructed — this script clears `serialNumber` on every affected asset and preserves the original (unreliable) text in a `"Legacy serial (unverified)"` custom field for manual follow-up against the physical device.
+
+```bash
+node scripts/fix-scientific-notation-serials.mjs
+node scripts/fix-scientific-notation-serials.mjs --dry-run
+```
+
+| Flag | Description |
+|---|---|
+| `--dry-run` | Preview without writing |
+
+---
+
+### `fix-mac-address-format.mjs`
+
+**npm alias:** `npm run assets:fix-mac-format` (dry-run: `npm run assets:fix-mac-format:dry-run`)
+
+One-off cleanup. Legacy imports left `MacAddress.address` in a mix of formats (no separator, hyphen-separated, lowercase, Cisco dot-grouped). This script normalizes every address to `AA:BB:CC:DD:EE:FF` using the same rule as the CSV import (see [Import & Export](../user-guide/import-export.md)). Addresses that don't reduce to exactly 12 hex digits (typo'd character, missing digits) are left untouched and printed for manual review.
+
+```bash
+node scripts/fix-mac-address-format.mjs
+node scripts/fix-mac-address-format.mjs --dry-run
+```
+
+| Flag | Description |
+|---|---|
+| `--dry-run` | Preview without writing |
+
+---
+
 ### `sync-lokalen.mjs`
 
 **npm alias:** `npm run locations:sync-lokalen`

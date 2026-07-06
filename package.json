@@ -1,6 +1,6 @@
 {
   "name": "sam",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "type": "module",
   "private": true,
   "scripts": {
@@ -21,6 +21,10 @@
     "attachment:add": "node --import tsx/esm scripts/add-attachment.mjs",
     "assets:resolve-hostnames": "node --import tsx/esm scripts/resolve-ip-hostnames.mjs",
     "assets:resolve-hostnames:dry-run": "node --import tsx/esm scripts/resolve-ip-hostnames.mjs --dry-run",
+    "assets:fix-serial-numbers": "node --import tsx/esm scripts/fix-scientific-notation-serials.mjs",
+    "assets:fix-serial-numbers:dry-run": "node --import tsx/esm scripts/fix-scientific-notation-serials.mjs --dry-run",
+    "assets:fix-mac-format": "node --import tsx/esm scripts/fix-mac-address-format.mjs",
+    "assets:fix-mac-format:dry-run": "node --import tsx/esm scripts/fix-mac-address-format.mjs --dry-run",
     "export:backup": "node --import tsx/esm scripts/export-backup.mjs",
     "export:backup:dry-run": "node --import tsx/esm scripts/export-backup.mjs --dry-run",
     "user:reset-password": "node --import tsx/esm scripts/reset-password.mjs",

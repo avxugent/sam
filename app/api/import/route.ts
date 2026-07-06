@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { parseCsv, parseDate, csvValue } from "@/lib/csv";
+import { normalizeMacAddress } from "@/lib/mac-address";
 import { logAudit } from "@/lib/audit";
 
 // CSV columns from the legacy export
@@ -161,10 +162,23 @@ export async function POST(req: NextRequest) {
       const installationDate = parseDate(v(row, "INSTALL_DATE"));
       const invoiceDate = parseDate(v(row, "Factuurdatum"));
 
-      // MAC address(es) — may be semicolon or comma-separated within the field
+      // MAC address(es) — may be semicolon or comma-separated within the field.
+      // Normalize each to AA:BB:CC:DD:EE:FF; if a value can't be normalized,
+      // keep it as-is and flag it rather than guess or drop it.
       const macRaw = v(row, "MAC");
       const macAddresses = macRaw
-        ? macRaw.split(/[,;|]/).map((m) => m.trim()).filter(Boolean)
+        ? macRaw
+            .split(/[,;|]/)
+            .map((m) => m.trim())
+            .filter(Boolean)
+            .map((m) => {
+              const normalized = normalizeMacAddress(m);
+              if (normalized === null) {
+                stats.errors.push(`Row ${rowNum}: MAC address "${m}" could not be normalized, stored as-is.`);
+                return m;
+              }
+              return normalized;
+            })
         : [];
 
       // Custom fields — store non-empty legacy fields that don't have a direct mapping

@@ -13,9 +13,17 @@
  * Usage: node scripts/fix-mac-address-format.mjs [--dry-run]
  */
 import { prisma } from "./_prisma.mjs";
-import { normalizeMacAddress as normalize } from "../lib/mac-address.ts";
 
 const dryRun = process.argv.includes("--dry-run");
+
+// Kept in sync with lib/mac-address.ts's normalizeMacAddress(). Duplicated
+// (not imported) because scripts/ is deployed as an isolated bundle in
+// Docker — see Dockerfile — and doesn't have access to the project's lib/.
+function normalize(raw) {
+  const stripped = raw.replace(/[\s:\-.]/g, "");
+  if (!/^[0-9A-Fa-f]{12}$/.test(stripped)) return null;
+  return stripped.toUpperCase().match(/.{2}/g).join(":");
+}
 
 const rows = await prisma.macAddress.findMany({
   select: { id: true, assetId: true, address: true },

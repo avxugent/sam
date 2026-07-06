@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { matchesHostnamePattern } from "@/lib/hostname-pattern";
+import { normalizeMacAddress } from "@/lib/mac-address";
 import { Loader2, Plus, Trash2, KeyRound, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
@@ -40,18 +41,14 @@ import { useTranslations } from "next-intl";
 const FQDN_REGEX =
   /^(?!-)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
 
-/**
- * IEEE 802 MAC address — colon, hyphen, or dot-separated, upper or lower case.
- * Accepts: AA:BB:CC:DD:EE:FF  aa-bb-cc-dd-ee-ff  AABB.CCDD.EEFF
- */
-const MAC_REGEX =
-  /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$|^([0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$/;
-
 const macAddressSchema = z.object({
   address: z
     .string()
     .min(1, "MAC address is required")
-    .regex(MAC_REGEX, "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)"),
+    .refine(
+      (v) => normalizeMacAddress(v) !== null,
+      "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)"
+    ),
 });
 
 const schema = z
@@ -79,7 +76,7 @@ const schema = z
   .superRefine((data, ctx) => {
     const hostnameSet = !!data.hostname?.trim();
     const hasValidMac = data.macAddresses.some(
-      (m) => m.address.trim() !== "" && MAC_REGEX.test(m.address.trim())
+      (m) => normalizeMacAddress(m.address.trim()) !== null
     );
 
     // Rule: if hostname is filled, at least one MAC is required
@@ -133,7 +130,10 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
   const validationSchema = useMemo(() => {
     const macSchema = z.object({
-      address: z.string().min(1, t("errMacRequired")).regex(MAC_REGEX, t("errMacInvalid")),
+      address: z.string().min(1, t("errMacRequired")).refine(
+        (v) => normalizeMacAddress(v) !== null,
+        t("errMacInvalid")
+      ),
     });
     return z.object({
       typeId: z.string().min(1, t("errTypeRequired")),
@@ -152,7 +152,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       const hostnameTrimmed = data.hostname?.trim();
       const hostnameSet = !!hostnameTrimmed;
       const hasValidMac = data.macAddresses.some(
-        (m) => m.address.trim() !== "" && MAC_REGEX.test(m.address.trim())
+        (m) => normalizeMacAddress(m.address.trim()) !== null
       );
       if (hostnameSet && !hasValidMac) {
         ctx.addIssue({
@@ -315,7 +315,10 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       manufacturerId: data.manufacturerId || null,
       hostname: data.hostname?.trim() || null,
       vaultPath: data.vaultPath?.trim() || null,
-      macAddresses: data.macAddresses.map((m) => m.address.trim()).filter(Boolean),
+      macAddresses: data.macAddresses
+        .map((m) => m.address.trim())
+        .filter(Boolean)
+        .map((address) => normalizeMacAddress(address) ?? address),
       customFields: data.customFields.filter((f) => f.key),
     };
 

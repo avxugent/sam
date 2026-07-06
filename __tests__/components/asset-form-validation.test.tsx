@@ -144,6 +144,20 @@ describe("<AssetFormDialog /> validation", () => {
     });
   });
 
+  it("accepts a hyphen-separated MAC without a format error (normalized server-side)", async () => {
+    renderDialog();
+    const user = await openDialog();
+
+    await user.click(screen.getByRole("button", { name: /Add MAC/i }));
+    await user.type(screen.getByPlaceholderText("AA:BB:CC:DD:EE:FF"), "aa-bb-cc-dd-ee-ff");
+
+    await user.click(screen.getByRole("button", { name: "Create asset" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Invalid MAC address/i)).not.toBeInTheDocument();
+    });
+  });
+
   it("allows hostname+MAC combination without errors", async () => {
     mockFetch.mockImplementation((url: string) => {
       if (url.includes("/api/asset-types")) return Promise.resolve({ ok: true, json: async () => [{ id: "t1", name: "Projector" }] } as Response);

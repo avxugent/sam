@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { matchesHostnamePattern } from "@/lib/hostname-pattern";
+import { normalizeMacAddress } from "@/lib/mac-address";
 import { logAudit } from "@/lib/audit";
 
 const MAX_CUSTOM_FIELDS = 50;
@@ -11,8 +12,21 @@ const MAX_MAC_ADDRESSES = 20;
 const FQDN_REGEX =
   /^(?!-)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
 
-const MAC_REGEX =
-  /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$|^([0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$/;
+// Accepts any recoverable MAC shape (colon, hyphen, dot-grouped, no
+// separator, mixed case) and normalizes it to AA:BB:CC:DD:EE:FF — mirrors
+// the CSV import behavior so manually created assets can't reintroduce
+// inconsistent formats.
+const macAddressField = z.string().transform((v, ctx) => {
+  const normalized = normalizeMacAddress(v);
+  if (normalized === null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Invalid MAC address format (expected AA:BB:CC:DD:EE:FF)",
+    });
+    return z.NEVER;
+  }
+  return normalized;
+});
 
 const customFieldSchema = z.object({
   key: z.string().min(1).max(100),
@@ -31,19 +45,12 @@ const createAssetSchema = z
     invoiceDate: z.string().optional().nullable(),
     notes: z.string().max(5000).optional().nullable(),
     vaultPath: z.string().max(500).optional().nullable(),
-    macAddresses: z
-      .array(
-        z.string().regex(MAC_REGEX, "Invalid MAC address format")
-      )
-      .max(MAX_MAC_ADDRESSES)
-      .optional(),
+    macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
     customFields: z.array(customFieldSchema).max(MAX_CUSTOM_FIELDS).optional(),
   })
   .superRefine((data, ctx) => {
     const hostnameSet = !!data.hostname?.trim();
-    const hasValidMac = (data.macAddresses ?? []).some(
-      (m) => m.trim() !== "" && MAC_REGEX.test(m.trim())
-    );
+    const hasValidMac = (data.macAddresses ?? []).length > 0;
     if (hostnameSet && !hasValidMac) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

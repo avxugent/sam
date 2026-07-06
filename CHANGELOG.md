@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.0] - 2026-07-06
+
+### Added
+- Asset types can now define a **hostname format** (regular expression, configured under Administration → Asset Types). When set, hostnames for assets of that type must match it (case-insensitive); types without one fall back to the existing generic FQDN check.
+- Hostnames are now **globally unique** across every asset, including decommissioned ones, so a hostname is never silently reused — attempting to reuse one returns a 409 conflict.
+
+---
+
 ## [1.1.0] - 2026-06-29
 
 ### Added

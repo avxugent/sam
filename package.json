@@ -1,6 +1,6 @@
 {
   "name": "sam",
-  "version": "1.2.1",
+  "version": "1.4.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -25,6 +25,8 @@
     "assets:fix-serial-numbers:dry-run": "node --import tsx/esm scripts/fix-scientific-notation-serials.mjs --dry-run",
     "assets:fix-mac-format": "node --import tsx/esm scripts/fix-mac-address-format.mjs",
     "assets:fix-mac-format:dry-run": "node --import tsx/esm scripts/fix-mac-address-format.mjs --dry-run",
+    "assets:normalize-models": "node --import tsx/esm scripts/normalize-models.mjs",
+    "assets:normalize-models:dry-run": "node --import tsx/esm scripts/normalize-models.mjs --dry-run",
     "export:backup": "node --import tsx/esm scripts/export-backup.mjs",
     "export:backup:dry-run": "node --import tsx/esm scripts/export-backup.mjs --dry-run",
     "user:reset-password": "node --import tsx/esm scripts/reset-password.mjs",
@@ -59,6 +61,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "dotenv": "^17.3.1",
+    "fastest-levenshtein": "^1.0.16",
     "jsdom": "^29.0.2",
     "lucide-react": "^1.6.0",
     "mariadb": "3.5.2",

@@ -13,6 +13,16 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -123,6 +133,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [modelSuggestions, setModelSuggestions] = useState<ModelSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [modelSimilarMatch, setModelSimilarMatch] = useState<{ model: string } | null>(null);
+  const [dismissedModelValue, setDismissedModelValue] = useState<string | null>(null);
   const [manufacturerSearch, setManufacturerSearch] = useState("");
   const [showManufacturerDropdown, setShowManufacturerDropdown] = useState(false);
   const [vaultTestResult, setVaultTestResult] = useState<VaultTestResult | null>(null);
@@ -264,6 +276,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       fetchDropdowns();
       fetchAsset();
       setVaultTestResult(null);
+      setModelSimilarMatch(null);
+      setDismissedModelValue(null);
     }
   }, [open, fetchDropdowns, fetchAsset]);
 
@@ -288,6 +302,22 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     }, 300);
     return () => clearTimeout(timer);
   }, [modelValue, typeIdValue, manufacturerIdValue]);
+
+  function handleModelBlur() {
+    setTimeout(() => setShowSuggestions(false), 200);
+    void checkModelSimilarity();
+  }
+
+  async function checkModelSimilarity() {
+    const trimmed = modelValue?.trim();
+    if (!trimmed || trimmed === dismissedModelValue) return;
+    const params = new URLSearchParams({ q: trimmed });
+    if (mode === "edit" && assetId) params.set("excludeAssetId", assetId);
+    const res = await fetch(`/api/models/similar?${params}`);
+    if (!res.ok) return;
+    const { match } = await res.json();
+    if (match) setModelSimilarMatch({ model: match.model });
+  }
 
   async function handleTestVault() {
     const path = vaultPathValue?.trim();
@@ -347,6 +377,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     toast({ title: mode === "create" ? tAsset("assetCreated") : tAsset("assetUpdated") });
     setOpen(false);
     reset({ typeId: "", manufacturerId: "", model: "", macAddresses: [], customFields: [], vaultPath: "" });
+    setModelSimilarMatch(null);
+    setDismissedModelValue(null);
     router.refresh();
     onSuccess?.();
   }
@@ -365,6 +397,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     ?? (errors.macAddresses as { message?: string } | undefined)?.message;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -480,7 +513,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 autoComplete="off"
                 className={cn(errors.model && "border-destructive")}
                 onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onBlur={handleModelBlur}
               />
               {errors.model && (
                 <p id="model-err" className="text-xs text-destructive">{errors.model.message}</p>
@@ -770,5 +803,39 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         </form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog
+      open={!!modelSimilarMatch}
+      onOpenChange={(v) => {
+        if (!v) {
+          setDismissedModelValue(modelValue?.trim() ?? null);
+          setModelSimilarMatch(null);
+        }
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t("modelSimilarTitle")}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {t("modelSimilarDescription", { existing: modelSimilarMatch?.model ?? "" })}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setDismissedModelValue(modelValue?.trim() ?? null)}>
+            {t("modelSimilarKeepMine")}
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              setValue("model", modelSimilarMatch!.model, { shouldValidate: true });
+              setDismissedModelValue(modelSimilarMatch!.model);
+              setModelSimilarMatch(null);
+            }}
+          >
+            {t("modelSimilarUseExisting")}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

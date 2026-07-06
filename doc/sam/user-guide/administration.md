@@ -63,6 +63,20 @@ Manufacturer names used across all assets.
 
 ---
 
+## Model Cleanup
+
+**Administration → Model Cleanup**
+
+Review clusters of similar-but-not-identical asset model spellings (typos, abbreviations) and merge them into a single canonical spelling. Only clusters that couldn't be safely auto-merged (see the `assets:normalize-models` maintenance script) are shown here. Each entry shows its asset count, asset type(s), and manufacturer(s) as context, since spelling similarity alone can't tell apart genuinely different products (e.g. "...RX" vs "...TX" variants).
+
+- **Choose the correct spelling** — pick one of the listed spellings, or select **Use a custom spelling** to type a corrected name if none of them are exactly right.
+- **Exclude items** — uncheck any entry that doesn't actually belong with the rest of the cluster before merging; unchecked entries are left untouched.
+- Click **Merge** to rewrite every checked entry to the chosen spelling.
+
+**Rename a model** — below the cluster list, search for any model (even one with no detected duplicates — e.g. a single consistently-misspelled entry) and rename it directly. All assets using that spelling are batch-updated to the new name.
+
+---
+
 ## Audit Log
 
 **Administration → Audit Log**

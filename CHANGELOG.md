@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.4.0] - 2026-07-06
+
+### Added
+- Asset **model names** get consistency tooling: when a model name similar to an existing one is entered, the asset form now shows a "Did you mean an existing model?" prompt offering to reuse the existing spelling — a soft warning only, you can still keep your own text.
+- New **Administration → Model Cleanup** page: review clusters of similar-but-not-identical model spellings (asset count, type(s), and manufacturer(s) shown as context), pick or type the correct spelling, exclude individual entries that don't actually belong together, and merge with one click.
+- **Rename a model** — from the same page, search for and batch-rename any model directly, including ones with no detected duplicates (e.g. a single consistently-misspelled entry).
+- New maintenance script `assets:normalize-models` (`--dry-run` supported) auto-merges model spellings that differ only by case, whitespace, or punctuation.
+
+---
+
 ## [1.2.0] - 2026-07-06
 
 ### Added

@@ -35,6 +35,7 @@ import {
   Settings,
   UserCog,
   BarChart2,
+  Merge,
 } from "lucide-react";
 
 type HeaderUser = {
@@ -55,7 +56,7 @@ type QuickResult = {
 
 type AdminNavItem = {
   href: string;
-  labelKey: "users" | "assetTypes" | "manufacturers" | "importCsv" | "exportCsv" | "auditLog" | "settings";
+  labelKey: "users" | "assetTypes" | "manufacturers" | "modelCleanup" | "importCsv" | "exportCsv" | "auditLog" | "settings";
   icon: React.ReactNode;
   adminOnly: boolean;
 };
@@ -64,6 +65,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/users", labelKey: "users", icon: <Users className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/asset-types", labelKey: "assetTypes", icon: <Tag className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/manufacturers", labelKey: "manufacturers", icon: <Factory className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/models", labelKey: "modelCleanup", icon: <Merge className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/import", labelKey: "importCsv", icon: <Upload className="h-4 w-4" />, adminOnly: false },
   { href: "/admin/export", labelKey: "exportCsv", icon: <Download className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/audit", labelKey: "auditLog", icon: <ClipboardList className="h-4 w-4" />, adminOnly: true },

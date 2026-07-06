@@ -127,6 +127,23 @@ node scripts/fix-mac-address-format.mjs --dry-run
 
 ---
 
+### `normalize-models.mjs`
+
+**npm alias:** `npm run assets:normalize-models` (dry-run: `npm run assets:normalize-models:dry-run`)
+
+One-off cleanup. Years of manual entry and imports left `Asset.model` spelled inconsistently (case, whitespace, punctuation — e.g. `PowerEdge R740`, `poweredge r740`, `PowerEdge  R740`). This script groups all distinct model values by a normalized key and, for any group with more than one distinct raw spelling, rewrites every row onto a single canonical spelling: the spelling used by the most assets, ties broken alphabetically. It only merges spellings that are identical once normalized — it does not attempt fuzzy/typo matching. Remaining near-duplicates (typos, abbreviations) must be reviewed and merged manually via **Administration → Model Cleanup**.
+
+```bash
+node scripts/normalize-models.mjs
+node scripts/normalize-models.mjs --dry-run
+```
+
+| Flag | Description |
+|---|---|
+| `--dry-run` | Preview without writing |
+
+---
+
 ### `sync-lokalen.mjs`
 
 **npm alias:** `npm run locations:sync-lokalen`

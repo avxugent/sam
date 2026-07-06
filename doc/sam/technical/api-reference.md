@@ -244,5 +244,15 @@ All endpoints use Bearer token authentication (`Authorization: Bearer <PROMETHEU
 | `GET` | `/api/setup` | public | Check if setup is needed (returns `userCount`) |
 | `POST` | `/api/setup` | public | Create first admin (only when `userCount === 0`) |
 | `GET` | `/api/models` | VIEWER | List unique model strings (for autocomplete) |
+| `GET` | `/api/models/similar` | VIEWER | Fuzzy-match a candidate model name (`q`) against existing ones; returns `{ match: { model, distance } \| null }`. Used to show a "did you mean an existing model?" warning while editing an asset |
 | `GET` | `/api/jira/issue/[key]` | VIEWER | Fetch JIRA issue summary and status |
 | `GET` | `/api/vault/test` | EDITOR | Test Vault connection for an asset's vault path |
+
+---
+
+## Model Cleanup
+
+| Method | Path | Min role | Description |
+|---|---|---|---|
+| `GET` | `/api/models/clusters` | ADMIN | List clusters of 2+ similar-but-not-identical model spellings, grouped by fuzzy edit-distance matching |
+| `POST` | `/api/models/merge` | ADMIN | Rewrite all assets using any of `variants` to `canonical` (bulk rename, no entity to delete since `model` is a plain string field) |

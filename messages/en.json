@@ -66,6 +66,7 @@
     "users": "Users",
     "assetTypes": "Asset Types",
     "manufacturers": "Manufacturers",
+    "modelCleanup": "Model Cleanup",
     "importCsv": "Import CSV",
     "exportCsv": "Export CSV",
     "auditLog": "Audit Log",
@@ -203,7 +204,11 @@
     "errHostnamePattern": "Hostname does not match the required format for {typeName}.",
     "errMacRequiredForHostname": "At least one MAC address is required when a hostname is set.",
     "hostnamePatternHint": "Must match: {pattern}",
-    "vaultKeys": "Keys:"
+    "vaultKeys": "Keys:",
+    "modelSimilarTitle": "Did you mean an existing model?",
+    "modelSimilarDescription": "A similar model name already exists: \"{existing}\". Use it to keep spellings consistent, or keep what you typed.",
+    "modelSimilarKeepMine": "Keep mine",
+    "modelSimilarUseExisting": "Use existing"
   },
   "location": {
     "title": "Location",
@@ -512,6 +517,23 @@
     "manufacturerDeleted": "Manufacturer deleted",
     "manufacturerMerged": "Manufacturers merged",
     "addNewManufacturer": "Add new manufacturer..."
+  },
+  "modelCleanup": {
+    "title": "Model Cleanup",
+    "subtitle": "Review and merge similar asset model spellings.",
+    "clusterCount": "{count} asset(s)",
+    "mergeButton": "Merge",
+    "noClustersFound": "No similar model spellings found.",
+    "includeInMerge": "Include \"{model}\" in this merge",
+    "useAsCanonical": "Use \"{model}\" as the correct spelling",
+    "customOption": "Use a custom spelling",
+    "customPlaceholder": "Type the correct spelling…",
+    "renameTitle": "Rename a model",
+    "renameSubtitle": "Search for any model and batch-rename all its assets, even if no similar spelling was detected.",
+    "searchPlaceholder": "Search models…",
+    "noModelsFound": "No models match your search.",
+    "renameButton": "Rename",
+    "renameConfirm": "Confirm"
   },
   "import": {
     "title": "Import CSV",

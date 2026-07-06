@@ -39,9 +39,11 @@ import {
   ChevronDown,
   ChevronRight,
   Info,
+  Hash,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getUsedVariables, validateTemplate } from "@/lib/scrape-template";
+import { validateHostnamePattern } from "@/lib/hostname-pattern";
 import { MaintenancePresetsManager } from "@/components/settings/maintenance-presets-manager";
 
 type AssetType = {
@@ -49,6 +51,7 @@ type AssetType = {
   name: string;
   scrapeTargetTemplate: string | null;
   prometheusExposed: boolean;
+  hostnamePattern: string | null;
   _count: { assets: number };
 };
 
@@ -150,6 +153,11 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
   const [templateValue, setTemplateValue] = useState("");
   const [templateSaving, setTemplateSaving] = useState(false);
 
+  // Hostname pattern editor state — keyed by asset type id so multiple
+  // expanded rows can be edited independently
+  const [hostnamePatternDrafts, setHostnamePatternDrafts] = useState<Record<string, string>>({});
+  const [hostnamePatternSavingId, setHostnamePatternSavingId] = useState<string | null>(null);
+
   // Expand/collapse the scrape config per row
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
@@ -169,7 +177,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     }
     const item = await res.json();
     setTypes((prev) =>
-      [...prev, { ...item, scrapeTargetTemplate: null, prometheusExposed: true, _count: { assets: 0 } }].sort(
+      [...prev, { ...item, scrapeTargetTemplate: null, prometheusExposed: true, hostnamePattern: null, _count: { assets: 0 } }].sort(
         (a, b) => a.name.localeCompare(b.name)
       )
     );
@@ -262,6 +270,41 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     toast({ title: t("scrapeTemplateSaved") });
   }
 
+  async function handleSaveHostnamePattern(id: string) {
+    const value = (hostnamePatternDrafts[id] ?? "").trim();
+    if (value) {
+      const patternError = validateHostnamePattern(value);
+      if (patternError) {
+        toast({ title: t("hostnamePatternInvalid"), description: patternError, variant: "destructive" });
+        return;
+      }
+    }
+    setHostnamePatternSavingId(id);
+    const res = await fetch(`/api/asset-types/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hostnamePattern: value || null }),
+    });
+    setHostnamePatternSavingId(null);
+    if (!res.ok) {
+      const err = await res.json();
+      toast({ title: tCommon("error"), description: err.error || err.details?.[0], variant: "destructive" });
+      return;
+    }
+    const updated = await res.json();
+    setTypes((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, hostnamePattern: updated.hostnamePattern } : item
+      )
+    );
+    setHostnamePatternDrafts((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    toast({ title: t("hostnamePatternSaved") });
+  }
+
   async function handleDelete(id: string) {
     const res = await fetch(`/api/asset-types/${id}`, { method: "DELETE" });
     if (!res.ok) {
@@ -317,6 +360,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
             const isExpanded = expandedIds.has(item.id);
             const hasTemplate = !!item.scrapeTargetTemplate?.trim();
             const isExcluded = !item.prometheusExposed;
+            const hasHostnamePattern = !!item.hostnamePattern?.trim();
 
             return (
               <div key={item.id}>
@@ -374,6 +418,16 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                         >
                           <Activity className="h-3 w-3" />
                           Scrape configured
+                        </Badge>
+                      )}
+
+                      {hasHostnamePattern && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs text-purple-600 border-purple-300 bg-purple-50 gap-1"
+                        >
+                          <Hash className="h-3 w-3" />
+                          {t("hostnamePatternConfigured")}
                         </Badge>
                       )}
 
@@ -469,6 +523,50 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                           </label>
                           <p className="text-xs text-muted-foreground">{t("prometheusExposedHelp")}</p>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Hostname format (regex) */}
+                    <div className="pt-3 pb-3 border-b space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Hash className="h-3.5 w-3.5" />
+                        {t("hostnamePattern")}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{t("hostnamePatternHelp")}</p>
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1">
+                          <Input
+                            value={hostnamePatternDrafts[item.id] ?? item.hostnamePattern ?? ""}
+                            onChange={(e) =>
+                              setHostnamePatternDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))
+                            }
+                            placeholder={t("hostnamePatternPlaceholder")}
+                            className="font-mono text-xs"
+                          />
+                          {(() => {
+                            const draft = (hostnamePatternDrafts[item.id] ?? item.hostnamePattern ?? "").trim();
+                            if (!draft) return null;
+                            const patternError = validateHostnamePattern(draft);
+                            return patternError ? (
+                              <p className="text-xs text-destructive mt-1">{patternError}</p>
+                            ) : (
+                              <p className="text-xs text-green-700 mt-1">{t("hostnamePatternValid")}</p>
+                            );
+                          })()}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs flex-shrink-0"
+                          disabled={hostnamePatternSavingId === item.id || hostnamePatternDrafts[item.id] === undefined}
+                          onClick={() => handleSaveHostnamePattern(item.id)}
+                        >
+                          {hostnamePatternSavingId === item.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            tCommon("save")
+                          )}
+                        </Button>
                       </div>
                     </div>
 

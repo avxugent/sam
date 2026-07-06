@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { matchesHostnamePattern } from "@/lib/hostname-pattern";
 import { logAudit } from "@/lib/audit";
 
 const MAX_CUSTOM_FIELDS = 50;
@@ -24,15 +25,7 @@ const createAssetSchema = z
     manufacturerId: z.string().min(1, "Manufacturer is required"),
     model: z.string().min(1, "Model is required").max(255),
     serialNumber: z.string().max(100).optional().nullable(),
-    hostname: z
-      .string()
-      .max(255)
-      .optional()
-      .nullable()
-      .refine(
-        (v) => !v || FQDN_REGEX.test(v.trim()),
-        "Hostname must be a valid fully qualified domain name"
-      ),
+    hostname: z.string().max(255).optional().nullable(),
     installationDate: z.string().optional().nullable(),
     invoiceNumber: z.string().max(100).optional().nullable(),
     invoiceDate: z.string().optional().nullable(),
@@ -128,26 +121,55 @@ export async function POST(
 
   const { macAddresses, customFields, installationDate, invoiceDate, ...assetData } = parsed.data;
 
-  const asset = await prisma.asset.create({
-    data: {
-      ...assetData,
-      locationId: id,
-      installationDate: installationDate ? new Date(installationDate) : null,
-      invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
-      macAddresses: macAddresses?.length
-        ? { create: macAddresses.filter(Boolean).map((address) => ({ address })) }
-        : undefined,
-      customFields: customFields?.length
-        ? { create: customFields.filter((f) => f.key).map((f) => ({ key: f.key, value: f.value })) }
-        : undefined,
-    },
-    include: {
-      type: true,
-      manufacturer: true,
-      macAddresses: true,
-      customFields: true,
-    },
-  });
+  const hostnameTrimmed = assetData.hostname?.trim();
+  if (hostnameTrimmed) {
+    const assetType = await prisma.assetType.findUnique({
+      where: { id: assetData.typeId },
+      select: { hostnamePattern: true },
+    });
+    const isValidHostname = assetType?.hostnamePattern
+      ? matchesHostnamePattern(hostnameTrimmed, assetType.hostnamePattern)
+      : FQDN_REGEX.test(hostnameTrimmed);
+    if (!isValidHostname) {
+      return NextResponse.json(
+        { error: "Hostname does not match the required format for this asset type." },
+        { status: 400 }
+      );
+    }
+  }
+
+  let asset;
+  try {
+    asset = await prisma.asset.create({
+      data: {
+        ...assetData,
+        hostname: hostnameTrimmed || null,
+        locationId: id,
+        installationDate: installationDate ? new Date(installationDate) : null,
+        invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
+        macAddresses: macAddresses?.length
+          ? { create: macAddresses.filter(Boolean).map((address) => ({ address })) }
+          : undefined,
+        customFields: customFields?.length
+          ? { create: customFields.filter((f) => f.key).map((f) => ({ key: f.key, value: f.value })) }
+          : undefined,
+      },
+      include: {
+        type: true,
+        manufacturer: true,
+        macAddresses: true,
+        customFields: true,
+      },
+    });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+      return NextResponse.json(
+        { error: "This hostname is already assigned to another asset." },
+        { status: 409 }
+      );
+    }
+    throw err;
+  }
 
   await logAudit({
     session,

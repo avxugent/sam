@@ -3,12 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { validateTemplate } from "@/lib/scrape-template";
+import { validateHostnamePattern } from "@/lib/hostname-pattern";
 import { logAudit } from "@/lib/audit";
 
 const schema = z.object({
   name: z.string().min(1).max(255).optional(),
   scrapeTargetTemplate: z.string().max(10000).optional().nullable(),
   prometheusExposed: z.boolean().optional(),
+  hostnamePattern: z.string().max(500).optional().nullable(),
 });
 
 export async function PUT(
@@ -35,9 +37,20 @@ export async function PUT(
     }
   }
 
+  // Validate hostname regex syntax if provided
+  if (parsed.data.hostnamePattern) {
+    const patternError = validateHostnamePattern(parsed.data.hostnamePattern);
+    if (patternError) {
+      return NextResponse.json(
+        { error: "Invalid hostname pattern", details: [patternError] },
+        { status: 400 }
+      );
+    }
+  }
+
   const before = await prisma.assetType.findUnique({
     where: { id },
-    select: { name: true, scrapeTargetTemplate: true, prometheusExposed: true },
+    select: { name: true, scrapeTargetTemplate: true, prometheusExposed: true, hostnamePattern: true },
   });
 
   // Check for name conflict before attempting update
@@ -61,6 +74,7 @@ export async function PUT(
         ...(parsed.data.name !== undefined && { name: parsed.data.name }),
         scrapeTargetTemplate: parsed.data.scrapeTargetTemplate ?? null,
         ...(parsed.data.prometheusExposed !== undefined && { prometheusExposed: parsed.data.prometheusExposed }),
+        ...(parsed.data.hostnamePattern !== undefined && { hostnamePattern: parsed.data.hostnamePattern ?? null }),
       },
     });
 
@@ -72,6 +86,8 @@ export async function PUT(
         changes["Scrape template"] = { from: before.scrapeTargetTemplate ?? null, to: parsed.data.scrapeTargetTemplate ?? null };
       if (parsed.data.prometheusExposed !== undefined && parsed.data.prometheusExposed !== before.prometheusExposed)
         changes["Prometheus exposed"] = { from: before.prometheusExposed, to: parsed.data.prometheusExposed };
+      if (parsed.data.hostnamePattern !== undefined && parsed.data.hostnamePattern !== before.hostnamePattern)
+        changes["Hostname pattern"] = { from: before.hostnamePattern ?? null, to: parsed.data.hostnamePattern ?? null };
     }
 
     await logAudit({

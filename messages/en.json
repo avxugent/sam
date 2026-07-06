@@ -200,7 +200,9 @@
     "errMacRequired": "MAC address is required",
     "errMacInvalid": "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
     "errHostnameFqdn": "Hostname must be a fully qualified domain name (e.g. device.example.com)",
+    "errHostnamePattern": "Hostname does not match the required format for {typeName}.",
     "errMacRequiredForHostname": "At least one MAC address is required when a hostname is set.",
+    "hostnamePatternHint": "Must match: {pattern}",
     "vaultKeys": "Keys:"
   },
   "location": {
@@ -482,7 +484,14 @@
     "presetDescPlaceholder": "Optional default description",
     "prometheusExposed": "Expose to Prometheus SD",
     "prometheusExposedHelp": "When enabled, assets of this type with a hostname are included in the Prometheus HTTP service discovery response.",
-    "prometheusExposedDisabled": "Excluded from SD"
+    "prometheusExposedDisabled": "Excluded from SD",
+    "hostnamePattern": "Hostname format (regex)",
+    "hostnamePatternHelp": "Optional. When set, hostnames for assets of this type must match this regular expression (case-insensitive, not auto-anchored — add ^/$ for an exact match). Leave empty to fall back to the generic FQDN check.",
+    "hostnamePatternPlaceholder": "e.g. ^rec-\\d{3}\\.ugent\\.be$",
+    "hostnamePatternValid": "Pattern is valid",
+    "hostnamePatternSaved": "Hostname pattern saved",
+    "hostnamePatternInvalid": "Invalid hostname pattern",
+    "hostnamePatternConfigured": "Hostname format set"
   },
   "manufacturers": {
     "title": "Manufacturers",

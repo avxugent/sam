@@ -48,6 +48,7 @@ Asset types categorise assets (Projector, Display, Audio Processor, etc.).
 - **Edit** — click the pencil icon to rename or configure the Prometheus scrape template.
 - **Delete** — only possible if no assets of that type exist.
 - **Maintenance presets** — expand a type to define reusable maintenance task descriptions for work logs.
+- **Hostname format** — expand a type and set an optional regular expression under **Hostname format (regex)**. When set, hostnames entered for assets of this type must match it (checked case-insensitively); leave it empty to fall back to the generic domain-name check. Hostnames are always globally unique across every asset, regardless of type or status.
 
 ---
 

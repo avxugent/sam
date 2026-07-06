@@ -37,7 +37,7 @@ All API routes return `NextResponse.json(...)`. Auth and role checks happen insi
 
 Key validated fields:
 - `locationId` — required
-- `hostname` — when set, at least one MAC address is required
+- `hostname` — when set, at least one MAC address is required. Must match the asset's type's `hostnamePattern` if one is configured, otherwise a generic FQDN check applies. Globally unique across all assets (including decommissioned ones) — a duplicate returns `409`
 - `macAddresses` — array of MAC address strings
 - `customFields` — array of `{ key, value }` objects
 - `installationDate` — ISO date string
@@ -67,7 +67,7 @@ Key validated fields:
 | `GET` | `/api/asset-types` | VIEWER | List all |
 | `POST` | `/api/asset-types` | ADMIN | Create |
 | `GET` | `/api/asset-types/[id]` | VIEWER | Get detail |
-| `PUT` | `/api/asset-types/[id]` | ADMIN | Update (including scrape template) |
+| `PUT` | `/api/asset-types/[id]` | ADMIN | Update (including scrape template and `hostnamePattern`) |
 | `DELETE` | `/api/asset-types/[id]` | ADMIN | Delete |
 | `GET` | `/api/asset-types/[id]/assets` | VIEWER | Active assets of this type. `?status=DECOMMISSIONED` lists decommissioned only; `?status=all` lists both |
 | `POST` | `/api/asset-types/[id]/presets` | ADMIN | Create maintenance preset |
@@ -114,7 +114,7 @@ Upload request: `multipart/form-data` with `file` field. Max size: 50 MB.
 | `DELETE` | `/api/stock/[id]` | EDITOR | Delete stock item |
 | `POST` | `/api/stock/[id]/deploy` | EDITOR | Deploy stock item as asset at a location |
 
-Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom fields) from the stock item to the new asset.
+Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom fields) from the stock item to the new asset. Returns `409` if the carried-over hostname is already assigned to another asset.
 
 ---
 

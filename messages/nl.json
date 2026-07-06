@@ -200,7 +200,9 @@
     "errMacRequired": "MAC-adres is verplicht",
     "errMacInvalid": "Ongeldig MAC-adres (verwacht AA:BB:CC:DD:EE:FF)",
     "errHostnameFqdn": "Hostname moet een volledig gekwalificeerde domeinnaam zijn (bv. device.example.com)",
+    "errHostnamePattern": "Hostname komt niet overeen met het vereiste formaat voor {typeName}.",
     "errMacRequiredForHostname": "Minstens één MAC-adres is verplicht als er een hostname is ingesteld.",
+    "hostnamePatternHint": "Moet overeenkomen met: {pattern}",
     "vaultKeys": "Sleutels:"
   },
   "location": {
@@ -482,7 +484,14 @@
     "presetDescPlaceholder": "Optionele standaardbeschrijving",
     "prometheusExposed": "Blootstellen aan Prometheus SD",
     "prometheusExposedHelp": "Als ingeschakeld, worden assets van dit type met een hostnaam opgenomen in de Prometheus HTTP service discovery-respons.",
-    "prometheusExposedDisabled": "Uitgesloten van SD"
+    "prometheusExposedDisabled": "Uitgesloten van SD",
+    "hostnamePattern": "Hostnaamformaat (regex)",
+    "hostnamePatternHelp": "Optioneel. Indien ingesteld, moeten hostnamen van assets van dit type overeenkomen met deze reguliere expressie (niet hoofdlettergevoelig, niet automatisch verankerd — voeg ^/$ toe voor een exacte overeenkomst). Laat leeg om terug te vallen op de algemene FQDN-controle.",
+    "hostnamePatternPlaceholder": "bv. ^rec-\\d{3}\\.ugent\\.be$",
+    "hostnamePatternValid": "Patroon is geldig",
+    "hostnamePatternSaved": "Hostnaampatroon opgeslagen",
+    "hostnamePatternInvalid": "Ongeldig hostnaampatroon",
+    "hostnamePatternConfigured": "Hostnaamformaat ingesteld"
   },
   "manufacturers": {
     "title": "Fabrikanten",

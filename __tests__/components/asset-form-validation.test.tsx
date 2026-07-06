@@ -12,7 +12,14 @@ vi.mock("next-intl", () => ({
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const messages = require("../../messages/en.json") as Record<string, Record<string, string>>;
     const section = messages[ns] ?? {};
-    return (key: string) => section[key] ?? key;
+    return (key: string, params?: Record<string, string | number>) => {
+      const template = section[key] ?? key;
+      if (!params) return template;
+      return Object.entries(params).reduce(
+        (acc, [k, v]) => acc.replaceAll(`{${k}}`, String(v)),
+        template
+      );
+    };
   },
 }));
 

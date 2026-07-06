@@ -98,8 +98,11 @@ Categories of assets (e.g., Projector, Display, Audio Processor).
 | `id` | string (cuid) | Primary key |
 | `name` | string (unique) | Display name |
 | `scrapeTargetTemplate` | string? | Prometheus scrape template (newline-separated `key=value`) |
+| `hostnamePattern` | string? | Regex (JS syntax) that hostnames for this type's assets must match |
 
 The `scrapeTargetTemplate` field enables per-type Prometheus configuration. See [Integrations](integrations.md) for details.
+
+`hostnamePattern` is tested case-insensitively and is not auto-anchored — the admin adds `^`/`$` if an exact full-string match is required. When null, assets of this type fall back to the generic FQDN check.
 
 ---
 
@@ -126,7 +129,7 @@ The core entity — a physical device installed in a location.
 | `manufacturerId` | string? | FK to Manufacturer |
 | `model` | string? | Model name (free text + autocomplete) |
 | `serialNumber` | string? | Serial number |
-| `hostname` | string? | Network hostname |
+| `hostname` | string? | Network hostname (globally unique) |
 | `installationDate` | DateTime? | When installed |
 | `invoiceNumber` | string? | Purchase invoice reference |
 | `warrantyMonths` | int? | Warranty period |
@@ -140,6 +143,8 @@ The core entity — a physical device installed in a location.
 Assets with `hostname` are included in Prometheus Service Discovery output.
 
 A hostname implies a MAC address is required (enforced via `superRefine()` in both form and API).
+
+`hostname` carries a unique constraint across **all** assets regardless of `status` — a decommissioned asset keeps its hostname permanently (it is never reassigned to another asset), preserving an audit trail. Hostnames are also validated against the asset's type's `hostnamePattern` when set, falling back to a generic FQDN check otherwise. Attempting to reuse a hostname already assigned to another asset returns `409`.
 
 ---
 

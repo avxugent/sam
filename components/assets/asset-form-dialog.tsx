@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { matchesHostnamePattern } from "@/lib/hostname-pattern";
 import { Loader2, Plus, Trash2, KeyRound, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
@@ -94,7 +95,7 @@ const schema = z
 
 type FormData = z.infer<typeof schema>;
 
-type AssetType = { id: string; name: string };
+type AssetType = { id: string; name: string; hostnamePattern?: string | null };
 type Manufacturer = { id: string; name: string };
 type ModelSuggestion = { model: string; typeId: string | null; manufacturerId: string | null };
 
@@ -120,6 +121,16 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const tCommon = useTranslations("common");
   const tAsset = useTranslations("asset");
 
+  const [open, setOpen] = useState(false);
+  const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  const [modelSuggestions, setModelSuggestions] = useState<ModelSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [manufacturerSearch, setManufacturerSearch] = useState("");
+  const [showManufacturerDropdown, setShowManufacturerDropdown] = useState(false);
+  const [vaultTestResult, setVaultTestResult] = useState<VaultTestResult | null>(null);
+  const [vaultTesting, setVaultTesting] = useState(false);
+
   const validationSchema = useMemo(() => {
     const macSchema = z.object({
       address: z.string().min(1, t("errMacRequired")).regex(MAC_REGEX, t("errMacInvalid")),
@@ -129,10 +140,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       manufacturerId: z.string().min(1, t("errManufacturerRequired")),
       model: z.string().min(1, t("errModelRequired")).max(255),
       serialNumber: z.string().max(100).optional(),
-      hostname: z.string().max(255).optional().refine(
-        (v) => !v || v.trim() === "" || FQDN_REGEX.test(v.trim()),
-        t("errHostnameFqdn")
-      ),
+      hostname: z.string().max(255).optional(),
       installationDate: z.string().optional(),
       invoiceNumber: z.string().max(100).optional(),
       invoiceDate: z.string().optional(),
@@ -141,7 +149,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       macAddresses: z.array(macSchema),
       customFields: z.array(z.object({ key: z.string(), value: z.string() })),
     }).superRefine((data, ctx) => {
-      const hostnameSet = !!data.hostname?.trim();
+      const hostnameTrimmed = data.hostname?.trim();
+      const hostnameSet = !!hostnameTrimmed;
       const hasValidMac = data.macAddresses.some(
         (m) => m.address.trim() !== "" && MAC_REGEX.test(m.address.trim())
       );
@@ -152,18 +161,24 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
           message: t("errMacRequiredForHostname"),
         });
       }
+      if (hostnameSet) {
+        const selectedType = assetTypes.find((at) => at.id === data.typeId);
+        const pattern = selectedType?.hostnamePattern;
+        const isValid = pattern
+          ? matchesHostnamePattern(hostnameTrimmed!, pattern)
+          : FQDN_REGEX.test(hostnameTrimmed!);
+        if (!isValid) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["hostname"],
+            message: pattern
+              ? t("errHostnamePattern", { typeName: selectedType?.name ?? "" })
+              : t("errHostnameFqdn"),
+          });
+        }
+      }
     });
-  }, [t]);
-
-  const [open, setOpen] = useState(false);
-  const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
-  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
-  const [modelSuggestions, setModelSuggestions] = useState<ModelSuggestion[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [manufacturerSearch, setManufacturerSearch] = useState("");
-  const [showManufacturerDropdown, setShowManufacturerDropdown] = useState(false);
-  const [vaultTestResult, setVaultTestResult] = useState<VaultTestResult | null>(null);
-  const [vaultTesting, setVaultTesting] = useState(false);
+  }, [t, assetTypes]);
 
   const {
     register,
@@ -340,6 +355,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   // Derived state for contextual hints
   const hostnameSet = !!hostnameValue?.trim();
   const hasAnyMac = macValues.some((m) => m.address.trim() !== "");
+  const selectedTypePattern = assetTypes.find((at) => at.id === typeIdValue)?.hostnamePattern;
 
   // Cross-field error for mac addresses (from superRefine)
   const macCrossError = errors.macAddresses?.root?.message
@@ -523,8 +539,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 <p id="hostname-err" className="text-xs text-destructive">{errors.hostname.message}</p>
               )}
               {!errors.hostname && (
-                <p id="hostname-hint" className="text-xs text-muted-foreground">
-                  {t("hostnameHint")}
+                <p id="hostname-hint" className={cn("text-xs text-muted-foreground", selectedTypePattern && "font-mono")}>
+                  {selectedTypePattern ? t("hostnamePatternHint", { pattern: selectedTypePattern }) : t("hostnameHint")}
                 </p>
               )}
             </div>

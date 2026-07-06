@@ -95,6 +95,11 @@ model AssetType {
   //   __param_password__={vault_password}
   scrapeTargetTemplate String? @db.Text
   prometheusExposed    Boolean  @default(true)
+  // Optional regex (JS RegExp syntax) that a hostname must match for assets
+  // of this type. Tested case-insensitively; not auto-anchored, so the admin
+  // controls whether ^/$ are required for an exact match. When null, assets
+  // of this type fall back to the generic FQDN check.
+  hostnamePattern      String?  @db.VarChar(500)
   createdAt            DateTime @default(now())
 
   assets      Asset[]
@@ -122,7 +127,9 @@ model Asset {
   manufacturerId   String?
   model            String?
   serialNumber     String?
-  hostname         String?
+  // Globally unique across all assets regardless of status, so a
+  // decommissioned asset's hostname is never reassigned (audit trail).
+  hostname         String?   @unique
   installationDate DateTime? @db.Date
   invoiceNumber    String?
   invoiceDate      DateTime? @db.Date

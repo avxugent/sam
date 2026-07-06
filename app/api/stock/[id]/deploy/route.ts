@@ -72,48 +72,59 @@ export async function POST(
     try { meta = JSON.parse(stockItem.metadata) as StoredMetadata; } catch { /* ignore */ }
   }
 
-  const assetIds = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const newQuantity = stockItem.quantity - quantity;
+  let assetIds: string[];
+  try {
+    assetIds = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const newQuantity = stockItem.quantity - quantity;
 
-    if (newQuantity === 0) {
-      await tx.stockItem.delete({ where: { id } });
-    } else {
-      await tx.stockItem.update({ where: { id }, data: { quantity: newQuantity } });
+      if (newQuantity === 0) {
+        await tx.stockItem.delete({ where: { id } });
+      } else {
+        await tx.stockItem.update({ where: { id }, data: { quantity: newQuantity } });
+      }
+
+      const assets = await Promise.all(
+        Array.from({ length: quantity }, (_, i) =>
+          tx.asset.create({
+            data: {
+              locationId,
+              typeId: stockItem.typeId,
+              manufacturerId: stockItem.manufacturerId,
+              model: stockItem.model,
+              serialNumber:
+                stockItem.serialNumber ??
+                (serialNumbers ? serialNumbers[i] : null) ??
+                null,
+              invoiceNumber: stockItem.invoiceNumber,
+              invoiceDate: stockItem.invoiceDate,
+              ...(meta && {
+                hostname: meta.hostname ?? null,
+                warrantyMonths: meta.warrantyMonths ?? null,
+                vaultPath: meta.vaultPath ?? null,
+              }),
+              ...(meta?.macAddresses?.length && {
+                macAddresses: { create: meta.macAddresses.map((m) => ({ address: m.address })) },
+              }),
+              ...(meta?.customFields?.length && {
+                customFields: { create: meta.customFields.map((f) => ({ key: f.key, value: f.value })) },
+              }),
+            },
+            select: { id: true },
+          })
+        )
+      );
+
+      return assets.map((a) => a.id);
+    });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+      return NextResponse.json(
+        { error: "This hostname is already assigned to another asset." },
+        { status: 409 }
+      );
     }
-
-    const assets = await Promise.all(
-      Array.from({ length: quantity }, (_, i) =>
-        tx.asset.create({
-          data: {
-            locationId,
-            typeId: stockItem.typeId,
-            manufacturerId: stockItem.manufacturerId,
-            model: stockItem.model,
-            serialNumber:
-              stockItem.serialNumber ??
-              (serialNumbers ? serialNumbers[i] : null) ??
-              null,
-            invoiceNumber: stockItem.invoiceNumber,
-            invoiceDate: stockItem.invoiceDate,
-            ...(meta && {
-              hostname: meta.hostname ?? null,
-              warrantyMonths: meta.warrantyMonths ?? null,
-              vaultPath: meta.vaultPath ?? null,
-            }),
-            ...(meta?.macAddresses?.length && {
-              macAddresses: { create: meta.macAddresses.map((m) => ({ address: m.address })) },
-            }),
-            ...(meta?.customFields?.length && {
-              customFields: { create: meta.customFields.map((f) => ({ key: f.key, value: f.value })) },
-            }),
-          },
-          select: { id: true },
-        })
-      )
-    );
-
-    return assets.map((a) => a.id);
-  });
+    throw err;
+  }
 
   // Audit each created asset + the stock item mutation
   await Promise.all(

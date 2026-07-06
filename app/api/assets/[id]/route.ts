@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
+import { matchesHostnamePattern } from "@/lib/hostname-pattern";
 import { logAudit } from "@/lib/audit";
 
 const MAX_CUSTOM_FIELDS = 50;
@@ -26,15 +27,7 @@ const updateSchema = z
     manufacturerId: z.string().min(1, "Manufacturer is required").optional(),
     model: z.string().min(1, "Model is required").max(255).optional(),
     serialNumber: z.string().max(100).optional().nullable(),
-    hostname: z
-      .string()
-      .max(255)
-      .optional()
-      .nullable()
-      .refine(
-        (v) => !v || FQDN_REGEX.test(v.trim()),
-        "Hostname must be a valid fully qualified domain name"
-      ),
+    hostname: z.string().max(255).optional().nullable(),
     installationDate: z.string().optional().nullable(),
     invoiceNumber: z.string().max(100).optional().nullable(),
     invoiceDate: z.string().optional().nullable(),
@@ -115,45 +108,81 @@ export async function PUT(
     },
   });
 
-  const asset = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    if (macAddresses !== undefined) {
-      await tx.macAddress.deleteMany({ where: { assetId: id } });
-      if (macAddresses.length > 0) {
-        await tx.macAddress.createMany({
-          data: macAddresses.filter(Boolean).map((address) => ({ assetId: id, address })),
-        });
+  // Only re-validate hostname format when hostname and/or typeId are part of
+  // this update — an unrelated field edit must never fail because a type's
+  // pattern was tightened after the asset's hostname was originally set.
+  if (assetData.hostname !== undefined || assetData.typeId !== undefined) {
+    const effectiveHostname = (
+      assetData.hostname !== undefined ? assetData.hostname : before?.hostname
+    )?.trim();
+    if (effectiveHostname) {
+      const effectiveTypeId = assetData.typeId !== undefined ? assetData.typeId : before?.typeId;
+      const assetType = effectiveTypeId
+        ? await prisma.assetType.findUnique({ where: { id: effectiveTypeId }, select: { hostnamePattern: true } })
+        : null;
+      const isValidHostname = assetType?.hostnamePattern
+        ? matchesHostnamePattern(effectiveHostname, assetType.hostnamePattern)
+        : FQDN_REGEX.test(effectiveHostname);
+      if (!isValidHostname) {
+        return NextResponse.json(
+          { error: "Hostname does not match the required format for this asset type." },
+          { status: 400 }
+        );
       }
     }
+  }
 
-    if (customFields !== undefined) {
-      await tx.customField.deleteMany({ where: { assetId: id } });
-      if (customFields.length > 0) {
-        await tx.customField.createMany({
-          data: customFields.filter((f) => f.key).map((f) => ({ assetId: id, key: f.key, value: f.value })),
-        });
+  let asset;
+  try {
+    asset = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      if (macAddresses !== undefined) {
+        await tx.macAddress.deleteMany({ where: { assetId: id } });
+        if (macAddresses.length > 0) {
+          await tx.macAddress.createMany({
+            data: macAddresses.filter(Boolean).map((address) => ({ assetId: id, address })),
+          });
+        }
       }
-    }
 
-    return tx.asset.update({
-      where: { id },
-      data: {
-        ...assetData,
-        installationDate: installationDate !== undefined
-          ? installationDate ? new Date(installationDate) : null
-          : undefined,
-        invoiceDate: invoiceDate !== undefined
-          ? invoiceDate ? new Date(invoiceDate) : null
-          : undefined,
-      },
-      include: {
-        type: true,
-        manufacturer: true,
-        macAddresses: true,
-        customFields: true,
-        location: { select: { id: true, name: true } },
-      },
+      if (customFields !== undefined) {
+        await tx.customField.deleteMany({ where: { assetId: id } });
+        if (customFields.length > 0) {
+          await tx.customField.createMany({
+            data: customFields.filter((f) => f.key).map((f) => ({ assetId: id, key: f.key, value: f.value })),
+          });
+        }
+      }
+
+      return tx.asset.update({
+        where: { id },
+        data: {
+          ...assetData,
+          ...(assetData.hostname !== undefined && { hostname: assetData.hostname?.trim() || null }),
+          installationDate: installationDate !== undefined
+            ? installationDate ? new Date(installationDate) : null
+            : undefined,
+          invoiceDate: invoiceDate !== undefined
+            ? invoiceDate ? new Date(invoiceDate) : null
+            : undefined,
+        },
+        include: {
+          type: true,
+          manufacturer: true,
+          macAddresses: true,
+          customFields: true,
+          location: { select: { id: true, name: true } },
+        },
+      });
     });
-  });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+      return NextResponse.json(
+        { error: "This hostname is already assigned to another asset." },
+        { status: 409 }
+      );
+    }
+    throw err;
+  }
 
   const changes: Record<string, { from: unknown; to: unknown }> = {};
   if (before) {

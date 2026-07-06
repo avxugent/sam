@@ -171,6 +171,49 @@ describe("PUT /api/asset-types/[id]", () => {
     const res = await PUT(makeIdReq("PUT", { prometheusExposed: "yes" }), { params });
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 for an invalid hostname pattern", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    const res = await PUT(makeIdReq("PUT", { hostnamePattern: "(unclosed" }), { params });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("Invalid hostname pattern");
+  });
+
+  it("saves a valid hostname pattern", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    vi.mocked(prisma.assetType.findUnique).mockResolvedValue({
+      name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: true, hostnamePattern: null,
+    } as never);
+    mockUpdate.mockResolvedValue({ id: "type-1", name: "Recorder", hostnamePattern: "^rec-\\d{3}\\.ugent\\.be$" } as never);
+    const res = await PUT(makeIdReq("PUT", { hostnamePattern: "^rec-\\d{3}\\.ugent\\.be$" }), { params });
+    expect(res.status).toBe(200);
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ hostnamePattern: "^rec-\\d{3}\\.ugent\\.be$" }),
+    }));
+  });
+
+  it("clears the hostname pattern when set to null", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    vi.mocked(prisma.assetType.findUnique).mockResolvedValue({
+      name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: true, hostnamePattern: "^rec-\\d{3}$",
+    } as never);
+    mockUpdate.mockResolvedValue({ id: "type-1", name: "Recorder", hostnamePattern: null } as never);
+    const res = await PUT(makeIdReq("PUT", { hostnamePattern: null }), { params });
+    expect(res.status).toBe(200);
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ hostnamePattern: null }),
+    }));
+  });
+
+  it("leaves the hostname pattern untouched when not part of the request", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    vi.mocked(prisma.assetType.findFirst).mockResolvedValue(null as never);
+    mockUpdate.mockResolvedValue({ id: "type-1", name: "Updated" } as never);
+    await PUT(makeIdReq("PUT", { name: "Updated" }), { params });
+    const dataArg = (mockUpdate.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    expect(dataArg).not.toHaveProperty("hostnamePattern");
+  });
 });
 
 // ── DELETE /api/asset-types/[id] ──────────────────────────────────────────────

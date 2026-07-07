@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.4.1] - 2026-07-07
+
+### Fixed
+- Creating a new asset no longer shows leftover data from a previous entry. If a create form was filled in and then dismissed without saving (Cancel or clicking outside), reopening it now starts blank instead of retaining the earlier values.
+
+---
+
 ## [1.4.0] - 2026-07-06
 
 ### Added

@@ -274,12 +274,19 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   useEffect(() => {
     if (open) {
       fetchDropdowns();
-      fetchAsset();
+      if (mode === "edit") {
+        fetchAsset();
+      } else {
+        // Clear any values left over from a previous (e.g. cancelled) entry —
+        // the form component stays mounted across open/close, so create mode
+        // must reset explicitly rather than relying on defaultValues.
+        reset({ typeId: "", manufacturerId: "", model: "", macAddresses: [], customFields: [], vaultPath: "" });
+      }
       setVaultTestResult(null);
       setModelSimilarMatch(null);
       setDismissedModelValue(null);
     }
-  }, [open, fetchDropdowns, fetchAsset]);
+  }, [open, fetchDropdowns, fetchAsset, mode, reset]);
 
   // Sync manufacturer display name when manufacturerId or manufacturers list changes (handles edit mode)
   useEffect(() => {

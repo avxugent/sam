@@ -196,4 +196,22 @@ describe("<AssetFormDialog /> validation", () => {
     expect(screen.getByText(/Vault Credentials/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Test" })).toBeInTheDocument();
   });
+
+  it("clears create-form fields when reopened after cancelling (no stale data)", async () => {
+    renderDialog();
+    const user = await openDialog();
+
+    // Fill the model field, then cancel without submitting
+    const modelInput = screen.getByPlaceholderText(/Epson EB-W06/i) as HTMLInputElement;
+    await user.type(modelInput, "StaleModel");
+    expect(modelInput).toHaveValue("StaleModel");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    // Reopen — the model field must be empty, not the previous entry's value
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    await waitFor(() => {
+      const reopened = screen.getByPlaceholderText(/Epson EB-W06/i) as HTMLInputElement;
+      expect(reopened).toHaveValue("");
+    });
+  });
 });

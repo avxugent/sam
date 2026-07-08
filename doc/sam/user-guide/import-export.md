@@ -55,14 +55,25 @@ Additional columns not listed above are imported as **custom fields** on the ass
 
 ## CSV Export
 
-Download a full export of all assets as a CSV file.
+Download the inventory as CSV files. Go to **Administration → Export** (Admin menu) — three downloads are available.
 
-### Running an export
+### Active assets export
 
-1. Go to **Administration → Export** (Admin menu).
-2. Click **Export CSV**.
-3. The file downloads immediately.
+Click **Download CSV**. Contains only **currently active** assets (status *Installed*), including custom fields, MAC addresses, location path, and timestamps. Assets in rooms that are in maintenance still count as active and are included. Decommissioned assets are **not** included. This is the import-compatible format.
 
-The export contains all asset fields including custom fields, MAC addresses, location path, and timestamps.
+### Decommissioned assets export
 
-> Requires Admin role or a configured export API token.
+Click **Download decommissioned CSV**. Contains only assets that have been **decommissioned**. In addition to the standard asset columns it adds:
+
+| Column | Description |
+|---|---|
+| `DECOMMISSIONED_AT` | Date the asset was decommissioned |
+| `DECOMMISSION_NOTE` | Free-text note recorded at decommission time |
+| `LAST_LOCATION` | Location name snapshot captured at decommission time |
+| `LAST_FI_NUMBER` | FI number snapshot captured at decommission time |
+
+### Stock export
+
+Click **Download stock CSV**. Contains the current stock inventory (items not yet deployed to a location): type, brand, model, serial, quantity, the location it is reserved for (if any), MAC address, notes, and invoice details.
+
+> All three exports require Admin role. The active-assets export can also be fetched with a configured export API token; the decommissioned and stock exports require an admin session.

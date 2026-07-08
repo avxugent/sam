@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.5.0] - 2026-07-08
+
+### Added
+- New **Administration → Compliance** report showing, per asset type, the share of active hosts whose hostname matches the configured pattern — for demonstrating NIS2 compliance. Types without a configured pattern are measured against the generic FQDN check. Expand any type to see the non-compliant hosts, or export every non-compliant host as CSV. Assets with no hostname are reported separately and excluded from the rate.
+- **Decommissioned CSV export** (Administration → Export) — a dedicated download of decommissioned assets, with decommission date, note, and last-location snapshot columns.
+- **Stock CSV export** (Administration → Export) — a download of the current stock inventory.
+
+### Changed
+- The main CSV export is now explicitly the **active-asset** export: it contains only installed assets (assets in rooms that are in maintenance still count as active); decommissioned assets are available through the separate decommissioned export.
+
+---
+
 ## [1.4.1] - 2026-07-07
 
 ### Fixed

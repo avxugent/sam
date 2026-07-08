@@ -26,3 +26,20 @@ export function matchesHostnamePattern(hostname: string, pattern: string | null 
     return true;
   }
 }
+
+/**
+ * Generic FQDN check applied to a hostname when its asset type has no
+ * configured pattern. Kept in sync with the copies in the asset create/update
+ * routes.
+ */
+export const HOSTNAME_FQDN_REGEX =
+  /^(?!-)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+
+/**
+ * Whether a hostname is compliant for an asset type: its configured pattern
+ * when one is set, otherwise the generic FQDN check. Mirrors the pattern-or-FQDN
+ * branch enforced in the asset create/update routes.
+ */
+export function isHostnameCompliant(hostname: string, pattern: string | null | undefined): boolean {
+  return pattern ? matchesHostnamePattern(hostname, pattern) : HOSTNAME_FQDN_REGEX.test(hostname);
+}

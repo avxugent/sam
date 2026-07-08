@@ -56,7 +56,7 @@ type QuickResult = {
 
 type AdminNavItem = {
   href: string;
-  labelKey: "users" | "assetTypes" | "manufacturers" | "modelCleanup" | "importCsv" | "exportCsv" | "auditLog" | "settings";
+  labelKey: "users" | "assetTypes" | "manufacturers" | "modelCleanup" | "importCsv" | "exportCsv" | "auditLog" | "compliance" | "settings";
   icon: React.ReactNode;
   adminOnly: boolean;
 };
@@ -69,6 +69,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/import", labelKey: "importCsv", icon: <Upload className="h-4 w-4" />, adminOnly: false },
   { href: "/admin/export", labelKey: "exportCsv", icon: <Download className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/audit", labelKey: "auditLog", icon: <ClipboardList className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/compliance", labelKey: "compliance", icon: <ShieldCheck className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/settings", labelKey: "settings", icon: <Settings className="h-4 w-4" />, adminOnly: true },
 ];
 

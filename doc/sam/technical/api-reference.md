@@ -170,8 +170,18 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | Method | Path | Min role | Description |
 |---|---|---|---|
 | `POST` | `/api/import` | EDITOR | Bulk CSV import (creates assets, validates per row) |
-| `GET` | `/api/export/csv` | ADMIN or Bearer `EXPORT_TOKEN` | Download full CSV export |
+| `GET` | `/api/export/csv` | ADMIN or Bearer `EXPORT_TOKEN` | Download active-asset CSV export (status `INSTALLED` only) |
+| `GET` | `/api/export/decommissioned` | ADMIN | Download decommissioned-asset CSV (adds decommission metadata columns) |
+| `GET` | `/api/export/stock` | ADMIN | Download current stock inventory CSV |
 | `POST` | `/api/settings/export` | ADMIN | Trigger backup script |
+
+---
+
+## Compliance
+
+| Method | Path | Min role | Description |
+|---|---|---|---|
+| `GET` | `/api/compliance/hostname/export` | ADMIN | Download CSV of all hostnames that do not match their asset type's pattern (or the FQDN fallback). The report itself is viewed at **Administration → Compliance**. |
 
 ---
 

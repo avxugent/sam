@@ -24,12 +24,12 @@ export function ExportClient({
   const [outputDir, setOutputDir] = useState(initialOutputDir);
   const [enabled, setEnabled] = useState(initialEnabled);
   const [saving, setSaving] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<null | "active" | "decommissioned" | "stock">(null);
 
-  async function handleDownload() {
-    setDownloading(true);
+  async function download(endpoint: string, prefix: string, kind: "active" | "decommissioned" | "stock") {
+    setDownloading(kind);
     try {
-      const res = await fetch("/api/export/csv");
+      const res = await fetch(endpoint);
       if (!res.ok) {
         toast({ title: tCommon("error"), variant: "destructive" });
         return;
@@ -39,12 +39,12 @@ export function ExportClient({
       const a = document.createElement("a");
       const date = new Date().toISOString().slice(0, 10);
       a.href = url;
-      a.download = `sam-export-${date}.csv`;
+      a.download = `${prefix}-${date}.csv`;
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: t("exportComplete") });
     } finally {
-      setDownloading(false);
+      setDownloading(null);
     }
   }
 
@@ -71,10 +71,34 @@ export function ExportClient({
           <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("title")}</h2>
           <p className="text-[13px] text-[#64748b] mt-1">{t("subtitle")}</p>
         </div>
-        <Button onClick={handleDownload} disabled={downloading} className="gap-2">
-          {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          {t("downloadCsv")}
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button
+            onClick={() => download("/api/export/csv", "sam-export", "active")}
+            disabled={downloading !== null}
+            className="gap-2"
+          >
+            {downloading === "active" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {t("downloadCsv")}
+          </Button>
+          <Button
+            onClick={() => download("/api/export/decommissioned", "sam-decommissioned", "decommissioned")}
+            disabled={downloading !== null}
+            variant="outline"
+            className="gap-2"
+          >
+            {downloading === "decommissioned" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {t("downloadDecommissioned")}
+          </Button>
+          <Button
+            onClick={() => download("/api/export/stock", "sam-stock", "stock")}
+            disabled={downloading !== null}
+            variant="outline"
+            className="gap-2"
+          >
+            {downloading === "stock" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {t("downloadStock")}
+          </Button>
+        </div>
       </section>
 
       {/* Schedule configuration */}

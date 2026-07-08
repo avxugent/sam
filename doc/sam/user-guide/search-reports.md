@@ -81,3 +81,26 @@ When creating a report you choose a **report type**:
 Open the report and click **Edit** to change filters or columns. Click **Delete** to remove it permanently.
 
 > Viewers can run reports but cannot create, edit, or delete them.
+
+---
+
+## Hostname compliance
+
+A fixed report that shows how well hostnames match the naming rules configured per asset type — used to demonstrate NIS2 compliance. Open it from **Administration → Compliance** (Admin menu).
+
+### What it measures
+
+For every asset type it reports, over the **active** (installed) assets of that type:
+
+- **With hostname** — the number of assets that have a hostname (the rate denominator).
+- **Compliant** / **Non-compliant** — whether each hostname matches the type's configured pattern. Types **without** a configured pattern are measured against the generic FQDN check that the app already enforces (shown as *FQDN fallback*).
+- **No hostname** — assets with no hostname at all. These are shown for context but are **excluded** from the compliance rate.
+- **Rate** — compliant ÷ with-hostname, shown as a percentage. Types with no measurable assets show *n/a*.
+
+An **overall** compliance figure is shown at the top. Types are listed worst-first.
+
+### Seeing which hosts fail
+
+Click a type row to expand the list of its non-compliant hosts (hostname, model, serial, location). Click **Export non-compliant CSV** to download every non-compliant host across all types.
+
+> Requires Admin role.

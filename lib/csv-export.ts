@@ -4,6 +4,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { resolveLocationPathsBatch } from "@/lib/location-path";
 
 const CUSTOM_FIELD_COLUMNS = [
   "GUID", "QUANTITY", "DIAGONAL", "WIDTH", "HEIGHT",
@@ -131,6 +132,146 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
       "", "", "", "", "", "", "", "", "",
       ...CUSTOM_FIELD_COLUMNS.map(() => ""),
     ];
+    rows.push(cells.map(escapeCsvCell).join(";"));
+  }
+
+  return rows.join("\r\n");
+}
+
+const DECOMMISSIONED_COLUMNS = [
+  ...COLUMNS,
+  "DECOMMISSIONED_AT", "DECOMMISSION_NOTE", "LAST_LOCATION", "LAST_FI_NUMBER",
+];
+
+/**
+ * CSV of the decommissioned asset list. Same core columns as the active export
+ * plus the decommission metadata. Location columns reflect the asset's retained
+ * location; the LAST_* columns are the snapshot captured at decommission time.
+ */
+export async function generateDecommissionedCsv(): Promise<string> {
+  const allLocations = await prisma.location.findMany({
+    select: { id: true, name: true, fiNumber: true, parentId: true },
+  });
+  const locationMap = new Map<string, LocationRow>(allLocations.map((l) => [l.id, l]));
+
+  const assets = await prisma.asset.findMany({
+    where: { status: "DECOMMISSIONED" },
+    include: {
+      type: { select: { name: true } },
+      manufacturer: { select: { name: true } },
+      macAddresses: { select: { address: true } },
+      customFields: { select: { key: true, value: true } },
+      location: { select: { id: true, name: true, fiNumber: true, parentId: true } },
+    },
+    orderBy: [{ decommissionedAt: "desc" }, { createdAt: "asc" }],
+  });
+
+  const rows: string[] = [DECOMMISSIONED_COLUMNS.join(";")];
+
+  for (const asset of assets) {
+    const loc = asset.location;
+    const hierarchy = await buildLocationHierarchy(loc.id, locationMap);
+
+    const customFieldMap: Record<string, string> = {};
+    for (const cf of asset.customFields) {
+      customFieldMap[cf.key.toUpperCase()] = cf.value;
+    }
+
+    const macs = asset.macAddresses.map((m) => m.address).join(";");
+
+    const cells = [
+      hierarchy.campus,
+      hierarchy.building,
+      hierarchy.room || loc.name,
+      loc.fiNumber ?? "",
+      asset.type?.name ?? "",
+      asset.manufacturer?.name ?? "",
+      asset.model ?? "",
+      asset.serialNumber ?? "",
+      macs,
+      asset.hostname ?? "",
+      formatDateCell(asset.installationDate ?? null),
+      formatDateCell(asset.invoiceDate ?? null),
+      asset.invoiceNumber ?? "",
+      ...CUSTOM_FIELD_COLUMNS.map((col) => customFieldMap[col] ?? ""),
+      formatDateCell(asset.decommissionedAt ?? null),
+      asset.decommissionNote ?? "",
+      asset.lastLocationName ?? "",
+      asset.lastLocationFiNumber ?? "",
+    ];
+
+    rows.push(cells.map(escapeCsvCell).join(";"));
+  }
+
+  return rows.join("\r\n");
+}
+
+const STOCK_COLUMNS = [
+  "TYPE", "BRAND", "MODEL", "SERIAL", "QUANTITY",
+  "RESERVED_FOR", "RESERVED_FI", "MAC", "NOTES", "INVOICE_DATE", "INVOICE_NUMBER",
+];
+
+function macsFromStockMetadata(metadata: string | null): string {
+  if (!metadata) return "";
+  try {
+    const parsed = JSON.parse(metadata) as { macAddresses?: { address?: string }[] };
+    return (parsed.macAddresses ?? [])
+      .map((m) => m?.address ?? "")
+      .filter(Boolean)
+      .join(";");
+  } catch {
+    return "";
+  }
+}
+
+/** CSV of the current stock inventory (StockItem table). */
+export async function generateStockCsv(): Promise<string> {
+  const items = await prisma.stockItem.findMany({
+    include: {
+      type: { select: { name: true } },
+      manufacturer: { select: { name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const reservedIds = [
+    ...new Set(
+      items.map((i) => i.reservedForLocationId).filter((id): id is string => !!id)
+    ),
+  ];
+  const pathMap = await resolveLocationPathsBatch(reservedIds);
+  const reservedLocations = reservedIds.length
+    ? await prisma.location.findMany({
+        where: { id: { in: reservedIds } },
+        select: { id: true, fiNumber: true },
+      })
+    : [];
+  const fiById = new Map(reservedLocations.map((l) => [l.id, l.fiNumber]));
+
+  const rows: string[] = [STOCK_COLUMNS.join(";")];
+
+  for (const item of items) {
+    const reservedFor = item.reservedForLocationId
+      ? pathMap.get(item.reservedForLocationId) ?? ""
+      : "";
+    const reservedFi = item.reservedForLocationId
+      ? fiById.get(item.reservedForLocationId) ?? ""
+      : "";
+
+    const cells = [
+      item.type?.name ?? "",
+      item.manufacturer?.name ?? "",
+      item.model ?? "",
+      item.serialNumber ?? "",
+      String(item.quantity),
+      reservedFor,
+      reservedFi,
+      macsFromStockMetadata(item.metadata),
+      item.notes ?? "",
+      formatDateCell(item.invoiceDate ?? null),
+      item.invoiceNumber ?? "",
+    ];
+
     rows.push(cells.map(escapeCsvCell).join(";"));
   }
 

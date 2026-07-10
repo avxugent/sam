@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/audit";
+import { isTwoFactorSetupRequired } from "@/lib/two-factor-policy";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -38,7 +40,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           "unknown";
         const ipRl = checkRateLimit(`login:ip:${ip}`, 20, 15 * 60 * 1000);
         const emailRl = checkRateLimit(`login:email:${parsed.data.email}`, 10, 15 * 60 * 1000);
-        if (!ipRl.allowed || !emailRl.allowed) return null;
+        if (!ipRl.allowed || !emailRl.allowed) {
+          void logAudit({
+            session: null,
+            req: request,
+            action: "LOGIN_FAILED",
+            entityType: "Auth",
+            entityName: parsed.data.email,
+            detail: { reason: "rate_limited" },
+          });
+          return null;
+        }
 
         const user = await prisma.user.findUnique({
           where: { email: parsed.data.email },
@@ -55,13 +67,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         // Reject if user has no password (SSO-only account)
-        if (!user || !user.passwordHash) return null;
+        if (!user || !user.passwordHash) {
+          void logAudit({
+            session: null,
+            req: request,
+            action: "LOGIN_FAILED",
+            entityType: "Auth",
+            entityName: parsed.data.email,
+            detail: { reason: user ? "sso_only" : "unknown_user" },
+          });
+          return null;
+        }
 
         const valid = await bcrypt.compare(
           parsed.data.password,
           user.passwordHash
         );
-        if (!valid) return null;
+        if (!valid) {
+          void logAudit({
+            session: null,
+            req: request,
+            action: "LOGIN_FAILED",
+            entityType: "Auth",
+            entityId: user.id,
+            entityName: parsed.data.email,
+            detail: { reason: "invalid_password" },
+          });
+          return null;
+        }
 
         // Forced enrollment flags take priority over 2FA challenge
         if (user.mustChangePassword) {
@@ -74,7 +107,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           };
         }
 
-        if (user.twoFactorRequired && !user.totpEnabled) {
+        // Global requirement (AppSetting) ORs with the per-user flag
+        const globalRequire2fa = await prisma.appSetting.findUnique({
+          where: { key: "security.requireTwoFactor" },
+          select: { value: true },
+        });
+        if (isTwoFactorSetupRequired(user, globalRequire2fa?.value)) {
           return {
             id: user.id,
             name: user.name,
@@ -224,6 +262,60 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (token.needs2FASetup) session.needs2FASetup = true;
       }
       return session;
+    },
+  },
+
+  events: {
+    async signIn({ user, account }) {
+      const u = user as {
+        id?: string;
+        email?: string | null;
+        needs2FA?: boolean;
+        needsPasswordChange?: boolean;
+        needs2FASetup?: boolean;
+      };
+      // A credentials login that still owes a TOTP challenge is only a
+      // partial login — the follow-up "credentials-2fa-verified" sign-in
+      // produces the single LOGIN_SUCCESS entry and lastLoginAt write.
+      if (account?.provider === "credentials" && u.needs2FA) return;
+
+      void logAudit({
+        session: null,
+        actor: { id: u.id, email: u.email },
+        action: "LOGIN_SUCCESS",
+        entityType: "Auth",
+        entityId: u.id,
+        entityName: u.email ?? undefined,
+        detail: {
+          provider:
+            account?.provider === "credentials-2fa-verified"
+              ? "credentials+totp"
+              : account?.provider,
+          ...(u.needsPasswordChange || u.needs2FASetup
+            ? { pendingEnrollment: true }
+            : {}),
+        },
+      });
+
+      if (u.id) {
+        await prisma.user
+          .update({ where: { id: u.id }, data: { lastLoginAt: new Date() } })
+          .catch(() => {});
+      }
+    },
+
+    async signOut(message) {
+      // JWT session strategy delivers { token }; expired sessions may not.
+      const token = "token" in message ? message.token : null;
+      if (!token?.id) return;
+      void logAudit({
+        session: null,
+        actor: { id: token.id as string, email: token.email },
+        action: "LOGOUT",
+        entityType: "Auth",
+        entityId: token.id as string,
+        entityName: token.email ?? undefined,
+      });
     },
   },
 

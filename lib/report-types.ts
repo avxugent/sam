@@ -24,7 +24,10 @@ export type ReportFilterField =
   | "installationDate"
   | "invoiceDate"
   | "lastChanged"
-  | "workLogItem";
+  | "workLogItem"
+  | "supplierId"
+  | "criticality"
+  | "endOfSupportDate";
 
 export type ReportFilter = {
   field: ReportFilterField;
@@ -50,7 +53,10 @@ export type ColumnKey =
   | "invoiceDate"
   | "invoiceNumber"
   | "notes"
-  | "lastChanged";
+  | "lastChanged"
+  | "supplier"
+  | "criticality"
+  | "endOfSupportDate";
 
 export type ReportSource = "asset" | "location";
 
@@ -101,6 +107,10 @@ export type ReportRow = {
   invoiceNumber: string | null;
   notes: string | null;
   lastChanged: string | null;
+  supplier: string | null;
+  // Effective value: asset override ?? type default ?? null
+  criticality: string | null;
+  endOfSupportDate: string | null;
 };
 
 export type GroupCount = {

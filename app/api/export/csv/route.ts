@@ -2,14 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { generateExportCsv } from "@/lib/csv-export";
 import { logAudit } from "@/lib/audit";
-
-function checkExportToken(req: NextRequest): boolean {
-  const token = process.env.EXPORT_TOKEN;
-  if (!token) return false;
-  const authHeader = req.headers.get("authorization") ?? "";
-  const [scheme, provided] = authHeader.split(" ");
-  return scheme?.toLowerCase() === "bearer" && provided === token;
-}
+import { checkExportToken } from "@/lib/export-token";
 
 export async function GET(req: NextRequest) {
   const session = await auth();

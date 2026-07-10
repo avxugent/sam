@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
 import type { Prisma } from "@/generated/prisma/client";
 
 const deploySchema = z
@@ -75,6 +76,8 @@ export async function POST(
   let assetIds: string[];
   try {
     assetIds = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // Owner/supplier defaults apply to every copy (deploy = creation).
+      const defaults = await resolveAssetCreationDefaults(tx, {});
       const newQuantity = stockItem.quantity - quantity;
 
       if (newQuantity === 0) {
@@ -97,6 +100,8 @@ export async function POST(
                 null,
               invoiceNumber: stockItem.invoiceNumber,
               invoiceDate: stockItem.invoiceDate,
+              ownerId: defaults.ownerId,
+              supplierId: defaults.supplierId,
               ...(meta && {
                 hostname: meta.hostname ?? null,
                 warrantyMonths: meta.warrantyMonths ?? null,

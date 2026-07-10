@@ -6,6 +6,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { matchesHostnamePattern } from "@/lib/hostname-pattern";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { logAudit } from "@/lib/audit";
+import { CRITICALITY_VALUES } from "@/lib/criticality";
 
 const MAX_CUSTOM_FIELDS = 50;
 const MAX_MAC_ADDRESSES = 20;
@@ -47,6 +48,10 @@ const updateSchema = z
     invoiceDate: z.string().optional().nullable(),
     notes: z.string().max(5000).optional().nullable(),
     vaultPath: z.string().max(500).optional().nullable(),
+    ownerId: z.string().max(64).optional().nullable(),
+    criticality: z.enum(CRITICALITY_VALUES).optional().nullable(),
+    endOfSupportDate: z.string().optional().nullable(),
+    supplierId: z.string().max(64).optional().nullable(),
     macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
     customFields: z.array(customFieldSchema).max(MAX_CUSTOM_FIELDS).optional(),
   })
@@ -75,6 +80,7 @@ export async function GET(
     include: {
       type: true,
       manufacturer: true,
+      supplier: true,
       macAddresses: true,
       customFields: true,
       location: { select: { id: true, name: true } },
@@ -104,13 +110,21 @@ export async function PUT(
     return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { macAddresses, customFields, installationDate, invoiceDate, ...assetData } = parsed.data;
+  const { macAddresses, customFields, installationDate, invoiceDate, endOfSupportDate, ...assetData } = parsed.data;
+
+  if (assetData.supplierId) {
+    const supplier = await prisma.supplier.findUnique({ where: { id: assetData.supplierId }, select: { id: true } });
+    if (!supplier) {
+      return NextResponse.json({ error: "Unknown supplier." }, { status: 400 });
+    }
+  }
 
   const before = await prisma.asset.findUnique({
     where: { id },
     include: {
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },
+      supplier: { select: { name: true } },
       location: { select: { name: true } },
       macAddresses: { select: { address: true } },
       customFields: { select: { key: true, value: true } },
@@ -173,10 +187,14 @@ export async function PUT(
           invoiceDate: invoiceDate !== undefined
             ? invoiceDate ? new Date(invoiceDate) : null
             : undefined,
+          endOfSupportDate: endOfSupportDate !== undefined
+            ? endOfSupportDate ? new Date(endOfSupportDate) : null
+            : undefined,
         },
         include: {
           type: true,
           manufacturer: true,
+          supplier: true,
           macAddresses: true,
           customFields: true,
           location: { select: { id: true, name: true } },
@@ -214,6 +232,17 @@ export async function PUT(
       changes["Manufacturer"] = { from: before.manufacturer?.name ?? before.manufacturerId, to: asset.manufacturer?.name ?? d.manufacturerId };
     if (d.locationId !== undefined && d.locationId !== before.locationId)
       changes["Location"] = { from: before.location?.name ?? null, to: asset.location?.name ?? null };
+    if (d.ownerId !== undefined && d.ownerId !== before.ownerId)
+      changes["Owner"] = { from: before.ownerId ?? null, to: d.ownerId ?? null };
+    if (d.criticality !== undefined && d.criticality !== before.criticality)
+      changes["Criticality"] = { from: before.criticality ?? null, to: d.criticality ?? null };
+    if (d.supplierId !== undefined && d.supplierId !== before.supplierId)
+      changes["Supplier"] = { from: before.supplier?.name ?? before.supplierId ?? null, to: asset.supplier?.name ?? d.supplierId ?? null };
+    if (endOfSupportDate !== undefined) {
+      const fromDate = before.endOfSupportDate ? before.endOfSupportDate.toISOString().split("T")[0] : null;
+      if (fromDate !== endOfSupportDate)
+        changes["End of support"] = { from: fromDate, to: endOfSupportDate };
+    }
     if (installationDate !== undefined) {
       const fromDate = before.installationDate ? before.installationDate.toISOString().split("T")[0] : null;
       if (fromDate !== installationDate)

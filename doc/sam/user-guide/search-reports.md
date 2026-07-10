@@ -62,6 +62,11 @@ When creating a report you choose a **report type**:
 | Serial number | Contains a text string |
 | Hostname | Contains a text string; "is empty" / "is not empty" options |
 | Work log item | Whether a [fixed work log item](work-logs.md#fixed-work-log-items) *is filled in* / *is not filled in* for the asset (any work log entry tagged with that item). Combine with an asset-type filter to track a recurring task across all assets of one type. |
+| Supplier | Filter by supplier; "is empty" / "is not empty" options |
+| Criticality | Filter by the **effective** criticality — a per-asset override or the type default. "Is empty" finds unclassified assets |
+| End of support | Before / after a date, older/newer than N years, or "is empty" for assets without a date |
+
+The supplier, criticality (effective value) and end-of-support fields are also available as columns.
 
 5. Select which **columns** to include in the results.
 6. Optionally set a **group by** field to summarise counts per type, manufacturer, location, or installation year.

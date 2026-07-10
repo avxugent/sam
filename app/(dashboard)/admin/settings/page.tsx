@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { GeneralSettingsClient } from "@/components/settings/general-settings-client";
 import { BrandingSettingsClient } from "@/components/settings/branding-settings-client";
+import { ComplianceSettingsClient } from "@/components/settings/compliance-settings-client";
 import { WorkLogItemsManager } from "@/components/settings/work-log-items-manager";
 
 export default async function SettingsPage() {
@@ -20,6 +21,11 @@ export default async function SettingsPage() {
           "branding.faviconStorageKey",
           "branding.backgroundMode",
           "branding.backgroundStorageKey",
+          "security.requireTwoFactor",
+          "audit.retentionDays",
+          "assets.defaultOwnerId",
+          "compliance.reviewWorkLogItemId",
+          "compliance.reviewPeriodMonths",
         ],
       },
     },
@@ -29,6 +35,11 @@ export default async function SettingsPage() {
   const workLogItems = await prisma.workLogItem.findMany({
     orderBy: [{ order: "asc" }, { name: "asc" }],
     include: { _count: { select: { workLogs: true } } },
+  });
+
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
   });
 
   return (
@@ -51,6 +62,18 @@ export default async function SettingsPage() {
           initialHasFavicon={!!map["branding.faviconStorageKey"]}
           initialBackgroundMode={map["branding.backgroundMode"] ?? ""}
           initialHasCustomBackground={!!map["branding.backgroundStorageKey"]}
+        />
+      </div>
+
+      <div>
+        <ComplianceSettingsClient
+          initialRequireTwoFactor={map["security.requireTwoFactor"] === "true"}
+          initialAuditRetentionDays={parseInt(map["audit.retentionDays"] ?? "730", 10)}
+          initialDefaultOwnerId={map["assets.defaultOwnerId"] || null}
+          initialReviewWorkLogItemId={map["compliance.reviewWorkLogItemId"] || null}
+          initialReviewPeriodMonths={parseInt(map["compliance.reviewPeriodMonths"] ?? "12", 10)}
+          users={users}
+          workLogItems={workLogItems.map((i) => ({ id: i.id, name: i.name }))}
         />
       </div>
 

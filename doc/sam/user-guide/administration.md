@@ -63,6 +63,17 @@ Manufacturer names used across all assets.
 
 ---
 
+## Suppliers
+
+**Administration → Suppliers**
+
+Suppliers (resellers/vendors you purchase from — distinct from manufacturers) with an optional contract reference and contact info, for supply-chain evidence.
+
+- **Create / Edit / Delete** — deletion is blocked while assets still reference the supplier.
+- **Default window** — expand a supplier to set a *Default from* / *Default until* period. Assets created within that period without an explicit supplier are assigned this supplier automatically (manual creation, CSV import, and stock deployment alike). Leave *until* empty for open-ended. Windows may not overlap between suppliers. The pre-filled supplier can always be overridden per asset in the asset form.
+
+---
+
 ## Model Cleanup
 
 **Administration → Model Cleanup**
@@ -81,9 +92,11 @@ Review clusters of similar-but-not-identical asset model spellings (typos, abbre
 
 **Administration → Audit Log**
 
-Every create, update, delete, import, and export action is recorded with the user's email, timestamp, IP address, and a before/after diff of changed fields.
+Every create, update, delete, import, and export action is recorded with the user's email, timestamp, IP address, and a before/after diff of changed fields. Authentication events are recorded too: successful logins, failed logins (with the reason, including failed 2FA codes), and logouts.
 
-Use the **search box** and **filter dropdowns** to narrow by action type (CREATE, UPDATE, DELETE, IMPORT, EXPORT) or entity type (Asset, Location, User, etc.).
+Use the **search box** and **filter dropdowns** to narrow by action type (CREATE, UPDATE, DELETE, IMPORT, EXPORT, LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT) or entity type (Asset, Location, User, etc.).
+
+Retention is configured in **Settings → Security & compliance** and enforced by a scheduled purge script — entries cannot be deleted through the UI or API.
 
 ---
 
@@ -103,7 +116,31 @@ Application-wide configuration managed through the UI. Changes take effect immed
 
 - **General** — hostname / MAC address URL templates.
 - **Branding** — site name, logo, favicon, background.
+- **Security & compliance** — require two-factor authentication for all local accounts, audit log retention (days), the default asset owner (e.g. a team account applied to new assets when no owner is chosen), and which fixed work-log item + period counts as the periodic inventory review on the compliance dashboard.
 - **Work log items** — define fixed work log items (e.g. *Review asset list*) that technicians can select on a location's work log. These power location coverage reports. See [Work Logs](work-logs.md#fixed-work-log-items).
+
+---
+
+## Compliance Dashboard
+
+**Administration → Compliance**
+
+One page aggregating the NIS2 evidence gaps, each as a stat card with an expandable sample list:
+
+- **Assets without owner** and **assets unclassified** (no criticality on the asset or its type)
+- **Assets past end-of-support** (plus how many have no date at all)
+- **Locations not reviewed** — leaf locations missing the configured review work-log item within the review period
+- **Local users without 2FA** and the **audit forwarding backlog**
+
+The hostname compliance report (per-type hostname pattern conformity) lives on the same page. The same numbers are exported as Prometheus gauges — see [Integrations](../technical/integrations.md).
+
+---
+
+## Access Review
+
+**Administration → Users → Export CSV**
+
+Downloads a CSV of every account with name, email, role, provider, 2FA status and **last login** — the artifact for periodic access reviews. The user table also shows the last-login column, sortable, so stale accounts stand out.
 
 ---
 
@@ -113,4 +150,6 @@ Application-wide configuration managed through the UI. Changes take effect immed
 
 Lists all decommissioned assets across all locations. Use the search box to find a specific device.
 
-Admins can **reinstate** a decommissioned asset — it returns to its last recorded location with status INSTALLED.
+Decommissioning an asset requires choosing a **disposal method** (wiped / destroyed / returned / resold / other) and optionally a note; SAM records who performed the decommissioning. These appear on the asset detail page and in the decommissioned CSV export as disposal evidence.
+
+Admins can **reinstate** a decommissioned asset — it returns to its last recorded location with status INSTALLED and its disposal record is cleared.

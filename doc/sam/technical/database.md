@@ -26,6 +26,26 @@ INSTALLED       → active, in-place asset
 DECOMMISSIONED  → retired asset (kept in DB for audit history)
 ```
 
+### Criticality
+
+```
+LOW / MEDIUM / HIGH / CRITICAL
+```
+
+Used on `AssetType.defaultCriticality` (type-level default) and `Asset.criticality` (per-asset override). The effective criticality of an asset is `asset.criticality ?? type.defaultCriticality ?? unclassified`.
+
+### DisposalMethod
+
+```
+WIPED      → storage sanitised, device may be reused/resold
+DESTROYED  → physically destroyed
+RETURNED   → returned to supplier/lessor
+RESOLD     → sold on
+OTHER      → see decommission note
+```
+
+Recorded when an asset is decommissioned (NIS2 disposal evidence).
+
 ---
 
 ## Models
@@ -46,6 +66,7 @@ Stores local and SSO-authenticated users.
 | `totpEnabled` | bool | Whether 2FA is active |
 | `mustChangePassword` | bool | Forces password change on next login |
 | `twoFactorRequired` | bool | Admin-enforced 2FA requirement |
+| `lastLoginAt` | DateTime? | Set on each successful login (access-review evidence) |
 
 SSO users have `passwordHash = null`. The Credentials provider rejects them. Password change endpoints reject SSO accounts.
 
@@ -99,6 +120,7 @@ Categories of assets (e.g., Projector, Display, Audio Processor).
 | `name` | string (unique) | Display name |
 | `scrapeTargetTemplate` | string? | Prometheus scrape template (newline-separated `key=value`) |
 | `hostnamePattern` | string? | Regex (JS syntax) that hostnames for this type's assets must match |
+| `defaultCriticality` | Criticality? | Default criticality for assets of this type; per-asset override wins |
 
 The `scrapeTargetTemplate` field enables per-type Prometheus configuration. See [Integrations](integrations.md) for details.
 
@@ -114,6 +136,25 @@ Hardware manufacturers.
 |---|---|---|
 | `id` | string (cuid) | Primary key |
 | `name` | string (unique) | Manufacturer name |
+
+---
+
+### Supplier
+
+Suppliers/resellers assets were purchased from (supply-chain evidence, distinct from Manufacturer).
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string (cuid) | Primary key |
+| `name` | string (unique) | Supplier name |
+| `contractReference` | string? | Framework/purchase contract reference |
+| `contactInfo` | string? | Free-text contact details |
+| `defaultFrom` | Date? | Start of the default window |
+| `defaultUntil` | Date? | End of the default window (`null` = open-ended) |
+
+**Default window**: an asset created without an explicit supplier while *today* falls within `[defaultFrom, defaultUntil]` is automatically assigned this supplier (all creation paths: manual, CSV import, stock deploy). `defaultFrom = null` disables the window. Windows may not overlap across suppliers — the API rejects overlapping windows with 400. The per-asset supplier can always be overridden.
+
+Deleting a supplier that still has assets is blocked (route check + FK `onDelete: Restrict`).
 
 ---
 
@@ -135,8 +176,14 @@ The core entity — a physical device installed in a location.
 | `warrantyMonths` | int? | Warranty period |
 | `notes` | string? | Free-text notes |
 | `vaultPath` | string? | Vault KV path for per-device credentials |
+| `ownerId` | string? | Responsible person — soft ref to User (no FK, survives user deletion). Defaults to the `assets.defaultOwnerId` setting at creation when not provided |
+| `criticality` | Criticality? | Per-asset override; `null` = inherit `AssetType.defaultCriticality` |
+| `endOfSupportDate` | Date? | Vendor end-of-support; past dates flag the asset on the compliance dashboard |
+| `supplierId` | string? | FK to Supplier; auto-assigned from the active default window at creation when not provided |
 | `status` | AssetStatus | INSTALLED or DECOMMISSIONED |
 | `decommissionedAt` | DateTime? | Set on decommission |
+| `disposalMethod` | DisposalMethod? | Required at decommission (disposal evidence) |
+| `decommissionedById` | string? | Who decommissioned — soft ref to User (no FK) |
 | `lastLocationName` | string? | Snapshot of location name at decommission |
 | `lastLocationFiNumber` | string? | Snapshot of FI number at decommission |
 

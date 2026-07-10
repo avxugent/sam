@@ -23,6 +23,7 @@ const USER_SELECT = {
   totpEnabled: true,
   mustChangePassword: true,
   twoFactorRequired: true,
+  lastLoginAt: true,
   createdAt: true,
 } as const;
 

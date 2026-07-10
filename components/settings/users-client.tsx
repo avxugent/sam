@@ -37,7 +37,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Trash2, Loader2, ShieldOff, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ShieldOff, ChevronUp, ChevronDown, Download } from "lucide-react";
 
 const createSchema = z.object({
   name: z.string().min(1).max(128),
@@ -65,10 +65,11 @@ type User = {
   totpEnabled: boolean;
   mustChangePassword: boolean;
   twoFactorRequired: boolean;
+  lastLoginAt: Date | string | null;
   createdAt: Date | string;
 };
 
-type SortCol = "name" | "email" | "role" | "twoFactor" | "createdAt";
+type SortCol = "name" | "email" | "role" | "twoFactor" | "lastLoginAt" | "createdAt";
 
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
@@ -161,6 +162,7 @@ export function UsersClient({
       else if (sortCol === "email") { av = a.email; bv = b.email; }
       else if (sortCol === "role") { av = a.role; bv = b.role; }
       else if (sortCol === "twoFactor") { av = String(a.totpEnabled ?? false); bv = String(b.totpEnabled ?? false); }
+      else if (sortCol === "lastLoginAt") { av = String(a.lastLoginAt ?? ""); bv = String(b.lastLoginAt ?? ""); }
       else if (sortCol === "createdAt") { av = String(a.createdAt ?? ""); bv = String(b.createdAt ?? ""); }
       return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
     });
@@ -236,6 +238,28 @@ export function UsersClient({
           <h2 className="text-[18px] font-bold text-[#0f172a]">{t("title")}</h2>
           <p className="text-[12.5px] text-[#64748b]">{t("subtitle")}</p>
         </div>
+        <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          className="h-[36px] px-4 rounded-[7px] text-[13px]"
+          onClick={async () => {
+            const res = await fetch("/api/users/export");
+            if (!res.ok) {
+              toast({ title: tCommon("error"), variant: "destructive" });
+              return;
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `sam-users-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+        >
+          <Download className="h-4 w-4 mr-1" />
+          {t("exportCsv")}
+        </Button>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="h-[36px] px-4 rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
@@ -313,6 +337,7 @@ export function UsersClient({
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* User table */}
@@ -326,6 +351,7 @@ export function UsersClient({
               <Th col="role" label={t("role")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("provider")}</th>
               <Th col="twoFactor" label={t("twoFactor")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <Th col="lastLoginAt" label={t("lastLogin")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <Th col="createdAt" label={tField("created")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{tCommon("actions")}</th>
             </tr>
@@ -363,6 +389,9 @@ export function UsersClient({
                   ) : (
                     <span className="text-[#64748b]">—</span>
                   )}
+                </td>
+                <td className="px-4 py-[10px] text-[#64748b] text-[12px]">
+                  {user.lastLoginAt ? formatDate(user.lastLoginAt) : "—"}
                 </td>
                 <td className="px-4 py-[10px] text-[#64748b] text-[12px]">{formatDate(user.createdAt)}</td>
                 <td className="px-4 py-[10px]">

@@ -5,6 +5,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.6.0] - 2026-07-10
+
+### Added — NIS2 compliance features
+- **Authentication audit events** — successful logins, failed logins (with reason, including failed and rate-limited 2FA codes), and logouts are recorded in the audit log and forwarded to syslog like every other entry.
+- **Asset owner** — assets carry a responsible person (soft user reference). A configurable default owner (e.g. a team account) is applied to newly created assets when none is chosen.
+- **Criticality classification** — LOW/MEDIUM/HIGH/CRITICAL, with a default per asset type and an optional per-asset override; reports and the compliance dashboard use the effective value.
+- **End-of-support tracking** — per-asset end-of-support date; assets past it are highlighted on the detail page and counted on the compliance dashboard.
+- **Suppliers** (Administration → Suppliers) — supplier entities with contract reference, contact info, and a *default window*: assets created within the window without an explicit supplier are assigned it automatically (manual create, CSV import, stock deploy). Overlapping windows are rejected; per-asset override always possible.
+- **Structured disposal evidence** — decommissioning now requires a disposal method (wiped/destroyed/returned/resold/other) and records who decommissioned the asset; both appear on the asset page and in the decommissioned CSV export. Reinstating clears them.
+- **Audit log retention** — configurable retention (default 730 days) enforced by the new `scripts/purge-audit.mjs` cron script; unforwarded rows are never purged while syslog forwarding is configured. No delete API exists.
+- **Access review** — users gain a *last login* timestamp (shown and sortable in the user table) and an ADMIN-only CSV export (name, email, role, provider, 2FA status, last login).
+- **Global 2FA enforcement** — a settings toggle forces every local (credentials) account without TOTP into 2FA setup at next login.
+- **Signed inventory snapshots** — `GET /api/export/snapshot` returns a point-in-time JSON inventory (session or export-token auth); `scripts/export-backup.mjs` now also writes the JSON snapshot plus a SHA-256 manifest alongside the CSV backup.
+- **Compliance dashboard** (Administration → Compliance) — stat cards for assets without owner/classification, past end-of-support, locations missing their periodic inventory review, local users without 2FA, and the audit forwarding backlog, each with expandable sample lists. The hostname compliance report moved onto the same page. All counts are also exposed as Prometheus gauges (`sam_assets_missing_owner`, `sam_users_credentials_without_2fa`, …).
+- **CSV round-trip** — the asset import/export format gained `OWNER` (email), `CRITICALITY`, `END_OF_SUPPORT`, and `SUPPLIER` columns; reports gained supplier/criticality/end-of-support filters and columns.
+- New settings card **Security & compliance** (Administration → Settings): global 2FA requirement, audit retention days, default asset owner, review work-log item and review period.
+
+---
+
 ## [1.5.0] - 2026-07-08
 
 ### Added

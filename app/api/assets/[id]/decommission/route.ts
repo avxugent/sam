@@ -6,6 +6,8 @@ import { logAudit } from "@/lib/audit";
 
 const schema = z.object({
   note: z.string().max(500).optional().nullable(),
+  // Required disposal evidence (NIS2): how the device left the inventory.
+  disposalMethod: z.enum(["WIPED", "DESTROYED", "RETURNED", "RESOLD", "OTHER"]),
 });
 
 export async function POST(
@@ -42,6 +44,8 @@ export async function POST(
       status: "DECOMMISSIONED",
       decommissionedAt: new Date(),
       decommissionNote: parsed.data.note ?? null,
+      disposalMethod: parsed.data.disposalMethod,
+      decommissionedById: session.user.id,
       lastLocationName: existing.location.name,
       lastLocationFiNumber: existing.location.fiNumber ?? null,
     },
@@ -57,6 +61,7 @@ export async function POST(
     detail: {
       status: "DECOMMISSIONED",
       note: parsed.data.note,
+      disposalMethod: parsed.data.disposalMethod,
       lastLocation: existing.location.name,
     },
   });

@@ -24,6 +24,8 @@ export async function POST(
       status: "INSTALLED",
       decommissionedAt: null,
       decommissionNote: null,
+      disposalMethod: null,
+      decommissionedById: null,
     },
   });
 

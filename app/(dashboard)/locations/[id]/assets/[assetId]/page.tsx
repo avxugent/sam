@@ -23,6 +23,7 @@ export default async function AssetPage({
     include: {
       type: true,
       manufacturer: true,
+      supplier: true,
       macAddresses: true,
       customFields: true,
       location: { select: { id: true, name: true, parentId: true } },
@@ -37,6 +38,14 @@ export default async function AssetPage({
 
   const breadcrumbs = await buildBreadcrumbs(locationId);
 
+  // Owner / decommissioned-by are soft refs (no FK) — resolve names here so
+  // deleted users degrade to a "(deleted user)" label client-side.
+  const softRefIds = [asset.ownerId, asset.decommissionedById].filter((v): v is string => !!v);
+  const softRefUsers = softRefIds.length
+    ? await prisma.user.findMany({ where: { id: { in: softRefIds } }, select: { id: true, name: true } })
+    : [];
+  const nameById = new Map(softRefUsers.map((u) => [u.id, u.name]));
+
   return (
     <AssetDetailClient
       asset={asset}
@@ -44,6 +53,8 @@ export default async function AssetPage({
       userRole={session?.user?.role || "VIEWER"}
       hostnameUrlTemplate={hostnameUrlTemplate}
       macAddressUrlTemplate={macAddressUrlTemplate}
+      ownerName={asset.ownerId ? nameById.get(asset.ownerId) ?? null : null}
+      decommissionedByName={asset.decommissionedById ? nameById.get(asset.decommissionedById) ?? null : null}
     />
   );
 }

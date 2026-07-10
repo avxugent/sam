@@ -28,7 +28,7 @@ All API routes return `NextResponse.json(...)`. Auth and role checks happen insi
 | `GET` | `/api/assets/[id]` | VIEWER | Get asset detail |
 | `PUT` | `/api/assets/[id]` | EDITOR | Update asset |
 | `DELETE` | `/api/assets/[id]` | EDITOR | Delete asset |
-| `POST` | `/api/assets/[id]/decommission` | EDITOR | Mark asset decommissioned |
+| `POST` | `/api/assets/[id]/decommission` | EDITOR | Mark asset decommissioned. Body: `{ disposalMethod: WIPED\|DESTROYED\|RETURNED\|RESOLD\|OTHER (required), note? }`. Also records who decommissioned it |
 | `POST` | `/api/assets/[id]/reinstate` | EDITOR | Restore decommissioned asset |
 | `POST` | `/api/assets/[id]/return-to-stock` | EDITOR | Move asset back to stock |
 | `GET` | `/api/assets/by-hostname` | Bearer token | Grafana Infinity datasource lookup |
@@ -41,6 +41,10 @@ Key validated fields:
 - `macAddresses` — array of MAC address strings
 - `customFields` — array of `{ key, value }` objects
 - `installationDate` — ISO date string
+- `ownerId` — soft user reference. When absent on create, the `assets.defaultOwnerId` setting is applied; explicit `null` stays empty
+- `criticality` — `LOW | MEDIUM | HIGH | CRITICAL` or `null` (inherit the type's `defaultCriticality`)
+- `endOfSupportDate` — ISO date string
+- `supplierId` — must reference an existing supplier (`400` otherwise). When absent on create, the supplier whose default window contains today is applied; explicit `null` stays empty
 
 ---
 
@@ -67,7 +71,7 @@ Key validated fields:
 | `GET` | `/api/asset-types` | VIEWER | List all |
 | `POST` | `/api/asset-types` | ADMIN | Create |
 | `GET` | `/api/asset-types/[id]` | VIEWER | Get detail |
-| `PUT` | `/api/asset-types/[id]` | ADMIN | Update (including scrape template and `hostnamePattern`) |
+| `PUT` | `/api/asset-types/[id]` | ADMIN | Update (including scrape template, `hostnamePattern`, and `defaultCriticality`) |
 | `DELETE` | `/api/asset-types/[id]` | ADMIN | Delete |
 | `GET` | `/api/asset-types/[id]/assets` | VIEWER | Active assets of this type. `?status=DECOMMISSIONED` lists decommissioned only; `?status=all` lists both |
 | `POST` | `/api/asset-types/[id]/presets` | ADMIN | Create maintenance preset |
@@ -87,6 +91,19 @@ Key validated fields:
 | `DELETE` | `/api/manufacturers/[id]` | ADMIN | Delete |
 | `GET` | `/api/manufacturers/[id]/assets` | VIEWER | Assets by manufacturer |
 | `POST` | `/api/manufacturers/[id]/merge` | ADMIN | Merge into another manufacturer |
+
+---
+
+## Suppliers
+
+| Method | Path | Min role | Description |
+|---|---|---|---|
+| `GET` | `/api/suppliers` | VIEWER | List all (with asset counts) |
+| `POST` | `/api/suppliers` | ADMIN | Create. Body: `{ name, contractReference?, contactInfo?, defaultFrom?, defaultUntil? }`. Overlapping default windows across suppliers return `400 supplierWindowOverlap`; duplicate name returns `409` |
+| `PUT` | `/api/suppliers/[id]` | ADMIN | Update (same body/validation as create) |
+| `DELETE` | `/api/suppliers/[id]` | ADMIN | Delete — blocked with `400` while assets reference the supplier |
+
+The **default window** (`defaultFrom` → `defaultUntil`, `defaultUntil` empty = open-ended) auto-assigns the supplier to assets created within the window without an explicit supplier (manual create, CSV import, stock deploy).
 
 ---
 
@@ -128,6 +145,8 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | `PUT` | `/api/users/[id]` | ADMIN | Update user (rejects password change for SSO accounts) |
 | `DELETE` | `/api/users/[id]` | ADMIN | Delete user |
 | `GET` | `/api/users/me` | VIEWER | Current user's profile |
+| `GET` | `/api/users/lite` | EDITOR | Minimal `{id, name}` list (asset form owner dropdown) |
+| `GET` | `/api/users/export` | ADMIN | Access-review CSV (name, email, role, provider, 2FA status, last login). Session only — no token access |
 
 ---
 
@@ -173,6 +192,7 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | `GET` | `/api/export/csv` | ADMIN or Bearer `EXPORT_TOKEN` | Download active-asset CSV export (status `INSTALLED` only) |
 | `GET` | `/api/export/decommissioned` | ADMIN | Download decommissioned-asset CSV (adds decommission metadata columns) |
 | `GET` | `/api/export/stock` | ADMIN | Download current stock inventory CSV |
+| `GET` | `/api/export/snapshot` | session or Bearer `EXPORT_TOKEN` | Point-in-time JSON inventory snapshot (assets incl. owner/criticality/end-of-support/supplier/disposal, suppliers, locations) — NIS2 evidence artifact |
 | `POST` | `/api/settings/export` | ADMIN | Trigger backup script |
 
 ---
@@ -185,11 +205,21 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 
 ---
 
+## Settings
+
+| Method | Path | Min role | Description |
+|---|---|---|---|
+| `GET/PUT` | `/api/settings/compliance` | ADMIN | Security & compliance settings: `requireTwoFactor`, `auditRetentionDays` (30–3650), `defaultOwnerId`, `reviewWorkLogItemId`, `reviewPeriodMonths` (1–120) |
+
+---
+
 ## Audit Log
 
 | Method | Path | Min role | Description |
 |---|---|---|---|
 | `GET` | `/api/audit-logs` | ADMIN | List audit log entries (filterable by entity, user, date) |
+
+Actions recorded: `CREATE`, `UPDATE`, `DELETE`, `IMPORT`, `EXPORT`, plus authentication events `LOGIN_SUCCESS`, `LOGIN_FAILED` (with reason: rate_limited / unknown_user / sso_only / invalid_password / TOTP failures), and `LOGOUT`. There is deliberately no delete endpoint — retention is enforced only by `scripts/purge-audit.mjs`.
 
 ---
 

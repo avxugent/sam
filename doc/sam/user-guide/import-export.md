@@ -32,6 +32,10 @@ The CSV file must have a header row. The following column names are recognised:
 | `INSTALL_DATE` | No | Installation date (ISO format or DD/MM/YYYY) |
 | `Factuurnummer` | No | Invoice number |
 | `Factuurdatum` | No | Invoice date |
+| `OWNER` | No | Owner, matched by user email. Unmatched values are flagged and fall back to the default owner setting |
+| `CRITICALITY` | No | `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL` (case-insensitive); invalid values are flagged and ignored |
+| `END_OF_SUPPORT` | No | End-of-support date (ISO format or DD/MM/YYYY) |
+| `SUPPLIER` | No | Supplier name (created if not exists). When empty, the supplier default window applies |
 | `GUID` | No | Stored as a custom field |
 | `QUANTITY` | No | Stored as a custom field |
 
@@ -59,7 +63,7 @@ Download the inventory as CSV files. Go to **Administration → Export** (Admin 
 
 ### Active assets export
 
-Click **Download CSV**. Contains only **currently active** assets (status *Installed*), including custom fields, MAC addresses, location path, and timestamps. Assets in rooms that are in maintenance still count as active and are included. Decommissioned assets are **not** included. This is the import-compatible format.
+Click **Download CSV**. Contains only **currently active** assets (status *Installed*), including custom fields, MAC addresses, location path, timestamps, and the NIS2 columns (`OWNER` as email, `CRITICALITY`, `END_OF_SUPPORT`, `SUPPLIER`). Assets in rooms that are in maintenance still count as active and are included. Decommissioned assets are **not** included. This is the import-compatible format.
 
 ### Decommissioned assets export
 
@@ -69,6 +73,8 @@ Click **Download decommissioned CSV**. Contains only assets that have been **dec
 |---|---|
 | `DECOMMISSIONED_AT` | Date the asset was decommissioned |
 | `DECOMMISSION_NOTE` | Free-text note recorded at decommission time |
+| `DISPOSAL_METHOD` | How the device was disposed of (WIPED / DESTROYED / RETURNED / RESOLD / OTHER) |
+| `DECOMMISSIONED_BY` | Who decommissioned the asset |
 | `LAST_LOCATION` | Location name snapshot captured at decommission time |
 | `LAST_FI_NUMBER` | FI number snapshot captured at decommission time |
 
@@ -77,3 +83,7 @@ Click **Download decommissioned CSV**. Contains only assets that have been **dec
 Click **Download stock CSV**. Contains the current stock inventory (items not yet deployed to a location): type, brand, model, serial, quantity, the location it is reserved for (if any), MAC address, notes, and invoice details.
 
 > All three exports require Admin role. The active-assets export can also be fetched with a configured export API token; the decommissioned and stock exports require an admin session.
+
+### Inventory snapshot (JSON)
+
+`GET /api/export/snapshot` returns a point-in-time JSON snapshot of the full inventory (assets with owner, criticality, end-of-support, supplier and disposal fields; suppliers; locations) — the audit-friendly "inventory as of date X" artifact. It accepts a session or the export API token, so it can be archived on a schedule. The nightly backup script writes the same snapshot alongside the CSV plus a manifest with SHA-256 checksums — see the technical [Scripts](../technical/scripts.md) page.

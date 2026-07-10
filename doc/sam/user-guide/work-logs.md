@@ -33,6 +33,8 @@ This makes it possible to answer questions like *"which rooms have had their ass
 
 To report on coverage across locations, create a **location report** (Reports → New report → Report type: *Locations*). It lists every leaf location and shows, per selected work log item, whether it is filled in (with the date of the most recent entry) or not. See [Search & Reports](search-reports.md).
 
+One item can be designated the **periodic inventory review** in **Admin → Settings → Security & compliance**: the compliance dashboard then flags every location that hasn't had that item logged within the configured period (NIS2 evidence that the inventory is kept up to date).
+
 ## JIRA integration
 
 If a JIRA issue key is entered, SAM fetches the issue title and current status from JIRA and displays it as a badge on the work log entry. This requires the JIRA integration to be configured by your administrator.

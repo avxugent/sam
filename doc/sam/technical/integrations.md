@@ -104,6 +104,26 @@ scrape_configs:
 | `sam_assets_by_manufacturer{manufacturer="…"}` | gauge | Assets per manufacturer |
 | `sam_assets_by_campus{campus="…"}` | gauge | Assets per campus code |
 | `sam_locations_without_fi_number_total` | gauge | Locations with no FI number |
+| `sam_assets_missing_owner` | gauge | Installed assets without a responsible owner (NIS2) |
+| `sam_assets_missing_criticality` | gauge | Installed assets without an effective criticality (NIS2) |
+| `sam_assets_past_end_of_support` | gauge | Installed assets past their end-of-support date (NIS2) |
+| `sam_assets_no_end_of_support_date` | gauge | Installed assets without an end-of-support date |
+| `sam_locations_missing_review` | gauge | Leaf locations missing the configured inventory-review work-log entry within the review period (omitted when not configured) |
+| `sam_users_credentials_without_2fa` | gauge | Local accounts without TOTP 2FA |
+| `sam_audit_forward_backlog` | gauge | Audit rows not yet forwarded to syslog |
+
+---
+
+### Endpoint: Inventory Snapshot (`/api/export/snapshot`)
+
+Point-in-time JSON snapshot of the full inventory (assets including owner, criticality, end-of-support, supplier and disposal fields; suppliers; locations) with record counts and a generation timestamp. Authenticated with a session **or** `Bearer EXPORT_TOKEN`, so an external cron can archive dated snapshots as NIS2 evidence:
+
+```bash
+curl -H "Authorization: Bearer $EXPORT_TOKEN" \
+  https://sam.example.com/api/export/snapshot -o "sam-inventory-$(date +%F).json"
+```
+
+`scripts/export-backup.mjs` produces the same snapshot plus a SHA-256 manifest — see [Scripts](scripts.md).
 
 ---
 

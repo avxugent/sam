@@ -44,7 +44,7 @@ From the next login you will be asked for a 6-digit code after entering your pas
 1. Go to **Two-Factor Authentication** in the user menu.
 2. Click **Disable two-factor authentication** and confirm.
 
-> Your administrator can require 2FA for your account. If 2FA is required, you cannot disable it.
+> Your administrator can require 2FA for your account individually, or organisation-wide for all local accounts (Administration → Settings → Security & compliance). If 2FA is required, you cannot disable it, and you will be guided through setup at your next login if it isn't enabled yet. SSO (Entra ID) accounts are unaffected — their MFA is enforced by Entra ID.
 
 ### Remember this device
 

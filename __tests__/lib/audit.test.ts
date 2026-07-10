@@ -125,4 +125,55 @@ describe("logAudit()", () => {
     await flush();
     expect(mockUpdate).not.toHaveBeenCalled();
   });
+
+  it("uses actor attribution when no session is present", async () => {
+    await logAudit({
+      session: null,
+      actor: { id: "u9", email: "actor@b.com" },
+      action: "LOGIN_SUCCESS",
+      entityType: "Auth",
+    });
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: "u9",
+          userEmail: "actor@b.com",
+          action: "LOGIN_SUCCESS",
+        }),
+      })
+    );
+  });
+
+  it("session attribution wins over actor when both are present", async () => {
+    await logAudit({
+      session: SESSION,
+      actor: { id: "u9", email: "actor@b.com" },
+      action: "LOGOUT",
+      entityType: "Auth",
+    });
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: "u1", userEmail: "a@b.com", action: "LOGOUT" }),
+      })
+    );
+  });
+
+  it("accepts the auth event actions (LOGIN_FAILED)", async () => {
+    await logAudit({
+      session: null,
+      action: "LOGIN_FAILED",
+      entityType: "Auth",
+      entityName: "x@y.z",
+      detail: { reason: "invalid_password" },
+    });
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: null,
+          action: "LOGIN_FAILED",
+          detail: JSON.stringify({ reason: "invalid_password" }),
+        }),
+      })
+    );
+  });
 });

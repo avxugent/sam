@@ -16,6 +16,7 @@ import { auth, signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/totp";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/audit";
 import { SignJWT } from "jose";
 import { z } from "zod";
 
@@ -52,6 +53,16 @@ export async function POST(req: NextRequest) {
     "unknown";
   const rl = checkRateLimit(`2fa:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
   if (!rl.allowed) {
+    void logAudit({
+      session: null,
+      actor: { id: session.user.id, email: session.user.email },
+      req,
+      action: "LOGIN_FAILED",
+      entityType: "Auth",
+      entityId: session.user.id,
+      entityName: session.user.email ?? undefined,
+      detail: { stage: "totp", reason: "rate_limited" },
+    });
     return NextResponse.json(
       { error: "Too many attempts. Please try again later." },
       {
@@ -81,6 +92,16 @@ export async function POST(req: NextRequest) {
 
   const valid = verifyTotpCode(user.totpSecret, parsed.data.code);
   if (!valid) {
+    void logAudit({
+      session: null,
+      actor: { id: session.user.id, email: session.user.email },
+      req,
+      action: "LOGIN_FAILED",
+      entityType: "Auth",
+      entityId: session.user.id,
+      entityName: session.user.email ?? undefined,
+      detail: { stage: "totp", reason: "invalid_code" },
+    });
     return NextResponse.json(
       { error: "Invalid code. Check your authenticator app and try again." },
       { status: 400 }

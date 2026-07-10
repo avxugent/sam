@@ -28,6 +28,9 @@ const filterFieldSchema = z.enum([
   "invoiceDate",
   "lastChanged",
   "workLogItem",
+  "supplierId",
+  "criticality",
+  "endOfSupportDate",
 ]);
 
 const reportFilterSchema = z.object({
@@ -56,6 +59,9 @@ const columnKeySchema = z.enum([
   "invoiceNumber",
   "notes",
   "lastChanged",
+  "supplier",
+  "criticality",
+  "endOfSupportDate",
 ]);
 
 const assetReportDefinitionSchema = z.object({

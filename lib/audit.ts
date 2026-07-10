@@ -2,10 +2,19 @@ import { prisma } from "@/lib/prisma";
 import type { Session } from "next-auth";
 import { forwardAuditEntry, isSyslogConfigured } from "@/lib/syslog";
 
-type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "IMPORT" | "EXPORT";
+export type AuditAction =
+  | "CREATE"
+  | "UPDATE"
+  | "DELETE"
+  | "IMPORT"
+  | "EXPORT"
+  | "LOGIN_SUCCESS"
+  | "LOGIN_FAILED"
+  | "LOGOUT";
 
 export async function logAudit({
   session,
+  actor,
   req,
   action,
   entityType,
@@ -14,6 +23,8 @@ export async function logAudit({
   detail,
 }: {
   session: Session | null;
+  /** Attribution when no session exists yet (authorize()/auth events) */
+  actor?: { id?: string | null; email?: string | null };
   req?: Request;
   action: AuditAction;
   entityType: string;
@@ -31,8 +42,8 @@ export async function logAudit({
 
     const created = await prisma.auditLog.create({
       data: {
-        userId: session?.user?.id ?? null,
-        userEmail: session?.user?.email ?? null,
+        userId: session?.user?.id ?? actor?.id ?? null,
+        userEmail: session?.user?.email ?? actor?.email ?? null,
         action,
         entityType,
         entityId: entityId ?? null,

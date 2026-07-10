@@ -16,7 +16,22 @@ const COLUMNS = [
   "TYPE", "BRAND", "MODEL", "SERIAL", "MAC", "IP_HOSTNAME",
   "INSTALL_DATE", "Factuurdatum", "Factuurnummer",
   ...CUSTOM_FIELD_COLUMNS,
+  "OWNER", "CRITICALITY", "END_OF_SUPPORT", "SUPPLIER",
 ];
+
+/**
+ * Owner is exported as email (unique + re-importable). Soft ref — deleted
+ * owners fall back to the raw id.
+ */
+async function buildOwnerEmailMap(ownerIds: Array<string | null>): Promise<Map<string, string>> {
+  const ids = [...new Set(ownerIds.filter((v): v is string => !!v))];
+  if (ids.length === 0) return new Map();
+  const users = await prisma.user.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, email: true },
+  });
+  return new Map(users.map((u) => [u.id, u.email]));
+}
 
 function escapeCsvCell(value: string): string {
   if (value.includes(";") || value.includes('"') || value.includes("\n")) {
@@ -66,12 +81,15 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
     include: {
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },
+      supplier: { select: { name: true } },
       macAddresses: { select: { address: true } },
       customFields: { select: { key: true, value: true } },
       location: { select: { id: true, name: true, fiNumber: true, parentId: true } },
     },
     orderBy: [{ locationId: "asc" }, { createdAt: "asc" }],
   });
+
+  const ownerEmailById = await buildOwnerEmailMap(assets.map((a) => a.ownerId));
 
   const rows: string[] = [COLUMNS.join(";")];
 
@@ -109,6 +127,10 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
       invoiceDate,
       asset.invoiceNumber ?? "",
       ...CUSTOM_FIELD_COLUMNS.map((col) => customFieldMap[col] ?? ""),
+      asset.ownerId ? ownerEmailById.get(asset.ownerId) ?? asset.ownerId : "",
+      asset.criticality ?? "",
+      formatDateCell(asset.endOfSupportDate ?? null),
+      asset.supplier?.name ?? "",
     ];
 
     rows.push(cells.map(escapeCsvCell).join(";"));
@@ -131,6 +153,7 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
       fiNumber,
       "", "", "", "", "", "", "", "", "",
       ...CUSTOM_FIELD_COLUMNS.map(() => ""),
+      "", "", "", "",
     ];
     rows.push(cells.map(escapeCsvCell).join(";"));
   }
@@ -140,7 +163,7 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
 
 const DECOMMISSIONED_COLUMNS = [
   ...COLUMNS,
-  "DECOMMISSIONED_AT", "DECOMMISSION_NOTE", "LAST_LOCATION", "LAST_FI_NUMBER",
+  "DECOMMISSIONED_AT", "DECOMMISSION_NOTE", "DISPOSAL_METHOD", "DECOMMISSIONED_BY", "LAST_LOCATION", "LAST_FI_NUMBER",
 ];
 
 /**
@@ -159,12 +182,23 @@ export async function generateDecommissionedCsv(): Promise<string> {
     include: {
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },
+      supplier: { select: { name: true } },
       macAddresses: { select: { address: true } },
       customFields: { select: { key: true, value: true } },
       location: { select: { id: true, name: true, fiNumber: true, parentId: true } },
     },
     orderBy: [{ decommissionedAt: "desc" }, { createdAt: "asc" }],
   });
+
+  const ownerEmailById = await buildOwnerEmailMap(assets.map((a) => a.ownerId));
+
+  // decommissionedById is a soft ref — resolve names in one batch; deleted
+  // users fall back to the raw id so the evidence is never blank.
+  const decommissionerIds = [...new Set(assets.map((a) => a.decommissionedById).filter((v): v is string => !!v))];
+  const decommissioners = decommissionerIds.length
+    ? await prisma.user.findMany({ where: { id: { in: decommissionerIds } }, select: { id: true, name: true } })
+    : [];
+  const decommissionerNameById = new Map(decommissioners.map((u) => [u.id, u.name]));
 
   const rows: string[] = [DECOMMISSIONED_COLUMNS.join(";")];
 
@@ -194,8 +228,16 @@ export async function generateDecommissionedCsv(): Promise<string> {
       formatDateCell(asset.invoiceDate ?? null),
       asset.invoiceNumber ?? "",
       ...CUSTOM_FIELD_COLUMNS.map((col) => customFieldMap[col] ?? ""),
+      asset.ownerId ? ownerEmailById.get(asset.ownerId) ?? asset.ownerId : "",
+      asset.criticality ?? "",
+      formatDateCell(asset.endOfSupportDate ?? null),
+      asset.supplier?.name ?? "",
       formatDateCell(asset.decommissionedAt ?? null),
       asset.decommissionNote ?? "",
+      asset.disposalMethod ?? "",
+      asset.decommissionedById
+        ? decommissionerNameById.get(asset.decommissionedById) ?? asset.decommissionedById
+        : "",
       asset.lastLocationName ?? "",
       asset.lastLocationFiNumber ?? "",
     ];
@@ -272,6 +314,44 @@ export async function generateStockCsv(): Promise<string> {
       item.invoiceNumber ?? "",
     ];
 
+    rows.push(cells.map(escapeCsvCell).join(";"));
+  }
+
+  return rows.join("\r\n");
+}
+
+const USER_COLUMNS = [
+  "NAME", "EMAIL", "ROLE", "PROVIDER",
+  "2FA_ENABLED", "2FA_REQUIRED", "LAST_LOGIN",
+];
+
+/**
+ * Access-review CSV of all user accounts (NIS2 periodic access review
+ * evidence). Takes the rows so the API route controls the query/auth.
+ */
+export function generateUsersCsv(
+  users: Array<{
+    name: string;
+    email: string;
+    role: string;
+    provider: string;
+    totpEnabled: boolean;
+    twoFactorRequired: boolean;
+    lastLoginAt: Date | null;
+  }>
+): string {
+  const rows: string[] = [USER_COLUMNS.join(";")];
+
+  for (const user of users) {
+    const cells = [
+      user.name,
+      user.email,
+      user.role,
+      user.provider,
+      user.totpEnabled ? "yes" : "no",
+      user.twoFactorRequired ? "yes" : "no",
+      user.lastLoginAt ? user.lastLoginAt.toISOString() : "",
+    ];
     rows.push(cells.map(escapeCsvCell).join(";"));
   }
 

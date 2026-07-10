@@ -125,10 +125,13 @@ describe("POST /api/stock/[id]/deploy", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockLocationFindUnique.mockResolvedValue({ id: "loc-1" } as never);
     mockStockFindUnique.mockResolvedValue(BULK_ITEM as never);
+    const txAssetCreate = vi.fn().mockResolvedValue({ id: "asset-new" });
     mockTransaction.mockImplementation(async (fn) => {
       const tx = {
         stockItem: { update: vi.fn().mockResolvedValue({}), delete: vi.fn().mockResolvedValue({}) },
-        asset: { create: vi.fn().mockResolvedValue({ id: "asset-new" }) },
+        asset: { create: txAssetCreate },
+        appSetting: { findUnique: vi.fn().mockResolvedValue(null) },
+        supplier: { findMany: vi.fn().mockResolvedValue([]) },
       };
       return fn(tx as never);
     });
@@ -138,6 +141,42 @@ describe("POST /api/stock/[id]/deploy", () => {
     const body = await res.json();
     expect(body.assetIds).toHaveLength(3);
     expect(body.locationId).toBe("loc-1");
+    // No default owner setting / supplier window → both null on the copies
+    expect(txAssetCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ ownerId: null, supplierId: null }),
+      })
+    );
+  });
+
+  it("applies the default owner and current-window supplier to deployed copies", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockLocationFindUnique.mockResolvedValue({ id: "loc-1" } as never);
+    mockStockFindUnique.mockResolvedValue(BULK_ITEM as never);
+
+    const txAssetCreate = vi.fn().mockResolvedValue({ id: "asset-new" });
+    mockTransaction.mockImplementation(async (fn) => {
+      const tx = {
+        stockItem: { update: vi.fn().mockResolvedValue({}), delete: vi.fn().mockResolvedValue({}) },
+        asset: { create: txAssetCreate },
+        appSetting: { findUnique: vi.fn().mockResolvedValue({ value: "team-user" }) },
+        user: { findUnique: vi.fn().mockResolvedValue({ id: "team-user" }) },
+        supplier: {
+          findMany: vi.fn().mockResolvedValue([
+            { id: "sup-1", defaultFrom: new Date("2000-01-01"), defaultUntil: null },
+          ]),
+        },
+      };
+      return fn(tx as never);
+    });
+
+    const res = await POST(req({ locationId: "loc-1", quantity: 2 }), { params: PARAMS });
+    expect(res.status).toBe(200);
+    expect(txAssetCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ ownerId: "team-user", supplierId: "sup-1" }),
+      })
+    );
   });
 
   it("deploys serialized item and deletes stock item when quantity reaches 0", async () => {
@@ -150,6 +189,8 @@ describe("POST /api/stock/[id]/deploy", () => {
       const tx = {
         stockItem: { update: vi.fn(), delete: txDelete },
         asset: { create: vi.fn().mockResolvedValue({ id: "asset-new" }) },
+        appSetting: { findUnique: vi.fn().mockResolvedValue(null) },
+        supplier: { findMany: vi.fn().mockResolvedValue([]) },
       };
       return fn(tx as never);
     });

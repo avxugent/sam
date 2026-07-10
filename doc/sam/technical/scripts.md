@@ -204,7 +204,7 @@ node scripts/add-attachment.mjs --asset-id <id>    --url <url> --label <label>
 
 **npm alias:** `npm run export:backup`
 
-Generates a full CSV export of all SAM asset data and saves it to disk or uploads it to S3. Designed for use in automated backup pipelines or cron jobs.
+Generates a full CSV export of all SAM asset data, a JSON inventory snapshot (`sam-inventory-<date>.json`, mirroring `GET /api/export/snapshot`), and a `sam-manifest-<date>.json` containing the SHA-256 hash and byte size of both files (tamper-evident NIS2 evidence — verify with `shasum -a 256`). Saves to disk or uploads all three to S3. Designed for use in automated backup pipelines or cron jobs.
 
 ```bash
 node scripts/export-backup.mjs                          # write to configured destination
@@ -240,6 +240,25 @@ node scripts/forward-audit.mjs --dry-run     # report what would be sent
 | `--dry-run` | Report pending rows without sending |
 
 Requires `SYSLOG_HOST` (and related `SYSLOG_*` variables) to be set in `.env`. See [Configuration](configuration.md) for the full variable reference.
+
+---
+
+### `purge-audit.mjs`
+
+Deletes audit log rows older than the configured retention period (the `audit.retentionDays` app setting, default 730 days). Intended to run as a daily cron job (e.g. `0 3 * * *`). This script is the **only** deletion path for audit entries — there is deliberately no API endpoint.
+
+```bash
+node scripts/purge-audit.mjs                # purge expired rows
+node scripts/purge-audit.mjs --batch 5000   # limit to 5000 rows per run
+node scripts/purge-audit.mjs --dry-run      # report what would be deleted
+```
+
+| Flag | Description |
+|---|---|
+| `--batch <n>` | Maximum rows to delete per run (default: 10000) |
+| `--dry-run` | Report purgeable rows without deleting |
+
+**Safety rule:** while syslog forwarding is configured (`SYSLOG_HOST` set), rows that were never forwarded (`forwardedAt IS NULL`) are never purged, regardless of age — run `forward-audit.mjs` first. The script warns about such retained rows.
 
 ---
 

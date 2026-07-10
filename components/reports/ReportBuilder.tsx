@@ -31,6 +31,9 @@ const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
   invoiceDate: ["before", "after", "isNull", "isNotNull"],
   lastChanged: ["newerThanDays", "olderThanDays", "before", "after"],
   workLogItem: ["hasItem", "notHasItem"],
+  supplierId: ["eq", "neq", "isNull", "isNotNull"],
+  criticality: ["eq", "neq", "isNull", "isNotNull"],
+  endOfSupportDate: ["before", "after", "olderThanYears", "newerThanYears", "isNull", "isNotNull"],
 };
 
 
@@ -47,6 +50,7 @@ type Props = {
   manufacturers: AssetOption[];
   locations: AssetOption[];
   workLogItems: AssetOption[];
+  suppliers: AssetOption[];
 };
 
 const DEFAULT_COLUMNS: ColumnKey[] = ["type", "manufacturer", "model", "serialNumber", "hostname", "location", "installationDate"];
@@ -60,6 +64,7 @@ export function ReportBuilder({
   manufacturers,
   locations,
   workLogItems,
+  suppliers,
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
@@ -79,6 +84,9 @@ export function ReportBuilder({
     invoiceDate: tField("invoiceDate"),
     lastChanged: tField("lastModified"),
     workLogItem: tField("workLogItem"),
+    supplierId: tField("supplier"),
+    criticality: tField("criticality"),
+    endOfSupportDate: tField("endOfSupport"),
   };
 
   const opLabels: Record<FilterOp, string> = {
@@ -117,11 +125,21 @@ export function ReportBuilder({
     { value: "invoiceNumber" as ColumnKey, label: tField("invoiceNumber") },
     { value: "notes" as ColumnKey, label: tField("notes") },
     { value: "lastChanged" as ColumnKey, label: tField("lastModified") },
+    { value: "supplier" as ColumnKey, label: tField("supplier") },
+    { value: "criticality" as ColumnKey, label: tField("criticality") },
+    { value: "endOfSupportDate" as ColumnKey, label: tField("endOfSupport") },
   ];
 
   const assetStatusOptions: AssetOption[] = [
     { id: "INSTALLED", name: tField("installed") },
     { id: "DECOMMISSIONED", name: tField("decommissioned") },
+  ];
+
+  const criticalityOptions: AssetOption[] = [
+    { id: "LOW", name: tCommon("criticality.LOW") },
+    { id: "MEDIUM", name: tCommon("criticality.MEDIUM") },
+    { id: "HIGH", name: tCommon("criticality.HIGH") },
+    { id: "CRITICAL", name: tCommon("criticality.CRITICAL") },
   ];
 
   const initLocation = initialDefinition && isLocationReport(initialDefinition) ? initialDefinition : null;
@@ -195,7 +213,7 @@ export function ReportBuilder({
   function valueInputType(field: ReportFilterField, op: FilterOp): "text" | "number" | "date" | "none" {
     if (!OPS_NEEDING_VALUE.includes(op)) return "none";
     if (op === "olderThanYears" || op === "newerThanYears" || op === "newerThanDays" || op === "olderThanDays") return "number";
-    if (field === "installationDate" || field === "invoiceDate" || field === "lastChanged") return "date";
+    if (field === "installationDate" || field === "invoiceDate" || field === "lastChanged" || field === "endOfSupportDate") return "date";
     return "text";
   }
 
@@ -205,6 +223,8 @@ export function ReportBuilder({
     if (field === "locationId") return locations;
     if (field === "status") return assetStatusOptions;
     if (field === "workLogItem") return workLogItems;
+    if (field === "supplierId") return suppliers;
+    if (field === "criticality") return criticalityOptions;
     return null;
   }
 

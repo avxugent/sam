@@ -26,6 +26,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkPrometheusAuth } from "@/lib/prometheus-auth";
 import { parseFiNumber } from "@/lib/location-path";
+import { computeNis2Counts } from "@/lib/nis2-compliance";
 
 // ─── Text format helpers ─────────────────────────────────────────────────────
 
@@ -228,6 +229,58 @@ export async function GET(req: NextRequest) {
       "sam_locations_without_fi_number_total",
       "Locations that have no FI number assigned",
       [{ value: locationsWithoutFi }]
+    )
+  );
+
+  // 7. NIS2 compliance gauges
+  const nis2 = await computeNis2Counts();
+  sections.push(
+    gauge("sam_assets_missing_owner", "Installed assets without a responsible owner", [
+      { value: nis2.assetsMissingOwner },
+    ])
+  );
+  sections.push(
+    gauge(
+      "sam_assets_missing_criticality",
+      "Installed assets without an effective criticality classification",
+      [{ value: nis2.assetsMissingCriticality }]
+    )
+  );
+  sections.push(
+    gauge(
+      "sam_assets_past_end_of_support",
+      "Installed assets whose end-of-support date has passed",
+      [{ value: nis2.assetsPastEndOfSupport }]
+    )
+  );
+  sections.push(
+    gauge(
+      "sam_assets_no_end_of_support_date",
+      "Installed assets without an end-of-support date",
+      [{ value: nis2.assetsWithoutEndOfSupportDate }]
+    )
+  );
+  if (nis2.locationsMissingReview !== null) {
+    sections.push(
+      gauge(
+        "sam_locations_missing_review",
+        "Leaf locations without the configured inventory-review work-log item in the review period",
+        [{ value: nis2.locationsMissingReview }]
+      )
+    );
+  }
+  sections.push(
+    gauge(
+      "sam_users_credentials_without_2fa",
+      "Local (credentials) user accounts without TOTP two-factor enabled",
+      [{ value: nis2.usersWithout2fa }]
+    )
+  );
+  sections.push(
+    gauge(
+      "sam_audit_forward_backlog",
+      "Audit log rows not yet forwarded to the configured syslog server",
+      [{ value: nis2.auditBacklog }]
     )
   );
 

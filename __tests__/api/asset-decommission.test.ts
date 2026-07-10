@@ -73,14 +73,33 @@ describe("POST /api/assets/[id]/decommission", () => {
     expect(res.status).toBe(400);
   });
 
-  it("decommissions an installed asset", async () => {
+  it("returns 400 when disposalMethod is missing", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockFindUnique.mockResolvedValue(INSTALLED_ASSET as never);
+    const res = await decommission(decommissionReq({ note: "no method" }), { params: PARAMS });
+    expect(res.status).toBe(400);
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 on an unknown disposalMethod", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockFindUnique.mockResolvedValue(INSTALLED_ASSET as never);
+    const res = await decommission(decommissionReq({ disposalMethod: "SHREDDED" }), { params: PARAMS });
+    expect(res.status).toBe(400);
+  });
+
+  it("decommissions an installed asset, storing disposal method and actor", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockFindUnique.mockResolvedValue(INSTALLED_ASSET as never);
     mockUpdate.mockResolvedValue({ ...INSTALLED_ASSET, status: "DECOMMISSIONED" } as never);
-    const res = await decommission(decommissionReq(), { params: PARAMS });
+    const res = await decommission(decommissionReq({ disposalMethod: "WIPED" }), { params: PARAMS });
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ status: "DECOMMISSIONED" }),
+      data: expect.objectContaining({
+        status: "DECOMMISSIONED",
+        disposalMethod: "WIPED",
+        decommissionedById: "u1",
+      }),
     }));
   });
 
@@ -88,7 +107,7 @@ describe("POST /api/assets/[id]/decommission", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockFindUnique.mockResolvedValue(INSTALLED_ASSET as never);
     mockUpdate.mockResolvedValue({ ...INSTALLED_ASSET, status: "DECOMMISSIONED", decommissionNote: "End of life" } as never);
-    const res = await decommission(decommissionReq({ note: "End of life" }), { params: PARAMS });
+    const res = await decommission(decommissionReq({ note: "End of life", disposalMethod: "DESTROYED" }), { params: PARAMS });
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ decommissionNote: "End of life" }),
@@ -97,7 +116,7 @@ describe("POST /api/assets/[id]/decommission", () => {
 
   it("rejects note longer than 500 chars", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
-    const res = await decommission(decommissionReq({ note: "x".repeat(501) }), { params: PARAMS });
+    const res = await decommission(decommissionReq({ note: "x".repeat(501), disposalMethod: "WIPED" }), { params: PARAMS });
     expect(res.status).toBe(400);
   });
 });
@@ -148,6 +167,8 @@ describe("POST /api/assets/[id]/reinstate", () => {
         status: "INSTALLED",
         decommissionedAt: null,
         decommissionNote: null,
+        disposalMethod: null,
+        decommissionedById: null,
       }),
     }));
   });

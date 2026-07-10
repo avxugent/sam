@@ -1,6 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { resolveLocationPathsBatch, resolveAncestorNamesBatch } from "@/lib/location-path";
+import { effectiveCriticality } from "@/lib/criticality";
 import type {
   ReportDefinition,
   AssetReportDefinition,
@@ -37,11 +38,47 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
   for (const f of filters) {
     const { field, op, value } = f;
 
-    if (field === "typeId" || field === "manufacturerId" || field === "locationId") {
+    if (field === "typeId" || field === "manufacturerId" || field === "locationId" || field === "supplierId") {
       if (op === "eq" && value) conditions.push({ [field]: value });
       else if (op === "neq" && value) conditions.push({ [field]: { not: value } });
       else if (op === "isNull") conditions.push({ [field]: null });
       else if (op === "isNotNull") conditions.push({ [field]: { not: null } });
+      continue;
+    }
+
+    if (field === "criticality") {
+      // Effective semantics: the per-asset override wins, otherwise the asset
+      // type's default applies. Validate the value against the enum so a bad
+      // value can never widen the result set (status-branch precedent).
+      const level =
+        value === "LOW" || value === "MEDIUM" || value === "HIGH" || value === "CRITICAL"
+          ? value
+          : null;
+      const unclassified: Prisma.AssetWhereInput = {
+        criticality: null,
+        OR: [{ typeId: null }, { type: { defaultCriticality: null } }],
+      };
+      if (op === "eq" && level) {
+        conditions.push({
+          OR: [
+            { criticality: level },
+            { criticality: null, type: { defaultCriticality: level } },
+          ],
+        });
+      } else if (op === "neq" && level) {
+        conditions.push({
+          NOT: {
+            OR: [
+              { criticality: level },
+              { criticality: null, type: { defaultCriticality: level } },
+            ],
+          },
+        });
+      } else if (op === "isNull") {
+        conditions.push(unclassified);
+      } else if (op === "isNotNull") {
+        conditions.push({ NOT: unclassified });
+      }
       continue;
     }
 
@@ -88,7 +125,7 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
       continue;
     }
 
-    if (field === "installationDate" || field === "invoiceDate") {
+    if (field === "installationDate" || field === "invoiceDate" || field === "endOfSupportDate") {
       if (op === "before" && value) {
         conditions.push({ [field]: { lt: new Date(value) } });
       } else if (op === "after" && value) {
@@ -124,8 +161,9 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
   const assets = await prisma.asset.findMany({
     where,
     include: {
-      type: { select: { name: true } },
+      type: { select: { name: true, defaultCriticality: true } },
       manufacturer: { select: { name: true } },
+      supplier: { select: { name: true } },
       location: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -151,6 +189,9 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
     invoiceNumber: a.invoiceNumber,
     notes: a.notes,
     lastChanged: a.updatedAt ? a.updatedAt.toISOString().split("T")[0] : null,
+    supplier: a.supplier?.name ?? null,
+    criticality: effectiveCriticality(a.criticality, a.type?.defaultCriticality),
+    endOfSupportDate: a.endOfSupportDate ? a.endOfSupportDate.toISOString().split("T")[0] : null,
   }));
 
   let groups: GroupCount[] = [];

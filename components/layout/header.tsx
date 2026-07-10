@@ -36,6 +36,7 @@ import {
   UserCog,
   BarChart2,
   Merge,
+  Truck,
 } from "lucide-react";
 
 type HeaderUser = {
@@ -56,7 +57,7 @@ type QuickResult = {
 
 type AdminNavItem = {
   href: string;
-  labelKey: "users" | "assetTypes" | "manufacturers" | "modelCleanup" | "importCsv" | "exportCsv" | "auditLog" | "compliance" | "settings";
+  labelKey: "users" | "assetTypes" | "manufacturers" | "suppliers" | "modelCleanup" | "importCsv" | "exportCsv" | "auditLog" | "compliance" | "settings";
   icon: React.ReactNode;
   adminOnly: boolean;
 };
@@ -65,6 +66,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/users", labelKey: "users", icon: <Users className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/asset-types", labelKey: "assetTypes", icon: <Tag className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/manufacturers", labelKey: "manufacturers", icon: <Factory className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/suppliers", labelKey: "suppliers", icon: <Truck className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/models", labelKey: "modelCleanup", icon: <Merge className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/import", labelKey: "importCsv", icon: <Upload className="h-4 w-4" />, adminOnly: false },
   { href: "/admin/export", labelKey: "exportCsv", icon: <Download className="h-4 w-4" />, adminOnly: true },

@@ -43,7 +43,13 @@
     "home": "Home",
     "somethingWentWrong": "Something went wrong.",
     "unexpectedError": "An unexpected error occurred. Please try again.",
-    "tryAgain": "Try again"
+    "tryAgain": "Try again",
+    "criticality": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "CRITICAL": "Critical"
+    }
   },
   "nav": {
     "locations": "Locations",
@@ -77,7 +83,8 @@
     "signOut": "Sign out",
     "searchPlaceholder": "Search assets, locations, serial numbers…",
     "skipToMainContent": "Skip to main content",
-    "seeAllResultsFor": "See all results for \"{query}\" →"
+    "seeAllResultsFor": "See all results for \"{query}\" →",
+    "suppliers": "Suppliers"
   },
   "language": {
     "language": "Language",
@@ -123,7 +130,11 @@
     "fieldName": "Field name",
     "fieldValue": "Value",
     "warrantyMonths": "Warranty (months)",
-    "streetAddress": "Street address"
+    "streetAddress": "Street address",
+    "owner": "Owner",
+    "supplier": "Supplier",
+    "criticality": "Criticality",
+    "endOfSupport": "End of support"
   },
   "asset": {
     "title": "Asset",
@@ -163,7 +174,11 @@
     "returnToStockConfirmTitle": "Return \"{name}\" to stock?",
     "returnToStockConfirmDescription": "This will delete the asset and add it back to the stock inventory. Asset-specific data (hostname, MAC addresses, custom fields, attachments) will be permanently lost.",
     "returnedToStock": "Asset returned to stock",
-    "returningToStock": "Returning to stock…"
+    "returningToStock": "Returning to stock…",
+    "deletedUser": "(deleted user)",
+    "unclassified": "Unclassified",
+    "inheritedFromType": "inherited from type",
+    "endOfSupportPassed": "no longer supported"
   },
   "assetForm": {
     "createTitle": "Create asset",
@@ -209,7 +224,11 @@
     "modelSimilarTitle": "Did you mean an existing model?",
     "modelSimilarDescription": "A similar model name already exists: \"{existing}\". Use it to keep spellings consistent, or keep what you typed.",
     "modelSimilarKeepMine": "Keep mine",
-    "modelSimilarUseExisting": "Use existing"
+    "modelSimilarUseExisting": "Use existing",
+    "ownerDefault": "Default owner",
+    "noneSupplier": "None",
+    "criticalityInherit": "Inherit from type",
+    "criticalityInheritWith": "Inherit from type ({level})"
   },
   "location": {
     "title": "Location",
@@ -346,7 +365,17 @@
     "decommissionReasonLabel": "Reason (optional)",
     "decommissionReasonPlaceholder": "e.g. End of life, hardware failure…",
     "bannerLabel": "Decommissioned",
-    "decommissioned_at": "Decommissioned"
+    "decommissioned_at": "Decommissioned",
+    "disposalMethodLabel": "Disposal method",
+    "disposalMethodPlaceholder": "Select how the device was disposed of…",
+    "decommissionedBy": "by {name}",
+    "disposalMethod": {
+      "WIPED": "Wiped (storage sanitised)",
+      "DESTROYED": "Destroyed",
+      "RETURNED": "Returned to supplier",
+      "RESOLD": "Resold",
+      "OTHER": "Other (see note)"
+    }
   },
   "deploy": {
     "title": "Deploy \"{model}\"",
@@ -457,7 +486,8 @@
     "rolesEditor": "Editor",
     "rolesViewer": "Viewer",
     "providerCredentials": "Email & password",
-    "providerEntra": "Microsoft Entra ID"
+    "providerEntra": "Microsoft Entra ID",
+    "exportCsv": "Export CSV"
   },
   "assetTypes": {
     "title": "Asset Types",
@@ -497,7 +527,11 @@
     "hostnamePatternValid": "Pattern is valid",
     "hostnamePatternSaved": "Hostname pattern saved",
     "hostnamePatternInvalid": "Invalid hostname pattern",
-    "hostnamePatternConfigured": "Hostname format set"
+    "hostnamePatternConfigured": "Hostname format set",
+    "defaultCriticality": "Default criticality",
+    "defaultCriticalityHelp": "Applies to assets of this type without their own criticality (NIS2 classification).",
+    "defaultCriticalityNone": "None (unclassified)",
+    "defaultCriticalitySaved": "Default criticality saved"
   },
   "manufacturers": {
     "title": "Manufacturers",
@@ -606,7 +640,29 @@
     "model": "Model",
     "serial": "Serial",
     "location": "Location",
-    "notApplicable": "n/a"
+    "notApplicable": "n/a",
+    "hostnameSectionTitle": "Hostname compliance",
+    "nis2Title": "NIS2 asset compliance",
+    "nis2Subtitle": "Gaps in ownership, classification, support status, inventory review, 2FA and audit forwarding.",
+    "nis2MissingOwner": "Assets without owner",
+    "nis2MissingOwnerHelp": "Installed assets with no responsible person assigned.",
+    "nis2MissingCriticality": "Assets unclassified",
+    "nis2MissingCriticalityHelp": "No criticality set on the asset or its type.",
+    "nis2PastEos": "Past end-of-support",
+    "nis2PastEosHelp": "Installed assets past their end-of-support date ({withoutDate} without a date).",
+    "nis2MissingReview": "Locations not reviewed",
+    "nis2MissingReviewHelp": "No \"{item}\" entry in the last {months} months (of {total} locations).",
+    "nis2ReviewNotConfigured": "Configure a review work-log item in the compliance settings to track this.",
+    "nis2ConfigureLink": "Open settings",
+    "nis2UsersWithout2fa": "Local users without 2FA",
+    "nis2UsersWithout2faHelp": "Credentials accounts without TOTP two-factor enabled.",
+    "nis2UsersWithout2faForced": "Global 2FA requirement is on — these users are forced to enrol at next login.",
+    "nis2ManageUsersLink": "Manage users",
+    "nis2AuditBacklog": "Audit forwarding backlog",
+    "nis2AuditBacklogHelp": "Audit entries not yet delivered to the syslog server.",
+    "nis2AuditBacklogNoSyslog": "Syslog forwarding is not configured — entries are only stored locally.",
+    "nis2ViewAuditLink": "View audit log",
+    "nis2SampleMore": "Showing {shown} of {total}."
   },
   "settings": {
     "general": "General settings",
@@ -661,7 +717,23 @@
     "uploadBackground": "Upload image",
     "removeBackground": "Remove image",
     "backgroundUploaded": "Background image uploaded",
-    "backgroundRemoved": "Background image removed"
+    "backgroundRemoved": "Background image removed",
+    "complianceTitle": "Security & compliance",
+    "complianceHelp": "NIS2-related security policies and evidence settings.",
+    "complianceRequire2fa": "Require two-factor authentication for all local accounts",
+    "complianceRequire2faHelp": "Local (credentials) users without 2FA are forced to set it up at next login. SSO users are covered by Entra ID policies.",
+    "complianceRetention": "Audit log retention (days)",
+    "complianceRetentionHelp": "Rows older than this are removed by the purge script (scripts/purge-audit.mjs). Between 30 and 3650 days.",
+    "complianceRetentionInvalid": "Retention must be between 30 and 3650 days.",
+    "complianceDefaultOwner": "Default asset owner",
+    "complianceDefaultOwnerNone": "None",
+    "complianceDefaultOwnerHelp": "Assigned to newly created assets when no owner is chosen (e.g. a team account).",
+    "complianceReviewItem": "Inventory review work log item",
+    "complianceReviewItemNone": "Not configured",
+    "complianceReviewItemHelp": "The work log item that marks a location's asset list as reviewed (used by the compliance dashboard).",
+    "complianceReviewPeriod": "Review period (months)",
+    "complianceReviewPeriodHelp": "Locations without the review item within this period are flagged on the compliance dashboard.",
+    "complianceReviewPeriodInvalid": "Review period must be between 1 and 120 months."
   },
   "report": {
     "title": "Reports",
@@ -839,5 +911,29 @@
     "currentCover": "Current cover",
     "removeCover": "Remove cover",
     "saved": "Cover image updated"
+  },
+  "suppliers": {
+    "title": "Suppliers",
+    "subtitle": "Suppliers, contract references and default assignment windows.",
+    "name": "Name",
+    "namePlaceholder": "e.g. CampusStore BV",
+    "addSupplier": "Add supplier",
+    "contractReference": "Contract reference",
+    "contractPlaceholder": "e.g. FW-2026-014",
+    "contactInfo": "Contact info",
+    "defaultWindow": "Default window",
+    "defaultFrom": "Default from",
+    "defaultUntil": "Default until",
+    "openEnded": "open-ended",
+    "windowHelp": "Assets created within this window without an explicit supplier are assigned this one automatically. Leave 'until' empty for open-ended; windows may not overlap between suppliers.",
+    "windowOverlap": "Default window overlaps with: {names}",
+    "assets": "Assets",
+    "edit": "Edit",
+    "empty": "No suppliers yet.",
+    "created": "Supplier created",
+    "updated": "Supplier updated",
+    "deleted": "Supplier deleted",
+    "deleteConfirmTitle": "Delete supplier?",
+    "deleteConfirmDescription": "This is only allowed if no assets use this supplier."
   }
 }

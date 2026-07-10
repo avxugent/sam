@@ -6,6 +6,7 @@ vi.mock("@/lib/prisma", () => ({
     location: { findMany: vi.fn() },
     asset: { findMany: vi.fn() },
     stockItem: { findMany: vi.fn() },
+    user: { findMany: vi.fn() },
     $queryRaw: vi.fn(),
   },
 }));
@@ -48,6 +49,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockLocFind.mockResolvedValue(LOCATIONS as never);
   mockAssetFind.mockResolvedValue([asset()] as never);
+  vi.mocked(prisma.user.findMany).mockResolvedValue([] as never);
 });
 
 describe("generateExportCsv()", () => {
@@ -154,7 +156,10 @@ describe("generateDecommissionedCsv()", () => {
   }
 
   it("queries only DECOMMISSIONED assets and appends the decommission columns", async () => {
-    mockAssetFind.mockResolvedValue([decommissioned()] as never);
+    mockAssetFind.mockResolvedValue([
+      decommissioned({ disposalMethod: "WIPED", decommissionedById: "u1" }),
+    ] as never);
+    vi.mocked(prisma.user.findMany).mockResolvedValue([{ id: "u1", name: "Jane Doe" }] as never);
     const csv = await generateDecommissionedCsv();
 
     expect(mockAssetFind).toHaveBeenCalledWith(
@@ -163,15 +168,26 @@ describe("generateDecommissionedCsv()", () => {
 
     const lines = csv.split("\r\n");
     const header = lines[0];
-    expect(header.endsWith("DECOMMISSIONED_AT;DECOMMISSION_NOTE;LAST_LOCATION;LAST_FI_NUMBER")).toBe(true);
+    expect(header.endsWith("DECOMMISSIONED_AT;DECOMMISSION_NOTE;DISPOSAL_METHOD;DECOMMISSIONED_BY;LAST_LOCATION;LAST_FI_NUMBER")).toBe(true);
 
     const row = lines[1].split(";");
-    expect(row.slice(-4)).toEqual([
+    expect(row.slice(-6)).toEqual([
       "2025-03-10",
       "end of life",
+      "WIPED",
+      "Jane Doe",
       "Room 101",
       "14.10.100.013",
     ]);
+  });
+
+  it("falls back to the raw id when the decommissioner was deleted", async () => {
+    mockAssetFind.mockResolvedValue([
+      decommissioned({ disposalMethod: "DESTROYED", decommissionedById: "gone" }),
+    ] as never);
+    const csv = await generateDecommissionedCsv();
+    const row = csv.split("\r\n")[1].split(";");
+    expect(row.slice(-4, -2)).toEqual(["DESTROYED", "gone"]);
   });
 
   it("renders empty cells for an asset with all-null fields", async () => {
@@ -277,5 +293,78 @@ describe("generateStockCsv()", () => {
     const csv = await generateStockCsv();
     const row = csv.split("\r\n")[1].split(";");
     expect(row[7]).toBe(""); // MAC — parse failure falls back to empty
+  });
+});
+
+describe("generateUsersCsv", () => {
+  it("produces header + one row per user, escaping cells", async () => {
+    const { generateUsersCsv } = await import("@/lib/csv-export");
+    const csv = generateUsersCsv([
+      {
+        name: 'Doe; "Jane"',
+        email: "jane@x.y",
+        role: "ADMIN",
+        provider: "credentials",
+        totpEnabled: true,
+        twoFactorRequired: false,
+        lastLoginAt: new Date("2026-01-02T03:04:05Z"),
+      },
+      {
+        name: "No Login",
+        email: "n@x.y",
+        role: "VIEWER",
+        provider: "microsoft-entra-id",
+        totpEnabled: false,
+        twoFactorRequired: false,
+        lastLoginAt: null,
+      },
+    ]);
+    const lines = csv.split("\r\n");
+    expect(lines[0]).toBe("NAME;EMAIL;ROLE;PROVIDER;2FA_ENABLED;2FA_REQUIRED;LAST_LOGIN");
+    expect(lines[1]).toBe('"Doe; ""Jane""";jane@x.y;ADMIN;credentials;yes;no;2026-01-02T03:04:05.000Z');
+    expect(lines[2]).toBe("No Login;n@x.y;VIEWER;microsoft-entra-id;no;no;");
+  });
+
+  it("returns only the header for an empty user list", async () => {
+    const { generateUsersCsv } = await import("@/lib/csv-export");
+    expect(generateUsersCsv([])).toBe("NAME;EMAIL;ROLE;PROVIDER;2FA_ENABLED;2FA_REQUIRED;LAST_LOGIN");
+  });
+});
+
+describe("CSV round-trip contract", () => {
+  // Every exported column must be recognized by the import route — if this
+  // fails you added an export column without teaching the import to read it.
+  const IMPORT_RECOGNIZED = [
+    "CAMPUS", "GEBOUW", "LOKAAL", "FI NUMMER",
+    "TYPE", "BRAND", "MODEL", "SERIAL", "MAC", "IP_HOSTNAME",
+    "INSTALL_DATE", "Factuurdatum", "Factuurnummer",
+    "GUID", "QUANTITY", "DIAGONAL", "WIDTH", "HEIGHT",
+    "MIC_TYPE", "FREQUENCY", "ROOM_LOCATION", "INTEGRATOR", "CONTACTPERSOON",
+    "OWNER", "CRITICALITY", "END_OF_SUPPORT", "SUPPLIER",
+  ];
+
+  it("export headers are a subset of import-recognized headers", async () => {
+    const csv = await generateExportCsv();
+    const headers = csv.split("\r\n")[0].split(";");
+    const unknown = headers.filter((h) => !IMPORT_RECOGNIZED.includes(h));
+    expect(unknown).toEqual([]);
+  });
+
+  it("exports the new NIS2 columns with owner as email", async () => {
+    mockAssetFind.mockResolvedValue([
+      asset({
+        ownerId: "u1",
+        criticality: "HIGH",
+        endOfSupportDate: new Date("2030-06-30T00:00:00Z"),
+        supplier: { name: "CampusStore" },
+      }),
+    ] as never);
+    vi.mocked(prisma.user.findMany).mockResolvedValue([{ id: "u1", email: "jane@x.y" }] as never);
+
+    const csv = await generateExportCsv();
+    const lines = csv.split("\r\n");
+    expect(lines[0].endsWith("OWNER;CRITICALITY;END_OF_SUPPORT;SUPPLIER")).toBe(true);
+    const row = lines[1].split(";");
+    expect(row.slice(-4)).toEqual(["jane@x.y", "HIGH", "2030-06-30", "CampusStore"]);
   });
 });

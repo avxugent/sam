@@ -66,18 +66,27 @@ type Asset = {
   invoiceDate?: Date | string | null;
   notes?: string | null;
   vaultPath?: string | null;
+  ownerId?: string | null;
+  criticality?: string | null;
+  endOfSupportDate?: Date | string | null;
+  supplierId?: string | null;
   status: string;
   decommissionedAt?: Date | string | null;
   decommissionNote?: string | null;
+  disposalMethod?: string | null;
+  decommissionedById?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
-  type?: { id: string; name: string } | null;
+  type?: { id: string; name: string; defaultCriticality?: string | null } | null;
   manufacturer?: { id: string; name: string } | null;
+  supplier?: { id: string; name: string; contractReference?: string | null } | null;
   macAddresses: { id: string; address: string }[];
   customFields: { id: string; key: string; value: string }[];
   location: { id: string; name: string };
   attachments: Attachment[];
 };
+
+const DISPOSAL_METHODS = ["WIPED", "DESTROYED", "RETURNED", "RESOLD", "OTHER"] as const;
 
 type Breadcrumb = { id: string; name: string };
 
@@ -123,12 +132,16 @@ export function AssetDetailClient({
   userRole,
   hostnameUrlTemplate,
   macAddressUrlTemplate,
+  ownerName,
+  decommissionedByName,
 }: {
   asset: Asset;
   breadcrumbs: Breadcrumb[];
   userRole: string;
   hostnameUrlTemplate?: string | null;
   macAddressUrlTemplate?: string | null;
+  ownerName?: string | null;
+  decommissionedByName?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -141,16 +154,18 @@ export function AssetDetailClient({
   const [attachments, setAttachments] = useState(asset.attachments);
   const [moveOpen, setMoveOpen] = useState(false);
   const [decommissionNote, setDecommissionNote] = useState("");
+  const [disposalMethod, setDisposalMethod] = useState("");
   const [decommissioning, setDecommissioning] = useState(false);
   const [reinstating, setReinstating] = useState(false);
   const [returningToStock, setReturningToStock] = useState(false);
 
   async function handleDecommission() {
+    if (!disposalMethod) return;
     setDecommissioning(true);
     const res = await fetch(`/api/assets/${asset.id}/decommission`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ note: decommissionNote || null }),
+      body: JSON.stringify({ note: decommissionNote || null, disposalMethod }),
     });
     setDecommissioning(false);
     if (!res.ok) {
@@ -160,6 +175,7 @@ export function AssetDetailClient({
     }
     toast({ title: tDecom("decommissionAsset") });
     setDecommissionNote("");
+    setDisposalMethod("");
     router.refresh();
   }
 
@@ -237,6 +253,13 @@ export function AssetDetailClient({
                 </span>
               )}
             </p>
+            {(asset.disposalMethod || decommissionedByName) && (
+              <p className="text-[12px] text-[#92400e] mt-0.5">
+                {asset.disposalMethod && tDecom(`disposalMethod.${asset.disposalMethod}`)}
+                {asset.disposalMethod && decommissionedByName && " · "}
+                {decommissionedByName && tDecom("decommissionedBy", { name: decommissionedByName })}
+              </p>
+            )}
             {asset.decommissionNote && (
               <p className="text-[12px] text-[#92400e] mt-0.5">{asset.decommissionNote}</p>
             )}
@@ -358,21 +381,39 @@ export function AssetDetailClient({
                     {tDecom("decommissionConfirmDescription")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="px-6 pb-2 space-y-1">
-                  <Label htmlFor="decommission-note" className="text-[13px]">{tDecom("decommissionReasonLabel")}</Label>
-                  <Input
-                    id="decommission-note"
-                    value={decommissionNote}
-                    onChange={(e) => setDecommissionNote(e.target.value)}
-                    placeholder={tDecom("decommissionReasonPlaceholder")}
-                    maxLength={500}
-                  />
+                <div className="px-6 pb-2 space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="disposal-method" className="text-[13px]">
+                      {tDecom("disposalMethodLabel")} <span aria-hidden="true" className="text-destructive">*</span>
+                    </Label>
+                    <select
+                      id="disposal-method"
+                      value={disposalMethod}
+                      onChange={(e) => setDisposalMethod(e.target.value)}
+                      className="w-full h-9 px-3 rounded-md border border-input bg-transparent text-[13px] focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="">{tDecom("disposalMethodPlaceholder")}</option>
+                      {DISPOSAL_METHODS.map((m) => (
+                        <option key={m} value={m}>{tDecom(`disposalMethod.${m}`)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="decommission-note" className="text-[13px]">{tDecom("decommissionReasonLabel")}</Label>
+                    <Input
+                      id="decommission-note"
+                      value={decommissionNote}
+                      onChange={(e) => setDecommissionNote(e.target.value)}
+                      placeholder={tDecom("decommissionReasonPlaceholder")}
+                      maxLength={500}
+                    />
+                  </div>
                 </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDecommissionNote("")}>{tCommon("cancel")}</AlertDialogCancel>
+                  <AlertDialogCancel onClick={() => { setDecommissionNote(""); setDisposalMethod(""); }}>{tCommon("cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDecommission}
-                    disabled={decommissioning}
+                    disabled={decommissioning || !disposalMethod}
                     className="bg-[#ca8a04] hover:bg-[#a16207] text-white"
                   >
                     {decommissioning ? tDecom("decommissioning") : tDecom("decommissionAsset")}
@@ -462,6 +503,52 @@ export function AssetDetailClient({
               <div><FieldLabel>{tField("installationDate")}</FieldLabel><FieldValue value={formatDate(asset.installationDate)} /></div>
               <div><FieldLabel>{tField("invoiceNumber")}</FieldLabel><FieldValue value={asset.invoiceNumber} /></div>
               <div><FieldLabel>{tField("invoiceDate")}</FieldLabel><FieldValue value={formatDate(asset.invoiceDate)} /></div>
+              <div>
+                <FieldLabel>{tField("owner")}</FieldLabel>
+                <FieldValue value={ownerName ?? (asset.ownerId ? t("deletedUser") : null)} />
+              </div>
+              <div>
+                <FieldLabel>{tField("supplier")}</FieldLabel>
+                <FieldValue>
+                  {asset.supplier ? (
+                    <>
+                      {asset.supplier.name}
+                      {asset.supplier.contractReference && (
+                        <span className="text-[#64748b] text-[12px] ml-1.5">({asset.supplier.contractReference})</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-[#64748b]">—</span>
+                  )}
+                </FieldValue>
+              </div>
+              <div>
+                <FieldLabel>{tField("criticality")}</FieldLabel>
+                <FieldValue>
+                  {(() => {
+                    const effective = asset.criticality ?? asset.type?.defaultCriticality ?? null;
+                    if (!effective) return <span className="text-[#64748b]">{t("unclassified")}</span>;
+                    return (
+                      <>
+                        {tCommon(`criticality.${effective}`)}
+                        {!asset.criticality && (
+                          <span className="text-[#64748b] text-[12px] ml-1.5">({t("inheritedFromType")})</span>
+                        )}
+                      </>
+                    );
+                  })()}
+                </FieldValue>
+              </div>
+              <div>
+                <FieldLabel>{tField("endOfSupport")}</FieldLabel>
+                {asset.endOfSupportDate && new Date(asset.endOfSupportDate) < new Date() ? (
+                  <dd className="text-[13px] text-[#dc2626] font-medium">
+                    {formatDate(asset.endOfSupportDate)} · {t("endOfSupportPassed")}
+                  </dd>
+                ) : (
+                  <FieldValue value={formatDate(asset.endOfSupportDate)} />
+                )}
+              </div>
             </dl>
 
             {asset.macAddresses.length > 0 && (

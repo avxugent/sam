@@ -37,6 +37,8 @@ import {
 import { cn } from "@/lib/utils";
 import { matchesHostnamePattern } from "@/lib/hostname-pattern";
 import { normalizeMacAddress } from "@/lib/mac-address";
+import { isWindowActive } from "@/lib/supplier-window";
+import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { Loader2, Plus, Trash2, KeyRound, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
@@ -80,6 +82,10 @@ const schema = z
     invoiceDate: z.string().optional(),
     notes: z.string().max(5000).optional(),
     vaultPath: z.string().max(500).optional(),
+    ownerId: z.string().max(64).optional(),
+    criticality: z.string().max(20).optional(),
+    endOfSupportDate: z.string().optional(),
+    supplierId: z.string().max(64).optional(),
     macAddresses: z.array(macAddressSchema),
     customFields: z.array(z.object({ key: z.string(), value: z.string() })),
   })
@@ -102,8 +108,15 @@ const schema = z
 
 type FormData = z.infer<typeof schema>;
 
-type AssetType = { id: string; name: string; hostnamePattern?: string | null };
+type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: string | null };
 type Manufacturer = { id: string; name: string };
+type Supplier = {
+  id: string;
+  name: string;
+  defaultFrom: string | null;
+  defaultUntil: string | null;
+};
+type UserLite = { id: string; name: string };
 type ModelSuggestion = { model: string; typeId: string | null; manufacturerId: string | null };
 
 type VaultTestResult = {
@@ -131,6 +144,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [usersLite, setUsersLite] = useState<UserLite[]>([]);
   const [modelSuggestions, setModelSuggestions] = useState<ModelSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [modelSimilarMatch, setModelSimilarMatch] = useState<{ model: string } | null>(null);
@@ -158,6 +173,10 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       invoiceDate: z.string().optional(),
       notes: z.string().max(5000).optional(),
       vaultPath: z.string().max(500).optional(),
+      ownerId: z.string().max(64).optional(),
+      criticality: z.string().max(20).optional(),
+      endOfSupportDate: z.string().optional(),
+      supplierId: z.string().max(64).optional(),
       macAddresses: z.array(macSchema),
       customFields: z.array(z.object({ key: z.string(), value: z.string() })),
     }).superRefine((data, ctx) => {
@@ -227,6 +246,9 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const macValues = useWatch({ control, name: "macAddresses" });
   const typeIdValue = useWatch({ control, name: "typeId" });
   const manufacturerIdValue = useWatch({ control, name: "manufacturerId" });
+  const ownerIdValue = useWatch({ control, name: "ownerId" });
+  const criticalityValue = useWatch({ control, name: "criticality" });
+  const supplierIdValue = useWatch({ control, name: "supplierId" });
 
   // Re-validate MAC rule when hostname changes and we already have MACs shown
   useEffect(() => {
@@ -234,12 +256,21 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   }, [hostnameValue, macFields.length, trigger]);
 
   const fetchDropdowns = useCallback(async () => {
-    const [typesRes, mfrsRes] = await Promise.all([
+    const [typesRes, mfrsRes, suppliersRes, usersRes] = await Promise.all([
       fetch("/api/asset-types"),
       fetch("/api/manufacturers"),
+      fetch("/api/suppliers"),
+      fetch("/api/users/lite"),
     ]);
     if (typesRes.ok) setAssetTypes(await typesRes.json());
     if (mfrsRes.ok) setManufacturers(await mfrsRes.json());
+    let fetchedSuppliers: Supplier[] = [];
+    if (suppliersRes.ok) {
+      fetchedSuppliers = await suppliersRes.json();
+      setSuppliers(fetchedSuppliers);
+    }
+    if (usersRes.ok) setUsersLite(await usersRes.json());
+    return fetchedSuppliers;
   }, []);
 
   const fetchAsset = useCallback(async () => {
@@ -262,6 +293,12 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         : "",
       notes: asset.notes || "",
       vaultPath: asset.vaultPath || "",
+      ownerId: asset.ownerId || "",
+      criticality: asset.criticality || "",
+      endOfSupportDate: asset.endOfSupportDate
+        ? new Date(asset.endOfSupportDate).toISOString().split("T")[0]
+        : "",
+      supplierId: asset.supplierId || "",
       macAddresses: asset.macAddresses.map((m: { address: string }) => ({
         address: m.address,
       })),
@@ -273,7 +310,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
   useEffect(() => {
     if (open) {
-      fetchDropdowns();
+      const dropdowns = fetchDropdowns();
       if (mode === "edit") {
         fetchAsset();
       } else {
@@ -281,12 +318,18 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         // the form component stays mounted across open/close, so create mode
         // must reset explicitly rather than relying on defaultValues.
         reset({ typeId: "", manufacturerId: "", model: "", macAddresses: [], customFields: [], vaultPath: "" });
+        // Pre-select the supplier whose default window covers today (the API
+        // would apply the same default; showing it keeps the form honest).
+        dropdowns.then((fetched) => {
+          const current = fetched.find((s) => isWindowActive(s, new Date()));
+          if (current) setValue("supplierId", current.id);
+        });
       }
       setVaultTestResult(null);
       setModelSimilarMatch(null);
       setDismissedModelValue(null);
     }
-  }, [open, fetchDropdowns, fetchAsset, mode, reset]);
+  }, [open, fetchDropdowns, fetchAsset, mode, reset, setValue]);
 
   // Sync manufacturer display name when manufacturerId or manufacturers list changes (handles edit mode)
   useEffect(() => {
@@ -352,6 +395,13 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       manufacturerId: data.manufacturerId || null,
       hostname: data.hostname?.trim() || null,
       vaultPath: data.vaultPath?.trim() || null,
+      // Empty on create = "use default" (owner setting / supplier window) —
+      // the API applies defaults only when the field is absent, so omit it.
+      // Empty on edit = explicit clear (null).
+      ownerId: data.ownerId || (mode === "create" ? undefined : null),
+      supplierId: data.supplierId || (mode === "create" ? undefined : null),
+      criticality: data.criticality || null,
+      endOfSupportDate: data.endOfSupportDate || null,
       macAddresses: data.macAddresses
         .map((m) => m.address.trim())
         .filter(Boolean)
@@ -612,6 +662,76 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             <div className="space-y-1.5">
               <Label htmlFor="invoiceDate">{tField("invoiceDate")}</Label>
               <Input id="invoiceDate" type="date" {...register("invoiceDate")} />
+            </div>
+
+            {/* Owner */}
+            <div className="space-y-1.5">
+              <Label htmlFor="asset-owner">{tField("owner")}</Label>
+              <Select
+                value={ownerIdValue || "_none"}
+                onValueChange={(v) => setValue("ownerId", v === "_none" ? "" : v, { shouldValidate: true })}
+              >
+                <SelectTrigger id="asset-owner">
+                  <SelectValue placeholder={t("ownerDefault")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">{t("ownerDefault")}</SelectItem>
+                  {usersLite.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Supplier */}
+            <div className="space-y-1.5">
+              <Label htmlFor="asset-supplier">{tField("supplier")}</Label>
+              <Select
+                value={supplierIdValue || "_none"}
+                onValueChange={(v) => setValue("supplierId", v === "_none" ? "" : v, { shouldValidate: true })}
+              >
+                <SelectTrigger id="asset-supplier">
+                  <SelectValue placeholder={t("noneSupplier")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">{t("noneSupplier")}</SelectItem>
+                  {suppliers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Criticality */}
+            <div className="space-y-1.5">
+              <Label htmlFor="asset-criticality">{tField("criticality")}</Label>
+              <Select
+                value={criticalityValue || "_inherit"}
+                onValueChange={(v) => setValue("criticality", v === "_inherit" ? "" : v, { shouldValidate: true })}
+              >
+                <SelectTrigger id="asset-criticality">
+                  <SelectValue placeholder={t("criticalityInherit")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_inherit">
+                    {(() => {
+                      const typeDefault = assetTypes.find((at) => at.id === typeIdValue)?.defaultCriticality;
+                      return typeDefault
+                        ? t("criticalityInheritWith", { level: tCommon(`criticality.${typeDefault}`) })
+                        : t("criticalityInherit");
+                    })()}
+                  </SelectItem>
+                  {CRITICALITY_VALUES.map((level) => (
+                    <SelectItem key={level} value={level}>{tCommon(`criticality.${level}`)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* End of support */}
+            <div className="space-y-1.5">
+              <Label htmlFor="endOfSupportDate">{tField("endOfSupport")}</Label>
+              <Input id="endOfSupportDate" type="date" {...register("endOfSupportDate")} />
             </div>
           </div>
 

@@ -21,6 +21,7 @@
 import { prisma } from "./_prisma.mjs";
 import { writeFile, mkdir } from "fs/promises";
 import { resolve, join } from "path";
+import { createHash } from "crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const CUSTOM_FIELD_COLUMNS = [
@@ -32,6 +33,7 @@ const COLUMNS = [
   "TYPE", "BRAND", "MODEL", "SERIAL", "MAC", "IP_HOSTNAME",
   "INSTALL_DATE", "Factuurdatum", "Factuurnummer",
   ...CUSTOM_FIELD_COLUMNS,
+  "OWNER", "CRITICALITY", "END_OF_SUPPORT", "SUPPLIER",
 ];
 
 function escapeCsvCell(value) {
@@ -103,12 +105,20 @@ async function main() {
     include: {
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },
+      supplier: { select: { name: true } },
       macAddresses: { select: { address: true } },
       customFields: { select: { key: true, value: true } },
       location: { select: { id: true, name: true, fiNumber: true, parentId: true } },
     },
     orderBy: [{ locationId: "asc" }, { createdAt: "asc" }],
   });
+
+  // Owner is a soft ref exported as email (mirrors lib/csv-export.ts)
+  const ownerIds = [...new Set(assets.map((a) => a.ownerId).filter(Boolean))];
+  const owners = ownerIds.length
+    ? await prisma.user.findMany({ where: { id: { in: ownerIds } }, select: { id: true, email: true } })
+    : [];
+  const ownerEmailById = new Map(owners.map((u) => [u.id, u.email]));
 
   const rows = [COLUMNS.join(";")];
   const locationsWithAssets = new Set();
@@ -143,6 +153,10 @@ async function main() {
       formatDate(asset.invoiceDate),
       asset.invoiceNumber ?? "",
       ...CUSTOM_FIELD_COLUMNS.map((col) => customFieldMap[col] ?? ""),
+      asset.ownerId ? ownerEmailById.get(asset.ownerId) ?? asset.ownerId : "",
+      asset.criticality ?? "",
+      formatDate(asset.endOfSupportDate),
+      asset.supplier?.name ?? "",
     ];
     rows.push(cells.map(escapeCsvCell).join(";"));
   }
@@ -165,50 +179,116 @@ async function main() {
   const csv = rows.join("\r\n");
   const dataRows = rows.length - 1; // subtract header
 
+  // ── JSON inventory snapshot (mirrors lib/inventory-snapshot.ts) ──
+  const suppliers = await prisma.supplier.findMany({ orderBy: { name: "asc" } });
+  const snapshotLocations = await prisma.location.findMany({
+    select: { id: true, name: true, parentId: true, fiNumber: true },
+    orderBy: { name: "asc" },
+  });
+  const dateOnly = (d) => (d ? new Date(d).toISOString().slice(0, 10) : null);
+  const snapshot = {
+    generatedAt: new Date().toISOString(),
+    counts: { assets: assets.length, locations: snapshotLocations.length, suppliers: suppliers.length },
+    assets: assets.map((a) => ({
+      id: a.id,
+      status: a.status,
+      typeName: a.type?.name ?? null,
+      manufacturerName: a.manufacturer?.name ?? null,
+      model: a.model,
+      serialNumber: a.serialNumber,
+      hostname: a.hostname,
+      macAddresses: a.macAddresses.map((m) => m.address),
+      locationId: a.locationId,
+      installationDate: dateOnly(a.installationDate),
+      invoiceNumber: a.invoiceNumber,
+      invoiceDate: dateOnly(a.invoiceDate),
+      ownerId: a.ownerId,
+      criticality: a.criticality,
+      endOfSupportDate: dateOnly(a.endOfSupportDate),
+      supplierId: a.supplierId,
+      disposalMethod: a.disposalMethod,
+      decommissionedAt: a.decommissionedAt ? new Date(a.decommissionedAt).toISOString() : null,
+    })),
+    suppliers: suppliers.map((s) => ({
+      id: s.id,
+      name: s.name,
+      contractReference: s.contractReference,
+      defaultFrom: dateOnly(s.defaultFrom),
+      defaultUntil: dateOnly(s.defaultUntil),
+    })),
+    locations: snapshotLocations,
+  };
+  const snapshotJson = JSON.stringify(snapshot, null, 2);
+
   if (dryRun) {
     console.log(`  Would write ${dataRows} data rows (${assets.length} assets + empty locations)`);
+    console.log(`  Would write JSON snapshot (${assets.length} assets, ${suppliers.length} suppliers) + manifest`);
     console.log("\n✅  Dry run complete — no file written.\n");
     return;
   }
 
   const date = new Date().toISOString().slice(0, 10);
   const filename = `sam-export-${date}.csv`;
+  const snapshotFilename = `sam-inventory-${date}.json`;
+  const manifestFilename = `sam-manifest-${date}.json`;
+
+  const sha256 = (buf) => createHash("sha256").update(buf).digest("hex");
+  const csvBody = Buffer.from(csv, "utf8");
+  const snapshotBody = Buffer.from(snapshotJson, "utf8");
+  const manifest = {
+    generatedAt: snapshot.generatedAt,
+    counts: snapshot.counts,
+    files: [
+      { name: filename, sha256: sha256(csvBody), bytes: csvBody.length },
+      { name: snapshotFilename, sha256: sha256(snapshotBody), bytes: snapshotBody.length },
+    ],
+  };
+  const manifestBody = Buffer.from(JSON.stringify(manifest, null, 2), "utf8");
+
+  const outputs = [
+    { name: filename, body: csvBody, contentType: "text/csv; charset=utf-8" },
+    { name: snapshotFilename, body: snapshotBody, contentType: "application/json; charset=utf-8" },
+    { name: manifestFilename, body: manifestBody, contentType: "application/json; charset=utf-8" },
+  ];
 
   if (useS3) {
     const bucket = process.env.S3_BUCKET;
     const prefix = (process.env.EXPORT_S3_PREFIX || "backups/").replace(/^\/+/, "");
     const normalizedPrefix = prefix.endsWith("/") || prefix === "" ? prefix : prefix + "/";
-    const key = `${normalizedPrefix}${filename}`;
     const region = process.env.S3_REGION || "us-east-1";
     const client = new S3Client({
       region,
       ...(process.env.S3_ENDPOINT ? { endpoint: process.env.S3_ENDPOINT } : {}),
       ...(process.env.S3_FORCE_PATH_STYLE === "true" ? { forcePathStyle: true } : {}),
     });
-    const body = Buffer.from(csv, "utf8");
-    await client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: body,
-        ContentType: "text/csv; charset=utf-8",
-        ContentLength: body.length,
-        ServerSideEncryption: "AES256",
-      })
-    );
-    console.log(`  ✓ Uploaded ${dataRows} data rows to:`);
-    console.log(`    s3://${bucket}/${key}`);
+    for (const out of outputs) {
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: `${normalizedPrefix}${out.name}`,
+          Body: out.body,
+          ContentType: out.contentType,
+          ContentLength: out.body.length,
+          ServerSideEncryption: "AES256",
+        })
+      );
+    }
+    console.log(`  ✓ Uploaded ${dataRows} data rows + snapshot + manifest to:`);
+    console.log(`    s3://${bucket}/${normalizedPrefix}{${filename}, ${snapshotFilename}, ${manifestFilename}}`);
     console.log("");
     return;
   }
 
   const resolvedDir = resolve(process.cwd(), outputDir);
   await mkdir(resolvedDir, { recursive: true });
-  const fullPath = join(resolvedDir, filename);
-  await writeFile(fullPath, csv, "utf8");
+  for (const out of outputs) {
+    await writeFile(join(resolvedDir, out.name), out.body);
+  }
 
-  console.log(`  ✓ Written ${dataRows} data rows to:`);
-  console.log(`    ${fullPath}`);
+  console.log(`  ✓ Written ${dataRows} data rows + snapshot + manifest to:`);
+  console.log(`    ${join(resolvedDir, filename)}`);
+  console.log(`    ${join(resolvedDir, snapshotFilename)}`);
+  console.log(`    ${join(resolvedDir, manifestFilename)}`);
   console.log("");
 }
 

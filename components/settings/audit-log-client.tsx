@@ -26,6 +26,9 @@ const ACTION_COLORS: Record<string, string> = {
   DELETE: "bg-[#fee2e2] text-[#dc2626]",
   IMPORT: "bg-[#fef9c3] text-[#ca8a04]",
   EXPORT: "bg-[#f3e8ff] text-[#7c3aed]",
+  LOGIN_SUCCESS: "bg-[#dcfce7] text-[#15803d]",
+  LOGIN_FAILED: "bg-[#fee2e2] text-[#b91c1c]",
+  LOGOUT: "bg-[#e2e8f0] text-[#475569]",
 };
 
 type SortCol = "timestamp" | "user" | "action" | "entity";

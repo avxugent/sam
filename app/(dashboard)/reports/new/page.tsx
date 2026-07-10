@@ -11,11 +11,12 @@ export default async function NewReportPage() {
   if (!session?.user) redirect("/login");
   if (session.user.role === "VIEWER") redirect("/reports");
 
-  const [assetTypes, manufacturers, locations, workLogItems] = await Promise.all([
+  const [assetTypes, manufacturers, locations, workLogItems, suppliers] = await Promise.all([
     prisma.assetType.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.manufacturer.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.location.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.workLogItem.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
+    prisma.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   return (
@@ -35,6 +36,7 @@ export default async function NewReportPage() {
         manufacturers={manufacturers}
         locations={locations}
         workLogItems={workLogItems}
+        suppliers={suppliers}
       />
     </div>
   );

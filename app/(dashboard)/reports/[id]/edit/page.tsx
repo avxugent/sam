@@ -18,11 +18,12 @@ export default async function EditReportPage({ params }: { params: Promise<{ id:
   const parsed = reportDefinitionSchema.safeParse(JSON.parse(report.definition));
   const definition = parsed.success ? parsed.data : undefined;
 
-  const [assetTypes, manufacturers, locations, workLogItems] = await Promise.all([
+  const [assetTypes, manufacturers, locations, workLogItems, suppliers] = await Promise.all([
     prisma.assetType.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.manufacturer.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.location.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.workLogItem.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
+    prisma.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   return (
@@ -51,6 +52,7 @@ export default async function EditReportPage({ params }: { params: Promise<{ id:
         manufacturers={manufacturers}
         locations={locations}
         workLogItems={workLogItems}
+        suppliers={suppliers}
       />
     </div>
   );

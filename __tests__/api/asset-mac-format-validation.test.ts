@@ -12,6 +12,13 @@ vi.mock("@/lib/prisma", () => ({
     assetType: {
       findUnique: vi.fn(),
     },
+    appSetting: {
+      findUnique: vi.fn(),
+    },
+    supplier: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
 }));
@@ -39,7 +46,12 @@ function req(url: string, body: object, method = "POST") {
 
 const BASE_BODY = { typeId: "t1", manufacturerId: "m1", model: "Recorder" };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  // Creation defaults (owner setting / supplier window): none configured
+  vi.mocked(prisma.appSetting.findUnique).mockResolvedValue(null as never);
+  vi.mocked(prisma.supplier.findMany).mockResolvedValue([] as never);
+});
 
 describe("POST /api/locations/[id]/assets — MAC address normalization", () => {
   const params = Promise.resolve({ id: "loc-1" });

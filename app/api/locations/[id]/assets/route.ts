@@ -5,6 +5,8 @@ import { z } from "zod";
 import { matchesHostnamePattern } from "@/lib/hostname-pattern";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { logAudit } from "@/lib/audit";
+import { CRITICALITY_VALUES } from "@/lib/criticality";
+import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
 
 const MAX_CUSTOM_FIELDS = 50;
 const MAX_MAC_ADDRESSES = 20;
@@ -45,6 +47,10 @@ const createAssetSchema = z
     invoiceDate: z.string().optional().nullable(),
     notes: z.string().max(5000).optional().nullable(),
     vaultPath: z.string().max(500).optional().nullable(),
+    ownerId: z.string().max(64).optional().nullable(),
+    criticality: z.enum(CRITICALITY_VALUES).optional().nullable(),
+    endOfSupportDate: z.string().optional().nullable(),
+    supplierId: z.string().max(64).optional().nullable(),
     macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
     customFields: z.array(customFieldSchema).max(MAX_CUSTOM_FIELDS).optional(),
   })
@@ -126,7 +132,16 @@ export async function POST(
     return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { macAddresses, customFields, installationDate, invoiceDate, ...assetData } = parsed.data;
+  const { macAddresses, customFields, installationDate, invoiceDate, endOfSupportDate, ownerId, supplierId, ...assetData } = parsed.data;
+
+  if (supplierId) {
+    const supplier = await prisma.supplier.findUnique({ where: { id: supplierId }, select: { id: true } });
+    if (!supplier) {
+      return NextResponse.json({ error: "Unknown supplier." }, { status: 400 });
+    }
+  }
+
+  const defaults = await resolveAssetCreationDefaults(prisma, { ownerId, supplierId });
 
   const hostnameTrimmed = assetData.hostname?.trim();
   if (hostnameTrimmed) {
@@ -152,8 +167,11 @@ export async function POST(
         ...assetData,
         hostname: hostnameTrimmed || null,
         locationId: id,
+        ownerId: defaults.ownerId,
+        supplierId: defaults.supplierId,
         installationDate: installationDate ? new Date(installationDate) : null,
         invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
+        endOfSupportDate: endOfSupportDate ? new Date(endOfSupportDate) : null,
         macAddresses: macAddresses?.length
           ? { create: macAddresses.filter(Boolean).map((address) => ({ address })) }
           : undefined,

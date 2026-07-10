@@ -333,3 +333,88 @@ describe("runReport()", () => {
     expect(result.groups).toContainEqual({ label: "2022", count: 1 });
   });
 });
+
+describe("translateFilters() — NIS2 fields", () => {
+  it("supplierId behaves like the other id fields", () => {
+    expect(translateFilters([{ field: "supplierId", op: "eq", value: "s1" }])).toEqual({
+      AND: [{ supplierId: "s1" }],
+    });
+    expect(translateFilters([{ field: "supplierId", op: "isNull" }])).toEqual({
+      AND: [{ supplierId: null }],
+    });
+  });
+
+  it("endOfSupportDate supports the date ops", () => {
+    const where = translateFilters([
+      { field: "endOfSupportDate", op: "before", value: "2026-01-01" },
+    ]) as { AND: Array<Record<string, unknown>> };
+    expect(where.AND[0]).toEqual({ endOfSupportDate: { lt: new Date("2026-01-01") } });
+    expect(translateFilters([{ field: "endOfSupportDate", op: "isNull" }])).toEqual({
+      AND: [{ endOfSupportDate: null }],
+    });
+  });
+
+  it("criticality eq matches the override OR the inherited type default", () => {
+    expect(translateFilters([{ field: "criticality", op: "eq", value: "HIGH" }])).toEqual({
+      AND: [
+        {
+          OR: [
+            { criticality: "HIGH" },
+            { criticality: null, type: { defaultCriticality: "HIGH" } },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("criticality isNull selects the unclassified shape; isNotNull negates it", () => {
+    const unclassified = {
+      criticality: null,
+      OR: [{ typeId: null }, { type: { defaultCriticality: null } }],
+    };
+    expect(translateFilters([{ field: "criticality", op: "isNull" }])).toEqual({
+      AND: [unclassified],
+    });
+    expect(translateFilters([{ field: "criticality", op: "isNotNull" }])).toEqual({
+      AND: [{ NOT: unclassified }],
+    });
+  });
+
+  it("ignores an invalid criticality value (never widens the result set)", () => {
+    expect(translateFilters([{ field: "criticality", op: "eq", value: "EXTREME" }])).toEqual({});
+    expect(translateFilters([{ field: "criticality", op: "neq", value: "" }])).toEqual({});
+  });
+});
+
+describe("runAssetReport() — NIS2 columns", () => {
+  it("maps supplier name, effective criticality, and end-of-support date", async () => {
+    mockQueryRaw.mockResolvedValue([] as never);
+    mockFindMany.mockResolvedValue([
+      {
+        id: "a1",
+        model: "M",
+        serialNumber: null,
+        hostname: null,
+        typeId: "t1",
+        manufacturerId: null,
+        locationId: null,
+        installationDate: null,
+        invoiceDate: null,
+        invoiceNumber: null,
+        notes: null,
+        updatedAt: new Date("2026-01-01T00:00:00Z"),
+        criticality: null,
+        endOfSupportDate: new Date("2030-06-30T00:00:00Z"),
+        type: { name: "Display", defaultCriticality: "MEDIUM" },
+        manufacturer: null,
+        supplier: { name: "CampusStore" },
+        location: null,
+      },
+    ] as never);
+
+    const result = await runAssetReport({ filters: [], groupBy: "none", columns: ["model"] });
+    expect(result.rows[0].supplier).toBe("CampusStore");
+    expect(result.rows[0].criticality).toBe("MEDIUM"); // inherited from type
+    expect(result.rows[0].endOfSupportDate).toBe("2030-06-30");
+  });
+});

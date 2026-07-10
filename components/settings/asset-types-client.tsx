@@ -52,8 +52,11 @@ type AssetType = {
   scrapeTargetTemplate: string | null;
   prometheusExposed: boolean;
   hostnamePattern: string | null;
+  defaultCriticality: string | null;
   _count: { assets: number };
 };
+
+const CRITICALITY_OPTIONS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 
 type DrilldownAsset = {
   id: string;
@@ -177,7 +180,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     }
     const item = await res.json();
     setTypes((prev) =>
-      [...prev, { ...item, scrapeTargetTemplate: null, prometheusExposed: true, hostnamePattern: null, _count: { assets: 0 } }].sort(
+      [...prev, { ...item, scrapeTargetTemplate: null, prometheusExposed: true, hostnamePattern: null, defaultCriticality: null, _count: { assets: 0 } }].sort(
         (a, b) => a.name.localeCompare(b.name)
       )
     );
@@ -314,6 +317,25 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
     }
     setTypes((prev) => prev.filter((i) => i.id !== id));
     toast({ title: t("typeDeleted") });
+  }
+
+  async function handleSaveDefaultCriticality(id: string, value: string) {
+    const res = await fetch(`/api/asset-types/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ defaultCriticality: value || null }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      return;
+    }
+    setTypes((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, defaultCriticality: value || null } : item
+      )
+    );
+    toast({ title: t("defaultCriticalitySaved") });
   }
 
   async function handleTogglePrometheusExposed(id: string, current: boolean) {
@@ -524,6 +546,25 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                           <p className="text-xs text-muted-foreground">{t("prometheusExposedHelp")}</p>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Default criticality */}
+                    <div className="pt-3 pb-3 border-b space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {t("defaultCriticality")}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{t("defaultCriticalityHelp")}</p>
+                      <select
+                        aria-label={t("defaultCriticality")}
+                        value={item.defaultCriticality ?? ""}
+                        onChange={(e) => handleSaveDefaultCriticality(item.id, e.target.value)}
+                        className="h-8 px-2 rounded-md border border-input bg-transparent text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                      >
+                        <option value="">{t("defaultCriticalityNone")}</option>
+                        {CRITICALITY_OPTIONS.map((level) => (
+                          <option key={level} value={level}>{tCommon(`criticality.${level}`)}</option>
+                        ))}
+                      </select>
                     </div>
 
                     {/* Hostname format (regex) */}

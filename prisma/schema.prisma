@@ -21,6 +21,21 @@ enum AssetStatus {
   DECOMMISSIONED
 }
 
+enum Criticality {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DisposalMethod {
+  WIPED
+  DESTROYED
+  RETURNED
+  RESOLD
+  OTHER
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -38,6 +53,7 @@ model User {
   locationDefaultTab String  @default("assets") // "assets" | "sublocations"
   // UI preference: colour scheme
   theme              String  @default("light")  // "light" | "dark" | "system"
+  lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -100,6 +116,8 @@ model AssetType {
   // controls whether ^/$ are required for an exact match. When null, assets
   // of this type fall back to the generic FQDN check.
   hostnamePattern      String?  @db.VarChar(500)
+  // Default criticality for assets of this type; per-asset override wins.
+  defaultCriticality   Criticality?
   createdAt            DateTime @default(now())
 
   assets      Asset[]
@@ -118,6 +136,23 @@ model Manufacturer {
   stockItems StockItem[]
 
   @@map("manufacturers")
+}
+
+model Supplier {
+  id                String    @id @default(cuid())
+  name              String    @unique
+  contractReference String?   @db.VarChar(255)
+  contactInfo       String?   @db.Text
+  // Default window: assets created while today is within [defaultFrom,
+  // defaultUntil] and without an explicit supplier are assigned this one.
+  // defaultFrom null = window inactive; defaultUntil null = open-ended.
+  defaultFrom       DateTime? @db.Date
+  defaultUntil      DateTime? @db.Date
+  createdAt         DateTime  @default(now())
+
+  assets Asset[]
+
+  @@map("suppliers")
 }
 
 model Asset {
@@ -139,9 +174,18 @@ model Asset {
   // credentials (e.g. "secret/data/av/rectest001").
   // Used by the Prometheus SD endpoint to inject {vault_<key>} placeholders.
   vaultPath        String?
+  // Responsible person; soft ref to User (no FK) so it survives user deletion.
+  ownerId          String?
+  // null = inherit AssetType.defaultCriticality
+  criticality      Criticality?
+  endOfSupportDate DateTime? @db.Date
+  supplierId       String?
   status               AssetStatus @default(INSTALLED)
   decommissionedAt     DateTime?
   decommissionNote     String?     @db.VarChar(500)
+  disposalMethod       DisposalMethod?
+  // Soft ref to User (no FK), survives user deletion.
+  decommissionedById   String?
   lastLocationName     String?     @db.VarChar(255)
   lastLocationFiNumber String?     @db.VarChar(20)
   createdAt            DateTime    @default(now())
@@ -150,6 +194,7 @@ model Asset {
   location     Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
   type         AssetType?   @relation(fields: [typeId], references: [id])
   manufacturer Manufacturer? @relation(fields: [manufacturerId], references: [id])
+  supplier     Supplier?    @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   macAddresses MacAddress[]
   customFields CustomField[]
   attachments  Attachment[]
@@ -159,6 +204,9 @@ model Asset {
   @@index([typeId])
   @@index([manufacturerId])
   @@index([installationDate])
+  @@index([supplierId])
+  @@index([endOfSupportDate])
+  @@index([ownerId])
   @@map("assets")
 }
 

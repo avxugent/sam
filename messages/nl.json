@@ -43,7 +43,13 @@
     "home": "Start",
     "somethingWentWrong": "Er is iets misgegaan.",
     "unexpectedError": "Er is een onverwachte fout opgetreden. Probeer het opnieuw.",
-    "tryAgain": "Opnieuw proberen"
+    "tryAgain": "Opnieuw proberen",
+    "criticality": {
+      "LOW": "Laag",
+      "MEDIUM": "Middel",
+      "HIGH": "Hoog",
+      "CRITICAL": "Kritiek"
+    }
   },
   "nav": {
     "locations": "Locaties",
@@ -77,7 +83,8 @@
     "signOut": "Afmelden",
     "searchPlaceholder": "Zoek assets, locaties, serienummers…",
     "skipToMainContent": "Naar hoofdinhoud",
-    "seeAllResultsFor": "Alle resultaten voor \"{query}\" →"
+    "seeAllResultsFor": "Alle resultaten voor \"{query}\" →",
+    "suppliers": "Leveranciers"
   },
   "language": {
     "language": "Taal",
@@ -123,7 +130,11 @@
     "fieldName": "Veldnaam",
     "fieldValue": "Waarde",
     "warrantyMonths": "Garantie (maanden)",
-    "streetAddress": "Straat en nummer"
+    "streetAddress": "Straat en nummer",
+    "owner": "Eigenaar",
+    "supplier": "Leverancier",
+    "criticality": "Kriticiteit",
+    "endOfSupport": "Einde ondersteuning"
   },
   "asset": {
     "title": "Asset",
@@ -163,7 +174,11 @@
     "returnToStockConfirmTitle": "\"{name}\" terugzetten naar stock?",
     "returnToStockConfirmDescription": "Dit verwijdert het asset en plaatst het terug in de stockinventaris. Asset-specifieke gegevens (hostnaam, MAC-adressen, aangepaste velden, bijlagen) gaan permanent verloren.",
     "returnedToStock": "Asset teruggezet naar stock",
-    "returningToStock": "Terugzetten naar stock…"
+    "returningToStock": "Terugzetten naar stock…",
+    "deletedUser": "(verwijderde gebruiker)",
+    "unclassified": "Niet geclassificeerd",
+    "inheritedFromType": "overgenomen van type",
+    "endOfSupportPassed": "niet langer ondersteund"
   },
   "assetForm": {
     "createTitle": "Asset aanmaken",
@@ -209,7 +224,11 @@
     "modelSimilarTitle": "Bedoelde u een bestaand model?",
     "modelSimilarDescription": "Er bestaat al een gelijkaardige modelnaam: \"{existing}\". Gebruik deze om spelling consistent te houden, of behoud wat u typte.",
     "modelSimilarKeepMine": "Behoud mijn tekst",
-    "modelSimilarUseExisting": "Gebruik bestaande"
+    "modelSimilarUseExisting": "Gebruik bestaande",
+    "ownerDefault": "Standaard eigenaar",
+    "noneSupplier": "Geen",
+    "criticalityInherit": "Overnemen van type",
+    "criticalityInheritWith": "Overnemen van type ({level})"
   },
   "location": {
     "title": "Locatie",
@@ -346,7 +365,17 @@
     "decommissionReasonLabel": "Reden (optioneel)",
     "decommissionReasonPlaceholder": "bv. Einde levensduur, hardwarefout…",
     "bannerLabel": "Buiten dienst",
-    "decommissioned_at": "Buiten dienst gesteld op"
+    "decommissioned_at": "Buiten dienst gesteld op",
+    "disposalMethodLabel": "Verwijderingsmethode",
+    "disposalMethodPlaceholder": "Kies hoe het toestel is afgevoerd…",
+    "decommissionedBy": "door {name}",
+    "disposalMethod": {
+      "WIPED": "Gewist (opslag opgeschoond)",
+      "DESTROYED": "Vernietigd",
+      "RETURNED": "Teruggestuurd naar leverancier",
+      "RESOLD": "Doorverkocht",
+      "OTHER": "Andere (zie opmerking)"
+    }
   },
   "deploy": {
     "title": "\"{model}\" inzetten",
@@ -445,7 +474,7 @@
     "email": "E-mail",
     "role": "Rol",
     "provider": "Provider",
-    "lastLogin": "Laatste aanmelding",
+    "lastLogin": "Laatste login",
     "active": "Actief",
     "twoFactor": "2FA",
     "mustChangePassword": "Wachtwoord wijzigen verplicht bij volgende aanmelding",
@@ -457,7 +486,8 @@
     "rolesEditor": "Editor",
     "rolesViewer": "Viewer",
     "providerCredentials": "E-mail & wachtwoord",
-    "providerEntra": "Microsoft Entra ID"
+    "providerEntra": "Microsoft Entra ID",
+    "exportCsv": "Exporteer CSV"
   },
   "assetTypes": {
     "title": "Asset-types",
@@ -497,7 +527,11 @@
     "hostnamePatternValid": "Patroon is geldig",
     "hostnamePatternSaved": "Hostnaampatroon opgeslagen",
     "hostnamePatternInvalid": "Ongeldig hostnaampatroon",
-    "hostnamePatternConfigured": "Hostnaamformaat ingesteld"
+    "hostnamePatternConfigured": "Hostnaamformaat ingesteld",
+    "defaultCriticality": "Standaard kriticiteit",
+    "defaultCriticalityHelp": "Geldt voor assets van dit type zonder eigen kriticiteit (NIS2-classificatie).",
+    "defaultCriticalityNone": "Geen (niet geclassificeerd)",
+    "defaultCriticalitySaved": "Standaard kriticiteit opgeslagen"
   },
   "manufacturers": {
     "title": "Fabrikanten",
@@ -606,7 +640,29 @@
     "model": "Model",
     "serial": "Serienummer",
     "location": "Locatie",
-    "notApplicable": "n.v.t."
+    "notApplicable": "n.v.t.",
+    "hostnameSectionTitle": "Hostname-conformiteit",
+    "nis2Title": "NIS2 asset-compliance",
+    "nis2Subtitle": "Hiaten in eigenaarschap, classificatie, ondersteuningsstatus, inventariscontrole, 2FA en audit-doorsturen.",
+    "nis2MissingOwner": "Assets zonder eigenaar",
+    "nis2MissingOwnerHelp": "Geïnstalleerde assets zonder verantwoordelijke.",
+    "nis2MissingCriticality": "Assets niet geclassificeerd",
+    "nis2MissingCriticalityHelp": "Geen kriticiteit op het asset of zijn type.",
+    "nis2PastEos": "Voorbij einde ondersteuning",
+    "nis2PastEosHelp": "Geïnstalleerde assets voorbij hun einde-ondersteuningsdatum ({withoutDate} zonder datum).",
+    "nis2MissingReview": "Locaties niet gecontroleerd",
+    "nis2MissingReviewHelp": "Geen \"{item}\"-registratie in de laatste {months} maanden (van {total} locaties).",
+    "nis2ReviewNotConfigured": "Configureer een controle-werklogitem in de compliance-instellingen om dit op te volgen.",
+    "nis2ConfigureLink": "Open instellingen",
+    "nis2UsersWithout2fa": "Lokale gebruikers zonder 2FA",
+    "nis2UsersWithout2faHelp": "Lokale accounts zonder TOTP-tweestapsverificatie.",
+    "nis2UsersWithout2faForced": "Globale 2FA-verplichting staat aan — deze gebruikers moeten bij volgende login inschrijven.",
+    "nis2ManageUsersLink": "Beheer gebruikers",
+    "nis2AuditBacklog": "Audit-doorstuurachterstand",
+    "nis2AuditBacklogHelp": "Auditregels nog niet afgeleverd bij de syslogserver.",
+    "nis2AuditBacklogNoSyslog": "Syslog-doorsturen is niet geconfigureerd — regels worden alleen lokaal bewaard.",
+    "nis2ViewAuditLink": "Bekijk auditlog",
+    "nis2SampleMore": "{shown} van {total} getoond."
   },
   "settings": {
     "general": "Algemene instellingen",
@@ -661,7 +717,23 @@
     "uploadBackground": "Afbeelding uploaden",
     "removeBackground": "Afbeelding verwijderen",
     "backgroundUploaded": "Achtergrondafbeelding geüpload",
-    "backgroundRemoved": "Achtergrondafbeelding verwijderd"
+    "backgroundRemoved": "Achtergrondafbeelding verwijderd",
+    "complianceTitle": "Beveiliging & compliance",
+    "complianceHelp": "NIS2-gerelateerde beveiligingsbeleid- en bewijsinstellingen.",
+    "complianceRequire2fa": "Verplicht tweestapsverificatie voor alle lokale accounts",
+    "complianceRequire2faHelp": "Lokale gebruikers zonder 2FA moeten dit bij de volgende login instellen. SSO-gebruikers vallen onder Entra ID-beleid.",
+    "complianceRetention": "Bewaartermijn auditlog (dagen)",
+    "complianceRetentionHelp": "Oudere regels worden verwijderd door het opschoonscript (scripts/purge-audit.mjs). Tussen 30 en 3650 dagen.",
+    "complianceRetentionInvalid": "Bewaartermijn moet tussen 30 en 3650 dagen liggen.",
+    "complianceDefaultOwner": "Standaard asset-eigenaar",
+    "complianceDefaultOwnerNone": "Geen",
+    "complianceDefaultOwnerHelp": "Toegewezen aan nieuwe assets wanneer geen eigenaar wordt gekozen (bv. een teamaccount).",
+    "complianceReviewItem": "Werklogitem voor inventariscontrole",
+    "complianceReviewItemNone": "Niet geconfigureerd",
+    "complianceReviewItemHelp": "Het werklogitem dat de assetlijst van een locatie als gecontroleerd markeert (gebruikt door het compliance-dashboard).",
+    "complianceReviewPeriod": "Controleperiode (maanden)",
+    "complianceReviewPeriodHelp": "Locaties zonder het controle-item binnen deze periode worden gemarkeerd op het compliance-dashboard.",
+    "complianceReviewPeriodInvalid": "Controleperiode moet tussen 1 en 120 maanden liggen."
   },
   "report": {
     "title": "Rapporten",
@@ -839,5 +911,29 @@
     "currentCover": "Huidige hoofdfoto",
     "removeCover": "Hoofdfoto verwijderen",
     "saved": "Hoofdfoto bijgewerkt"
+  },
+  "suppliers": {
+    "title": "Leveranciers",
+    "subtitle": "Leveranciers, contractreferenties en standaard toewijzingsperiodes.",
+    "name": "Naam",
+    "namePlaceholder": "bv. CampusStore BV",
+    "addSupplier": "Leverancier toevoegen",
+    "contractReference": "Contractreferentie",
+    "contractPlaceholder": "bv. FW-2026-014",
+    "contactInfo": "Contactgegevens",
+    "defaultWindow": "Standaardperiode",
+    "defaultFrom": "Standaard vanaf",
+    "defaultUntil": "Standaard tot",
+    "openEnded": "onbepaald",
+    "windowHelp": "Assets die binnen deze periode worden aangemaakt zonder expliciete leverancier krijgen deze automatisch toegewezen. Laat 'tot' leeg voor onbepaalde duur; periodes mogen niet overlappen tussen leveranciers.",
+    "windowOverlap": "Standaardperiode overlapt met: {names}",
+    "assets": "Assets",
+    "edit": "Bewerken",
+    "empty": "Nog geen leveranciers.",
+    "created": "Leverancier aangemaakt",
+    "updated": "Leverancier bijgewerkt",
+    "deleted": "Leverancier verwijderd",
+    "deleteConfirmTitle": "Leverancier verwijderen?",
+    "deleteConfirmDescription": "Dit kan alleen als geen assets deze leverancier gebruiken."
   }
 }

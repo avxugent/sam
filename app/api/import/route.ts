@@ -4,6 +4,9 @@ import { auth } from "@/lib/auth";
 import { parseCsv, parseDate, csvValue } from "@/lib/csv";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { logAudit } from "@/lib/audit";
+import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
+import { CRITICALITY_VALUES } from "@/lib/criticality";
+import type { Criticality } from "@/generated/prisma/client";
 
 // CSV columns from the legacy export
 // GUID;FI NUMMER;CAMPUS;GEBOUW;LOKAAL;TYPE;BRAND;MODEL;SERIAL;QUANTITY;
@@ -53,6 +56,18 @@ export async function POST(req: NextRequest) {
 
   const existingMfrs = await prisma.manufacturer.findMany({ select: { id: true, name: true } });
   existingMfrs.forEach((m) => mfrCache.set(m.name.toLowerCase(), m.id));
+
+  const supplierCache = new Map<string, string>(); // name -> id
+  const existingSuppliers = await prisma.supplier.findMany({ select: { id: true, name: true } });
+  existingSuppliers.forEach((s) => supplierCache.set(s.name.toLowerCase(), s.id));
+
+  const userIdByEmail = new Map<string, string>(); // email -> id
+  const existingUsers = await prisma.user.findMany({ select: { id: true, email: true } });
+  existingUsers.forEach((u) => userIdByEmail.set(u.email.toLowerCase(), u.id));
+
+  // Owner/supplier defaults are resolved once — the setting and the active
+  // supplier window can't change mid-import.
+  const creationDefaults = await resolveAssetCreationDefaults(prisma, {});
 
   // Pre-load existing locations (campus/building/room)
   const existingLocations = await prisma.location.findMany({
@@ -125,6 +140,18 @@ export async function POST(req: NextRequest) {
     return m.id;
   }
 
+  async function getOrCreateSupplier(name: string): Promise<string> {
+    const key = name.toLowerCase();
+    if (supplierCache.has(key)) return supplierCache.get(key)!;
+    const s = await prisma.supplier.upsert({
+      where: { name },
+      create: { name },
+      update: {},
+    });
+    supplierCache.set(key, s.id);
+    return s.id;
+  }
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const rowNum = i + 2; // 1-indexed + header
@@ -161,6 +188,37 @@ export async function POST(req: NextRequest) {
       // Dates
       const installationDate = parseDate(v(row, "INSTALL_DATE"));
       const invoiceDate = parseDate(v(row, "Factuurdatum"));
+      const endOfSupportDate = parseDate(v(row, "END_OF_SUPPORT"));
+
+      // Owner — matched by email; unmatched → default owner + row warning
+      const ownerEmail = v(row, "OWNER");
+      let ownerId: string | null = creationDefaults.ownerId;
+      if (ownerEmail) {
+        const matched = userIdByEmail.get(ownerEmail.toLowerCase());
+        if (matched) {
+          ownerId = matched;
+        } else {
+          stats.errors.push(`Row ${rowNum}: OWNER "${ownerEmail}" does not match any user email, left unset/default.`);
+        }
+      }
+
+      // Criticality — case-insensitive enum parse; invalid → null + warning
+      const criticalityRaw = v(row, "CRITICALITY");
+      let criticality: Criticality | null = null;
+      if (criticalityRaw) {
+        const upper = criticalityRaw.toUpperCase();
+        if ((CRITICALITY_VALUES as readonly string[]).includes(upper)) {
+          criticality = upper as Criticality;
+        } else {
+          stats.errors.push(`Row ${rowNum}: CRITICALITY "${criticalityRaw}" is not one of ${CRITICALITY_VALUES.join("/")}, ignored.`);
+        }
+      }
+
+      // Supplier — matched/created by name (manufacturer pattern); absent → window default
+      const supplierName = v(row, "SUPPLIER");
+      const supplierId = supplierName
+        ? await getOrCreateSupplier(supplierName)
+        : creationDefaults.supplierId;
 
       // MAC address(es) — may be semicolon or comma-separated within the field.
       // Normalize each to AA:BB:CC:DD:EE:FF; if a value can't be normalized,
@@ -214,6 +272,10 @@ export async function POST(req: NextRequest) {
           installationDate,
           invoiceDate,
           invoiceNumber: v(row, "Factuurnummer") || null,
+          ownerId,
+          criticality,
+          endOfSupportDate,
+          supplierId,
           macAddresses: macAddresses.length > 0
             ? { create: macAddresses.map((address) => ({ address })) }
             : undefined,

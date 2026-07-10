@@ -139,3 +139,7 @@ Authorization: Bearer <PROMETHEUS_SD_TOKEN>
 These endpoints are exempted from the session proxy and must call `checkPrometheusAuth(req)` directly in their route handlers.
 
 If `PROMETHEUS_SD_TOKEN` is not set, the endpoints return HTTP 503.
+
+## Export Endpoints
+
+`/api/export/*` accept a session **or** `Bearer EXPORT_TOKEN` (checked via `checkExportToken(req)` in each handler) so external tooling can pull exports. They are likewise exempted from the session proxy; without valid credentials the handlers return HTTP 401.

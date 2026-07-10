@@ -106,6 +106,7 @@ This project uses Next.js 16, where `middleware.ts` is replaced by `proxy.ts` at
 - Forcing password change, 2FA setup, and 2FA challenge flows
 - Exempting public routes (`/login`, `/setup`, `/api/auth`, `/api/setup`)
 - Exempting Prometheus endpoints (they use Bearer token auth)
+- Exempting export endpoints (`/api/export/*` — session or Bearer `EXPORT_TOKEN`, checked in the handlers)
 
 > The proxy is a **redirect guard only** — not an authorization boundary. Every API route performs its own auth and role check.
 

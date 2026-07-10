@@ -34,6 +34,13 @@ export const proxy = auth(async (req) => {
     return NextResponse.next();
   }
 
+  // Export endpoints accept session OR Bearer EXPORT_TOKEN (external cron /
+  // validation tooling). Their handlers return 401 themselves when neither
+  // is present — a redirect here would hand HTML to machine clients.
+  if (pathname.startsWith("/api/export/")) {
+    return NextResponse.next();
+  }
+
   // Branding assets (logo, favicon) are public so they render on the login page
   // and in browser tabs without a session.
   if (pathname.startsWith("/api/branding/")) {

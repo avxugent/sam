@@ -214,6 +214,17 @@ describe("PUT /api/asset-types/[id]", () => {
     const dataArg = (mockUpdate.mock.calls[0][0] as { data: Record<string, unknown> }).data;
     expect(dataArg).not.toHaveProperty("hostnamePattern");
   });
+
+  it("leaves the scrape template untouched when only defaultCriticality is sent", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    vi.mocked(prisma.assetType.findUnique).mockResolvedValue({
+      name: "Recorder", scrapeTargetTemplate: "__address__=https://exporter.example.com", prometheusExposed: true, hostnamePattern: null, defaultCriticality: null,
+    } as never);
+    mockUpdate.mockResolvedValue({ id: "type-1", name: "Recorder", defaultCriticality: "HIGH" } as never);
+    await PUT(makeIdReq("PUT", { defaultCriticality: "HIGH" }), { params });
+    const dataArg = (mockUpdate.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    expect(dataArg).not.toHaveProperty("scrapeTargetTemplate");
+  });
 });
 
 // ── DELETE /api/asset-types/[id] ──────────────────────────────────────────────

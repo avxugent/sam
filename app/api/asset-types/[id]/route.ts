@@ -74,7 +74,7 @@ export async function PUT(
       where: { id },
       data: {
         ...(parsed.data.name !== undefined && { name: parsed.data.name }),
-        scrapeTargetTemplate: parsed.data.scrapeTargetTemplate ?? null,
+        ...(parsed.data.scrapeTargetTemplate !== undefined && { scrapeTargetTemplate: parsed.data.scrapeTargetTemplate ?? null }),
         ...(parsed.data.prometheusExposed !== undefined && { prometheusExposed: parsed.data.prometheusExposed }),
         ...(parsed.data.hostnamePattern !== undefined && { hostnamePattern: parsed.data.hostnamePattern ?? null }),
         ...(parsed.data.defaultCriticality !== undefined && { defaultCriticality: parsed.data.defaultCriticality ?? null }),

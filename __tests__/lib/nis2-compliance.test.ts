@@ -166,12 +166,12 @@ describe("computeNis2Counts()", () => {
 describe("computeFirmwareStatuses()", () => {
   it("classifies each asset against the most specific baseline", async () => {
     mockAssetFindMany.mockResolvedValue([
-      { hostname: "rec001", typeId: "recorder", model: "Pearl Mini", firmwareVersion: "4.17.0", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
-      { hostname: "rec002", typeId: "recorder", model: "Pearl Nano", firmwareVersion: "4.12.3", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
+      { id: "a1", locationId: "l1", serialNumber: "S1", hostname: "rec001", typeId: "recorder", model: "Pearl Mini", firmwareVersion: "4.17.0", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
+      { id: "a2", locationId: "l1", serialNumber: "S2", hostname: "rec002", typeId: "recorder", model: "Pearl Nano", firmwareVersion: "4.12.3", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
       // No API: blackbox-probed devices never report a version.
-      { hostname: "proj001", typeId: "projector", model: "EB-W06", firmwareVersion: null, firmwareCheckedAt: null, firmwareSource: null },
+      { id: "a3", locationId: "l2", serialNumber: "S3", hostname: "proj001", typeId: "projector", model: "EB-W06", firmwareVersion: null, firmwareCheckedAt: null, firmwareSource: null },
       // No baseline configured for this type at all.
-      { hostname: "sw001", typeId: "switcher", model: "ATEM", firmwareVersion: "9.1", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
+      { id: "a4", locationId: "l2", serialNumber: "S4", hostname: "sw001", typeId: "switcher", model: "ATEM", firmwareVersion: "9.1", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
     ] as never);
     mockSettingFindUnique.mockResolvedValue(null as never);
     mockBaselineFindMany.mockResolvedValue([
@@ -183,13 +183,16 @@ describe("computeFirmwareStatuses()", () => {
     const { computeFirmwareStatuses, tallyFirmware } = await import("@/lib/nis2-compliance");
     const statuses = await computeFirmwareStatuses();
 
-    expect(statuses).toEqual([
+    expect(statuses.map((s) => ({ hostname: s.hostname, version: s.version, status: s.status }))).toEqual([
       // Model-specific baseline (4.17.0) beats the type-wide one (4.18.0).
-      { hostname: "rec001", version: "4.17.0", source: "REPORTED", status: "compliant" },
-      { hostname: "rec002", version: "4.12.3", source: "REPORTED", status: "outdated" },
-      { hostname: "proj001", version: null, source: null, status: "no_data" },
-      { hostname: "sw001", version: "9.1", source: "REPORTED", status: "unclassified" },
+      { hostname: "rec001", version: "4.17.0", status: "compliant" },
+      { hostname: "rec002", version: "4.12.3", status: "outdated" },
+      { hostname: "proj001", version: null, status: "no_data" },
+      { hostname: "sw001", version: "9.1", status: "unclassified" },
     ]);
+    // Sample fields must ride along so the compliance dashboard can link to
+    // the offending assets without a second query.
+    expect(statuses[0]).toMatchObject({ id: "a1", locationId: "l1", serialNumber: "S1" });
 
     expect(tallyFirmware(statuses)).toEqual({
       compliant: 1,
@@ -199,5 +202,40 @@ describe("computeFirmwareStatuses()", () => {
       unclassified: 1,
       no_data: 1,
     });
+  });
+});
+
+describe("computeFirmwareCompliance()", () => {
+  it("groups the unmeasured states together and reports measurable coverage", async () => {
+    mockAssetFindMany.mockResolvedValue([
+      { id: "a1", locationId: "l1", serialNumber: "S1", hostname: "rec001", typeId: "recorder", model: null, firmwareVersion: "4.18.0", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
+      { id: "a2", locationId: "l1", serialNumber: "S2", hostname: "rec002", typeId: "recorder", model: null, firmwareVersion: "4.12.0", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
+      // Stale: at the baseline, but confirmed long ago.
+      { id: "a3", locationId: "l1", serialNumber: "S3", hostname: "rec003", typeId: "recorder", model: null, firmwareVersion: "4.18.0", firmwareCheckedAt: new Date("2020-01-01"), firmwareSource: "ATTESTED" },
+      // No API and nothing attested.
+      { id: "a4", locationId: "l2", serialNumber: "S4", hostname: "proj001", typeId: "recorder", model: null, firmwareVersion: null, firmwareCheckedAt: null, firmwareSource: null },
+    ] as never);
+    mockBaselineFindMany.mockResolvedValue([
+      { typeId: "recorder", model: null, approvedVersion: "4.18.0" },
+    ] as never);
+    mockSettingFindUnique.mockResolvedValue({ value: "90" } as never);
+
+    const { computeFirmwareCompliance } = await import("@/lib/nis2-compliance");
+    const r = await computeFirmwareCompliance();
+
+    expect(r.outdated.count).toBe(1);
+    expect(r.stale.count).toBe(1);
+    expect(r.unmeasured.count).toBe(1);
+    // 3 of 4 can be judged; the fourth can never report a version.
+    expect(r.measuredCoverage).toBeCloseTo(0.75);
+    expect(r.maxAgeDays).toBe(90);
+    // Samples carry enough to link straight to the asset page.
+    expect(r.outdated.sample[0]).toMatchObject({ id: "a2", locationId: "l1" });
+  });
+
+  it("reports null coverage rather than dividing by zero", async () => {
+    mockAssetFindMany.mockResolvedValue([] as never);
+    const { computeFirmwareCompliance } = await import("@/lib/nis2-compliance");
+    expect((await computeFirmwareCompliance()).measuredCoverage).toBeNull();
   });
 });

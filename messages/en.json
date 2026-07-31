@@ -664,6 +664,13 @@
     "nis2AuditBacklog": "Audit forwarding backlog",
     "nis2AuditBacklogHelp": "Audit entries not yet delivered to the syslog server.",
     "nis2AuditBacklogNoSyslog": "Syslog forwarding is not configured — entries are only stored locally.",
+    "nis2FirmwareOutdated": "Firmware outdated",
+    "nis2FirmwareOutdatedHelp": "Installed version is below the approved baseline.",
+    "nis2FirmwareStale": "Firmware evidence expired",
+    "nis2FirmwareStaleHelp": "At or above baseline, but last confirmed over {days} days ago. Someone has to look again.",
+    "nis2FirmwareUnmeasured": "Firmware unmeasured",
+    "nis2FirmwareUnmeasuredHelp": "No baseline set, or no version ever established. {coverage} of monitored assets can be judged at all — read every firmware figure against that.",
+    "nis2FirmwareBaselinesLink": "Manage baselines",
     "nis2ViewAuditLink": "View audit log",
     "nis2SampleMore": "Showing {shown} of {total}."
   },

@@ -664,6 +664,13 @@
     "nis2AuditBacklog": "Audit-doorstuurachterstand",
     "nis2AuditBacklogHelp": "Auditregels nog niet afgeleverd bij de syslogserver.",
     "nis2AuditBacklogNoSyslog": "Syslog-doorsturen is niet geconfigureerd — regels worden alleen lokaal bewaard.",
+    "nis2FirmwareOutdated": "Firmware verouderd",
+    "nis2FirmwareOutdatedHelp": "Geïnstalleerde versie ligt onder de goedgekeurde baseline.",
+    "nis2FirmwareStale": "Firmware-bewijs verlopen",
+    "nis2FirmwareStaleHelp": "Op of boven de baseline, maar meer dan {days} dagen geleden bevestigd. Iemand moet opnieuw kijken.",
+    "nis2FirmwareUnmeasured": "Firmware niet meetbaar",
+    "nis2FirmwareUnmeasuredHelp": "Geen baseline ingesteld, of nooit een versie vastgesteld. {coverage} van de bewaakte assets is überhaupt te beoordelen — lees elk firmwarecijfer daartegen af.",
+    "nis2FirmwareBaselinesLink": "Baselines beheren",
     "nis2ViewAuditLink": "Bekijk auditlog",
     "nis2SampleMore": "{shown} van {total} getoond."
   },

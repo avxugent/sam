@@ -39,6 +39,7 @@ export type Nis2ComplianceResult = {
     | { configured: true; count: number; totalLeaves: number; sample: LocationSample[]; periodMonths: number; itemName: string | null };
   usersWithout2fa: { count: number; globallyRequired: boolean };
   auditBacklog: { count: number; syslogConfigured: boolean };
+  firmware: FirmwareCompliance;
 };
 
 export type FirmwareCounts = Record<FirmwareStatus, number>;
@@ -51,14 +52,14 @@ export type FirmwareCounts = Record<FirmwareStatus, number>;
  * has not answered) are counted apart from "compliant" — reporting either as
  * compliant would overstate NIS2 coverage.
  */
-export async function computeFirmwareStatuses(): Promise<
-  Array<{
-    hostname: string;
-    version: string | null;
-    source: string | null;
-    status: FirmwareStatus;
-  }>
-> {
+export type FirmwareAssetStatus = AssetSample & {
+  hostname: string;
+  version: string | null;
+  source: string | null;
+  status: FirmwareStatus;
+};
+
+export async function computeFirmwareStatuses(): Promise<FirmwareAssetStatus[]> {
   const [assets, baselineRows, maxAgeSetting] = await Promise.all([
     prisma.asset.findMany({
       where: {
@@ -67,6 +68,9 @@ export async function computeFirmwareStatuses(): Promise<
         OR: [{ typeId: null }, { type: { prometheusExposed: true } }],
       },
       select: {
+        id: true,
+        locationId: true,
+        serialNumber: true,
         hostname: true,
         typeId: true,
         model: true,
@@ -89,6 +93,10 @@ export async function computeFirmwareStatuses(): Promise<
   const now = new Date();
 
   return assets.map((a) => ({
+    id: a.id,
+    locationId: a.locationId,
+    model: a.model,
+    serialNumber: a.serialNumber,
     hostname: a.hostname!,
     version: a.firmwareVersion,
     source: a.firmwareSource,
@@ -98,6 +106,59 @@ export async function computeFirmwareStatuses(): Promise<
       now,
     }),
   }));
+}
+
+/** Firmware section of the compliance dashboard, with samples to act on. */
+export type FirmwareCompliance = {
+  counts: FirmwareCounts;
+  outdated: { count: number; sample: AssetSample[] };
+  stale: { count: number; sample: AssetSample[] };
+  /** unclassified + no_data + unknown — assets whose currency cannot be judged. */
+  unmeasured: { count: number; sample: AssetSample[] };
+  /**
+   * Share of monitored assets whose currency can be judged at all. Null when
+   * nothing is monitored. Every other figure here should be read against it:
+   * devices with no API can never report a version, so a high "up to date"
+   * count over a small measured population is not the reassurance it looks like.
+   */
+  measuredCoverage: number | null;
+  maxAgeDays: number;
+};
+
+function toSample(rows: FirmwareAssetStatus[]): AssetSample[] {
+  return rows.slice(0, SAMPLE_SIZE).map((r) => ({
+    id: r.id,
+    locationId: r.locationId,
+    model: r.model,
+    serialNumber: r.serialNumber,
+    hostname: r.hostname,
+  }));
+}
+
+export async function computeFirmwareCompliance(): Promise<FirmwareCompliance> {
+  const [statuses, maxAgeSetting] = await Promise.all([
+    computeFirmwareStatuses(),
+    prisma.appSetting.findUnique({ where: { key: "compliance.firmwareMaxAgeDays" } }),
+  ]);
+
+  const counts = tallyFirmware(statuses);
+  const outdated = statuses.filter((s) => s.status === "outdated");
+  const stale = statuses.filter((s) => s.status === "stale");
+  const unmeasured = statuses.filter(
+    (s) => s.status === "unclassified" || s.status === "no_data" || s.status === "unknown"
+  );
+
+  const total = statuses.length;
+  const measured = counts.compliant + counts.outdated + counts.stale;
+
+  return {
+    counts,
+    outdated: { count: outdated.length, sample: toSample(outdated) },
+    stale: { count: stale.length, sample: toSample(stale) },
+    unmeasured: { count: unmeasured.length, sample: toSample(unmeasured) },
+    measuredCoverage: total === 0 ? null : measured / total,
+    maxAgeDays: parseInt(maxAgeSetting?.value ?? "", 10) || DEFAULT_FIRMWARE_MAX_AGE_DAYS,
+  };
 }
 
 export function tallyFirmware(
@@ -183,8 +244,17 @@ async function locationsMissingReview(): Promise<Nis2ComplianceResult["locations
 export async function computeNis2Compliance(): Promise<Nis2ComplianceResult> {
   const today = new Date();
 
-  const [missingOwner, missingCriticality, pastEos, withoutEosDate, review, usersNo2fa, requireSetting, backlog] =
-    await Promise.all([
+  const [
+    missingOwner,
+    missingCriticality,
+    pastEos,
+    withoutEosDate,
+    review,
+    usersNo2fa,
+    requireSetting,
+    backlog,
+    firmware,
+  ] = await Promise.all([
       assetStat({ status: "INSTALLED", ownerId: null }),
       assetStat(UNCLASSIFIED_WHERE),
       assetStat({ status: "INSTALLED", endOfSupportDate: { lt: today } }),
@@ -193,6 +263,7 @@ export async function computeNis2Compliance(): Promise<Nis2ComplianceResult> {
       prisma.user.count({ where: { provider: "credentials", totpEnabled: false } }),
       prisma.appSetting.findUnique({ where: { key: "security.requireTwoFactor" } }),
       prisma.auditLog.count({ where: { forwardedAt: null } }),
+      computeFirmwareCompliance(),
     ]);
 
   return {
@@ -202,6 +273,7 @@ export async function computeNis2Compliance(): Promise<Nis2ComplianceResult> {
     locationsMissingReview: review,
     usersWithout2fa: { count: usersNo2fa, globallyRequired: requireSetting?.value === "true" },
     auditBacklog: { count: backlog, syslogConfigured: isSyslogConfigured() },
+    firmware,
   };
 }
 

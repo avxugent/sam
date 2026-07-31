@@ -185,6 +185,12 @@ One page aggregating the NIS2 evidence gaps, each as a stat card with an expanda
 
 - **Assets without owner** and **assets unclassified** (no criticality on the asset or its type)
 - **Assets past end-of-support** (plus how many have no date at all)
+- **Firmware outdated**, **firmware evidence expired**, and **firmware unmeasured** —
+  the last of these states the share of monitored assets whose currency can be
+  judged at all, because devices with no API can never report a version. Read
+  every firmware figure against that percentage: a small unmeasured count over a
+  small measurable population is not the reassurance it looks like. See
+  [Firmware Baselines](#firmware-baselines).
 - **Locations not reviewed** — leaf locations missing the configured review work-log item within the review period
 - **Local users without 2FA** and the **audit forwarding backlog**
 

@@ -64,6 +64,10 @@ services:
       # accounts) and passed in, e.g. GRAFANA_TOKEN=... docker compose up.
       GRAFANA_URL: "${GRAFANA_URL:-http://grafana:3000}"
       GRAFANA_TOKEN: "${GRAFANA_TOKEN:-}"
+    # Lets PROMETHEUS_URL/GRAFANA_URL point at host.docker.internal on Linux as
+    # well as macOS, for a Prometheus or Grafana running outside this stack.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       # Bind-mount source for hot reload. node_modules and .next use named
       # volumes so the container-built artifacts don't get overwritten by the

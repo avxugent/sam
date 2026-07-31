@@ -49,20 +49,34 @@ sam.dashboard(
       ),
       sam.stat(
         'Firmware',
-        'device_firmware_info%s' % dev,
+        'sam_asset_firmware_info%s' % dev,
         w=5,
         h=4,
         // The value is always 1; the version lives in a label, so render the
         // series name rather than the number.
         legend='{{version}}',
         textMode='name',
-        noValue='unknown',
-        description='Reported by the exporter. Blank when the device is unreachable.',
+        noValue='not reported',
+        description='Last version synced from the exporter into SAM. "not reported" means the device has no API, or has not answered since the last sync.',
+      ),
+      sam.stat(
+        'Firmware status',
+        'sam_asset_firmware_status%s' % dev,
+        w=5,
+        h=4,
+        legend='{{status}}',
+        textMode='name',
+        noValue='unclassified',
+        description=|||
+          Against the approved baseline. Only "compliant" is evidence of currency —
+          "unclassified" (no baseline set) and "no_data" (nothing reported) are
+          unmeasured, not up to date.
+        |||,
       ),
       sam.stat(
         'Type',
         'sam_asset_info%s' % dev,
-        w=5,
+        w=4,
         h=4,
         legend='{{sam_asset_type}} — {{sam_model}}',
         textMode='name',
@@ -70,7 +84,7 @@ sam.dashboard(
       sam.stat(
         'Room',
         'sam_asset_info%s' % dev,
-        w=6,
+        w=3,
         h=4,
         legend='{{sam_location_name}} ({{sam_fi_number}})',
         textMode='name',
@@ -78,7 +92,7 @@ sam.dashboard(
       sam.stat(
         'Criticality',
         'sam_asset_info%s' % dev,
-        w=4,
+        w=3,
         h=4,
         legend='{{sam_criticality}}',
         textMode='name',

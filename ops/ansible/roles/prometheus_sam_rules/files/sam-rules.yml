@@ -105,3 +105,23 @@ groups:
             or (room:assets_expected:count * 0)
           )
           / room:assets_expected:count
+
+      # ── Firmware currency ──────────────────────────────────────────────────
+      # Only status="outdated" is a violation. "unclassified" (no baseline) and
+      # "no_data" (device has no API, or has not answered) are *unmeasured* —
+      # counted separately so the room figures never imply coverage that does
+      # not exist.
+      - record: room:firmware_outdated:count
+        expr: |
+          count by (sam_fi_number, sam_campus, sam_building, sam_location_name) (
+            sam_asset_info
+            and on (sam_hostname) sam_asset_firmware_status{status="outdated"}
+          )
+
+      - record: room:firmware_unmeasured:count
+        expr: |
+          count by (sam_fi_number, sam_campus, sam_building, sam_location_name) (
+            sam_asset_info
+            and on (sam_hostname)
+              sam_asset_firmware_status{status=~"unclassified|no_data|unknown"}
+          )

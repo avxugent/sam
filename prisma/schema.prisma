@@ -126,6 +126,7 @@ model AssetType {
   assets      Asset[]
   stockItems  StockItem[]
   presets     MaintenancePreset[]
+  firmwareBaselines FirmwareBaseline[]
 
   @@map("asset_types")
 }
@@ -158,6 +159,26 @@ model Supplier {
   @@map("suppliers")
 }
 
+/// Approved firmware per asset type, optionally narrowed to one model.
+/// An asset with no matching row is *unclassified* — deliberately distinct
+/// from compliant, so the NIS2 figures never overstate coverage.
+model FirmwareBaseline {
+  id              String   @id @default(cuid())
+  typeId          String
+  /// null applies to every model of the type. A row naming an exact model wins.
+  model           String?  @db.VarChar(255)
+  approvedVersion String   @db.VarChar(100)
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  type AssetType @relation(fields: [typeId], references: [id], onDelete: Cascade)
+
+  @@unique([typeId, model])
+  @@index([typeId])
+  @@map("firmware_baselines")
+}
+
 model Asset {
   id               String    @id @default(cuid())
   locationId       String
@@ -183,6 +204,11 @@ model Asset {
   // null = inherit AssetType.defaultCriticality
   criticality      Criticality?
   endOfSupportDate DateTime? @db.Date
+  // Firmware the device last reported, written by scripts/sync-firmware.mjs
+  // from Prometheus. Null means the device has no API to ask (blackbox-probed)
+  // or has not answered since the last sync — never assume it is up to date.
+  firmwareVersion   String?   @db.VarChar(100)
+  firmwareCheckedAt DateTime?
   supplierId       String?
   status               AssetStatus @default(INSTALLED)
   decommissionedAt     DateTime?

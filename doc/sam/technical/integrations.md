@@ -120,6 +120,33 @@ scrape_configs:
 | `sam_asset_info{sam_hostname="…", …}` | gauge | Always `1`. One series per asset expected to report, carrying its SAM metadata |
 | `sam_asset_maintenance{sam_hostname="…"}` | gauge | Always `1`. Asset's room is in maintenance, so missing metrics are expected |
 | `sam_asset_end_of_support_timestamp{sam_hostname="…"}` | gauge | End-of-support date as a Unix timestamp |
+| `sam_asset_firmware_status{sam_hostname="…", status="…"}` | gauge | Always `1`. Firmware currency per asset |
+| `sam_asset_firmware_info{sam_hostname="…", version="…"}` | gauge | Always `1`. Installed version, where one is known |
+| `sam_firmware_baseline_info{sam_asset_type="…", sam_model="…", version="…"}` | gauge | Always `1`. The approved version |
+| `sam_assets_firmware{status="…"}` | gauge | Fleet counts per firmware status |
+
+#### Firmware currency
+
+The comparison happens in SAM, not in PromQL — PromQL cannot order version
+strings, and NIS2 wants an auditable record rather than a figure reconstructed
+from a dashboard. `scripts/sync-firmware.mjs` reads `device_firmware_info` from
+Prometheus into `Asset.firmwareVersion`; `lib/firmware.ts` compares it against
+the `FirmwareBaseline` for the asset's type and model.
+
+| Status | Meaning |
+|---|---|
+| `compliant` | Installed version is **at or above** the approved baseline. A device ahead of the baseline is not flagged, so a rollout in progress stays quiet |
+| `outdated` | Installed version is below the baseline |
+| `unknown` | Both versions known but their shapes cannot be ordered (`2.3` against `2.beta`) |
+| `unclassified` | No baseline configured for this asset type or model |
+| `no_data` | No version reported — the device has no API, or has not answered since the last sync |
+
+Only `compliant` is evidence of currency. The last three are *unmeasured*, and
+counting them as compliant would overstate coverage to anyone reading the NIS2
+figures — most importantly because blackbox-probed devices have no API and will
+sit in `no_data` permanently. Read every firmware figure against
+`sum(sam_assets_firmware{status=~"compliant|outdated"}) / sum(sam_assets_firmware)`,
+which the fleet dashboard shows as *Measured coverage*.
 
 #### `sam_asset_info` — the expected-set series
 

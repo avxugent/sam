@@ -26,7 +26,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkPrometheusAuth } from "@/lib/prometheus-auth";
 import { parseFiNumber } from "@/lib/location-path";
-import { computeNis2Counts } from "@/lib/nis2-compliance";
+import { computeNis2Counts, computeFirmwareStatuses } from "@/lib/nis2-compliance";
 
 // ─── Text format helpers ─────────────────────────────────────────────────────
 
@@ -307,6 +307,16 @@ export async function GET(req: NextRequest) {
       [{ value: nis2.auditBacklog }]
     )
   );
+  sections.push(
+    gauge(
+      "sam_assets_firmware",
+      "Monitored assets grouped by firmware currency. Only status=\"compliant\" is evidence of currency; unclassified and no_data are unmeasured, not compliant.",
+      Object.entries(nis2.firmware).map(([status, value]) => ({
+        labels: { status },
+        value,
+      }))
+    )
+  );
 
   // 8. Per-asset info series
   //
@@ -397,6 +407,62 @@ export async function GET(req: NextRequest) {
       "sam_asset_end_of_support_timestamp",
       "End-of-support date per asset as a Unix timestamp in seconds",
       eosSamples
+    )
+  );
+
+  // 9. Firmware currency
+  //
+  // The comparison happens in lib/firmware.ts, not in PromQL — PromQL cannot
+  // order version strings, and NIS2 wants an auditable record rather than a
+  // number reconstructed from a dashboard.
+  //
+  // status is a label rather than five separate metrics so a dashboard can do
+  //   count by (sam_fi_number) (
+  //     sam_asset_info and on (sam_hostname) sam_asset_firmware_status{status="outdated"}
+  //   )
+  // without knowing the status names in advance.
+  const firmwareStatuses = await computeFirmwareStatuses();
+
+  sections.push(
+    gauge(
+      "sam_asset_firmware_status",
+      "Firmware currency per asset. unclassified = no baseline configured; no_data = device reports no version (no API, or unreachable). Neither is compliant.",
+      firmwareStatuses.map((f) => ({
+        labels: { sam_hostname: f.hostname, status: f.status },
+        value: 1,
+      }))
+    )
+  );
+
+  sections.push(
+    gauge(
+      "sam_asset_firmware_info",
+      "Installed firmware version per asset, as last synced from the exporters",
+      firmwareStatuses
+        .filter((f) => f.version)
+        .map((f) => ({
+          labels: { sam_hostname: f.hostname, version: f.version! },
+          value: 1,
+        }))
+    )
+  );
+
+  const baselines = await prisma.firmwareBaseline.findMany({
+    select: { model: true, approvedVersion: true, type: { select: { name: true } } },
+  });
+
+  sections.push(
+    gauge(
+      "sam_firmware_baseline_info",
+      "Approved firmware version per asset type and model. An empty sam_model applies to every model of the type.",
+      baselines.map((b) => ({
+        labels: {
+          sam_asset_type: b.type.name,
+          sam_model: b.model ?? "",
+          version: b.approvedVersion,
+        },
+        value: 1,
+      }))
     )
   );
 

@@ -4,8 +4,10 @@
 // so the queries stay cheap and the down/maintenance/never-scraped split is
 // defined in exactly one place (ops/prometheus/sam-rules.yml).
 //
-// Firmware panels are deliberately absent: the metrics that back them arrive in
-// phase 4. Empty panels teach users to distrust the dashboard.
+// Firmware panels count only status="outdated" as a violation. "unclassified"
+// (no baseline configured) and "no_data" (device has no API, or has not
+// answered) are shown as *unmeasured* — reporting either as compliant would
+// overstate NIS2 coverage to whoever reads these numbers.
 
 local sam = import '../lib/sam.libsonnet';
 
@@ -183,6 +185,96 @@ sam.dashboard(
         'count by (sam_criticality) (%s)' % assetFilter,
         legend='{{sam_criticality}}',
         description='Effective criticality — per-asset override, else the asset type default. Blank means unclassified (a NIS2 gap).',
+      ),
+    ],
+
+    sam.row('Firmware currency'),
+    [
+      sam.stat(
+        'Up to date',
+        z('sum(sam_assets_firmware{status="compliant"})'),
+        thresholds=sam.thresholdsNeutral,
+        description='Installed version is at or above the approved baseline. A device ahead of the baseline is not flagged.',
+      ),
+      sam.stat(
+        'Outdated',
+        z('sum(sam_assets_firmware{status="outdated"})'),
+        thresholds=sam.thresholdsAnyIsBad,
+      ),
+      sam.stat(
+        'No baseline set',
+        z('sum(sam_assets_firmware{status="unclassified"})'),
+        thresholds=sam.thresholdsAnyIsWarn,
+        description='No approved version configured for this asset type or model, so currency cannot be judged.',
+      ),
+      sam.stat(
+        'No version reported',
+        z('sum(sam_assets_firmware{status="no_data"})'),
+        thresholds=sam.thresholdsAnyIsWarn,
+        description=|||
+          The device exposes no API to ask, or has not answered since the last sync.
+          Blackbox-probed devices can never report firmware and will sit here
+          permanently — they need a manual attestation to count as evidence.
+        |||,
+      ),
+      sam.stat(
+        'Version unorderable',
+        z('sum(sam_assets_firmware{status="unknown"})'),
+        thresholds=sam.thresholdsAnyIsWarn,
+        description='Installed and approved versions could not be ordered (mismatched shapes). Never counted as compliant.',
+      ),
+      sam.stat(
+        'Measured coverage',
+        |||
+          (sum(sam_assets_firmware{status=~"compliant|outdated"}) or vector(0))
+          / clamp_min(sum(sam_assets_firmware), 1)
+        |||,
+        unit='percentunit',
+        thresholds=sam.thresholdsRatio,
+        description='Share of monitored assets whose firmware currency can actually be judged. The denominator every other figure here should be read against.',
+      ),
+    ],
+    [
+      sam.table(
+        'Rooms with outdated firmware',
+        targets=[
+          {
+            expr: 'sum by (sam_fi_number, sam_location_name, sam_campus, sam_building) (%s)'
+                  % roomFilter('room:firmware_outdated:count'),
+          },
+          { expr: 'sum by (sam_fi_number) (%s)' % roomFilter('room:firmware_unmeasured:count') },
+          { expr: 'sum by (sam_fi_number) (%s)' % roomFilter('room:assets_expected:count') },
+        ],
+        joinField='sam_fi_number',
+        rename={
+          sam_fi_number: 'FI number',
+          sam_location_name: 'Room',
+          sam_campus: 'Campus',
+          sam_building: 'Building',
+          'Value #A': 'Outdated',
+          'Value #B': 'Unmeasured',
+          'Value #C': 'Devices',
+        },
+        order=[
+          'sam_fi_number',
+          'sam_location_name',
+          'sam_campus',
+          'sam_building',
+          'Value #A',
+          'Value #B',
+          'Value #C',
+        ],
+        sortBy=[{ displayName: 'Outdated', desc: true }],
+        noValue='0',
+        overrides=[
+          sam.overrideByName('FI number', [
+            {
+              id: 'links',
+              value: [sam.dataLink('Room detail', '/d/sam-room/room?var-fi_number=${__value.text}')],
+            },
+          ]),
+        ],
+        h=12,
       ),
     ],
 

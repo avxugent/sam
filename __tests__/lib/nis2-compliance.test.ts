@@ -4,6 +4,7 @@ vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
     asset: { count: vi.fn(), findMany: vi.fn() },
+    firmwareBaseline: { findMany: vi.fn() },
     user: { count: vi.fn() },
     auditLog: { count: vi.fn() },
     appSetting: { findMany: vi.fn(), findUnique: vi.fn() },
@@ -26,6 +27,7 @@ import { computeNis2Compliance, computeNis2Counts } from "@/lib/nis2-compliance"
 
 const mockAssetCount = vi.mocked(prisma.asset.count);
 const mockAssetFindMany = vi.mocked(prisma.asset.findMany);
+const mockBaselineFindMany = vi.mocked(prisma.firmwareBaseline.findMany);
 const mockUserCount = vi.mocked(prisma.user.count);
 const mockAuditCount = vi.mocked(prisma.auditLog.count);
 const mockSettingFindMany = vi.mocked(prisma.appSetting.findMany);
@@ -38,6 +40,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockAssetCount.mockResolvedValue(0 as never);
   mockAssetFindMany.mockResolvedValue([] as never);
+  mockBaselineFindMany.mockResolvedValue([] as never);
   mockUserCount.mockResolvedValue(0 as never);
   mockAuditCount.mockResolvedValue(0 as never);
   mockSettingFindMany.mockResolvedValue([] as never);
@@ -157,5 +160,42 @@ describe("computeNis2Counts()", () => {
     expect(counts.usersWithout2fa).toBe(1);
     expect(counts.auditBacklog).toBe(9);
     expect(counts.locationsMissingReview).toBe(3);
+  });
+});
+
+describe("computeFirmwareStatuses()", () => {
+  it("classifies each asset against the most specific baseline", async () => {
+    mockAssetFindMany.mockResolvedValue([
+      { hostname: "rec001", typeId: "recorder", model: "Pearl Mini", firmwareVersion: "4.17.0" },
+      { hostname: "rec002", typeId: "recorder", model: "Pearl Nano", firmwareVersion: "4.12.3" },
+      // No API: blackbox-probed devices never report a version.
+      { hostname: "proj001", typeId: "projector", model: "EB-W06", firmwareVersion: null },
+      // No baseline configured for this type at all.
+      { hostname: "sw001", typeId: "switcher", model: "ATEM", firmwareVersion: "9.1" },
+    ] as never);
+    mockBaselineFindMany.mockResolvedValue([
+      { typeId: "recorder", model: null, approvedVersion: "4.18.0" },
+      { typeId: "recorder", model: "Pearl Mini", approvedVersion: "4.17.0" },
+      { typeId: "projector", model: null, approvedVersion: "1.08" },
+    ] as never);
+
+    const { computeFirmwareStatuses, tallyFirmware } = await import("@/lib/nis2-compliance");
+    const statuses = await computeFirmwareStatuses();
+
+    expect(statuses).toEqual([
+      // Model-specific baseline (4.17.0) beats the type-wide one (4.18.0).
+      { hostname: "rec001", version: "4.17.0", status: "compliant" },
+      { hostname: "rec002", version: "4.12.3", status: "outdated" },
+      { hostname: "proj001", version: null, status: "no_data" },
+      { hostname: "sw001", version: "9.1", status: "unclassified" },
+    ]);
+
+    expect(tallyFirmware(statuses)).toEqual({
+      compliant: 1,
+      outdated: 1,
+      unknown: 0,
+      unclassified: 1,
+      no_data: 1,
+    });
   });
 });

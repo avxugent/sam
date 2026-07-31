@@ -5,6 +5,7 @@
 import { prisma } from "@/lib/prisma";
 import { runLocationReport } from "@/lib/report-engine";
 import { isSyslogConfigured } from "@/lib/syslog";
+import { firmwareStatus, matchBaseline, type Baseline, type FirmwareStatus } from "@/lib/firmware";
 import type { Prisma } from "@/generated/prisma/client";
 
 const SAMPLE_SIZE = 50;
@@ -34,6 +35,56 @@ export type Nis2ComplianceResult = {
   auditBacklog: { count: number; syslogConfigured: boolean };
 };
 
+export type FirmwareCounts = Record<FirmwareStatus, number>;
+
+/**
+ * Classifies every monitored asset against its firmware baseline.
+ *
+ * Shared by the metrics endpoint and the compliance dashboard so they cannot
+ * disagree. "unclassified" (no baseline) and "no_data" (device has no API, or
+ * has not answered) are counted apart from "compliant" — reporting either as
+ * compliant would overstate NIS2 coverage.
+ */
+export async function computeFirmwareStatuses(): Promise<
+  Array<{ hostname: string; version: string | null; status: FirmwareStatus }>
+> {
+  const [assets, baselineRows] = await Promise.all([
+    prisma.asset.findMany({
+      where: {
+        status: "INSTALLED",
+        hostname: { not: null },
+        OR: [{ typeId: null }, { type: { prometheusExposed: true } }],
+      },
+      select: { hostname: true, typeId: true, model: true, firmwareVersion: true },
+    }),
+    prisma.firmwareBaseline.findMany({
+      select: { typeId: true, model: true, approvedVersion: true },
+    }),
+  ]);
+
+  const baselines: Baseline[] = baselineRows;
+
+  return assets.map((a) => ({
+    hostname: a.hostname!,
+    version: a.firmwareVersion,
+    status: firmwareStatus(a.firmwareVersion, matchBaseline(baselines, a.typeId, a.model)),
+  }));
+}
+
+export function tallyFirmware(
+  statuses: Array<{ status: FirmwareStatus }>
+): FirmwareCounts {
+  const counts: FirmwareCounts = {
+    compliant: 0,
+    outdated: 0,
+    unknown: 0,
+    unclassified: 0,
+    no_data: 0,
+  };
+  for (const s of statuses) counts[s.status]++;
+  return counts;
+}
+
 export type Nis2Counts = {
   assetsMissingOwner: number;
   assetsMissingCriticality: number;
@@ -42,6 +93,7 @@ export type Nis2Counts = {
   locationsMissingReview: number | null; // null = review item not configured
   usersWithout2fa: number;
   auditBacklog: number;
+  firmware: FirmwareCounts;
 };
 
 // Effective criticality unclassified: no override AND no (or defaultless) type
@@ -152,5 +204,6 @@ export async function computeNis2Counts(): Promise<Nis2Counts> {
     locationsMissingReview: reviewCount,
     usersWithout2fa: usersNo2fa,
     auditBacklog: backlog,
+    firmware: tallyFirmware(await computeFirmwareStatuses()),
   };
 }

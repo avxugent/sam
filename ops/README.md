@@ -248,10 +248,26 @@ probe series and `probe_success` alone cannot tell them apart:
 | `2` | Room in maintenance |
 | *no series* | Never scraped |
 
+### Firmware currency
+
+Only `status="outdated"` is a violation. `unclassified` (no baseline configured)
+and `no_data` (device has no API, or has not answered) are counted as
+*unmeasured* — reporting either as compliant would overstate NIS2 coverage.
+
+Blackbox-probed devices have no API and will sit in `no_data` permanently, so
+the fleet dashboard shows *Measured coverage* — the share of assets whose
+currency can actually be judged. That is the denominator every other firmware
+figure should be read against.
+
+Baselines live in SAM (`FirmwareBaseline`, keyed on asset type and optionally
+model) and are published as `sam_firmware_baseline_info` so a dashboard can show
+what was expected alongside what is installed.
+
 ## Status
 
-Built: recording rules, alert rules, promtool tests, all three dashboards.
+Built: recording rules, alert rules, promtool tests, all three dashboards,
+firmware currency.
 
-Not built yet: everything firmware (phase 4). The dashboards carry no firmware
-panels on purpose — the metrics that back them don't exist yet, and empty panels
-teach users to distrust the dashboard.
+Not built yet: the Firmware baselines admin screen — baselines are seeded by
+script or SQL for now. Manual attestation for devices that can never report
+firmware is still an open question.

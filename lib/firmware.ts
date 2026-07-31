@@ -13,16 +13,32 @@
  */
 
 export type FirmwareStatus =
-  /** Installed version is at or above the baseline. */
+  /** Installed version is at or above the baseline, confirmed recently. */
   | "compliant"
   /** Installed version is below the baseline. */
   | "outdated"
+  /**
+   * At or above the baseline, but the evidence has aged past the configured
+   * limit. The device may have been downgraded or replaced since; treating an
+   * old reading as current is how a compliance figure quietly becomes fiction.
+   */
+  | "stale"
   /** Both versions known, but their shapes cannot be ordered. Never "compliant". */
   | "unknown"
   /** No baseline configured for this asset type/model. */
   | "unclassified"
-  /** No version reported — a device with no API, or one that is unreachable. */
+  /** No version ever recorded — a device with no API and no attestation. */
   | "no_data";
+
+/** How SAM learned the installed version. */
+export type FirmwareSource =
+  /** Read from the device via an exporter. */
+  | "REPORTED"
+  /** Recorded by a person, for devices with no API to ask. */
+  | "ATTESTED";
+
+/** Default before an admin configures compliance.firmwareMaxAgeDays. */
+export const DEFAULT_FIRMWARE_MAX_AGE_DAYS = 90;
 
 export type Baseline = {
   typeId: string;
@@ -109,29 +125,52 @@ export function matchBaseline(
   );
 }
 
+/** True when evidence recorded at `checkedAt` is older than the limit. */
+export function isStale(
+  checkedAt: Date | null | undefined,
+  maxAgeDays: number,
+  now: Date = new Date()
+): boolean {
+  // Never checked is not "stale" — it is absent, which no_data covers.
+  if (!checkedAt) return false;
+  const ageDays = (now.getTime() - checkedAt.getTime()) / 86_400_000;
+  return ageDays > maxAgeDays;
+}
+
 /**
  * Classifies one asset.
  *
- * "unclassified" and "no_data" are deliberately distinct from "compliant":
- * a device with no baseline and a device that cannot report its firmware are
- * both *unmeasured*, and reporting them as compliant would overstate coverage
- * to anyone reading the NIS2 figures.
+ * "unclassified", "no_data" and "stale" are all deliberately distinct from
+ * "compliant". A device with no baseline, a device that cannot report its
+ * firmware, and a device whose last reading has aged out are each *unmeasured*
+ * — reporting any of them as compliant would overstate coverage to whoever
+ * reads the NIS2 figures.
+ *
+ * Note that staleness does **not** rescue a device that was behind: a version
+ * below the baseline stays "outdated" however old the reading is. Nothing about
+ * an expired reading suggests the device improved, and demoting a real
+ * violation to "unmeasured" would hide it.
  */
 export function firmwareStatus(
   installedVersion: string | null | undefined,
-  baseline: Baseline | null
+  baseline: Baseline | null,
+  options: { checkedAt?: Date | null; maxAgeDays?: number; now?: Date } = {}
 ): FirmwareStatus {
   if (!baseline) return "unclassified";
   if (!installedVersion) return "no_data";
 
   const cmp = compareVersions(installedVersion, baseline.approvedVersion);
   if (cmp === null) return "unknown";
-  return cmp >= 0 ? "compliant" : "outdated";
+  if (cmp < 0) return "outdated";
+
+  const maxAgeDays = options.maxAgeDays ?? DEFAULT_FIRMWARE_MAX_AGE_DAYS;
+  return isStale(options.checkedAt, maxAgeDays, options.now) ? "stale" : "compliant";
 }
 
 export const FIRMWARE_STATUSES: FirmwareStatus[] = [
   "compliant",
   "outdated",
+  "stale",
   "unknown",
   "unclassified",
   "no_data",

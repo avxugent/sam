@@ -437,11 +437,17 @@ export async function GET(req: NextRequest) {
   sections.push(
     gauge(
       "sam_asset_firmware_info",
-      "Installed firmware version per asset, as last synced from the exporters",
+      "Installed firmware version per asset. source=REPORTED came from the device, source=ATTESTED was recorded by a person for a device with no API.",
       firmwareStatuses
         .filter((f) => f.version)
         .map((f) => ({
-          labels: { sam_hostname: f.hostname, version: f.version! },
+          labels: {
+            sam_hostname: f.hostname,
+            version: f.version!,
+            // REPORTED came from the device, ATTESTED from a person. Both are
+            // evidence and both age out, but an auditor will want the split.
+            source: f.source ?? "",
+          },
           value: 1,
         }))
     )

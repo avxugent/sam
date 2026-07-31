@@ -40,7 +40,9 @@ export default async function AssetPage({
 
   // Owner / decommissioned-by are soft refs (no FK) — resolve names here so
   // deleted users degrade to a "(deleted user)" label client-side.
-  const softRefIds = [asset.ownerId, asset.decommissionedById].filter((v): v is string => !!v);
+  const softRefIds = [asset.ownerId, asset.decommissionedById, asset.firmwareAttestedById].filter(
+    (v): v is string => !!v
+  );
   const softRefUsers = softRefIds.length
     ? await prisma.user.findMany({ where: { id: { in: softRefIds } }, select: { id: true, name: true } })
     : [];
@@ -55,6 +57,9 @@ export default async function AssetPage({
       macAddressUrlTemplate={macAddressUrlTemplate}
       ownerName={asset.ownerId ? nameById.get(asset.ownerId) ?? null : null}
       decommissionedByName={asset.decommissionedById ? nameById.get(asset.decommissionedById) ?? null : null}
+      firmwareAttestedByName={
+        asset.firmwareAttestedById ? nameById.get(asset.firmwareAttestedById) ?? null : null
+      }
     />
   );
 }

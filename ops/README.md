@@ -269,6 +269,6 @@ expected alongside what is installed.
 Built: recording rules, alert rules, promtool tests, all three dashboards,
 firmware currency.
 
-Not built yet: manual attestation for devices that can never report firmware —
-until that exists, blackbox-probed assets sit in `no_data` permanently and the
-NIS2 story is "we measure what we can and are explicit about the rest".
+Devices with no API are recorded by hand on the asset page (`source=ATTESTED`).
+Attestations age out like any other evidence, so `no_data` now means "nothing has
+ever been established" rather than "we cannot tell".

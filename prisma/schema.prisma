@@ -28,6 +28,14 @@ enum Criticality {
   CRITICAL
 }
 
+/// How SAM learned an asset's installed firmware version.
+enum FirmwareSource {
+  /// Read from the device via an exporter (scripts/sync-firmware.mjs).
+  REPORTED
+  /// Recorded by a person, for devices with no API to ask.
+  ATTESTED
+}
+
 enum DisposalMethod {
   WIPED
   DESTROYED
@@ -204,11 +212,19 @@ model Asset {
   // null = inherit AssetType.defaultCriticality
   criticality      Criticality?
   endOfSupportDate DateTime? @db.Date
-  // Firmware the device last reported, written by scripts/sync-firmware.mjs
-  // from Prometheus. Null means the device has no API to ask (blackbox-probed)
-  // or has not answered since the last sync — never assume it is up to date.
-  firmwareVersion   String?   @db.VarChar(100)
-  firmwareCheckedAt DateTime?
+  // Installed firmware. Written either by scripts/sync-firmware.mjs from
+  // Prometheus, or by a person for devices with no API to ask. Null means no
+  // version has ever been established — never assume it is up to date.
+  //
+  // firmwareCheckedAt is when the version was last *confirmed*, not when it
+  // changed, so evidence can age out: a reading older than
+  // compliance.firmwareMaxAgeDays is reported as stale rather than compliant.
+  firmwareVersion    String?   @db.VarChar(100)
+  firmwareCheckedAt  DateTime?
+  firmwareSource     FirmwareSource?
+  // Soft ref to User (no FK) so the attestation survives the user's deletion —
+  // it is compliance evidence and must outlive the account.
+  firmwareAttestedById String?
   supplierId       String?
   status               AssetStatus @default(INSTALLED)
   decommissionedAt     DateTime?

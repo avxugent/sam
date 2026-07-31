@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FirmwareField } from "@/components/assets/firmware-field";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 import { getAssetTypeIcon } from "@/lib/asset-type-icon";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
@@ -69,6 +70,9 @@ type Asset = {
   ownerId?: string | null;
   criticality?: string | null;
   endOfSupportDate?: Date | string | null;
+  firmwareVersion?: string | null;
+  firmwareSource?: "REPORTED" | "ATTESTED" | null;
+  firmwareCheckedAt?: Date | string | null;
   supplierId?: string | null;
   status: string;
   decommissionedAt?: Date | string | null;
@@ -134,6 +138,7 @@ export function AssetDetailClient({
   macAddressUrlTemplate,
   ownerName,
   decommissionedByName,
+  firmwareAttestedByName,
 }: {
   asset: Asset;
   breadcrumbs: Breadcrumb[];
@@ -142,6 +147,7 @@ export function AssetDetailClient({
   macAddressUrlTemplate?: string | null;
   ownerName?: string | null;
   decommissionedByName?: string | null;
+  firmwareAttestedByName?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -473,6 +479,17 @@ export function AssetDetailClient({
               <div><FieldLabel>{tField("manufacturer")}</FieldLabel><FieldValue value={asset.manufacturer?.name} /></div>
               <div><FieldLabel>{tField("model")}</FieldLabel><FieldValue value={asset.model} /></div>
               <div><FieldLabel>{tField("serialNumber")}</FieldLabel><FieldValue value={asset.serialNumber} mono /></div>
+              <div>
+                <FieldLabel>{tField("firmware")}</FieldLabel>
+                <FirmwareField
+                  assetId={asset.id}
+                  version={asset.firmwareVersion ?? null}
+                  source={asset.firmwareSource ?? null}
+                  checkedAt={asset.firmwareCheckedAt ?? null}
+                  attestedByName={firmwareAttestedByName ?? null}
+                  canEdit={userRole !== "VIEWER"}
+                />
+              </div>
               <div>
                 <FieldLabel>{tField("hostname")}</FieldLabel>
                 {asset.hostname && hostnameUrlTemplate ? (

@@ -166,13 +166,14 @@ describe("computeNis2Counts()", () => {
 describe("computeFirmwareStatuses()", () => {
   it("classifies each asset against the most specific baseline", async () => {
     mockAssetFindMany.mockResolvedValue([
-      { hostname: "rec001", typeId: "recorder", model: "Pearl Mini", firmwareVersion: "4.17.0" },
-      { hostname: "rec002", typeId: "recorder", model: "Pearl Nano", firmwareVersion: "4.12.3" },
+      { hostname: "rec001", typeId: "recorder", model: "Pearl Mini", firmwareVersion: "4.17.0", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
+      { hostname: "rec002", typeId: "recorder", model: "Pearl Nano", firmwareVersion: "4.12.3", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
       // No API: blackbox-probed devices never report a version.
-      { hostname: "proj001", typeId: "projector", model: "EB-W06", firmwareVersion: null },
+      { hostname: "proj001", typeId: "projector", model: "EB-W06", firmwareVersion: null, firmwareCheckedAt: null, firmwareSource: null },
       // No baseline configured for this type at all.
-      { hostname: "sw001", typeId: "switcher", model: "ATEM", firmwareVersion: "9.1" },
+      { hostname: "sw001", typeId: "switcher", model: "ATEM", firmwareVersion: "9.1", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
     ] as never);
+    mockSettingFindUnique.mockResolvedValue(null as never);
     mockBaselineFindMany.mockResolvedValue([
       { typeId: "recorder", model: null, approvedVersion: "4.18.0" },
       { typeId: "recorder", model: "Pearl Mini", approvedVersion: "4.17.0" },
@@ -184,15 +185,16 @@ describe("computeFirmwareStatuses()", () => {
 
     expect(statuses).toEqual([
       // Model-specific baseline (4.17.0) beats the type-wide one (4.18.0).
-      { hostname: "rec001", version: "4.17.0", status: "compliant" },
-      { hostname: "rec002", version: "4.12.3", status: "outdated" },
-      { hostname: "proj001", version: null, status: "no_data" },
-      { hostname: "sw001", version: "9.1", status: "unclassified" },
+      { hostname: "rec001", version: "4.17.0", source: "REPORTED", status: "compliant" },
+      { hostname: "rec002", version: "4.12.3", source: "REPORTED", status: "outdated" },
+      { hostname: "proj001", version: null, source: null, status: "no_data" },
+      { hostname: "sw001", version: "9.1", source: "REPORTED", status: "unclassified" },
     ]);
 
     expect(tallyFirmware(statuses)).toEqual({
       compliant: 1,
       outdated: 1,
+      stale: 0,
       unknown: 0,
       unclassified: 1,
       no_data: 1,

@@ -3,6 +3,7 @@ import {
   compareVersions,
   matchBaseline,
   firmwareStatus,
+  isStale,
   type Baseline,
 } from "@/lib/firmware";
 
@@ -111,7 +112,65 @@ describe("firmwareStatus()", () => {
       firmwareStatus(null, baseline),
       firmwareStatus("4.18.0", null),
       firmwareStatus("4.18-rc", baseline),
+      firmwareStatus("4.18.0", baseline, { checkedAt: new Date("2020-01-01"), maxAgeDays: 90 }),
     ];
     expect(unmeasured).not.toContain("compliant");
+  });
+});
+
+describe("isStale()", () => {
+  const now = new Date("2026-07-30T12:00:00Z");
+
+  it("is false for a reading inside the window", () => {
+    expect(isStale(new Date("2026-07-01T12:00:00Z"), 90, now)).toBe(false);
+  });
+
+  it("is true past the window", () => {
+    expect(isStale(new Date("2026-01-01T12:00:00Z"), 90, now)).toBe(true);
+  });
+
+  it("is false when never checked — that is absence, not staleness", () => {
+    expect(isStale(null, 90, now)).toBe(false);
+    expect(isStale(undefined, 90, now)).toBe(false);
+  });
+});
+
+describe("firmwareStatus() — staleness", () => {
+  const baseline: Baseline = { typeId: "recorder", model: null, approvedVersion: "4.18.0" };
+  const now = new Date("2026-07-30T12:00:00Z");
+  const fresh = new Date("2026-07-20T12:00:00Z");
+  const old = new Date("2026-01-01T12:00:00Z");
+
+  it("is compliant when at the baseline and recently confirmed", () => {
+    expect(firmwareStatus("4.18.0", baseline, { checkedAt: fresh, maxAgeDays: 90, now })).toBe(
+      "compliant"
+    );
+  });
+
+  it("is stale when at the baseline but the reading has aged out", () => {
+    expect(firmwareStatus("4.18.0", baseline, { checkedAt: old, maxAgeDays: 90, now })).toBe(
+      "stale"
+    );
+  });
+
+  it("stays outdated when below the baseline, however old the reading", () => {
+    // Staleness must not rescue a real violation — nothing about an expired
+    // reading suggests the device improved.
+    expect(firmwareStatus("4.12.3", baseline, { checkedAt: old, maxAgeDays: 90, now })).toBe(
+      "outdated"
+    );
+  });
+
+  it("treats a version with no timestamp as current rather than stale", () => {
+    // Absence of a timestamp is a data gap, not evidence of age; no_data covers
+    // the case where there is no version at all.
+    expect(firmwareStatus("4.18.0", baseline, { checkedAt: null, maxAgeDays: 90, now })).toBe(
+      "compliant"
+    );
+  });
+
+  it("uses the default window when none is configured", () => {
+    const justOverDefault = new Date(now.getTime() - 91 * 86_400_000);
+    expect(firmwareStatus("4.18.0", baseline, { checkedAt: justOverDefault, now })).toBe("stale");
   });
 });

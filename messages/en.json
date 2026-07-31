@@ -135,7 +135,8 @@
     "owner": "Owner",
     "supplier": "Supplier",
     "criticality": "Criticality",
-    "endOfSupport": "End of support"
+    "endOfSupport": "End of support",
+    "firmware": "Firmware"
   },
   "asset": {
     "title": "Asset",
@@ -737,6 +738,8 @@
     "complianceReviewItemHelp": "The work log item that marks a location's asset list as reviewed (used by the compliance dashboard).",
     "complianceReviewPeriod": "Review period (months)",
     "complianceReviewPeriodHelp": "Locations without the review item within this period are flagged on the compliance dashboard.",
+    "firmwareMaxAge": "Firmware evidence validity (days)",
+    "firmwareMaxAgeHelp": "How long a firmware reading counts as current. Past this, a device at or above its baseline is reported as stale rather than up to date — including versions recorded by hand, so someone has to look again.",
     "complianceReviewPeriodInvalid": "Review period must be between 1 and 120 months."
   },
   "report": {

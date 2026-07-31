@@ -30,7 +30,7 @@ const mockAuth = vi.mocked(checkPrometheusAuth);
 const mockCounts = vi.mocked(computeNis2Counts);
 const mockFirmware = vi.mocked(computeFirmwareStatuses);
 
-const NO_FIRMWARE = { compliant: 0, outdated: 0, unknown: 0, unclassified: 0, no_data: 0 };
+const NO_FIRMWARE = { compliant: 0, outdated: 0, stale: 0, unknown: 0, unclassified: 0, no_data: 0 };
 
 function req() {
   return new NextRequest("http://localhost/api/prometheus/metrics");
@@ -211,20 +211,27 @@ describe("GET /api/prometheus/metrics — per-asset info series", () => {
 describe("GET /api/prometheus/metrics — firmware currency", () => {
   it("emits one status series per asset and a version series only where known", async () => {
     mockFirmware.mockResolvedValue([
-      { hostname: "rec001", version: "4.18.1", status: "compliant" },
-      { hostname: "rec002", version: "4.12.3", status: "outdated" },
-      // A blackbox-probed device: no API, so no version will ever arrive.
-      { hostname: "proj001", version: null, status: "no_data" },
+      { hostname: "rec001", version: "4.18.1", source: "REPORTED", status: "compliant" },
+      { hostname: "rec002", version: "4.12.3", source: "REPORTED", status: "outdated" },
+      // No API, so a person recorded the version by hand.
+      { hostname: "proj001", version: "1.08", source: "ATTESTED", status: "compliant" },
+      { hostname: "proj002", version: null, source: null, status: "no_data" },
     ] as never);
     const body = await (await GET(req())).text();
 
     expect(body).toContain('sam_asset_firmware_status{sam_hostname="rec001",status="compliant"} 1');
     expect(body).toContain('sam_asset_firmware_status{sam_hostname="rec002",status="outdated"} 1');
-    expect(body).toContain('sam_asset_firmware_status{sam_hostname="proj001",status="no_data"} 1');
+    expect(body).toContain('sam_asset_firmware_status{sam_hostname="proj002",status="no_data"} 1');
 
-    expect(body).toContain('sam_asset_firmware_info{sam_hostname="rec001",version="4.18.1"} 1');
-    // No version reported means no version series — not an empty label.
-    expect(body).not.toContain('sam_asset_firmware_info{sam_hostname="proj001"');
+    expect(body).toContain(
+      'sam_asset_firmware_info{sam_hostname="rec001",version="4.18.1",source="REPORTED"} 1'
+    );
+    // An attested version is evidence too, distinguishable by its source label.
+    expect(body).toContain(
+      'sam_asset_firmware_info{sam_hostname="proj001",version="1.08",source="ATTESTED"} 1'
+    );
+    // No version at all means no version series — not an empty label.
+    expect(body).not.toContain('sam_asset_firmware_info{sam_hostname="proj002"');
   });
 
   it("publishes the baselines so a dashboard can show what was expected", async () => {
@@ -250,11 +257,12 @@ describe("GET /api/prometheus/metrics — firmware currency", () => {
       locationsMissingReview: null,
       usersWithout2fa: 0,
       auditBacklog: 0,
-      firmware: { compliant: 7, outdated: 2, unknown: 1, unclassified: 3, no_data: 5 },
+      firmware: { compliant: 7, outdated: 2, stale: 4, unknown: 1, unclassified: 3, no_data: 5 },
     });
     const body = await (await GET(req())).text();
     expect(body).toContain('sam_assets_firmware{status="compliant"} 7');
     expect(body).toContain('sam_assets_firmware{status="outdated"} 2');
+    expect(body).toContain('sam_assets_firmware{status="stale"} 4');
     expect(body).toContain('sam_assets_firmware{status="unknown"} 1');
     expect(body).toContain('sam_assets_firmware{status="unclassified"} 3');
     expect(body).toContain('sam_assets_firmware{status="no_data"} 5');

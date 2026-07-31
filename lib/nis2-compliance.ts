@@ -5,7 +5,13 @@
 import { prisma } from "@/lib/prisma";
 import { runLocationReport } from "@/lib/report-engine";
 import { isSyslogConfigured } from "@/lib/syslog";
-import { firmwareStatus, matchBaseline, type Baseline, type FirmwareStatus } from "@/lib/firmware";
+import {
+  firmwareStatus,
+  matchBaseline,
+  DEFAULT_FIRMWARE_MAX_AGE_DAYS,
+  type Baseline,
+  type FirmwareStatus,
+} from "@/lib/firmware";
 import type { Prisma } from "@/generated/prisma/client";
 
 const SAMPLE_SIZE = 50;
@@ -46,28 +52,51 @@ export type FirmwareCounts = Record<FirmwareStatus, number>;
  * compliant would overstate NIS2 coverage.
  */
 export async function computeFirmwareStatuses(): Promise<
-  Array<{ hostname: string; version: string | null; status: FirmwareStatus }>
+  Array<{
+    hostname: string;
+    version: string | null;
+    source: string | null;
+    status: FirmwareStatus;
+  }>
 > {
-  const [assets, baselineRows] = await Promise.all([
+  const [assets, baselineRows, maxAgeSetting] = await Promise.all([
     prisma.asset.findMany({
       where: {
         status: "INSTALLED",
         hostname: { not: null },
         OR: [{ typeId: null }, { type: { prometheusExposed: true } }],
       },
-      select: { hostname: true, typeId: true, model: true, firmwareVersion: true },
+      select: {
+        hostname: true,
+        typeId: true,
+        model: true,
+        firmwareVersion: true,
+        firmwareCheckedAt: true,
+        firmwareSource: true,
+      },
     }),
     prisma.firmwareBaseline.findMany({
       select: { typeId: true, model: true, approvedVersion: true },
     }),
+    prisma.appSetting.findUnique({ where: { key: "compliance.firmwareMaxAgeDays" } }),
   ]);
 
   const baselines: Baseline[] = baselineRows;
+  const maxAgeDays =
+    parseInt(maxAgeSetting?.value ?? "", 10) || DEFAULT_FIRMWARE_MAX_AGE_DAYS;
+  // One "now" for the whole batch, so two assets checked at the same moment
+  // cannot land on opposite sides of the staleness boundary.
+  const now = new Date();
 
   return assets.map((a) => ({
     hostname: a.hostname!,
     version: a.firmwareVersion,
-    status: firmwareStatus(a.firmwareVersion, matchBaseline(baselines, a.typeId, a.model)),
+    source: a.firmwareSource,
+    status: firmwareStatus(a.firmwareVersion, matchBaseline(baselines, a.typeId, a.model), {
+      checkedAt: a.firmwareCheckedAt,
+      maxAgeDays,
+      now,
+    }),
   }));
 }
 
@@ -77,6 +106,7 @@ export function tallyFirmware(
   const counts: FirmwareCounts = {
     compliant: 0,
     outdated: 0,
+    stale: 0,
     unknown: 0,
     unclassified: 0,
     no_data: 0,

@@ -15,6 +15,7 @@ export function ComplianceSettingsClient({
   initialDefaultOwnerId,
   initialReviewWorkLogItemId,
   initialReviewPeriodMonths,
+  initialFirmwareMaxAgeDays,
   users,
   workLogItems,
 }: {
@@ -23,6 +24,7 @@ export function ComplianceSettingsClient({
   initialDefaultOwnerId: string | null;
   initialReviewWorkLogItemId: string | null;
   initialReviewPeriodMonths: number;
+  initialFirmwareMaxAgeDays: number;
   users: Array<{ id: string; name: string }>;
   workLogItems: Array<{ id: string; name: string }>;
 }) {
@@ -34,6 +36,7 @@ export function ComplianceSettingsClient({
   const [defaultOwnerId, setDefaultOwnerId] = useState(initialDefaultOwnerId ?? "");
   const [reviewWorkLogItemId, setReviewWorkLogItemId] = useState(initialReviewWorkLogItemId ?? "");
   const [reviewPeriodMonths, setReviewPeriodMonths] = useState(String(initialReviewPeriodMonths));
+  const [firmwareMaxAgeDays, setFirmwareMaxAgeDays] = useState(String(initialFirmwareMaxAgeDays));
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -58,6 +61,7 @@ export function ComplianceSettingsClient({
         defaultOwnerId: defaultOwnerId || null,
         reviewWorkLogItemId: reviewWorkLogItemId || null,
         reviewPeriodMonths: period,
+        firmwareMaxAgeDays: parseInt(firmwareMaxAgeDays, 10) || 90,
       }),
     });
     setSaving(false);
@@ -150,6 +154,20 @@ export function ComplianceSettingsClient({
           className="max-w-[140px]"
         />
         <p className="text-[12px] text-[#64748b]">{t("complianceReviewPeriodHelp")}</p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="firmware-max-age">{t("firmwareMaxAge")}</Label>
+        <Input
+          id="firmware-max-age"
+          type="number"
+          min={1}
+          max={3650}
+          value={firmwareMaxAgeDays}
+          onChange={(e) => setFirmwareMaxAgeDays(e.target.value)}
+          className="max-w-[140px]"
+        />
+        <p className="text-[12px] text-[#64748b]">{t("firmwareMaxAgeHelp")}</p>
       </div>
 
       <div className="flex justify-end">

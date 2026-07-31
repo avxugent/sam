@@ -135,7 +135,8 @@
     "owner": "Eigenaar",
     "supplier": "Leverancier",
     "criticality": "Kriticiteit",
-    "endOfSupport": "Einde ondersteuning"
+    "endOfSupport": "Einde ondersteuning",
+    "firmware": "Firmware"
   },
   "asset": {
     "title": "Asset",
@@ -737,6 +738,8 @@
     "complianceReviewItemHelp": "Het werklogitem dat de assetlijst van een locatie als gecontroleerd markeert (gebruikt door het compliance-dashboard).",
     "complianceReviewPeriod": "Controleperiode (maanden)",
     "complianceReviewPeriodHelp": "Locaties zonder het controle-item binnen deze periode worden gemarkeerd op het compliance-dashboard.",
+    "firmwareMaxAge": "Geldigheid firmware-bewijs (dagen)",
+    "firmwareMaxAgeHelp": "Hoe lang een firmware-meting als actueel telt. Daarna wordt een toestel op of boven zijn baseline als verouderd bewijs gerapporteerd in plaats van up-to-date — ook handmatig ingevoerde versies, zodat iemand opnieuw moet kijken.",
     "complianceReviewPeriodInvalid": "Controleperiode moet tussen 1 en 120 maanden liggen."
   },
   "report": {

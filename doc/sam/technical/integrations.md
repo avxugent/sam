@@ -137,15 +137,30 @@ the `FirmwareBaseline` for the asset's type and model.
 |---|---|
 | `compliant` | Installed version is **at or above** the approved baseline. A device ahead of the baseline is not flagged, so a rollout in progress stays quiet |
 | `outdated` | Installed version is below the baseline |
+| `stale` | At or above the baseline, but the reading is older than `compliance.firmwareMaxAgeDays` |
 | `unknown` | Both versions known but their shapes cannot be ordered (`2.3` against `2.beta`) |
 | `unclassified` | No baseline configured for this asset type or model |
-| `no_data` | No version reported — the device has no API, or has not answered since the last sync |
+| `no_data` | No version has ever been established — no API and no attestation |
 
-Only `compliant` is evidence of currency. The last three are *unmeasured*, and
-counting them as compliant would overstate coverage to anyone reading the NIS2
-figures — most importantly because blackbox-probed devices have no API and will
-sit in `no_data` permanently. Read every firmware figure against
-`sum(sam_assets_firmware{status=~"compliant|outdated"}) / sum(sam_assets_firmware)`,
+Only `compliant` is evidence of currency. The rest are *unmeasured*, and counting
+any of them as compliant would overstate coverage to anyone reading the NIS2
+figures.
+
+Note that staleness never rescues a device that was behind: a version below the
+baseline stays `outdated` however old the reading. Nothing about an expired
+reading suggests the device improved, and demoting a real violation to
+"unmeasured" would hide it.
+
+**Attestation.** Devices with no API can never report a version, so a person
+records one via `PUT /api/assets/{id}/firmware`, which sets `source=ATTESTED`.
+An attestation is evidence like any other and ages the same way — it stamps the
+check time, so it becomes `stale` once past the validity window and someone has
+to look again. A one-off entry that counted forever would be worse than none. If
+the device later gains an API, the next sync overwrites it: measured evidence
+beats recollection.
+
+Read every firmware figure against
+`sum(sam_assets_firmware{status=~"compliant|outdated|stale"}) / sum(sam_assets_firmware)`,
 which the fleet dashboard shows as *Measured coverage*.
 
 #### `sam_asset_info` — the expected-set series

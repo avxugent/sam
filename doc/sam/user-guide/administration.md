@@ -111,15 +111,29 @@ is recorded in the audit log.
 |---|---|
 | Up to date | Installed version is at or above the baseline. A device ahead of the baseline is not flagged, so a staged rollout stays quiet |
 | Outdated | Installed version is below the baseline |
+| Evidence expired | At or above the baseline, but the reading is older than the configured validity window |
 | Unclassified | No baseline configured for this asset type or model |
-| No version reported | The device has no API to ask, or has not answered since the last sync |
+| No version reported | No version has ever been established — no API and nothing recorded by hand |
 | Unorderable | Installed and approved versions could not be compared |
 
 Only *up to date* is evidence of currency. The rest are unmeasured, never
-compliant — most importantly because devices without an API can never report a
-version and would otherwise inflate the compliance figure. Versions are
-collected by the `assets:sync-firmware` script; see
+compliant. A version *below* the baseline stays outdated however old the reading
+— staleness must not hide a real violation.
+
+Versions are collected by the `assets:sync-firmware` script; see
 [Maintenance Scripts](../technical/scripts.md).
+
+### Recording a version by hand
+
+Many AV devices have no API and can never report their firmware. On the asset
+page, the **Firmware** field lets anyone but a Viewer record what they saw; it is
+tagged *attested* rather than *reported*, and stamped with who and when.
+
+An attestation ages like any other evidence. Past **Settings → Firmware evidence
+validity (days)** (default 90) it becomes *evidence expired*, so someone has to
+look again — an entry that counted forever would be worse than none. If the
+device later gains an API, the next sync replaces the attestation: measured
+evidence beats recollection.
 
 ---
 

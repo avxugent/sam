@@ -1088,7 +1088,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
          },
-         "description": "No approved version configured for this asset type or model, so currency cannot be judged.",
+         "description": "At or above the baseline, but the reading is older than the configured\nvalidity window. The device may have changed since — someone has to look\nagain. Not counted as up to date.\n",
          "fieldConfig": {
             "defaults": {
                "color": {
@@ -1120,6 +1120,75 @@
             "y": 38
          },
          "id": 19,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "(sum(sam_assets_firmware{status=\"stale\"})) or vector(0)",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Evidence expired",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "No approved version configured for this asset type or model, so currency cannot be judged.",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     },
+                     {
+                        "color": "orange",
+                        "value": 1
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 12,
+            "y": 38
+         },
+         "id": 20,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1185,10 +1254,10 @@
          "gridPos": {
             "h": 4,
             "w": 4,
-            "x": 12,
+            "x": 16,
             "y": 38
          },
-         "id": 20,
+         "id": 21,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1254,10 +1323,10 @@
          "gridPos": {
             "h": 4,
             "w": 4,
-            "x": 16,
+            "x": 20,
             "y": 38
          },
-         "id": 21,
+         "id": 22,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1327,10 +1396,10 @@
          "gridPos": {
             "h": 4,
             "w": 4,
-            "x": 20,
+            "x": 24,
             "y": 38
          },
-         "id": 22,
+         "id": 23,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1353,7 +1422,7 @@
                   "uid": "${datasource}"
                },
                "editorMode": "code",
-               "expr": "(sum(sam_assets_firmware{status=~\"compliant|outdated\"}) or vector(0))\n/ clamp_min(sum(sam_assets_firmware), 1)\n",
+               "expr": "(sum(sam_assets_firmware{status=~\"compliant|outdated|stale\"}) or vector(0))\n/ clamp_min(sum(sam_assets_firmware), 1)\n",
                "instant": true,
                "legendFormat": "",
                "range": false,
@@ -1407,7 +1476,7 @@
             "x": 0,
             "y": 42
          },
-         "id": 23,
+         "id": 24,
          "options": {
             "cellHeight": "sm",
             "footer": {
@@ -1520,7 +1589,7 @@
             "x": 0,
             "y": 54
          },
-         "id": 24,
+         "id": 25,
          "panels": [ ],
          "title": "Lifecycle",
          "type": "row"
@@ -1561,7 +1630,7 @@
             "x": 0,
             "y": 55
          },
-         "id": 25,
+         "id": 26,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1630,7 +1699,7 @@
             "x": 4,
             "y": 55
          },
-         "id": 26,
+         "id": 27,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1699,7 +1768,7 @@
             "x": 8,
             "y": 55
          },
-         "id": 27,
+         "id": 28,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1768,7 +1837,7 @@
             "x": 12,
             "y": 55
          },
-         "id": 28,
+         "id": 29,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1837,7 +1906,7 @@
             "x": 16,
             "y": 55
          },
-         "id": 29,
+         "id": 30,
          "links": [ ],
          "options": {
             "colorMode": "value",

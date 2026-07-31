@@ -202,6 +202,16 @@ sam.dashboard(
         thresholds=sam.thresholdsAnyIsBad,
       ),
       sam.stat(
+        'Evidence expired',
+        z('sum(sam_assets_firmware{status="stale"})'),
+        thresholds=sam.thresholdsAnyIsWarn,
+        description=|||
+          At or above the baseline, but the reading is older than the configured
+          validity window. The device may have changed since — someone has to look
+          again. Not counted as up to date.
+        |||,
+      ),
+      sam.stat(
         'No baseline set',
         z('sum(sam_assets_firmware{status="unclassified"})'),
         thresholds=sam.thresholdsAnyIsWarn,
@@ -226,7 +236,7 @@ sam.dashboard(
       sam.stat(
         'Measured coverage',
         |||
-          (sum(sam_assets_firmware{status=~"compliant|outdated"}) or vector(0))
+          (sum(sam_assets_firmware{status=~"compliant|outdated|stale"}) or vector(0))
           / clamp_min(sum(sam_assets_firmware), 1)
         |||,
         unit='percentunit',

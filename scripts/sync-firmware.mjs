@@ -107,7 +107,7 @@ if (missingLabels > 0) {
 
 const assets = await prisma.asset.findMany({
   where: { status: "INSTALLED", hostname: { not: null } },
-  select: { id: true, hostname: true, firmwareVersion: true },
+  select: { id: true, hostname: true, firmwareVersion: true, firmwareSource: true },
 });
 
 let changed = 0;
@@ -125,8 +125,16 @@ for (const asset of assets) {
     continue;
   }
 
-  if (asset.firmwareVersion === version) {
+  // A device that gained an API supersedes whatever was attested by hand:
+  // measured evidence beats a person's recollection.
+  if (asset.firmwareSource === "ATTESTED") {
+    console.log(`  ${asset.hostname}: attested ${asset.firmwareVersion} → reported ${version}`);
+  }
+
+  if (asset.firmwareVersion === version && asset.firmwareSource === "REPORTED") {
     unchanged++;
+    // Still refresh the timestamp: the value did not change, but it was
+    // confirmed just now, which is what keeps it from ageing into "stale".
     if (!dryRun) {
       await prisma.asset.update({
         where: { id: asset.id },
@@ -136,12 +144,19 @@ for (const asset of assets) {
     continue;
   }
 
-  console.log(`  ${asset.hostname}: ${asset.firmwareVersion ?? "(none)"} → ${version}`);
+  if (asset.firmwareSource !== "ATTESTED") {
+    console.log(`  ${asset.hostname}: ${asset.firmwareVersion ?? "(none)"} → ${version}`);
+  }
   changed++;
   if (!dryRun) {
     await prisma.asset.update({
       where: { id: asset.id },
-      data: { firmwareVersion: version, firmwareCheckedAt: started },
+      data: {
+        firmwareVersion: version,
+        firmwareCheckedAt: started,
+        firmwareSource: "REPORTED",
+        firmwareAttestedById: null,
+      },
     });
   }
 }

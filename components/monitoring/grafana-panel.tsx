@@ -1,98 +1,58 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 
 /**
- * One embedded Grafana panel, fetched through SAM's proxy as a rendered image.
+ * Wrapper for a page's monitoring summary.
  *
- * An <img> rather than an <iframe>: Grafana's /d-solo/ is the full Grafana SPA
- * and its absolute asset paths would resolve against SAM inside a frame. A
- * server-rendered PNG needs no assets and no CSP exemption.
- *
- * The tradeoff is that panels are static — no tooltips, no zoom — so every one
- * links through to the real dashboard.
+ * There is deliberately no embedded chart here. Rendering Grafana panels — as
+ * iframes, then as server-rendered PNGs — was tried and removed: the frame was
+ * blocked by SAM's own CSP and could never have worked anyway (Grafana's
+ * /d-solo/ is a full SPA whose absolute asset paths resolve against SAM), and
+ * the image version was slow enough to question the point and looked foreign
+ * inside SAM's UI. The numbers come from Prometheus directly; anything richer
+ * is one click away in Grafana.
  */
-export function GrafanaPanel({
-  src,
-  title,
-  height = 160,
-  openUrl,
-}: {
-  src: string;
-  title: string;
-  height?: number;
-  openUrl?: string | null;
-}) {
-  const [failed, setFailed] = useState(false);
-
-  if (failed) {
-    return (
-      <div
-        className="rounded-[8px] border border-dashed border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center text-[12px] text-[#64748b] px-3 text-center"
-        style={{ height }}
-      >
-        <span>
-          {title} unavailable
-          {openUrl && (
-            <>
-              {" · "}
-              <a
-                href={openUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#1e64c8] hover:underline"
-              >
-                open in Grafana
-              </a>
-            </>
-          )}
-        </span>
-      </div>
-    );
-  }
-
-  const img = (
-    // eslint-disable-next-line @next/next/no-img-element -- proxied binary from
-    // Grafana, not a static asset next/image can optimise.
-    <img
-      src={src}
-      alt={title}
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="w-full rounded-[8px] border border-[#e2e8f0] bg-white object-contain"
-      style={{ height }}
-    />
-  );
-
-  // Static image, so clicking through to the live dashboard is the only way to
-  // hover, zoom or change the time range.
-  return openUrl ? (
-    <a href={openUrl} target="_blank" rel="noopener noreferrer" title={`${title} — open in Grafana`}>
-      {img}
-    </a>
-  ) : (
-    img
-  );
-}
-
-/** Section wrapper with a heading and a link to the full dashboard. */
 export function MonitoringSection({
   title,
   openUrl,
   openLabel = "Open in Grafana",
+  defaultOpen = true,
+  collapsible = true,
   children,
 }: {
   title: string;
   openUrl?: string | null;
   openLabel?: string;
+  defaultOpen?: boolean;
+  collapsible?: boolean;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const showBody = collapsible ? open : true;
+
   return (
     <section className="space-y-3">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-semibold text-[#0f172a]">{title}</h2>
-        {openUrl && (
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="inline-flex items-center gap-1 text-[15px] font-semibold text-[#0f172a] hover:text-[#1e64c8]"
+          >
+            {open ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+            {title}
+          </button>
+        ) : (
+          <h2 className="text-[15px] font-semibold text-[#0f172a]">{title}</h2>
+        )}
+        {openUrl && showBody && (
           <a
             href={openUrl}
             target="_blank"
@@ -104,7 +64,7 @@ export function MonitoringSection({
           </a>
         )}
       </div>
-      {children}
+      {showBody && children}
     </section>
   );
 }

@@ -40,10 +40,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FirmwareField } from "@/components/assets/firmware-field";
-import { GrafanaPanel, MonitoringSection } from "@/components/monitoring/grafana-panel";
+import { MonitoringSection } from "@/components/monitoring/grafana-panel";
 import { DeviceMonitoringStats } from "@/components/monitoring/monitoring-stats";
 import type { MonitoringResult } from "@/lib/prometheus-query";
-import { PANELS, panelSrc } from "@/lib/grafana";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 import { getAssetTypeIcon } from "@/lib/asset-type-icon";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
@@ -143,9 +142,9 @@ export function AssetDetailClient({
   ownerName,
   decommissionedByName,
   firmwareAttestedByName,
-  grafanaEmbedEnabled,
   deviceDashboardUrl,
   deviceMonitoring,
+  monitoringPreference = "expanded",
 }: {
   asset: Asset;
   breadcrumbs: Breadcrumb[];
@@ -155,8 +154,8 @@ export function AssetDetailClient({
   ownerName?: string | null;
   decommissionedByName?: string | null;
   firmwareAttestedByName?: string | null;
-  grafanaEmbedEnabled?: boolean;
   deviceDashboardUrl?: string | null;
+  monitoringPreference?: string;
   deviceMonitoring?: MonitoringResult<{
     state: number | null;
     probeDurationSeconds: number | null;
@@ -483,24 +482,14 @@ export function AssetDetailClient({
         currentLocationName={asset.location.name}
       />
 
-      {grafanaEmbedEnabled && asset.hostname && (
+      {monitoringPreference !== "hidden" && asset.hostname && (
         <div className="mb-6">
-          <MonitoringSection title={t("monitoring")} openUrl={deviceDashboardUrl}>
-            {/* State and probe duration are single numbers — read from
-                Prometheus directly rather than rendered as images. */}
-            <DeviceMonitoringStats
-              result={deviceMonitoring ?? { status: "not-configured" }}
-            />
-            <GrafanaPanel
-              src={panelSrc("device", PANELS.device.reachability, { hostname: asset.hostname }, {
-                width: 1000,
-                height: 200,
-                scale: 1,
-              })}
-              title="Reachability"
-              height={200}
-              openUrl={deviceDashboardUrl}
-            />
+          <MonitoringSection
+            title={t("monitoring")}
+            openUrl={deviceDashboardUrl}
+            defaultOpen={monitoringPreference !== "collapsed"}
+          >
+            <DeviceMonitoringStats result={deviceMonitoring ?? { status: "not-configured" }} />
           </MonitoringSection>
         </div>
       )}

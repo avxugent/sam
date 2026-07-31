@@ -748,7 +748,15 @@
     "complianceReviewPeriodHelp": "Locations without the review item within this period are flagged on the compliance dashboard.",
     "firmwareMaxAge": "Firmware evidence validity (days)",
     "firmwareMaxAgeHelp": "How long a firmware reading counts as current. Past this, a device at or above its baseline is reported as stale rather than up to date — including versions recorded by hand, so someone has to look again.",
-    "complianceReviewPeriodInvalid": "Review period must be between 1 and 120 months."
+    "complianceReviewPeriodInvalid": "Review period must be between 1 and 120 months.",
+    "monitoringPanelTitle": "Monitoring summary",
+    "monitoringPanelSubtitle": "The device status shown on location and asset pages.",
+    "monitoringPanel_expanded": "Show expanded",
+    "monitoringPanel_expandedDesc": "Always visible when you open a room or device.",
+    "monitoringPanel_collapsed": "Show collapsed",
+    "monitoringPanel_collapsedDesc": "Present but folded away; click the heading to open it.",
+    "monitoringPanel_hidden": "Hide",
+    "monitoringPanel_hiddenDesc": "Never shown. SAM also skips querying Prometheus, so the page loads marginally faster."
   },
   "report": {
     "title": "Reports",

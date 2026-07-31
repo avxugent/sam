@@ -161,52 +161,23 @@ the five panel types currently in use.
 Emitted dashboards declare `schemaVersion: 39`. Grafana migrates older schemas
 forward on load, so this stays valid across upgrades.
 
-## Embedding panels in SAM
+## Monitoring summaries in SAM
 
-**Counts are queried, not rendered.** The device and availability numbers on
-SAM's location and asset pages come from the `room:*` recording rules as JSON —
-one request, milliseconds — and SAM renders them in its own styling. Only the
-time-series charts are images. Rendering five numbers as five images made pages
-take seconds, because every render is a full headless-browser page load.
+SAM shows device counts on its location and asset pages by querying the `room:*`
+recording rules directly (`PROMETHEUS_URL`), rendering them in its own styling.
 
-SAM fetches the remaining charts through its own proxy at
-`/api/grafana-embed/[dashboard]`, from Grafana's **image renderer**, as a PNG.
-Results are cached in-process for `GRAFANA_RENDER_CACHE_MS` (default 60s, close
-to the recording-rule interval), keyed on the full upstream URL so a different
-room, device or time range is a different entry. SAM does
-this server-side with a service-account token, so Grafana needs no
-browser-reachable URL and no anonymous access, the token never reaches the
-client, and access is gated by SAM's existing session.
+**Nothing is embedded from Grafana.** Panel embedding was built twice and removed
+both times: as iframes it could not work at all — `/d-solo/` is the full Grafana
+SPA and its absolute asset paths resolve against SAM — and as server-rendered
+PNGs it was slow enough to question the point and looked foreign in SAM's UI. If
+richer visualisation is wanted later, that is a fresh decision rather than a
+revival of this one.
 
-Images rather than iframes: `/d-solo/` serves the whole Grafana SPA, and its
-absolute asset and API paths would resolve against SAM inside a frame and 404.
-Rendering server-side avoids that and needs no CSP exemption, since
-`img-src 'self'` already permits it. Embedded panels are therefore static — each
-links through to the live dashboard for tooltips and zoom.
+Links to the live dashboards come from the admin URL templates, so the drill-down
+path fleet → room → device still works; it just opens Grafana rather than
+inlining it.
 
-Needs the grafana-image-renderer plugin (a sidecar container in the dev stack)
-with `GF_RENDERING_SERVER_URL` set on Grafana.
-
-```dotenv
-GRAFANA_URL=http://grafana.internal:3000   # as reachable from the SAM server
-GRAFANA_TOKEN=<service account token>      # Viewer role is enough
-```
-
-Grafana must also allow framing: `GF_SECURITY_ALLOW_EMBEDDING=true`.
-
-**Panel ids are the fragile part.** They are assigned by position at build time
-and SAM embeds them by id, so reordering panels re-points every embed — and an
-embed showing the wrong panel renders a plausible chart of the wrong thing,
-which is worse than an error. `lib/grafana.ts` records the id→title mapping and
-`__tests__/lib/grafana-panels.test.ts` asserts it against the built JSON, so a
-reorder fails the build instead of going unnoticed.
-
-The proxy is an authenticated hole through to another service, so it stays
-narrow: only the dashboards on its allowlist, UIDs resolved server-side rather
-than taken from the request, only rendering parameters and `var-*` forwarded,
-and `frame-ancestors 'self'` on the response.
-
-## Conventions that matter
+## Conventions that matter## Conventions that matter
 
 **Join on `sam_hostname`, never `instance` or `job`.** Each asset type is scraped
 through its own exporter, and every blackbox-probed device shares one exporter

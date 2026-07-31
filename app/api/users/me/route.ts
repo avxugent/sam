@@ -11,6 +11,7 @@ const schema = z.object({
   newPassword: z.string().min(8).max(128).optional(),
   confirmPassword: z.string().optional(),
   locationDefaultTab: z.enum(["assets", "sublocations"]).optional(),
+  monitoringPanel: z.enum(["expanded", "collapsed", "hidden"]).optional(),
   theme: z.enum(["light", "dark", "system"]).optional(),
 }).superRefine(({ newPassword, confirmPassword }, ctx) => {
   if (newPassword && newPassword !== confirmPassword) {
@@ -24,7 +25,7 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, name: true, email: true, role: true, provider: true, locationDefaultTab: true, theme: true },
+    select: { id: true, name: true, email: true, role: true, provider: true, locationDefaultTab: true, theme: true, monitoringPanel: true },
   });
   if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
 
@@ -41,7 +42,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { name, currentPassword, newPassword, locationDefaultTab, theme } = parsed.data;
+  const { name, currentPassword, newPassword, locationDefaultTab, theme, monitoringPanel } = parsed.data;
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -55,6 +56,9 @@ export async function PATCH(req: NextRequest) {
     updateData.name = name;
   }
 
+  if (monitoringPanel !== undefined) {
+    updateData.monitoringPanel = monitoringPanel;
+  }
   if (locationDefaultTab !== undefined) {
     updateData.locationDefaultTab = locationDefaultTab;
   }
@@ -92,7 +96,8 @@ export async function PATCH(req: NextRequest) {
   });
 
   // Audit identity/security changes only. Pure preference toggles
-  // (theme, locationDefaultTab) are intentionally not logged as audit noise.
+  // (theme, locationDefaultTab, monitoringPanel) are intentionally not logged
+  // as audit noise.
   const auditEvents: string[] = [];
   if (updateData.passwordHash !== undefined) auditEvents.push("Password changed");
   if (updateData.name !== undefined) auditEvents.push("Name changed");

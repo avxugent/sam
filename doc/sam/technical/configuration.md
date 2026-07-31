@@ -79,47 +79,28 @@ See [Authentication](authentication.md) for Azure registration steps.
 
 ---
 
-## Grafana panel embedding
+## Monitoring summaries
 
-Optional. When both variables are set, the location and asset pages embed
-Grafana panels; otherwise they fall back to the URL-template links.
+Optional. When `PROMETHEUS_URL` is set, the location and asset pages show a
+device-status summary read from the `room:*` recording rules.
 
 | Variable | Default | Description |
 |---|---|---|
-| `GRAFANA_URL` | — | Grafana base URL as reachable **from the SAM server**, e.g. `http://grafana.internal:3000` |
-| `GRAFANA_TOKEN` | — | Service-account token (Viewer role is enough) |
-| `GRAFANA_RENDER_CACHE_MS` | `60000` | How long a rendered image is cached in-process. `0` disables |
-| `PROMETHEUS_URL` | — | Prometheus, read directly for the monitoring summaries |
-| `PROMETHEUS_TOKEN` | — | Optional bearer token for Prometheus |
+| `PROMETHEUS_URL` | — | Prometheus as reachable **from the SAM server**, e.g. `http://prometheus.internal:9090` |
+| `PROMETHEUS_TOKEN` | — | Optional bearer token |
 
-**Counts are queried, not rendered.** The device and availability numbers on the
-location and asset pages come from the `room:*` recording rules as JSON — one
-request, milliseconds. Only the time-series charts are rendered as images,
-because each render is a full headless-browser page load. Rendering five numbers
-as five images made the pages take seconds; this is why `PROMETHEUS_URL` matters
-to the app and not only to the sync script.
+The counts come back as JSON in milliseconds and SAM renders them in its own
+styling. Nothing is embedded from Grafana: rendering panels was tried as iframes
+and then as server-rendered images, and removed — the first could not work
+(Grafana's `/d-solo/` is a full SPA whose absolute asset paths resolve against
+SAM), and the second was slow and looked foreign inside SAM. Links to the live
+dashboards come from the URL-template settings instead.
 
-SAM fetches each panel server-side as a **rendered PNG** and forwards the token,
-so Grafana needs no browser-reachable URL and no anonymous access, and the token
-never reaches the client. The proxy at `/api/grafana-embed/[dashboard]` is
-deliberately narrow: it serves only the dashboards on its allowlist, resolves
-their UIDs itself rather than trusting the request, forwards only rendering
-parameters and `var-*`, and clamps the requested image size.
+Each user chooses whether the summary appears expanded, collapsed or not at all
+under **Settings → Profile**. Hiding it also skips the Prometheus query.
 
-**Requires the [grafana-image-renderer](https://grafana.com/grafana/plugins/grafana-image-renderer/)
-plugin**, usually run as a sidecar container, with Grafana pointed at it:
-
-```
-GF_RENDERING_SERVER_URL=http://grafana-renderer:8081/render
-GF_RENDERING_CALLBACK_URL=http://grafana:3000/
-```
-
-Without it, `/render` errors and SAM shows "unavailable" with a link out.
-
-Images rather than iframes because `/d-solo/` serves the whole Grafana SPA,
-whose absolute asset and API paths resolve against SAM inside a frame and 404.
-The tradeoff is that embedded panels are static — no tooltips, no zoom — so each
-one links through to the live dashboard.
+Queries fail soft: unreachable, timed out or malformed responses show a message
+naming what to check, and never fail the page.
 
 ---
 
@@ -210,7 +191,7 @@ Read-only. When all three are set, work-log entries with a JIRA key (e.g. `AVT-1
 
 ## Security Notes
 
-- Never log or return `PROMETHEUS_SD_TOKEN`, `GRAFANA_TOKEN`, `VAULT_TOKEN`, `VAULT_SECRET_ID`, or AppRole-derived tokens
+- Never log or return `PROMETHEUS_SD_TOKEN`, `PROMETHEUS_TOKEN`, `VAULT_TOKEN`, `VAULT_SECRET_ID`, or AppRole-derived tokens
 - Never commit `.env` to version control — it is gitignored
 - All secrets must come from environment variables — never hardcode in source
 - `NEXTAUTH_SECRET` must be unique per deployment — generate with `openssl rand -base64 32`

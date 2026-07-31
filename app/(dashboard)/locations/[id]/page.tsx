@@ -4,7 +4,6 @@ import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { isJiraConfigured } from "@/lib/jira";
-import { isGrafanaConfigured } from "@/lib/grafana";
 import { roomMonitoring } from "@/lib/prometheus-query";
 
 async function getUrlTemplates(): Promise<{
@@ -35,10 +34,11 @@ export default async function LocationPage({
   const userPref = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { locationDefaultTab: true },
+        select: { locationDefaultTab: true, monitoringPanel: true },
       })
     : null;
   const locationDefaultTab = userPref?.locationDefaultTab ?? "assets";
+  const monitoringPanel = userPref?.monitoringPanel ?? "expanded";
 
   const location = await prisma.location.findUnique({
     where: { id },
@@ -123,9 +123,13 @@ export default async function LocationPage({
       hostnameUrlTemplate={hostnameUrlTemplate}
       macAddressUrlTemplate={macAddressUrlTemplate}
       locationUrlTemplate={locationUrlTemplate}
-      grafanaEmbedEnabled={isGrafanaConfigured()}
+      monitoringPreference={monitoringPanel}
       roomMonitoring={
-        location.fiNumber ? await roomMonitoring(location.fiNumber) : { status: "no-data" }
+        // "hidden" skips the query entirely — the preference should cost
+        // nothing, not just hide the result.
+        monitoringPanel !== "hidden" && location.fiNumber
+          ? await roomMonitoring(location.fiNumber)
+          : { status: "no-data" }
       }
       workLogs={workLogs.map((w) => ({
         id: w.id,

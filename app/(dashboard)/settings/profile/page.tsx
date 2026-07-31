@@ -9,7 +9,14 @@ export default async function ProfilePage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, email: true, provider: true, locationDefaultTab: true, theme: true },
+    select: {
+      name: true,
+      email: true,
+      provider: true,
+      locationDefaultTab: true,
+      theme: true,
+      monitoringPanel: true,
+    },
   });
   if (!user) redirect("/login");
 
@@ -26,6 +33,7 @@ export default async function ProfilePage() {
         email={user.email}
         provider={user.provider}
         locationDefaultTab={user.locationDefaultTab}
+        monitoringPanel={user.monitoringPanel}
         serverTheme={user.theme}
       />
     </div>

@@ -1,20 +1,18 @@
 /**
  * Reading monitoring numbers out of Prometheus for SAM's own pages.
  *
- * The room and device summaries used to be Grafana-rendered PNGs, one headless
- * browser page load each. Five per page, uncached, is seconds of latency for
- * what are ultimately four integers. Querying the recording rules directly
- * returns the same numbers as JSON in milliseconds, and SAM renders them in its
- * own styling.
+ * These summaries were once Grafana-rendered PNGs, one headless browser page
+ * load each — seconds of latency for what are ultimately four integers, in a
+ * visual style foreign to the rest of SAM. Querying the recording rules
+ * directly returns the same numbers as JSON in milliseconds.
  *
- * Grafana still owns the charts: a time series is worth an image (or a click
- * through to the live dashboard), a count is not.
+ * Charts are not embedded at all: rendering them was tried as iframes and then
+ * as PNGs, and removed. Anything richer than these counts is one click away in
+ * Grafana, reached through the admin-configured URL templates.
  *
  * Everything here fails soft — a page must still render when Prometheus is
  * unreachable, showing "unavailable" rather than an error.
  */
-
-import { grafanaBaseUrl } from "@/lib/grafana";
 
 export function prometheusUrl(): string {
   return (process.env.PROMETHEUS_URL ?? "").replace(/\/+$/, "");
@@ -186,16 +184,4 @@ export async function deviceMonitoring(
       probeDurationSeconds: duration.ok ? duration.value : null,
     },
   };
-}
-
-/** Link to the live dashboard, for the "open in Grafana" affordances. */
-export function grafanaDashboardUrl(
-  path: "sam-room/room" | "sam-device/device",
-  vars: Record<string, string>
-): string | null {
-  const base = process.env.GRAFANA_PUBLIC_URL || grafanaBaseUrl();
-  if (!base) return null;
-  const params = new URLSearchParams();
-  for (const [k, v] of Object.entries(vars)) params.set(`var-${k}`, v);
-  return `${base.replace(/\/+$/, "")}/d/${path}?${params.toString()}`;
 }

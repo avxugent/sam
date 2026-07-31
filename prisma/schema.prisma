@@ -61,6 +61,10 @@ model User {
   locationDefaultTab String  @default("assets") // "assets" | "sublocations"
   // UI preference: colour scheme
   theme              String  @default("light")  // "light" | "dark" | "system"
+  // UI preference: the monitoring summary on location and asset pages.
+  // "expanded" | "collapsed" | "hidden" — hidden also skips the Prometheus
+  // query, so someone who does not want it pays nothing for it.
+  monitoringPanel    String  @default("expanded")
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

@@ -386,6 +386,13 @@ browser-reachable URL, the token never reaches the client, and SAM's session
 gates access. The proxy is narrow by construction — allowlisted dashboards, UIDs
 resolved server-side, only rendering parameters and `var-*` forwarded.
 
+*Third correction — embedding removed.* Rendered panels went, leaving the
+queried counts. Two attempts at embedding both failed for different reasons, and
+the surviving image still looked foreign inside SAM's interface. The dependency
+on Grafana rendering (proxy route, image-renderer container, service-account
+token) is gone; users reach charts through the existing links. A user profile
+preference now controls whether the summary shows expanded, collapsed or hidden.
+
 *Second correction, after measuring:* rendering was too slow to be useful — five
 panels per page, each a headless-browser page load, uncached. Four of the five
 were single numbers, which never needed a picture. SAM now queries the `room:*`

@@ -748,7 +748,15 @@
     "complianceReviewPeriodHelp": "Locaties zonder het controle-item binnen deze periode worden gemarkeerd op het compliance-dashboard.",
     "firmwareMaxAge": "Geldigheid firmware-bewijs (dagen)",
     "firmwareMaxAgeHelp": "Hoe lang een firmware-meting als actueel telt. Daarna wordt een toestel op of boven zijn baseline als verouderd bewijs gerapporteerd in plaats van up-to-date — ook handmatig ingevoerde versies, zodat iemand opnieuw moet kijken.",
-    "complianceReviewPeriodInvalid": "Controleperiode moet tussen 1 en 120 maanden liggen."
+    "complianceReviewPeriodInvalid": "Controleperiode moet tussen 1 en 120 maanden liggen.",
+    "monitoringPanelTitle": "Monitoringoverzicht",
+    "monitoringPanelSubtitle": "De toestelstatus op locatie- en assetpagina’s.",
+    "monitoringPanel_expanded": "Uitgeklapt tonen",
+    "monitoringPanel_expandedDesc": "Altijd zichtbaar bij het openen van een ruimte of toestel.",
+    "monitoringPanel_collapsed": "Ingeklapt tonen",
+    "monitoringPanel_collapsedDesc": "Aanwezig maar dichtgeklapt; klik op de titel om te openen.",
+    "monitoringPanel_hidden": "Verbergen",
+    "monitoringPanel_hiddenDesc": "Nooit tonen. SAM bevraagt Prometheus dan ook niet, waardoor de pagina iets sneller laadt."
   },
   "report": {
     "title": "Rapporten",

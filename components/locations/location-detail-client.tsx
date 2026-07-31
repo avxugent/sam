@@ -45,9 +45,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { renderLocationUrl } from "@/lib/hostname-template";
-import { GrafanaPanel, MonitoringSection } from "@/components/monitoring/grafana-panel";
+import { MonitoringSection } from "@/components/monitoring/grafana-panel";
 import { RoomMonitoringStats } from "@/components/monitoring/monitoring-stats";
-import { PANELS, panelSrc } from "@/lib/grafana";
 import type { MonitoringResult, RoomMonitoring } from "@/lib/prometheus-query";
 
 type Breadcrumb = { id: string; name: string };
@@ -117,8 +116,8 @@ export function LocationDetailClient({
   defaultTab = "assets",
   hostnameUrlTemplate,
   locationUrlTemplate,
-  grafanaEmbedEnabled,
   roomMonitoring,
+  monitoringPreference = "expanded",
   macAddressUrlTemplate,
   workLogs = [],
   users = [],
@@ -136,8 +135,8 @@ export function LocationDetailClient({
   defaultTab?: string;
   hostnameUrlTemplate?: string | null;
   locationUrlTemplate?: string | null;
-  grafanaEmbedEnabled?: boolean;
   roomMonitoring?: MonitoringResult<RoomMonitoring>;
+  monitoringPreference?: string;
   macAddressUrlTemplate?: string | null;
   workLogs?: WorkLogEntry[];
   users?: WorkLogUserOption[];
@@ -233,8 +232,8 @@ export function LocationDetailClient({
 
   // Panels are keyed on the FI number, so a location without one has nothing to
   // show — the room dashboard would resolve to an empty variable.
-  const showPanels = grafanaEmbedEnabled && !!location.fiNumber;
-  const roomVars = { fi_number: location.fiNumber ?? "" };
+  // Only rooms have monitoring: the summary is keyed on the FI number.
+  const showMonitoring = monitoringPreference !== "hidden" && !!location.fiNumber;
 
   return (
     <div className="space-y-6">
@@ -451,21 +450,13 @@ export function LocationDetailClient({
       )}
 
       {/* Tabs */}
-      {showPanels && (
-        <MonitoringSection title={t("monitoring")} openUrl={monitoringUrl}>
-          {/* Numbers come straight from the recording rules — instant, and no
-              headless browser involved. Only the time series is worth a render. */}
+      {showMonitoring && (
+        <MonitoringSection
+          title={t("monitoring")}
+          openUrl={monitoringUrl}
+          defaultOpen={monitoringPreference !== "collapsed"}
+        >
           <RoomMonitoringStats result={roomMonitoring ?? { status: "not-configured" }} />
-          <GrafanaPanel
-            src={panelSrc("room", PANELS.room.availabilityOverTime, roomVars, {
-              width: 1000,
-              height: 220,
-              scale: 1,
-            })}
-            title="Room availability"
-            height={220}
-            openUrl={monitoringUrl}
-          />
         </MonitoringSection>
       )}
 

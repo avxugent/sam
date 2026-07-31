@@ -1,0 +1,19 @@
+# Development Grafana dashboard provider.
+#
+# Mirrors ops/ansible/roles/grafana_sam/templates/dashboards.yaml.j2. The path
+# below is the built output of ops/jsonnet/build.sh, mounted read-only, so the
+# dev stack renders exactly the JSON Ansible ships.
+
+apiVersion: 1
+
+providers:
+  - name: sam
+    orgId: 1
+    folder: SAM
+    type: file
+    allowUiUpdates: false
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards/sam
+      foldersFromFilesStructure: false

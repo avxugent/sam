@@ -13,6 +13,8 @@
 #   vault      — http://localhost:8200  (Vault UI, token: root)
 #   vault-init — (one-shot init; run: docker compose logs vault-init for AppRole creds)
 #   prometheus — http://localhost:9090  (Prometheus UI)
+#   grafana    — http://localhost:3001  (admin/admin; SAM dashboards preloaded)
+#   mock-exporter — http://localhost:9101/probe?target=<hostname>  (fake device metrics)
 
 services:
 
@@ -127,6 +129,21 @@ services:
         condition: service_healthy
     restart: "no"
 
+  # ── Mock device exporter ──────────────────────────────────────────────────────
+  # Stands in for the real exporters (Pearl, blackbox, …) so dev has device
+  # metrics to go with SAM's inventory. Prometheus reaches it through SAM's
+  # service discovery, so the sam_* labels are the real ones — see
+  # mock-exporter/mock-exporter.mjs for the scrape template to configure.
+  mock-exporter:
+    image: node:24-alpine
+    working_dir: /app
+    command: node mock-exporter.mjs
+    volumes:
+      - ./mock-exporter:/app:ro
+    ports:
+      - "9101:9101"
+    restart: unless-stopped
+
   # ── Prometheus ────────────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:v3
@@ -138,9 +155,69 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # The same rule files Ansible deploys to production — edit them in ops/ and
+      # `curl -XPOST localhost:9090/-/reload` to pick the change up.
+      - ../ops/ansible/roles/prometheus_sam_rules/files:/etc/prometheus/rules:ro
+      # The whole role, so promtool can run the unit tests in here (the image
+      # ships promtool, and the test file resolves ../files/ relative to itself):
+      #   docker compose exec prometheus \
+      #     promtool test rules /opt/sam-rules/tests/sam-rules_test.yml
+      - ../ops/ansible/roles/prometheus_sam_rules:/opt/sam-rules:ro
       - dev_prometheus_data:/prometheus
     depends_on:
       - app
+    restart: unless-stopped
+
+  # ── Grafana ───────────────────────────────────────────────────────────────────
+  # Loads the *built* dashboard JSON from the Ansible role, so what you see here
+  # is what production gets. Rebuild after editing jsonnet:
+  #
+  #   ops/jsonnet/build.sh
+  #
+  # Grafana re-reads the files within 30s; no restart needed.
+  #
+  # Provisioning YAML is duplicated from the role's Jinja templates because dev
+  # has no Ansible to render them. Keep the two in step.
+  #
+  # Runs standalone against an existing Prometheus / SAM — no need for the rest
+  # of this stack:
+  #
+  #   SAM_PROMETHEUS_URL=http://host.docker.internal:9090 \
+  #   SAM_BASE_URL=http://host.docker.internal:3000 \
+  #   SAM_API_TOKEN=<PROMETHEUS_SD_TOKEN> \
+  #     docker compose up -d --no-deps grafana
+  #
+  # On Linux, host.docker.internal needs `--add-host=host.docker.internal:host-gateway`
+  # (see the extra_hosts entry below) or just use the host's LAN address.
+  grafana:
+    image: grafana/grafana:12.0.0
+    ports:
+      - "3001:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+      # Consumed by grafana/provisioning/datasources/sam.yaml. Override any of
+      # these to point Grafana at an existing Prometheus or SAM instance.
+      SAM_PROMETHEUS_URL: "${SAM_PROMETHEUS_URL:-http://prometheus:9090}"
+      SAM_BASE_URL: "${SAM_BASE_URL:-http://app:3000}"
+      SAM_API_TOKEN: "${SAM_API_TOKEN:-dev-prometheus-token}"
+      # Off by default: nothing built so far uses it. Needed only by panels that
+      # read SAM's own API, which arrive with the device dashboard. Opt in with
+      # GF_INSTALL_PLUGINS=yesoreyeram-infinity-datasource.
+      GF_INSTALL_PLUGINS: "${GF_INSTALL_PLUGINS-}"
+      # Dev only: lets you load /d-solo panel embeds without a login, which is
+      # how SAM will embed them. Never do this in production.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../ops/ansible/roles/grafana_sam/files/dashboards:/var/lib/grafana/dashboards/sam:ro
+      - dev_grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
     restart: unless-stopped
 
 # ── Volumes ───────────────────────────────────────────────────────────────────
@@ -150,3 +227,4 @@ volumes:
   dev_next:
   dev_uploads:
   dev_prometheus_data:
+  dev_grafana_data:

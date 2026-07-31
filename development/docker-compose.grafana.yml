@@ -1,0 +1,58 @@
+# Grafana on its own, against an existing Prometheus and SAM.
+#
+# Use this when SAM, the database and Prometheus already run elsewhere. There is
+# no `depends_on` here, so Compose cannot pull in db/vault/app the way
+# `docker compose up grafana` does in the main file.
+#
+#   cd development
+#   SAM_PROMETHEUS_URL=http://host.docker.internal:9090 \
+#   SAM_API_TOKEN="$PROMETHEUS_SD_TOKEN" \
+#     docker compose -f docker-compose.grafana.yml up -d
+#
+#   # stop it again
+#   docker compose -f docker-compose.grafana.yml down
+#
+# Grafana: http://localhost:3001 (admin/admin) → Dashboards → SAM
+#
+# Dashboards read the room:* recording rules, so the Prometheus you point at must
+# have ops/ansible/roles/prometheus_sam_rules/files/*.yml loaded and a
+# sam_inventory scrape job publishing sam_asset_info. Check with
+# `count(sam_asset_info)` and `count(room:assets_expected:count)`.
+
+name: sam-grafana
+
+services:
+  grafana:
+    image: grafana/grafana:12.0.0
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    # Lets host.docker.internal resolve on Linux as well as macOS/Windows.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+      # Consumed by grafana/provisioning/datasources/sam.yaml.
+      SAM_PROMETHEUS_URL: "${SAM_PROMETHEUS_URL:-http://host.docker.internal:9090}"
+      SAM_BASE_URL: "${SAM_BASE_URL:-http://host.docker.internal:3000}"
+      SAM_API_TOKEN: "${SAM_API_TOKEN:-dev-prometheus-token}"
+      # Off by default: nothing built so far uses it. The Infinity datasource is
+      # only needed for panels that read SAM's own API, which arrive with the
+      # device dashboard. Installing it needs outbound internet and disk on first
+      # start, so it is opt-in:
+      #   GF_INSTALL_PLUGINS=yesoreyeram-infinity-datasource docker compose ...
+      GF_INSTALL_PLUGINS: "${GF_INSTALL_PLUGINS-}"
+      # Dev only: lets /d-solo panel embeds load without a login, which is how
+      # SAM will embed them. Never do this in production.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      # The built output of ops/jsonnet/build.sh — the same JSON Ansible deploys.
+      - ../ops/ansible/roles/grafana_sam/files/dashboards:/var/lib/grafana/dashboards/sam:ro
+      - sam_grafana_data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  sam_grafana_data:

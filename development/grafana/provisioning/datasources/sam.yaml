@@ -1,0 +1,44 @@
+# Development Grafana datasources.
+#
+# Mirrors ops/ansible/roles/grafana_sam/templates/datasources.yaml.j2 with the
+# URLs driven by environment variables instead of Jinja, so this same file works
+# whether Grafana runs alongside the dev stack or on its own against an existing
+# Prometheus. Defaults are set in development/docker-compose.yml.
+#
+# Grafana interpolates $VAR in provisioning files. Use $VAR, not ${VAR}: the
+# braced form is expanded twice and mangles any value containing a `$`.
+#   https://grafana.com/docs/grafana/latest/administration/provisioning/
+
+apiVersion: 1
+
+datasources:
+  # Dashboards reference a datasource *variable* of type prometheus rather than a
+  # hardcoded UID, and pick this one up because it is the default.
+  - name: SAM Prometheus
+    uid: sam-prometheus
+    orgId: 1
+    type: prometheus
+    access: proxy
+    url: $SAM_PROMETHEUS_URL
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: 30s
+      manageAlerts: false
+
+  # Used by metadata lookup panels that read SAM's own API rather than metrics.
+  - name: SAM Inventory
+    uid: sam-inventory
+    orgId: 1
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    url: $SAM_BASE_URL
+    editable: false
+    jsonData:
+      auth_method: none
+      httpHeaderName1: Authorization
+      allowedHosts:
+        - $SAM_BASE_URL
+    secureJsonData:
+      httpHeaderValue1: "Bearer $SAM_API_TOKEN"

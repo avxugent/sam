@@ -13,14 +13,29 @@
 #   sam_inventory — Scrapes the SAM metrics endpoint which exposes asset and
 #                   location counts in Prometheus text format. This job should
 #                   be UP as soon as the app is running.
+#
+# The rule files are mounted straight from the Ansible role, so the dev stack
+# evaluates exactly what production deploys.
 
 global:
   scrape_interval: 30s
   evaluation_interval: 30s
 
+# Mounted read-only from ops/ansible/roles/prometheus_sam_rules/files/
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
 scrape_configs:
 
   # ── HTTP Service Discovery ──────────────────────────────────────────────────
+  # No relabel_configs needed: Prometheus attaches every non-__ label from the SD
+  # target group to the scraped series automatically.
+  #
+  # In particular, do NOT add `regex: "sam_(.*)" / action: labelmap`. labelmap
+  # *copies* labels rather than renaming them, so it leaves every series carrying
+  # both sam_model and model, sam_hostname and hostname, and so on — doubled
+  # cardinality, and the unprefixed copies can collide with labels an exporter
+  # sets natively. All queries and joins use the sam_* names.
   - job_name: "sam_devices"
     http_sd_configs:
       - url: "http://app:3000/api/prometheus/sd"
@@ -28,12 +43,11 @@ scrape_configs:
         authorization:
           type: Bearer
           credentials: "dev-prometheus-token"
-    # Map sam_* labels from the SD response onto the scraped time-series
-    relabel_configs:
-      - regex: "sam_(.*)"
-        action: labelmap
 
   # ── Inventory metrics ───────────────────────────────────────────────────────
+  # Publishes sam_asset_info — the *expected* set of assets, which every room
+  # rollup joins against. If this job is down the dashboards go blank rather than
+  # showing false outages, and SamInventoryMetricsAbsent fires.
   - job_name: "sam_inventory"
     metrics_path: /api/prometheus/metrics
     authorization:

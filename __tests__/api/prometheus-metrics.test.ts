@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
-    asset: { count: vi.fn(), groupBy: vi.fn() },
+    asset: { count: vi.fn(), groupBy: vi.fn(), findMany: vi.fn() },
     location: { count: vi.fn(), findMany: vi.fn() },
     assetType: { findMany: vi.fn() },
     manufacturer: { findMany: vi.fn() },
@@ -36,6 +36,7 @@ beforeEach(() => {
   mockAuth.mockReturnValue(null as never);
   vi.mocked(prisma.asset.count).mockResolvedValue(0 as never);
   vi.mocked(prisma.asset.groupBy).mockResolvedValue([] as never);
+  vi.mocked(prisma.asset.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.location.count).mockResolvedValue(0 as never);
   vi.mocked(prisma.location.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.assetType.findMany).mockResolvedValue([] as never);
@@ -84,5 +85,116 @@ describe("GET /api/prometheus/metrics — NIS2 gauges", () => {
     const body = await (await GET(req())).text();
     expect(body).not.toContain("sam_locations_missing_review");
     expect(body).toContain("sam_assets_missing_owner 0");
+  });
+});
+
+describe("GET /api/prometheus/metrics — per-asset info series", () => {
+  const LOCATIONS = [
+    { id: "campus", name: "Campus A", fiNumber: null, parentId: null },
+    { id: "bld", name: "Building 10", fiNumber: "14.10.100.001", parentId: "campus" },
+    { id: "room", name: "Room 013", fiNumber: "14.10.100.013", parentId: "bld" },
+    { id: "noFi", name: "Store room", fiNumber: null, parentId: "bld" },
+  ];
+
+  function asset(overrides: Record<string, unknown> = {}) {
+    return {
+      hostname: "rectest001",
+      model: "Pearl-2",
+      criticality: "HIGH",
+      endOfSupportDate: null,
+      locationId: "room",
+      location: { name: "Room 013", inMaintenance: false },
+      type: { name: "Recorder", defaultCriticality: "LOW" },
+      manufacturer: { name: "Epiphan" },
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    vi.mocked(prisma.location.findMany).mockResolvedValue(LOCATIONS as never);
+  });
+
+  it("emits one fully-labelled series per monitored asset", async () => {
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([asset()] as never);
+    const body = await (await GET(req())).text();
+    expect(body).toContain(
+      'sam_asset_info{sam_hostname="rectest001",sam_fi_number="14.10.100.013",' +
+        'sam_campus="14",sam_building="10",sam_floor="100",sam_room="013",' +
+        'sam_location_name="Room 013",sam_asset_type="Recorder",' +
+        'sam_manufacturer="Epiphan",sam_model="Pearl-2",sam_criticality="HIGH"} 1'
+    );
+  });
+
+  it("inherits the nearest ancestor FI number when the room has none", async () => {
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([
+      asset({ locationId: "noFi", location: { name: "Store room", inMaintenance: false } }),
+    ] as never);
+    const body = await (await GET(req())).text();
+    expect(body).toContain('sam_fi_number="14.10.100.001"');
+    expect(body).toContain('sam_room="001"');
+  });
+
+  it("emits empty labels rather than dropping them when metadata is missing", async () => {
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([
+      asset({
+        locationId: "campus",
+        location: { name: "Campus A", inMaintenance: false },
+        model: null,
+        type: null,
+        manufacturer: null,
+        criticality: null,
+      }),
+    ] as never);
+    const body = await (await GET(req())).text();
+    expect(body).toContain(
+      'sam_asset_info{sam_hostname="rectest001",sam_fi_number="",sam_campus="",' +
+        'sam_building="",sam_floor="",sam_room="",sam_location_name="Campus A",' +
+        'sam_asset_type="",sam_manufacturer="",sam_model="",sam_criticality=""} 1'
+    );
+  });
+
+  it("falls back to the asset type's default criticality", async () => {
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([
+      asset({ criticality: null }),
+    ] as never);
+    const body = await (await GET(req())).text();
+    expect(body).toContain('sam_criticality="LOW"');
+  });
+
+  it("still lists an asset in a maintenance room, flagged separately", async () => {
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([
+      asset({ location: { name: "Room 013", inMaintenance: true } }),
+    ] as never);
+    const body = await (await GET(req())).text();
+    // Present in the expected set — maintenance must not look like an outage
+    expect(body).toContain('sam_asset_info{sam_hostname="rectest001"');
+    expect(body).toContain('sam_asset_maintenance{sam_hostname="rectest001"} 1');
+  });
+
+  it("omits the maintenance series for a room that is not in maintenance", async () => {
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([asset()] as never);
+    const body = await (await GET(req())).text();
+    expect(body).not.toContain('sam_asset_maintenance{');
+  });
+
+  it("exposes the end-of-support date as a Unix timestamp", async () => {
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([
+      asset({ endOfSupportDate: new Date("2025-01-01T00:00:00Z") }),
+    ] as never);
+    const body = await (await GET(req())).text();
+    expect(body).toContain(
+      'sam_asset_end_of_support_timestamp{sam_hostname="rectest001"} 1735689600'
+    );
+  });
+
+  it("selects installed, hostname-bearing, Prometheus-exposed assets", async () => {
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([] as never);
+    await GET(req());
+    const call = vi.mocked(prisma.asset.findMany).mock.calls[0][0];
+    expect(call?.where).toEqual({
+      status: "INSTALLED",
+      hostname: { not: null },
+      OR: [{ typeId: null }, { type: { prometheusExposed: true } }],
+    });
   });
 });

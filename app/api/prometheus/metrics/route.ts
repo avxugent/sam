@@ -72,6 +72,7 @@ export async function GET(req: NextRequest) {
     assetsByManufacturer,
     allLocations,
     assetsByLocation,
+    monitoredAssets,
   ] = await Promise.all([
     // Total asset count
     prisma.asset.count(),
@@ -96,15 +97,38 @@ export async function GET(req: NextRequest) {
       where: { manufacturerId: { not: null } },
     }),
 
-    // All locations with their FI numbers (for campus breakdown)
+    // All locations with their FI numbers (for campus breakdown and, via
+    // parentId, resolving the FI number a room inherits from its ancestors)
     prisma.location.findMany({
-      select: { id: true, name: true, fiNumber: true },
+      select: { id: true, name: true, fiNumber: true, parentId: true },
     }),
 
     // Assets per locationId (to roll up to campus level)
     prisma.asset.groupBy({
       by: ["locationId"],
       _count: { id: true },
+    }),
+
+    // Assets that are expected to be monitored — same filter as the SD
+    // endpoint except that rooms in maintenance are kept. Grafana needs the
+    // full expected set to tell "not reporting" apart from "silenced".
+    prisma.asset.findMany({
+      where: {
+        status: "INSTALLED",
+        hostname: { not: null },
+        OR: [{ typeId: null }, { type: { prometheusExposed: true } }],
+      },
+      select: {
+        hostname: true,
+        model: true,
+        criticality: true,
+        endOfSupportDate: true,
+        locationId: true,
+        location: { select: { name: true, inMaintenance: true } },
+        type: { select: { name: true, defaultCriticality: true } },
+        manufacturer: { select: { name: true } },
+      },
+      orderBy: { hostname: "asc" },
     }),
   ]);
 
@@ -281,6 +305,98 @@ export async function GET(req: NextRequest) {
       "sam_audit_forward_backlog",
       "Audit log rows not yet forwarded to the configured syslog server",
       [{ value: nis2.auditBacklog }]
+    )
+  );
+
+  // 8. Per-asset info series
+  //
+  // One series per asset that is expected to report. Grafana joins these
+  // against the device metrics on sam_hostname, so the label names here must
+  // match the sam_* group labels emitted by /api/prometheus/sd exactly.
+  //
+  //   sam_asset_info unless on (sam_hostname) (probe_success == 1)
+  //     → assets that should be reporting but are not
+  //
+  // Every label is always emitted (empty when unknown) so the series shape
+  // stays stable and `count by (sam_fi_number)` never silently splits.
+
+  const locationsById = new Map(allLocations.map((l) => [l.id, l]));
+
+  /** Nearest FI number walking leaf → root; mirrors findFiNumber() in SD. */
+  function inheritedFiNumber(locationId: string): string | null {
+    let current = locationsById.get(locationId);
+    while (current) {
+      if (current.fiNumber) return current.fiNumber;
+      current = current.parentId
+        ? locationsById.get(current.parentId)
+        : undefined;
+    }
+    return null;
+  }
+
+  const infoSamples: Array<{ labels: Record<string, string>; value: number }> = [];
+  const maintenanceSamples: Array<{ labels: Record<string, string>; value: number }> = [];
+  const eosSamples: Array<{ labels: Record<string, string>; value: number }> = [];
+
+  for (const asset of monitoredAssets) {
+    const fiNumber = inheritedFiNumber(asset.locationId);
+    const parts = parseFiNumber(fiNumber);
+
+    infoSamples.push({
+      labels: {
+        sam_hostname: asset.hostname!,
+        sam_fi_number: fiNumber ?? "",
+        sam_campus: parts?.campus ?? "",
+        sam_building: parts?.building ?? "",
+        sam_floor: parts?.floor ?? "",
+        sam_room: parts?.room ?? "",
+        sam_location_name: asset.location?.name ?? "",
+        sam_asset_type: asset.type?.name ?? "",
+        sam_manufacturer: asset.manufacturer?.name ?? "",
+        sam_model: asset.model ?? "",
+        // Effective criticality: per-asset override wins over the type default
+        sam_criticality:
+          asset.criticality ?? asset.type?.defaultCriticality ?? "",
+      },
+      value: 1,
+    });
+
+    if (asset.location?.inMaintenance) {
+      maintenanceSamples.push({
+        labels: { sam_hostname: asset.hostname! },
+        value: 1,
+      });
+    }
+
+    if (asset.endOfSupportDate) {
+      eosSamples.push({
+        labels: { sam_hostname: asset.hostname! },
+        value: Math.floor(asset.endOfSupportDate.getTime() / 1000),
+      });
+    }
+  }
+
+  sections.push(
+    gauge(
+      "sam_asset_info",
+      "One series per asset expected to report, carrying its SAM metadata",
+      infoSamples
+    )
+  );
+
+  sections.push(
+    gauge(
+      "sam_asset_maintenance",
+      "Assets whose room is in maintenance — dropped from service discovery, so absence of metrics is expected",
+      maintenanceSamples
+    )
+  );
+
+  sections.push(
+    gauge(
+      "sam_asset_end_of_support_timestamp",
+      "End-of-support date per asset as a Unix timestamp in seconds",
+      eosSamples
     )
   );
 

@@ -59,12 +59,22 @@ export async function instantQuery(query: string): Promise<VectorResult | null> 
   }
 }
 
-/** First sample's value as a number, or null when the query returned nothing. */
-async function scalarQuery(query: string): Promise<number | null> {
+/**
+ * One scalar, keeping "Prometheus did not answer" distinct from "Prometheus
+ * answered with nothing".
+ *
+ * Collapsing the two into a single null is what made the earlier failure
+ * undiagnosable: a misconfigured URL and a room Prometheus has never heard of
+ * produced the same message.
+ */
+type Scalar = { ok: true; value: number | null } | { ok: false };
+
+async function scalarQuery(query: string): Promise<Scalar> {
   const result = await instantQuery(query);
-  if (!result || result.length === 0) return null;
+  if (result === null) return { ok: false };
+  if (result.length === 0) return { ok: true, value: null };
   const n = Number(result[0].value[1]);
-  return Number.isFinite(n) ? n : null;
+  return { ok: true, value: Number.isFinite(n) ? n : null };
 }
 
 /**
@@ -84,14 +94,32 @@ export type RoomMonitoring = {
 };
 
 /**
+ * Why a summary is missing. Each needs a different action, so they must not
+ * share one message: check the config, check Prometheus, or check that the
+ * recording rules are loaded and the room has assets.
+ */
+export type MonitoringResult<T> =
+  | { status: "ok"; data: T }
+  /** PROMETHEUS_URL is unset — the integration is simply off. */
+  | { status: "not-configured" }
+  /** Prometheus did not answer: unreachable, timed out, or errored. */
+  | { status: "unreachable" }
+  /** Prometheus answered, but has no series for this room or device. */
+  | { status: "no-data" };
+
+/**
  * Monitoring summary for one room, read from the room:* recording rules.
  *
- * A room with nothing wrong has no series in the problem rules at all, so an
- * empty result means zero rather than unknown — but only when the room is known
- * to Prometheus. `expected` is the discriminator: if that is null, Prometheus
- * has nothing for this room and every figure is genuinely unknown.
+ * A room with nothing wrong has no series in the *problem* rules at all, so an
+ * empty result there means zero rather than unknown. `expected` is the
+ * discriminator: Prometheus answering with nothing for it means the room is
+ * genuinely unknown — no assets, or the recording rules are not loaded.
  */
-export async function roomMonitoring(fiNumber: string): Promise<RoomMonitoring | null> {
+export async function roomMonitoring(
+  fiNumber: string
+): Promise<MonitoringResult<RoomMonitoring>> {
+  if (!isPrometheusConfigured()) return { status: "not-configured" };
+
   const sel = `{sam_fi_number="${fiNumber.replace(/"/g, "")}"}`;
 
   const [expected, reporting, down, neverScraped, maintenance] = await Promise.all([
@@ -102,16 +130,21 @@ export async function roomMonitoring(fiNumber: string): Promise<RoomMonitoring |
     scalarQuery(`sum(room:assets_maintenance:count${sel})`),
   ]);
 
-  // Prometheus is unreachable, or knows nothing about this room.
-  if (expected === null) return null;
+  if (!expected.ok) return { status: "unreachable" };
+  if (expected.value === null) return { status: "no-data" };
+
+  const val = (s: Scalar) => (s.ok ? (s.value ?? 0) : 0);
 
   return {
-    expected,
-    reporting: reporting ?? 0,
-    down: down ?? 0,
-    neverScraped: neverScraped ?? 0,
-    maintenance: maintenance ?? 0,
-    availability: expected > 0 ? (reporting ?? 0) / expected : null,
+    status: "ok",
+    data: {
+      expected: expected.value,
+      reporting: val(reporting),
+      down: val(down),
+      neverScraped: val(neverScraped),
+      maintenance: val(maintenance),
+      availability: expected.value > 0 ? val(reporting) / expected.value : null,
+    },
   };
 }
 
@@ -121,7 +154,11 @@ export type DeviceMonitoring = {
   probeDurationSeconds: number | null;
 };
 
-export async function deviceMonitoring(hostname: string): Promise<DeviceMonitoring | null> {
+export async function deviceMonitoring(
+  hostname: string
+): Promise<MonitoringResult<DeviceMonitoring>> {
+  if (!isPrometheusConfigured()) return { status: "not-configured" };
+
   const sel = `{sam_hostname="${hostname.replace(/"/g, "")}"}`;
 
   const [state, duration] = await Promise.all([
@@ -132,14 +169,23 @@ export async function deviceMonitoring(hostname: string): Promise<DeviceMonitori
     scalarQuery(`max by (sam_hostname) (probe_duration_seconds${sel})`),
   ]);
 
-  // Distinguishing "never scraped" from "Prometheus is down" needs a second
-  // signal: the asset is in the expected set either way, so ask for that.
-  if (state === null) {
+  if (!state.ok) return { status: "unreachable" };
+
+  // A device with no probe series may be never-scraped rather than unknown, so
+  // check whether it is in the expected set before saying nothing is known.
+  if (state.value === null) {
     const known = await scalarQuery(`count(sam_asset_info${sel})`);
-    if (known === null) return null;
+    if (!known.ok) return { status: "unreachable" };
+    if (known.value === null) return { status: "no-data" };
   }
 
-  return { state, probeDurationSeconds: duration };
+  return {
+    status: "ok",
+    data: {
+      state: state.value,
+      probeDurationSeconds: duration.ok ? duration.value : null,
+    },
+  };
 }
 
 /** Link to the live dashboard, for the "open in Grafana" affordances. */

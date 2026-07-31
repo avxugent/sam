@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { RoomMonitoring } from "@/lib/prometheus-query";
+import type { MonitoringResult, RoomMonitoring } from "@/lib/prometheus-query";
 
 /**
  * Room monitoring numbers, rendered by SAM rather than by Grafana.
@@ -39,14 +39,29 @@ function Stat({
   );
 }
 
-export function RoomMonitoringStats({ data }: { data: RoomMonitoring | null }) {
-  if (!data) {
-    return (
-      <div className="rounded-[8px] border border-dashed border-[#e2e8f0] bg-[#f8fafc] px-3 py-4 text-[12px] text-[#64748b]">
-        Monitoring data unavailable — Prometheus did not answer, or has nothing for this room yet.
-      </div>
-    );
-  }
+/**
+ * Each failure needs a different action, so each says so. One combined
+ * "unavailable" message made a misconfigured URL indistinguishable from a room
+ * Prometheus has never heard of.
+ */
+function Unavailable({ status }: { status: "not-configured" | "unreachable" | "no-data" }) {
+  const message =
+    status === "not-configured"
+      ? "Monitoring is not configured — PROMETHEUS_URL is not set on the server."
+      : status === "unreachable"
+        ? "Prometheus did not answer. Check that it is reachable from SAM and that PROMETHEUS_URL is correct."
+        : "No monitoring data for this room. Check that the SAM recording rules are loaded in Prometheus and that this room has assets with a hostname.";
+
+  return (
+    <div className="rounded-[8px] border border-dashed border-[#e2e8f0] bg-[#f8fafc] px-3 py-4 text-[12px] text-[#64748b]">
+      {message}
+    </div>
+  );
+}
+
+export function RoomMonitoringStats({ result }: { result: MonitoringResult<RoomMonitoring> }) {
+  if (result.status !== "ok") return <Unavailable status={result.status} />;
+  const data = result.data;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -92,12 +107,13 @@ const DEVICE_STATE: Record<number, { label: string; tone: "good" | "bad" | "warn
 };
 
 export function DeviceMonitoringStats({
-  state,
-  probeDurationSeconds,
+  result,
 }: {
-  state: number | null;
-  probeDurationSeconds: number | null;
+  result: MonitoringResult<{ state: number | null; probeDurationSeconds: number | null }>;
 }) {
+  if (result.status !== "ok") return <Unavailable status={result.status} />;
+  const { state, probeDurationSeconds } = result.data;
+
   // null state means no probe series at all, which is distinct from a failed
   // probe — it points at service discovery rather than the device.
   const s = state === null ? null : DEVICE_STATE[state];

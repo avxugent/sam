@@ -81,12 +81,15 @@ describe("roomMonitoring()", () => {
       .mockResolvedValueOnce(vector("0"));
 
     expect(await roomMonitoring("14.10.100.013")).toEqual({
-      expected: 4,
-      reporting: 3,
-      down: 1,
-      neverScraped: 0,
-      maintenance: 0,
-      availability: 0.75,
+      status: "ok",
+      data: {
+        expected: 4,
+        reporting: 3,
+        down: 1,
+        neverScraped: 0,
+        maintenance: 0,
+        availability: 0.75,
+      },
     });
   });
 
@@ -100,25 +103,40 @@ describe("roomMonitoring()", () => {
       .mockResolvedValueOnce(empty());
 
     const r = await roomMonitoring("14.10.100.013");
-    expect(r).toMatchObject({ expected: 2, reporting: 2, down: 0, availability: 1 });
+    expect(r).toMatchObject({
+      status: "ok",
+      data: { expected: 2, reporting: 2, down: 0, availability: 1 },
+    });
   });
 
-  it("returns null when Prometheus knows nothing about the room", async () => {
+  it("reports no-data when Prometheus knows nothing about the room", async () => {
     // expected is the discriminator: without it every other figure is unknown
     // rather than zero, and showing zeros would be a lie.
-    fetchMock.mockResolvedValue(empty());
-    expect(await roomMonitoring("99.99.999.999")).toBeNull();
+    fetchMock.mockImplementation(async () => empty());
+    expect(await roomMonitoring("99.99.999.999")).toEqual({ status: "no-data" });
+  });
+
+  it("distinguishes an unreachable Prometheus from a room it has never heard of", async () => {
+    // Collapsing these into one message is what made the earlier failure
+    // impossible to act on: one needs a config fix, the other needs rules.
+    fetchMock.mockRejectedValue(new Error("ECONNREFUSED"));
+    expect(await roomMonitoring("14.10.100.013")).toEqual({ status: "unreachable" });
+  });
+
+  it("reports not-configured when PROMETHEUS_URL is unset, without querying", async () => {
+    delete process.env.PROMETHEUS_URL;
+    expect(await roomMonitoring("14.10.100.013")).toEqual({ status: "not-configured" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("reports null availability for a room with no monitored assets", async () => {
-    fetchMock
-      .mockResolvedValueOnce(vector("0"))
-      .mockResolvedValue(empty());
-    expect((await roomMonitoring("14.10.100.013"))?.availability).toBeNull();
+    fetchMock.mockResolvedValueOnce(vector("0")).mockImplementation(async () => empty());
+    const r = await roomMonitoring("14.10.100.013");
+    expect(r.status === "ok" && r.data.availability).toBeNull();
   });
 
   it("does not let a quoted FI number break out of the selector", async () => {
-    fetchMock.mockResolvedValue(empty());
+    fetchMock.mockImplementation(async () => empty());
     await roomMonitoring('14"} or up{');
     const url = new URL(fetchMock.mock.calls[0][0]);
     expect(url.searchParams.get("query")).not.toContain('"} or up{');
@@ -129,8 +147,8 @@ describe("deviceMonitoring()", () => {
   it("returns the folded state and probe duration", async () => {
     fetchMock.mockResolvedValueOnce(vector("1")).mockResolvedValueOnce(vector("0.076"));
     expect(await deviceMonitoring("rec001")).toEqual({
-      state: 1,
-      probeDurationSeconds: 0.076,
+      status: "ok",
+      data: { state: 1, probeDurationSeconds: 0.076 },
     });
   });
 
@@ -141,13 +159,18 @@ describe("deviceMonitoring()", () => {
       .mockResolvedValueOnce(empty())
       .mockResolvedValueOnce(vector("1"));
     expect(await deviceMonitoring("proj001")).toEqual({
-      state: null,
-      probeDurationSeconds: null,
+      status: "ok",
+      data: { state: null, probeDurationSeconds: null },
     });
   });
 
-  it("returns null when nothing is known at all", async () => {
-    fetchMock.mockResolvedValue(empty());
-    expect(await deviceMonitoring("ghost")).toBeNull();
+  it("reports no-data when nothing is known at all", async () => {
+    fetchMock.mockImplementation(async () => empty());
+    expect(await deviceMonitoring("ghost")).toEqual({ status: "no-data" });
+  });
+
+  it("reports unreachable rather than no-data when Prometheus is down", async () => {
+    fetchMock.mockRejectedValue(new Error("ECONNREFUSED"));
+    expect(await deviceMonitoring("rec001")).toEqual({ status: "unreachable" });
   });
 });

@@ -125,7 +125,7 @@ export default async function LocationPage({
       locationUrlTemplate={locationUrlTemplate}
       grafanaEmbedEnabled={isGrafanaConfigured()}
       roomMonitoring={
-        isGrafanaConfigured() && location.fiNumber ? await roomMonitoring(location.fiNumber) : null
+        location.fiNumber ? await roomMonitoring(location.fiNumber) : { status: "no-data" }
       }
       workLogs={workLogs.map((w) => ({
         id: w.id,

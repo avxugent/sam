@@ -48,7 +48,7 @@ import { renderLocationUrl } from "@/lib/hostname-template";
 import { GrafanaPanel, MonitoringSection } from "@/components/monitoring/grafana-panel";
 import { RoomMonitoringStats } from "@/components/monitoring/monitoring-stats";
 import { PANELS, panelSrc } from "@/lib/grafana";
-import type { RoomMonitoring } from "@/lib/prometheus-query";
+import type { MonitoringResult, RoomMonitoring } from "@/lib/prometheus-query";
 
 type Breadcrumb = { id: string; name: string };
 
@@ -137,7 +137,7 @@ export function LocationDetailClient({
   hostnameUrlTemplate?: string | null;
   locationUrlTemplate?: string | null;
   grafanaEmbedEnabled?: boolean;
-  roomMonitoring?: RoomMonitoring | null;
+  roomMonitoring?: MonitoringResult<RoomMonitoring>;
   macAddressUrlTemplate?: string | null;
   workLogs?: WorkLogEntry[];
   users?: WorkLogUserOption[];
@@ -455,7 +455,7 @@ export function LocationDetailClient({
         <MonitoringSection title={t("monitoring")} openUrl={monitoringUrl}>
           {/* Numbers come straight from the recording rules — instant, and no
               headless browser involved. Only the time series is worth a render. */}
-          <RoomMonitoringStats data={roomMonitoring ?? null} />
+          <RoomMonitoringStats result={roomMonitoring ?? { status: "not-configured" }} />
           <GrafanaPanel
             src={panelSrc("room", PANELS.room.availabilityOverTime, roomVars, {
               width: 1000,

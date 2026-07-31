@@ -42,6 +42,7 @@ import { Label } from "@/components/ui/label";
 import { FirmwareField } from "@/components/assets/firmware-field";
 import { GrafanaPanel, MonitoringSection } from "@/components/monitoring/grafana-panel";
 import { DeviceMonitoringStats } from "@/components/monitoring/monitoring-stats";
+import type { MonitoringResult } from "@/lib/prometheus-query";
 import { PANELS, panelSrc } from "@/lib/grafana";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 import { getAssetTypeIcon } from "@/lib/asset-type-icon";
@@ -144,8 +145,7 @@ export function AssetDetailClient({
   firmwareAttestedByName,
   grafanaEmbedEnabled,
   deviceDashboardUrl,
-  deviceState,
-  deviceProbeDuration,
+  deviceMonitoring,
 }: {
   asset: Asset;
   breadcrumbs: Breadcrumb[];
@@ -157,8 +157,10 @@ export function AssetDetailClient({
   firmwareAttestedByName?: string | null;
   grafanaEmbedEnabled?: boolean;
   deviceDashboardUrl?: string | null;
-  deviceState?: number | null;
-  deviceProbeDuration?: number | null;
+  deviceMonitoring?: MonitoringResult<{
+    state: number | null;
+    probeDurationSeconds: number | null;
+  }>;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -487,8 +489,7 @@ export function AssetDetailClient({
             {/* State and probe duration are single numbers — read from
                 Prometheus directly rather than rendered as images. */}
             <DeviceMonitoringStats
-              state={deviceState ?? null}
-              probeDurationSeconds={deviceProbeDuration ?? null}
+              result={deviceMonitoring ?? { status: "not-configured" }}
             />
             <GrafanaPanel
               src={panelSrc("device", PANELS.device.reachability, { hostname: asset.hostname }, {

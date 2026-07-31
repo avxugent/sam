@@ -42,8 +42,9 @@ export default async function AssetPage({
   const breadcrumbs = await buildBreadcrumbs(locationId);
 
   // Fails soft: a monitoring summary is never worth failing the asset page over.
-  const device =
-    isGrafanaConfigured() && asset.hostname ? await deviceMonitoring(asset.hostname) : null;
+  const device = asset.hostname
+    ? await deviceMonitoring(asset.hostname)
+    : ({ status: "no-data" } as const);
 
   // Owner / decommissioned-by are soft refs (no FK) — resolve names here so
   // deleted users degrade to a "(deleted user)" label client-side.
@@ -68,8 +69,7 @@ export default async function AssetPage({
         asset.firmwareAttestedById ? nameById.get(asset.firmwareAttestedById) ?? null : null
       }
       grafanaEmbedEnabled={isGrafanaConfigured()}
-      deviceState={device?.state ?? null}
-      deviceProbeDuration={device?.probeDurationSeconds ?? null}
+      deviceMonitoring={device}
       // Reuses the admin-configured hostname template, so "open in Grafana"
       // goes wherever hostname links already go rather than hardcoding a UID.
       deviceDashboardUrl={

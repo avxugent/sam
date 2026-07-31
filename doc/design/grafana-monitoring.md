@@ -226,17 +226,20 @@ every room count. `max by (sam_hostname)` deduplicates and drops the
 exporter-specific `job`/`instance` labels in one step. Everything downstream
 consumes this rule, never raw `probe_success`.
 
+One group, not two. Prometheus evaluates rules sequentially within a group but
+runs groups concurrently, so the room rules must sit below the rule they consume
+or they read a stale sample — briefly counting a device that just started
+reporting as never scraped.
+
 ```yaml
 groups:
-  - name: sam_asset
+  - name: sam_room
     rules:
       # One series per asset regardless of which exporter probed it, or how
-      # many did. max() means "reachable by any probe".
+      # many did. max() means "reachable by any probe". Must stay first.
       - record: sam_asset:probe_success
         expr: max by (sam_hostname) (probe_success)
 
-  - name: sam_room
-    rules:
       - record: room:assets_expected:count
         expr: count by (sam_fi_number) (sam_asset_info)
 

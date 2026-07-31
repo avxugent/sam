@@ -171,6 +171,18 @@ instance, so those labels identify the exporter rather than the device.
 vendor exporter. `sam_asset:probe_success` applies `max by (sam_hostname)` so
 room counts don't double-count it. Consume that rule, not raw `probe_success`.
 
+**Keep dependent rules in one group.** Prometheus evaluates rules sequentially
+*within* a group but runs groups concurrently, so a rule that consumes another
+rule's output must sit below it in the same group. Splitting them makes counts
+lag by an evaluation and, worse, briefly report a healthy device as never
+scraped. promtool tests will not catch it — they evaluate rule files in file
+order, which is exactly the guarantee a cross-group dependency lacks.
+
+Some lag is unavoidable regardless: the rollups are recorded once a minute, so
+the dashboard's counts trail the live device table by up to `interval`. A newly
+configured device also has to wait for a service-discovery refresh and a scrape
+before any probe series exists at all.
+
 **`sam_asset_info` is the expected set.** It comes from SAM's inventory rather
 than from what Prometheus happens to be scraping, which is what lets a room in
 maintenance stay visible-but-silenced and a never-discovered device show up as

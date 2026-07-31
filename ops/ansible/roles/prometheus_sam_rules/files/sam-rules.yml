@@ -12,14 +12,32 @@
 # blackbox-probed devices all share one instance.
 
 groups:
-  # ── Per-asset normalisation ──────────────────────────────────────────────────
-  - name: sam_asset
+  # ── Asset normalisation and room rollups ─────────────────────────────────────
+  #
+  # DO NOT SPLIT THIS GROUP. The room rules below consume
+  # sam_asset:probe_success, and Prometheus only guarantees ordering *within* a
+  # group — rules in a group are evaluated sequentially in file order, while
+  # separate groups run concurrently. With the two in separate groups the room
+  # rules read whatever sample happened to exist, so a device that started
+  # reporting in the last interval was counted as never scraped until the next
+  # evaluation caught up. Correct eventually, misleading in the meantime.
+  #
+  # promtool unit tests do not catch this: they evaluate rule files
+  # deterministically in file order, which is exactly the guarantee that a
+  # cross-group dependency lacks.
+  #
+  # sam_campus and sam_building are carried through so dashboards can filter and
+  # re-aggregate without dropping back to raw series. sam_location_name rides
+  # along so tables need no second join for a human-readable room.
+  - name: sam_room
     interval: 1m
     rules:
       # One series per asset regardless of which exporter probed it, or how many
       # did. A device can be probed by blackbox for reachability *and* by a
       # vendor exporter for detail; without this collapse every room count would
       # double-count it. max() reads as "reachable by any probe".
+      #
+      # Must stay first: every rule below joins against it.
       #
       # TRANSITIONAL: the __name__ regex covers custom exporters that still emit
       # <vendor>_probe_success while blackbox emits the bare name. Narrow this to
@@ -35,13 +53,6 @@ groups:
             {__name__=~"(.+_)?probe_success", sam_hostname!=""}
           )
 
-  # ── Room rollups ─────────────────────────────────────────────────────────────
-  # sam_campus and sam_building are carried through so dashboards can filter and
-  # re-aggregate without dropping back to raw series. sam_location_name rides
-  # along so tables need no second join for a human-readable room.
-  - name: sam_room
-    interval: 1m
-    rules:
       # The expected set comes from SAM's inventory, not from what Prometheus
       # happens to be scraping.
       - record: room:assets_expected:count

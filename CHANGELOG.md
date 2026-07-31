@@ -5,6 +5,51 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.0-alpha.1] - 2026-07-30
+
+First alpha of the 2.0 line: monitoring and firmware currency. **Pre-release —
+the schema changes and the operational steps below have been exercised in
+development only.**
+
+### Added — Monitoring
+
+- **Per-asset series in `/api/prometheus/metrics`.** `sam_asset_info` publishes the *expected* set of monitored assets from SAM's inventory, alongside `sam_asset_maintenance` and `sam_asset_end_of_support_timestamp`. Until now the endpoint emitted only aggregates, so nothing could answer "which devices are offline" — `up == 0` covers only targets service discovery already advertises, and assets in rooms flagged in maintenance are dropped from SD entirely. Every "expected but not reporting" query joins against this set.
+- **Monitoring configuration as code** in the new `ops/` directory: Prometheus recording and alert rules, three Grafana dashboards (fleet, room, device) built from jsonnet, and two Ansible roles that deploy them through Grafana's file provisioning. Dashboards are read-only in the UI; `ops/jsonnet/build.sh` plus a clean `git diff` is what makes "recreate at any time" verifiable. promtool unit tests cover the down / maintenance / never-scraped split.
+- **Monitoring summary on location and asset pages** — device counts and availability read directly from the `room:*` recording rules (`PROMETHEUS_URL`), rendered in SAM's own styling. Each user chooses expanded, collapsed or hidden under **Settings → Profile**; hidden skips the query entirely.
+- **Location URL template** (Administration → Settings) alongside the existing hostname and MAC templates, with `{fi_number}`, `{location_name}` and `{location_id}`. Points anywhere; pointed at Grafana it adds a *Monitoring* badge to the location page.
+
+### Added — Firmware currency (NIS2)
+
+- **Firmware baselines** (Administration → Firmware Baselines) — the approved version per asset type, optionally narrowed to one model. *Firmware in the field* lists the versions devices actually report, grouped by type and model, with one-click creation of a baseline at the highest version seen.
+- **`assets:sync-firmware`** reads `device_firmware_info` from Prometheus into `Asset.firmwareVersion`. The comparison happens in SAM, not in PromQL — PromQL cannot order version strings, and NIS2 wants an auditable record rather than a figure reconstructed from a dashboard.
+- **Manual attestation** — devices with no API can never report firmware, so anyone but a Viewer can record a version on the asset page, stored with who and when. A device that later gains an API has its attestation replaced by the measured value.
+- **Six firmware states, not two.** Only *compliant* (at or above baseline) is evidence of currency. *Outdated*, *stale* (reading older than `compliance.firmwareMaxAgeDays`, default 90), *unknown* (versions that cannot be ordered), *unclassified* (no baseline) and *no_data* (nothing ever established) are each counted separately, because reporting any of them as compliant would overstate coverage — most importantly for blackbox-probed devices, which can never self-report.
+- **Firmware on the compliance dashboard** — outdated, evidence expired, and unmeasured, the last stating *measured coverage*: the share of assets whose currency can be judged at all, and the denominator every other firmware figure should be read against.
+
+### Added — Development
+
+- Grafana, a Prometheus rules mount and a **mock device exporter** in the dev stack, so the whole path — scrape template → service discovery → labels → recording rules → dashboards — can be exercised without reachable AV hardware.
+
+### Changed
+
+- **Remove `regex: "sam_(.*)" / action: labelmap` from your `scrape_configs`.** Prometheus already attaches every non-`__` SD group label to the scraped series, and `labelmap` *copies* rather than renames — leaving every device series carrying both `sam_model` and `model`, `sam_hostname` and `hostname`. Doubled cardinality, and the unprefixed copies can collide with labels an exporter sets natively. The documented examples previously showed this rule.
+- **Exporter contract:** custom exporters should emit `probe_success`, not `<vendor>_probe_success`, matching blackbox_exporter. Vendor prefixes stay on genuinely vendor-specific metrics. A transitional recording rule bridges exporters that have not migrated.
+
+### Fixed
+
+- `prisma db push --skip-generate` fails on Prisma 7, which removed the flag. Affected both the dev image and `sam.nomad`'s prestart migrate task, so the next production deploy would have failed.
+- The dev Vault healthcheck ran `vault status` without `VAULT_ADDR`, so the container never reported healthy and `app` never started.
+- Scrape-template documentation advertised a `{vault_<key>}` substitution that does not exist — only `{vault_path}` is supported, and any other `{vault_*}` placeholder is passed through literally. The schema comment also showed `__param_target__`, which produces a query parameter named `target__`.
+
+### Upgrading
+
+1. `npx prisma generate && npx prisma db push` — adds `FirmwareBaseline`, firmware fields on `Asset`, and `User.monitoringPanel`.
+2. Set `PROMETHEUS_URL` (and `PROMETHEUS_TOKEN` if required) for the monitoring summaries. Both are optional; without them the summary reports that it is not configured.
+3. Deploy the Prometheus rules from `ops/` — every monitoring figure reads `room:*`.
+4. Remove the `labelmap` relabel rule from your `scrape_configs` (see **Changed**).
+
+---
+
 ## [1.6.0] - 2026-07-10
 
 ### Added — NIS2 compliance features

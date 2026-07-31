@@ -260,7 +260,7 @@ currency can actually be judged. That is the denominator every other firmware
 figure should be read against.
 
 Baselines live in SAM (`FirmwareBaseline`, keyed on asset type and optionally
-model), edited under **Administration → Settings → Firmware baselines**, and
+model), edited under **Administration → Firmware Baselines**, and
 published as `sam_firmware_baseline_info` so a dashboard can show what was
 expected alongside what is installed.
 

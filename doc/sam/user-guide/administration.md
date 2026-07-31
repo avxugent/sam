@@ -88,6 +88,41 @@ Review clusters of similar-but-not-identical asset model spellings (typos, abbre
 
 ---
 
+## Firmware Baselines
+
+**Administration → Firmware Baselines**
+
+The approved firmware version per asset type, optionally narrowed to one model.
+A row naming a model wins over the type-wide row.
+
+**Firmware in the field** lists the versions devices actually report, grouped by
+type and model, with the number of devices on each version. Each group that has
+no baseline yet offers one-click creation at the highest version seen, so
+baselines come from observed reality rather than guesswork — a fleet of hundreds
+of devices usually collapses to a handful of groups.
+
+**Approved versions** lists what is configured. Click a version to edit it in
+place. Deleting a baseline returns every matching asset to *unclassified*, so it
+is recorded in the audit log.
+
+### How a device is judged
+
+| Status | Meaning |
+|---|---|
+| Up to date | Installed version is at or above the baseline. A device ahead of the baseline is not flagged, so a staged rollout stays quiet |
+| Outdated | Installed version is below the baseline |
+| Unclassified | No baseline configured for this asset type or model |
+| No version reported | The device has no API to ask, or has not answered since the last sync |
+| Unorderable | Installed and approved versions could not be compared |
+
+Only *up to date* is evidence of currency. The rest are unmeasured, never
+compliant — most importantly because devices without an API can never report a
+version and would otherwise inflate the compliance figure. Versions are
+collected by the `assets:sync-firmware` script; see
+[Maintenance Scripts](../technical/scripts.md).
+
+---
+
 ## Audit Log
 
 **Administration → Audit Log**
@@ -114,13 +149,6 @@ Download a full CSV export of all assets. The export includes all fields, MAC ad
 
 Application-wide configuration managed through the UI. Changes take effect immediately without a server restart. This includes:
 
-- **Firmware baselines** — the approved firmware version per asset type and
-  model. *Firmware in the field* lists the versions devices actually report,
-  grouped by type and model, with one-click creation of a baseline at the
-  highest version seen — so baselines come from observed reality rather than
-  guesswork. Devices at or above their baseline count as up to date; a device
-  with no matching baseline is reported as *unclassified*, never as compliant.
-  Only devices with an API report firmware at all, so the rest stay unmeasured.
 - **General** — hostname / MAC address / location URL templates. Each turns a
   value into a clickable link to an external system. Point them at Grafana to
   reach the monitoring dashboards from SAM:

@@ -77,6 +77,7 @@
     "exportCsv": "Export CSV",
     "auditLog": "Audit Log",
     "compliance": "Compliance",
+    "firmwareBaselines": "Firmware Baselines",
     "settings": "Settings",
     "profile": "Profile",
     "twoFactorAuth": "Two-Factor Auth",

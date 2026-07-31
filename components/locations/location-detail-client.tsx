@@ -46,7 +46,9 @@ import {
 } from "lucide-react";
 import { renderLocationUrl } from "@/lib/hostname-template";
 import { GrafanaPanel, MonitoringSection } from "@/components/monitoring/grafana-panel";
+import { RoomMonitoringStats } from "@/components/monitoring/monitoring-stats";
 import { PANELS, panelSrc } from "@/lib/grafana";
+import type { RoomMonitoring } from "@/lib/prometheus-query";
 
 type Breadcrumb = { id: string; name: string };
 
@@ -116,6 +118,7 @@ export function LocationDetailClient({
   hostnameUrlTemplate,
   locationUrlTemplate,
   grafanaEmbedEnabled,
+  roomMonitoring,
   macAddressUrlTemplate,
   workLogs = [],
   users = [],
@@ -134,6 +137,7 @@ export function LocationDetailClient({
   hostnameUrlTemplate?: string | null;
   locationUrlTemplate?: string | null;
   grafanaEmbedEnabled?: boolean;
+  roomMonitoring?: RoomMonitoring | null;
   macAddressUrlTemplate?: string | null;
   workLogs?: WorkLogEntry[];
   users?: WorkLogUserOption[];
@@ -449,34 +453,15 @@ export function LocationDetailClient({
       {/* Tabs */}
       {showPanels && (
         <MonitoringSection title={t("monitoring")} openUrl={monitoringUrl}>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <GrafanaPanel
-              src={panelSrc("room", PANELS.room.devices, roomVars)}
-              title="Devices"
-              height={120}
-              openUrl={monitoringUrl}
-            />
-            <GrafanaPanel
-              src={panelSrc("room", PANELS.room.reporting, roomVars)}
-              title="Reporting"
-              height={120}
-              openUrl={monitoringUrl}
-            />
-            <GrafanaPanel
-              src={panelSrc("room", PANELS.room.notReporting, roomVars)}
-              title="Not reporting"
-              height={120}
-              openUrl={monitoringUrl}
-            />
-            <GrafanaPanel
-              src={panelSrc("room", PANELS.room.availability, roomVars)}
-              title="Availability"
-              height={120}
-              openUrl={monitoringUrl}
-            />
-          </div>
+          {/* Numbers come straight from the recording rules — instant, and no
+              headless browser involved. Only the time series is worth a render. */}
+          <RoomMonitoringStats data={roomMonitoring ?? null} />
           <GrafanaPanel
-            src={panelSrc("room", PANELS.room.availabilityOverTime, roomVars)}
+            src={panelSrc("room", PANELS.room.availabilityOverTime, roomVars, {
+              width: 1000,
+              height: 220,
+              scale: 1,
+            })}
             title="Room availability"
             height={220}
             openUrl={monitoringUrl}

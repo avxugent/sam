@@ -88,6 +88,16 @@ Grafana panels; otherwise they fall back to the URL-template links.
 |---|---|---|
 | `GRAFANA_URL` | — | Grafana base URL as reachable **from the SAM server**, e.g. `http://grafana.internal:3000` |
 | `GRAFANA_TOKEN` | — | Service-account token (Viewer role is enough) |
+| `GRAFANA_RENDER_CACHE_MS` | `60000` | How long a rendered image is cached in-process. `0` disables |
+| `PROMETHEUS_URL` | — | Prometheus, read directly for the monitoring summaries |
+| `PROMETHEUS_TOKEN` | — | Optional bearer token for Prometheus |
+
+**Counts are queried, not rendered.** The device and availability numbers on the
+location and asset pages come from the `room:*` recording rules as JSON — one
+request, milliseconds. Only the time-series charts are rendered as images,
+because each render is a full headless-browser page load. Rendering five numbers
+as five images made the pages take seconds; this is why `PROMETHEUS_URL` matters
+to the app and not only to the sync script.
 
 SAM fetches each panel server-side as a **rendered PNG** and forwards the token,
 so Grafana needs no browser-reachable URL and no anonymous access, and the token

@@ -5,6 +5,7 @@ import { LocationDetailClient } from "@/components/locations/location-detail-cli
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { isJiraConfigured } from "@/lib/jira";
 import { isGrafanaConfigured } from "@/lib/grafana";
+import { roomMonitoring } from "@/lib/prometheus-query";
 
 async function getUrlTemplates(): Promise<{
   hostnameUrlTemplate: string | null;
@@ -123,6 +124,9 @@ export default async function LocationPage({
       macAddressUrlTemplate={macAddressUrlTemplate}
       locationUrlTemplate={locationUrlTemplate}
       grafanaEmbedEnabled={isGrafanaConfigured()}
+      roomMonitoring={
+        isGrafanaConfigured() && location.fiNumber ? await roomMonitoring(location.fiNumber) : null
+      }
       workLogs={workLogs.map((w) => ({
         id: w.id,
         performedAt: w.performedAt.toISOString(),

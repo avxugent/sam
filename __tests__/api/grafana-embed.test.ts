@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("@/lib/auth", () => ({ __esModule: true, auth: vi.fn() }));
 
 import { auth } from "@/lib/auth";
-import { GET } from "@/app/api/grafana-embed/[dashboard]/route";
+import { GET, clearRenderCache } from "@/app/api/grafana-embed/[dashboard]/route";
 import { NextRequest } from "next/server";
 
 const mockAuth = vi.mocked(auth);
@@ -17,15 +17,20 @@ const fetchMock = vi.fn();
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // The render cache is module-level, so it survives between tests.
+  clearRenderCache();
   mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" } } as never);
   process.env.GRAFANA_URL = "http://grafana:3000/";
   process.env.GRAFANA_TOKEN = "svc-token";
   vi.stubGlobal("fetch", fetchMock);
-  fetchMock.mockResolvedValue(
-    new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
-      status: 200,
-      headers: { "content-type": "image/png" },
-    })
+  // A fresh Response per call: a body can only be read once, and real fetch
+  // hands back a new one every time.
+  fetchMock.mockImplementation(
+    async () =>
+      new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+        status: 200,
+        headers: { "content-type": "image/png" },
+      })
   );
 });
 
@@ -127,5 +132,33 @@ describe("GET /api/grafana-embed/[dashboard]", () => {
     const res = await GET(req("panelId=1"), params("room"));
     expect(res.status).toBe(502);
     expect(await res.text()).not.toContain("stack trace");
+  });
+});
+
+describe("render caching", () => {
+  it("serves a repeat request from cache instead of re-rendering", async () => {
+    // Each render is a headless-browser page load, so re-rendering on every
+    // page view is what made embedding unusably slow.
+    const first = await GET(req("panelId=1&var-fi_number=A"), params("room"));
+    const second = await GET(req("panelId=1&var-fi_number=A"), params("room"));
+
+    expect(first.headers.get("x-sam-render-cache")).toBe("miss");
+    expect(second.headers.get("x-sam-render-cache")).toBe("hit");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keys the cache on every parameter, so one room cannot show another's data", async () => {
+    await GET(req("panelId=1&var-fi_number=A"), params("room"));
+    await GET(req("panelId=1&var-fi_number=B"), params("room"));
+    await GET(req("panelId=2&var-fi_number=A"), params("room"));
+    await GET(req("panelId=1&from=now-1h&var-fi_number=A"), params("room"));
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("never caches an upstream failure", async () => {
+    fetchMock.mockImplementation(async () => new Response("boom", { status: 500 }));
+    await GET(req("panelId=9&var-fi_number=Z"), params("room"));
+    await GET(req("panelId=9&var-fi_number=Z"), params("room"));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

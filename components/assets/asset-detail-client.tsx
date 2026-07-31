@@ -41,6 +41,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FirmwareField } from "@/components/assets/firmware-field";
 import { GrafanaPanel, MonitoringSection } from "@/components/monitoring/grafana-panel";
+import { DeviceMonitoringStats } from "@/components/monitoring/monitoring-stats";
 import { PANELS, panelSrc } from "@/lib/grafana";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 import { getAssetTypeIcon } from "@/lib/asset-type-icon";
@@ -143,6 +144,8 @@ export function AssetDetailClient({
   firmwareAttestedByName,
   grafanaEmbedEnabled,
   deviceDashboardUrl,
+  deviceState,
+  deviceProbeDuration,
 }: {
   asset: Asset;
   breadcrumbs: Breadcrumb[];
@@ -154,6 +157,8 @@ export function AssetDetailClient({
   firmwareAttestedByName?: string | null;
   grafanaEmbedEnabled?: boolean;
   deviceDashboardUrl?: string | null;
+  deviceState?: number | null;
+  deviceProbeDuration?: number | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -479,40 +484,22 @@ export function AssetDetailClient({
       {grafanaEmbedEnabled && asset.hostname && (
         <div className="mb-6">
           <MonitoringSection title={t("monitoring")} openUrl={deviceDashboardUrl}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <GrafanaPanel
-                src={panelSrc("device", PANELS.device.state, { hostname: asset.hostname })}
-                title="State"
-                height={120}
-                openUrl={deviceDashboardUrl}
-              />
-              <GrafanaPanel
-                src={panelSrc("device", PANELS.device.firmware, { hostname: asset.hostname })}
-                title="Firmware"
-                height={120}
-                openUrl={deviceDashboardUrl}
-              />
-              <GrafanaPanel
-                src={panelSrc("device", PANELS.device.firmwareStatus, { hostname: asset.hostname })}
-                title="Firmware status"
-                height={120}
-                openUrl={deviceDashboardUrl}
-              />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <GrafanaPanel
-                src={panelSrc("device", PANELS.device.reachability, { hostname: asset.hostname })}
-                title="Reachability"
-                height={200}
-                openUrl={deviceDashboardUrl}
-              />
-              <GrafanaPanel
-                src={panelSrc("device", PANELS.device.probeDuration, { hostname: asset.hostname })}
-                title="Probe duration"
-                height={200}
-                openUrl={deviceDashboardUrl}
-              />
-            </div>
+            {/* State and probe duration are single numbers — read from
+                Prometheus directly rather than rendered as images. */}
+            <DeviceMonitoringStats
+              state={deviceState ?? null}
+              probeDurationSeconds={deviceProbeDuration ?? null}
+            />
+            <GrafanaPanel
+              src={panelSrc("device", PANELS.device.reachability, { hostname: asset.hostname }, {
+                width: 1000,
+                height: 200,
+                scale: 1,
+              })}
+              title="Reachability"
+              height={200}
+              openUrl={deviceDashboardUrl}
+            />
           </MonitoringSection>
         </div>
       )}

@@ -52,6 +52,54 @@ const ALLOWED_PARAMS = new Set([
 const NUMERIC_PARAMS: Record<string, number> = { width: 2000, height: 2000, scale: 3 };
 
 /**
+ * Rendered panels are cached in-process for a short window.
+ *
+ * Each render is a full headless-browser page load — seconds, not milliseconds
+ * — so re-rendering on every page view made embedding barely usable. The cache
+ * key is the complete upstream URL, so a different time range, room or device
+ * is a different entry and nobody sees another user's view. Grafana is queried
+ * with a fixed service-account token, so the image does not vary by SAM user.
+ *
+ * The TTL is deliberately close to the recording-rule interval: the underlying
+ * numbers only change once a minute, so a fresher image would show the same
+ * data at more cost.
+ */
+const RENDER_CACHE_TTL_MS = Number(process.env.GRAFANA_RENDER_CACHE_MS ?? 60_000);
+const RENDER_CACHE_MAX_ENTRIES = 200;
+
+type CacheEntry = { body: ArrayBuffer; contentType: string; expires: number };
+const renderCache = new Map<string, CacheEntry>();
+
+function cacheGet(key: string): CacheEntry | null {
+  const hit = renderCache.get(key);
+  if (!hit) return null;
+  if (hit.expires < Date.now()) {
+    renderCache.delete(key);
+    return null;
+  }
+  // Refresh insertion order so the eviction below is roughly least-recently-used.
+  renderCache.delete(key);
+  renderCache.set(key, hit);
+  return hit;
+}
+
+/**
+ * Empties the cache. Exists for tests: the cache is module-level, so without a
+ * reset one test's rendered panel is served to the next.
+ */
+export function clearRenderCache(): void {
+  renderCache.clear();
+}
+
+function cacheSet(key: string, entry: CacheEntry): void {
+  if (renderCache.size >= RENDER_CACHE_MAX_ENTRIES) {
+    const oldest = renderCache.keys().next().value;
+    if (oldest !== undefined) renderCache.delete(oldest);
+  }
+  renderCache.set(key, entry);
+}
+
+/**
  * Clamps rendering geometry. Only the numeric parameters are checked — `from`
  * and `to` are Grafana time expressions like "now-1h" and must pass through
  * untouched. Returns null to drop a value that is not a positive number, so a
@@ -96,6 +144,20 @@ export async function GET(
   }
   if (!upstream.searchParams.has("orgId")) upstream.searchParams.set("orgId", "1");
 
+  const cacheKey = upstream.toString();
+  const cached = cacheGet(cacheKey);
+  if (cached) {
+    return new NextResponse(cached.body, {
+      status: 200,
+      headers: {
+        "Content-Type": cached.contentType,
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "X-SAM-Render-Cache": "hit",
+      },
+    });
+  }
+
   let res: Response;
   try {
     res = await fetch(upstream, {
@@ -116,12 +178,20 @@ export async function GET(
   }
 
   const body = await res.arrayBuffer();
+  const contentType = res.headers.get("content-type") ?? "image/png";
+  if (RENDER_CACHE_TTL_MS > 0) {
+    cacheSet(cacheKey, { body, contentType, expires: Date.now() + RENDER_CACHE_TTL_MS });
+  }
+
   return new NextResponse(body, {
     status: 200,
     headers: {
-      "Content-Type": res.headers.get("content-type") ?? "image/png",
+      "Content-Type": contentType,
+      // Cached server-side, not in the browser: the TTL is ours to control and
+      // a stale image in someone's browser cache would outlive a config change.
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
+      "X-SAM-Render-Cache": "miss",
     },
   });
 }

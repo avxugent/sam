@@ -163,8 +163,17 @@ forward on load, so this stays valid across upgrades.
 
 ## Embedding panels in SAM
 
-SAM embeds panels through its own proxy at `/api/grafana-embed/[dashboard]`,
-which fetches each panel from Grafana's **image renderer** as a PNG. SAM does
+**Counts are queried, not rendered.** The device and availability numbers on
+SAM's location and asset pages come from the `room:*` recording rules as JSON —
+one request, milliseconds — and SAM renders them in its own styling. Only the
+time-series charts are images. Rendering five numbers as five images made pages
+take seconds, because every render is a full headless-browser page load.
+
+SAM fetches the remaining charts through its own proxy at
+`/api/grafana-embed/[dashboard]`, from Grafana's **image renderer**, as a PNG.
+Results are cached in-process for `GRAFANA_RENDER_CACHE_MS` (default 60s, close
+to the recording-rule interval), keyed on the full upstream URL so a different
+room, device or time range is a different entry. SAM does
 this server-side with a service-account token, so Grafana needs no
 browser-reachable URL and no anonymous access, the token never reaches the
 client, and access is gated by SAM's existing session.

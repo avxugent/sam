@@ -386,6 +386,13 @@ browser-reachable URL, the token never reaches the client, and SAM's session
 gates access. The proxy is narrow by construction — allowlisted dashboards, UIDs
 resolved server-side, only rendering parameters and `var-*` forwarded.
 
+*Second correction, after measuring:* rendering was too slow to be useful — five
+panels per page, each a headless-browser page load, uncached. Four of the five
+were single numbers, which never needed a picture. SAM now queries the `room:*`
+recording rules directly and renders the counts itself; only the time series is
+an image, and those are cached for a minute. The lesson generalises: put in an
+image only what a picture actually communicates.
+
 *Correction after first build:* the first attempt framed `/d-solo/` and did not
 work. That path serves the whole Grafana SPA, whose absolute asset and API paths
 resolve against SAM inside the frame and 404 — and SAM's own

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
 import { isGrafanaConfigured } from "@/lib/grafana";
+import { deviceMonitoring } from "@/lib/prometheus-query";
 import { renderHostnameUrl } from "@/lib/hostname-template";
 
 export default async function AssetPage({
@@ -40,6 +41,10 @@ export default async function AssetPage({
 
   const breadcrumbs = await buildBreadcrumbs(locationId);
 
+  // Fails soft: a monitoring summary is never worth failing the asset page over.
+  const device =
+    isGrafanaConfigured() && asset.hostname ? await deviceMonitoring(asset.hostname) : null;
+
   // Owner / decommissioned-by are soft refs (no FK) — resolve names here so
   // deleted users degrade to a "(deleted user)" label client-side.
   const softRefIds = [asset.ownerId, asset.decommissionedById, asset.firmwareAttestedById].filter(
@@ -63,6 +68,8 @@ export default async function AssetPage({
         asset.firmwareAttestedById ? nameById.get(asset.firmwareAttestedById) ?? null : null
       }
       grafanaEmbedEnabled={isGrafanaConfigured()}
+      deviceState={device?.state ?? null}
+      deviceProbeDuration={device?.probeDurationSeconds ?? null}
       // Reuses the admin-configured hostname template, so "open in Grafana"
       // goes wherever hostname links already go rather than hardcoding a UID.
       deviceDashboardUrl={

@@ -54,6 +54,10 @@ services:
       VAULT_KV_VERSION: "v2"
       # Prometheus SD — must match the credentials in prometheus/prometheus.yml
       PROMETHEUS_SD_TOKEN: "dev-prometheus-token"
+      # SAM reads the room:* recording rules directly for the monitoring
+      # summaries on the location and asset pages — one JSON query each, rather
+      # than a rendered image per number.
+      PROMETHEUS_URL: "${PROMETHEUS_URL:-http://prometheus:9090}"
       # Grafana panel embedding. SAM fetches panels server-side, so this is the
       # in-network address; the browser never talks to Grafana directly.
       # The token must be created once in Grafana (Administration → Service

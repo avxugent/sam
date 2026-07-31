@@ -94,6 +94,13 @@ services:
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: root
       VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+      # Required by the healthcheck below. The Vault CLI defaults to
+      # https://127.0.0.1:8200, but a dev server speaks plain HTTP — without this
+      # `vault status` cannot connect, the container never reports healthy, and
+      # `app` (depends_on: service_healthy) never starts. The dev-mode banner that
+      # prints "export VAULT_ADDR=..." names the same address, but an export made
+      # by the entrypoint does not reach the healthcheck's process environment.
+      VAULT_ADDR: "http://127.0.0.1:8200"
     ports:
       - "8200:8200"
     cap_add:

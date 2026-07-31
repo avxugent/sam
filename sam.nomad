@@ -264,7 +264,11 @@ EOH
       config {
         image   = "your-registry/sam:latest"
         command = "npx"
-        args    = ["prisma", "db", "push", "--skip-generate"]
+        // Prisma 7 removed --skip-generate from `db push` (generation is now a
+        // separate step), so passing it makes the task exit non-zero and the
+        // allocation never starts. The production image already contains a
+        // generated client, so no generate step is needed here.
+        args    = ["prisma", "db", "push"]
       }
 
       // Needs the DB_* vars to connect

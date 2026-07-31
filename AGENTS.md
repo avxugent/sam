@@ -16,7 +16,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | Language | typescript | ~5.9 |
 | Runtime | node | 24 LTS |
 | React | react | 19.2 |
-| ORM | @prisma/client | ~6.19 |
+| ORM | @prisma/client | 7.8 |
 | Auth | next-auth | 5.0.0-beta.30 |
 | Styling | tailwindcss | v4 (via `@import "tailwindcss"`) |
 | Validation | zod | v3 |

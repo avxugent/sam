@@ -19,15 +19,19 @@ COPY prisma/schema.prisma ./prisma/
 # Install all dependencies (including devDependencies needed by next dev)
 RUN npm ci
 
-# Pre-generate the Prisma client so the app starts immediately.
-# The source bind-mount at runtime will overlay /app, but the generated
-# client lives inside node_modules which is kept in a named volume.
-RUN npx prisma generate
-
 EXPOSE 3000
 
 ENV NODE_ENV=development
 
-# Run Prisma db push to sync the schema, then start the dev server.
-# db push is idempotent — safe to run on every container start.
-CMD ["sh", "-c", "npx prisma db push --skip-generate && npm run dev"]
+# Generate the Prisma client, sync the schema, then start the dev server.
+#
+# generate runs at container start rather than image build: the schema's
+# generator writes to ../generated/prisma (outside node_modules), and the
+# `..:/app` bind mount shadows anything the build put there. Building it into the
+# image would silently accomplish nothing. The output is plain TypeScript, so
+# this is fast and platform-independent.
+#
+# `db push` is idempotent, so it is safe on every container start. Note it no
+# longer accepts --skip-generate: Prisma 7 decoupled generation from db push and
+# removed the flag, which is why generate is now an explicit step.
+CMD ["sh", "-c", "npx prisma generate && npx prisma db push && npm run dev"]

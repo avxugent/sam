@@ -216,10 +216,14 @@ scrape_configs:
       # Use the __address__ set by SAM's template (overrides the hostname)
       - source_labels: [__address__]
         target_label: __address__
-      # Carry all sam_* labels through to scraped metrics
-      - regex: "sam_(.*)"
-        action: labelmap
 ```
+
+> **Do not add a `regex: "sam_(.*)" / action: labelmap` rule.** Prometheus already
+> attaches every non-`__` label from the SD target group to the scraped series, so
+> the rule adds nothing. `labelmap` *copies* rather than renames, so it leaves each
+> series carrying both `sam_model` and `model`, `sam_hostname` and `hostname`, etc.
+> — doubled cardinality, and the unprefixed copies can collide with labels an
+> exporter sets natively.
 
 Assets of a type **without** a template continue to use their hostname directly as the scrape target (unchanged behaviour).
 
@@ -227,7 +231,7 @@ Assets of a type **without** a template continue to use their hostname directly 
 
 ### HashiCorp Vault — per-device credentials
 
-When a scrape template contains `{vault_<key>}` placeholders, SAM fetches credentials from Vault at SD refresh time and substitutes them into the rendered target labels.
+When a scrape template contains `{vault_path}`, SAM emits the asset's Vault path as a plain reference in the SD output. It never reads the secret itself, so credentials never appear in service discovery — the exporter resolves them from Vault at scrape time.
 
 **Configuration:**
 ```bash
@@ -332,6 +336,25 @@ scrape_configs:
 | `sam_assets_by_manufacturer{manufacturer="..."}` | gauge | Assets per manufacturer |
 | `sam_assets_by_campus{campus="..."}` | gauge | Assets per campus code |
 | `sam_locations_without_fi_number_total` | gauge | Locations with no FI number |
+| `sam_asset_info{sam_hostname="...", ...}` | gauge | Always `1`. One series per asset expected to report, carrying its SAM metadata |
+| `sam_asset_maintenance{sam_hostname="..."}` | gauge | Always `1`. Asset's room is in maintenance, so missing metrics are expected |
+| `sam_asset_end_of_support_timestamp{sam_hostname="..."}` | gauge | End-of-support date as a Unix timestamp |
+
+Plus the NIS2 compliance gauges — see [Integrations](doc/sam/technical/integrations.md).
+
+`sam_asset_info` is the *expected set*: `up == 0` only covers targets service
+discovery already advertises, so it can never surface an asset Prometheus has
+never seen. Join against it to find what is missing:
+
+```promql
+sam_asset_info
+  unless on (sam_hostname) (max by (sam_hostname) (probe_success) == 1)
+  unless on (sam_hostname) sam_asset_maintenance
+```
+
+Always join on `sam_hostname` — each asset type is scraped through its own
+exporter, so `instance` and `job` identify the exporter, not the device. The
+`max by (sam_hostname)` collapses devices probed by more than one job.
 
 ---
 

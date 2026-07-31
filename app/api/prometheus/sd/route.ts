@@ -33,9 +33,13 @@
  *         # Let SAM's __address__ override the default host:port target
  *         - source_labels: [__address__]
  *           target_label: __address__
- *         # Carry all sam_* labels through to scraped metrics
- *         - regex: "sam_(.*)"
- *           action: labelmap
+ *
+ * Do NOT add a `regex: "sam_(.*)" / action: labelmap` rule here. Prometheus
+ * already attaches every non-__ group label to the scraped series, so the rule
+ * adds nothing. labelmap *copies* rather than renames, so it leaves every
+ * device series carrying both sam_model and model, sam_hostname and hostname,
+ * etc. — doubled cardinality, and the unprefixed copies can collide with
+ * labels an exporter sets natively. Join on the sam_* names.
  * ──────────────────────────────────────────────────────────────────────────────
  */
 

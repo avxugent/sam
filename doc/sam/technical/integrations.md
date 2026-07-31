@@ -57,10 +57,16 @@ scrape_configs:
         authorization:
           type: Bearer
           credentials: "<PROMETHEUS_SD_TOKEN>"
-    relabel_configs:
-      - regex: "sam_(.*)"
-        action: labelmap
 ```
+
+Prometheus attaches every non-`__` label from the SD target group to the scraped
+series automatically, so no `labelmap` rule is needed.
+
+Avoid a `regex: "sam_(.*)" / action: labelmap` rule in particular. `labelmap`
+*copies* labels rather than renaming them, so it leaves every device series
+carrying both `sam_model` and `model`, `sam_hostname` and `hostname`, and so on
+— doubled label cardinality for no gain, and the unprefixed copies can collide
+with labels an exporter sets natively. Query and join on the `sam_*` names.
 
 **Example PromQL queries:**
 
@@ -111,6 +117,53 @@ scrape_configs:
 | `sam_locations_missing_review` | gauge | Leaf locations missing the configured inventory-review work-log entry within the review period (omitted when not configured) |
 | `sam_users_credentials_without_2fa` | gauge | Local accounts without TOTP 2FA |
 | `sam_audit_forward_backlog` | gauge | Audit rows not yet forwarded to syslog |
+| `sam_asset_info{sam_hostname="…", …}` | gauge | Always `1`. One series per asset expected to report, carrying its SAM metadata |
+| `sam_asset_maintenance{sam_hostname="…"}` | gauge | Always `1`. Asset's room is in maintenance, so missing metrics are expected |
+| `sam_asset_end_of_support_timestamp{sam_hostname="…"}` | gauge | End-of-support date as a Unix timestamp |
+
+#### `sam_asset_info` — the expected-set series
+
+Service discovery only advertises devices that *should* be scraped, so `up == 0`
+can never tell you about an asset Prometheus has never seen — and rooms in
+maintenance are dropped from SD entirely, so their assets disappear rather than
+showing as down.
+
+`sam_asset_info` closes that gap: one series per `INSTALLED` asset that has a
+hostname and a Prometheus-exposed type, regardless of maintenance state. Its
+labels (`sam_hostname`, `sam_fi_number`, `sam_campus`, `sam_building`,
+`sam_floor`, `sam_room`, `sam_location_name`, `sam_asset_type`,
+`sam_manufacturer`, `sam_model`, `sam_criticality`) match the SD group labels
+exactly, so it joins directly against device metrics:
+
+```promql
+# One probe result per asset. A device may be probed by several jobs (blackbox
+# for reachability plus a vendor exporter for detail), so collapse first —
+# otherwise room counts double-count it.
+max by (sam_hostname) (probe_success)
+
+# Assets that should be reporting but are not (excluding maintenance).
+# Catches assets never scraped at all, which probe_success == 0 alone misses.
+sam_asset_info
+  unless on (sam_hostname) (max by (sam_hostname) (probe_success) == 1)
+  unless on (sam_hostname) sam_asset_maintenance
+
+# Expected vs reporting, per room
+count by (sam_fi_number) (sam_asset_info)
+count by (sam_fi_number) (
+  sam_asset_info and on (sam_hostname) (max by (sam_hostname) (probe_success) == 1)
+)
+```
+
+Join on `sam_hostname`, never on `instance` or `job` — each asset type is
+scraped through its own exporter, so those labels identify the exporter rather
+than the device. Unrelated blackbox jobs also emit `probe_success`, but they
+carry no `sam_*` labels and so never match these joins.
+
+Every label is always present — empty string when unknown — so the series shape
+is stable and `count by (…)` never silently splits.
+
+`sam_criticality` is the *effective* criticality: the per-asset override when
+set, otherwise the asset type's default.
 
 ---
 

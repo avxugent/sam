@@ -146,6 +146,14 @@ sam.dashboard(
         ],
         sortBy=[{ displayName: 'Not reporting', desc: true }],
         noValue='0',
+        overrides=[
+          sam.overrideByName('FI number', [
+            {
+              id: 'links',
+              value: [sam.dataLink('Room detail', '/d/sam-room/room?var-fi_number=${__value.text}')],
+            },
+          ]),
+        ],
         h=14,
         description=|||
           Every room, worst first. Columns are sortable and filterable.

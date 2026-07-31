@@ -1,0 +1,1039 @@
+{
+   "annotations": {
+      "list": [ ]
+   },
+   "description": "Detail for a single monitored asset.\n\nA device that is not answering reports nothing beyond its probe result, so\nthe firmware and vendor panels go blank rather than showing values last seen\nhours ago.\n",
+   "editable": false,
+   "graphTooltip": 1,
+   "panels": [
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "fixed"
+               },
+               "decimals": 0,
+               "mappings": [
+                  {
+                     "options": {
+                        "0": {
+                           "color": "red",
+                           "index": 1,
+                           "text": "Not reporting"
+                        },
+                        "1": {
+                           "color": "green",
+                           "index": 0,
+                           "text": "Reporting"
+                        },
+                        "2": {
+                           "color": "blue",
+                           "index": 2,
+                           "text": "Maintenance"
+                        }
+                     },
+                     "type": "value"
+                  },
+                  {
+                     "options": {
+                        "match": "null",
+                        "result": {
+                           "color": "orange",
+                           "index": 3,
+                           "text": "Never scraped"
+                        }
+                     },
+                     "type": "special"
+                  }
+               ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "text",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 0,
+            "y": 0
+         },
+         "id": 1,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "max by (sam_hostname) (probe_success{sam_hostname=\"$hostname\"})\nor\n(sam_asset_maintenance and on (sam_hostname) sam_asset_info{sam_hostname=\"$hostname\"}) * 2\n",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "State",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "Reported by the exporter. Blank when the device is unreachable.",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "fixed"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "noValue": "unknown",
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "text",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 5,
+            "x": 4,
+            "y": 0
+         },
+         "id": 2,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "name"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "device_firmware_info{sam_hostname=\"$hostname\"}",
+               "instant": true,
+               "legendFormat": "{{version}}",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Firmware",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "fixed"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "text",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 5,
+            "x": 9,
+            "y": 0
+         },
+         "id": 3,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "name"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "sam_asset_info{sam_hostname=\"$hostname\"}",
+               "instant": true,
+               "legendFormat": "{{sam_asset_type}} — {{sam_model}}",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Type",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "fixed"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "text",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 14,
+            "y": 0
+         },
+         "id": 4,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "name"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "sam_asset_info{sam_hostname=\"$hostname\"}",
+               "instant": true,
+               "legendFormat": "{{sam_location_name}} ({{sam_fi_number}})",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Room",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "Effective value: per-asset override, else the asset type default. Unclassified is a NIS2 gap.",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "fixed"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "noValue": "unclassified",
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "text",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 20,
+            "y": 0
+         },
+         "id": 5,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "name"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "sam_asset_info{sam_hostname=\"$hostname\"}",
+               "instant": true,
+               "legendFormat": "{{sam_criticality}}",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Criticality",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "1 = answered, 0 = probed and failed. Gaps mean no probe ran at all.",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 8,
+                  "lineWidth": 2,
+                  "showPoints": "never",
+                  "spanNulls": false
+               },
+               "max": 1,
+               "min": 0,
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 0,
+            "y": 4
+         },
+         "id": 6,
+         "options": {
+            "legend": {
+               "calcs": [ ],
+               "displayMode": "list",
+               "placement": "bottom",
+               "showLegend": true
+            },
+            "tooltip": {
+               "mode": "multi",
+               "sort": "desc"
+            }
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "max by (sam_hostname) (probe_success{sam_hostname=\"$hostname\"})",
+               "instant": false,
+               "legendFormat": "probe_success",
+               "range": true,
+               "refId": "A"
+            }
+         ],
+         "title": "Reachability",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 8,
+                  "lineWidth": 2,
+                  "showPoints": "never",
+                  "spanNulls": false
+               },
+               "max": null,
+               "min": 0,
+               "unit": "s"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 12,
+            "y": 4
+         },
+         "id": 7,
+         "options": {
+            "legend": {
+               "calcs": [ ],
+               "displayMode": "list",
+               "placement": "bottom",
+               "showLegend": true
+            },
+            "tooltip": {
+               "mode": "multi",
+               "sort": "desc"
+            }
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "max by (sam_hostname) (probe_duration_seconds{sam_hostname=\"$hostname\"})",
+               "instant": false,
+               "legendFormat": "duration",
+               "range": true,
+               "refId": "A"
+            }
+         ],
+         "title": "Probe duration",
+         "type": "timeseries"
+      },
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 11
+         },
+         "id": 8,
+         "panels": [ ],
+         "repeat": "has_recorder",
+         "title": "Recorder",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 8,
+                  "lineWidth": 2,
+                  "showPoints": "never",
+                  "spanNulls": false
+               },
+               "max": 1,
+               "min": 0,
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 7,
+            "w": 8,
+            "x": 0,
+            "y": 12
+         },
+         "id": 9,
+         "options": {
+            "legend": {
+               "calcs": [ ],
+               "displayMode": "list",
+               "placement": "bottom",
+               "showLegend": true
+            },
+            "tooltip": {
+               "mode": "multi",
+               "sort": "desc"
+            }
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "pearl_recording_active{sam_hostname=\"$hostname\"}",
+               "instant": false,
+               "legendFormat": "recording",
+               "range": true,
+               "refId": "A"
+            }
+         ],
+         "title": "Recording active",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 8,
+                  "lineWidth": 2,
+                  "showPoints": "never",
+                  "spanNulls": false
+               },
+               "max": null,
+               "min": 0,
+               "unit": "bytes"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 7,
+            "w": 8,
+            "x": 8,
+            "y": 12
+         },
+         "id": 10,
+         "options": {
+            "legend": {
+               "calcs": [ ],
+               "displayMode": "list",
+               "placement": "bottom",
+               "showLegend": true
+            },
+            "tooltip": {
+               "mode": "multi",
+               "sort": "desc"
+            }
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "pearl_disk_free_bytes{sam_hostname=\"$hostname\"}",
+               "instant": false,
+               "legendFormat": "free",
+               "range": true,
+               "refId": "A"
+            }
+         ],
+         "title": "Free disk",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "fixed"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "text",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 7,
+            "w": 8,
+            "x": 16,
+            "y": 12
+         },
+         "id": 11,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "pearl_channel_count{sam_hostname=\"$hostname\"}",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Channels",
+         "type": "stat"
+      },
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 19
+         },
+         "id": 12,
+         "panels": [ ],
+         "repeat": "has_projector",
+         "title": "Projector",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 8,
+                  "lineWidth": 2,
+                  "showPoints": "never",
+                  "spanNulls": false
+               },
+               "max": null,
+               "min": 0,
+               "unit": "h"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 0,
+            "y": 20
+         },
+         "id": 13,
+         "options": {
+            "legend": {
+               "calcs": [ ],
+               "displayMode": "list",
+               "placement": "bottom",
+               "showLegend": true
+            },
+            "tooltip": {
+               "mode": "multi",
+               "sort": "desc"
+            }
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "projector_lamp_hours{sam_hostname=\"$hostname\"}",
+               "instant": false,
+               "legendFormat": "hours",
+               "range": true,
+               "refId": "A"
+            }
+         ],
+         "title": "Lamp hours",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 8,
+                  "lineWidth": 2,
+                  "showPoints": "never",
+                  "spanNulls": false
+               },
+               "max": 1,
+               "min": 0,
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 12,
+            "y": 20
+         },
+         "id": 14,
+         "options": {
+            "legend": {
+               "calcs": [ ],
+               "displayMode": "list",
+               "placement": "bottom",
+               "showLegend": true
+            },
+            "tooltip": {
+               "mode": "multi",
+               "sort": "desc"
+            }
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "projector_input_active{sam_hostname=\"$hostname\"}",
+               "instant": false,
+               "legendFormat": "input",
+               "range": true,
+               "refId": "A"
+            }
+         ],
+         "title": "Input signal present",
+         "type": "timeseries"
+      },
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 27
+         },
+         "id": 15,
+         "panels": [ ],
+         "title": "Lifecycle",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "Not set is itself a NIS2 gap — unsupported equipment needs a documented plan.",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "fixed"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "noValue": "not set",
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "text",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "dateTimeAsIso"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 0,
+            "y": 28
+         },
+         "id": 16,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "sam_asset_end_of_support_timestamp{sam_hostname=\"$hostname\"} * 1000",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "End of support",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "noValue": "unknown",
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "red",
+                        "value": null
+                     },
+                     {
+                        "color": "orange",
+                        "value": 0
+                     },
+                     {
+                        "color": "green",
+                        "value": 365
+                     }
+                  ]
+               },
+               "unit": "d"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 6,
+            "y": 28
+         },
+         "id": 17,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "(sam_asset_end_of_support_timestamp{sam_hostname=\"$hostname\"} - time()) / 86400",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Days until end of support",
+         "type": "stat"
+      }
+   ],
+   "refresh": "1m",
+   "schemaVersion": 39,
+   "tags": [
+      "sam"
+   ],
+   "templating": {
+      "list": [
+         {
+            "current": { },
+            "hide": 0,
+            "label": "Data source",
+            "name": "datasource",
+            "query": "prometheus",
+            "refresh": 1,
+            "regex": "",
+            "type": "datasource"
+         },
+         {
+            "current": { },
+            "datasource": {
+               "type": "prometheus",
+               "uid": "${datasource}"
+            },
+            "definition": "label_values(sam_asset_info, sam_hostname)",
+            "hide": 0,
+            "includeAll": false,
+            "label": "Device",
+            "multi": false,
+            "name": "hostname",
+            "options": [ ],
+            "query": "label_values(sam_asset_info, sam_hostname)",
+            "refresh": 2,
+            "sort": 1,
+            "type": "query"
+         },
+         {
+            "current": { },
+            "datasource": {
+               "type": "prometheus",
+               "uid": "${datasource}"
+            },
+            "definition": "label_values(pearl_recording_active{sam_hostname=\"$hostname\"}, sam_hostname)",
+            "hide": 2,
+            "includeAll": false,
+            "label": "has_recorder",
+            "multi": false,
+            "name": "has_recorder",
+            "options": [ ],
+            "query": "label_values(pearl_recording_active{sam_hostname=\"$hostname\"}, sam_hostname)",
+            "refresh": 2,
+            "sort": 1,
+            "type": "query"
+         },
+         {
+            "current": { },
+            "datasource": {
+               "type": "prometheus",
+               "uid": "${datasource}"
+            },
+            "definition": "label_values(projector_lamp_hours{sam_hostname=\"$hostname\"}, sam_hostname)",
+            "hide": 2,
+            "includeAll": false,
+            "label": "has_projector",
+            "multi": false,
+            "name": "has_projector",
+            "options": [ ],
+            "query": "label_values(projector_lamp_hours{sam_hostname=\"$hostname\"}, sam_hostname)",
+            "refresh": 2,
+            "sort": 1,
+            "type": "query"
+         }
+      ]
+   },
+   "time": {
+      "from": "now-24h",
+      "to": "now"
+   },
+   "timepicker": { },
+   "timezone": "browser",
+   "title": "SAM — Device",
+   "uid": "sam-device",
+   "version": 1
+}

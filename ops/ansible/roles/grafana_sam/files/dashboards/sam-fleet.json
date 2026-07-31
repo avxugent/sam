@@ -585,7 +585,26 @@
                },
                "noValue": "0"
             },
-            "overrides": [ ]
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "FI number"
+                  },
+                  "properties": [
+                     {
+                        "id": "links",
+                        "value": [
+                           {
+                              "targetBlank": false,
+                              "title": "Room detail",
+                              "url": "/d/sam-room/room?var-fi_number=${__value.text}"
+                           }
+                        ]
+                     }
+                  ]
+               }
+            ]
          },
          "gridPos": {
             "h": 14,

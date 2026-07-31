@@ -180,11 +180,66 @@ missing instead of absent.
 `/d-solo/<uid>?panelId=<id>`, and ids are assigned by position. Append panels to
 the end of a row rather than inserting into the middle.
 
+## Dashboards
+
+| UID | Purpose | Variables |
+|---|---|---|
+| `sam-fleet` | Totals, worst rooms, inventory shape, lifecycle | `campus`, `building` |
+| `sam-room` | Every device in one room, with its state | `fi_number` |
+| `sam-device` | One device, plus rows for the metrics its type exposes | `hostname` |
+
+Drill-down runs fleet → room → device via data links on the FI number and
+hostname columns. Both also open directly with the variable prefilled:
+
+```
+/d/sam-room/room?var-fi_number=14.10.100.013
+/d/sam-device/device?var-hostname=rec9092001.private.ugent.be
+```
+
+### Linking from SAM
+
+SAM keeps the location tree and the asset pages as the place people navigate
+from; Grafana is reached through the URL-template settings under
+**Administration → Settings**. No Grafana-specific configuration exists in SAM —
+these are the same generic templates used for any external system.
+
+| Setting | Set it to | Appears on |
+|---|---|---|
+| Location URL template | `https://grafana.example.com/d/sam-room/room?var-fi_number={fi_number}` | A *Monitoring* badge on the location detail page |
+| Hostname URL template | `https://grafana.example.com/d/sam-device/device?var-hostname={hostname}` | The hostname on the asset detail page and in asset tables |
+
+A location with no FI number shows no link when the template uses
+`{fi_number}` — there would be no room for Grafana to resolve.
+
+### Conditional rows
+
+Grafana has no "show this row only if the device exposes these metrics", so each
+vendor row on `sam-device` repeats over a hidden variable that resolves to one
+value when the metric family is present and none when it is not — repeating zero
+times is the closest equivalent to hiding.
+
+Each family therefore has to be named in `device.jsonnet`: an `existsVar` plus a
+row. The Recorder pair is the template to copy. A fully generic version is not
+achievable without a Grafana plugin, and showing empty panels for every device
+that lacks a family would be worse.
+
+### Device state
+
+The room table and the device dashboard fold four conditions into one value,
+because a device in maintenance and a device that was never scraped both have no
+probe series and `probe_success` alone cannot tell them apart:
+
+| Value | Meaning |
+|---|---|
+| `1` | Reporting |
+| `0` | Probed and failed |
+| `2` | Room in maintenance |
+| *no series* | Never scraped |
+
 ## Status
 
-Built: recording rules, alert rules, promtool tests, `sam-fleet` dashboard.
+Built: recording rules, alert rules, promtool tests, all three dashboards.
 
-Not built yet: the room and device dashboards (phase 3) and everything firmware
-(phase 4). The fleet dashboard has no firmware panels on purpose — the metrics
-that back them don't exist yet, and empty panels teach users to distrust the
-dashboard.
+Not built yet: everything firmware (phase 4). The dashboards carry no firmware
+panels on purpose — the metrics that back them don't exist yet, and empty panels
+teach users to distrust the dashboard.

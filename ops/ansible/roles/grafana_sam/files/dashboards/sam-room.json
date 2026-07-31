@@ -1,0 +1,783 @@
+{
+   "annotations": {
+      "list": [ ]
+   },
+   "description": "Monitoring status for a single room.\n\nDevices come from SAM's inventory, so one that service discovery never\nadvertised still appears here — as \"Never scraped\" rather than not at all.\n",
+   "editable": false,
+   "graphTooltip": 1,
+   "panels": [
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "fixed"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "text",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 0,
+            "y": 0
+         },
+         "id": 1,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "(sum(room:assets_expected:count{sam_fi_number=\"$fi_number\"})) or vector(0)",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Devices",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "text",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 4,
+            "y": 0
+         },
+         "id": 2,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "(sum(room:assets_reporting:count{sam_fi_number=\"$fi_number\"})) or vector(0)",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Reporting",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     },
+                     {
+                        "color": "red",
+                        "value": 1
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 8,
+            "y": 0
+         },
+         "id": 3,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "(sum(room:assets_down:count{sam_fi_number=\"$fi_number\"})) or vector(0)",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Not reporting",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "No probe series exists — points at service discovery or the asset type scrape template, not the device.",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     },
+                     {
+                        "color": "red",
+                        "value": 1
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 12,
+            "y": 0
+         },
+         "id": 4,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "(sum(room:assets_never_scraped:count{sam_fi_number=\"$fi_number\"})) or vector(0)",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Never scraped",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     },
+                     {
+                        "color": "orange",
+                        "value": 1
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 16,
+            "y": 0
+         },
+         "id": 5,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "(sum(room:assets_maintenance:count{sam_fi_number=\"$fi_number\"})) or vector(0)",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "In maintenance",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "red",
+                        "value": null
+                     },
+                     {
+                        "color": "orange",
+                        "value": 0.90000000000000002
+                     },
+                     {
+                        "color": "green",
+                        "value": 0.98999999999999999
+                     }
+                  ]
+               },
+               "unit": "percentunit"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 20,
+            "y": 0
+         },
+         "id": 6,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "room:health:ratio{sam_fi_number=\"$fi_number\"}",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Availability",
+         "type": "stat"
+      },
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 4
+         },
+         "id": 7,
+         "panels": [ ],
+         "title": "Devices",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "Click a hostname to drill into that device.",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "filterable": true
+               }
+            },
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "State"
+                  },
+                  "properties": [
+                     {
+                        "id": "mappings",
+                        "value": [
+                           {
+                              "options": {
+                                 "0": {
+                                    "color": "red",
+                                    "index": 1,
+                                    "text": "Not reporting"
+                                 },
+                                 "1": {
+                                    "color": "green",
+                                    "index": 0,
+                                    "text": "Reporting"
+                                 },
+                                 "2": {
+                                    "color": "blue",
+                                    "index": 2,
+                                    "text": "Maintenance"
+                                 }
+                              },
+                              "type": "value"
+                           },
+                           {
+                              "options": {
+                                 "match": "null",
+                                 "result": {
+                                    "color": "orange",
+                                    "index": 3,
+                                    "text": "Never scraped"
+                                 }
+                              },
+                              "type": "special"
+                           }
+                        ]
+                     },
+                     {
+                        "id": "custom.cellOptions",
+                        "value": {
+                           "type": "color-text"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Hostname"
+                  },
+                  "properties": [
+                     {
+                        "id": "links",
+                        "value": [
+                           {
+                              "targetBlank": false,
+                              "title": "Device detail",
+                              "url": "/d/sam-device/device?var-hostname=${__value.text}"
+                           }
+                        ]
+                     }
+                  ]
+               }
+            ]
+         },
+         "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 5
+         },
+         "id": 8,
+         "options": {
+            "cellHeight": "sm",
+            "footer": {
+               "countRows": false,
+               "fields": "",
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true,
+            "sortBy": [ ]
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "sum by (sam_hostname, sam_asset_type, sam_manufacturer, sam_model, sam_criticality) (sam_asset_info{sam_fi_number=\"$fi_number\"})",
+               "format": "table",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "max by (sam_hostname) (probe_success{sam_fi_number=\"$fi_number\"})\nor\n(sam_asset_maintenance and on (sam_hostname) sam_asset_info{sam_fi_number=\"$fi_number\"}) * 2\n",
+               "format": "table",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "B"
+            }
+         ],
+         "title": "Devices in this room",
+         "transformations": [
+            {
+               "id": "joinByField",
+               "options": {
+                  "byField": "sam_hostname",
+                  "mode": "outer"
+               }
+            },
+            {
+               "id": "organize",
+               "options": {
+                  "excludeByName": {
+                     "Time": true,
+                     "Time 1": true,
+                     "Time 2": true,
+                     "Value #A": true,
+                     "__name__": true,
+                     "__name__ 1": true,
+                     "__name__ 2": true
+                  },
+                  "indexByName": {
+                     "Value #B": 1,
+                     "sam_asset_type": 2,
+                     "sam_criticality": 5,
+                     "sam_hostname": 0,
+                     "sam_manufacturer": 3,
+                     "sam_model": 4
+                  },
+                  "renameByName": {
+                     "Value #B": "State",
+                     "sam_asset_type": "Type",
+                     "sam_criticality": "Criticality",
+                     "sam_hostname": "Hostname",
+                     "sam_manufacturer": "Manufacturer",
+                     "sam_model": "Model"
+                  }
+               }
+            }
+         ],
+         "type": "table"
+      },
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 17
+         },
+         "id": 9,
+         "panels": [ ],
+         "title": "History",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 8,
+                  "lineWidth": 2,
+                  "showPoints": "never",
+                  "spanNulls": false
+               },
+               "max": 1,
+               "min": 0,
+               "unit": "percentunit"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 18
+         },
+         "id": 10,
+         "options": {
+            "legend": {
+               "calcs": [ ],
+               "displayMode": "list",
+               "placement": "bottom",
+               "showLegend": true
+            },
+            "tooltip": {
+               "mode": "multi",
+               "sort": "desc"
+            }
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "room:health:ratio{sam_fi_number=\"$fi_number\"}",
+               "instant": false,
+               "legendFormat": "Reporting",
+               "range": true,
+               "refId": "A"
+            }
+         ],
+         "title": "Room availability",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "A device climbing steadily is often failing before it fails.",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 8,
+                  "lineWidth": 2,
+                  "showPoints": "never",
+                  "spanNulls": false
+               },
+               "max": null,
+               "min": 0,
+               "unit": "s"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 18
+         },
+         "id": 11,
+         "options": {
+            "legend": {
+               "calcs": [ ],
+               "displayMode": "list",
+               "placement": "bottom",
+               "showLegend": true
+            },
+            "tooltip": {
+               "mode": "multi",
+               "sort": "desc"
+            }
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "max by (sam_hostname) (probe_duration_seconds{sam_fi_number=\"$fi_number\"})",
+               "instant": false,
+               "legendFormat": "{{sam_hostname}}",
+               "range": true,
+               "refId": "A"
+            }
+         ],
+         "title": "Probe duration by device",
+         "type": "timeseries"
+      }
+   ],
+   "refresh": "1m",
+   "schemaVersion": 39,
+   "tags": [
+      "sam"
+   ],
+   "templating": {
+      "list": [
+         {
+            "current": { },
+            "hide": 0,
+            "label": "Data source",
+            "name": "datasource",
+            "query": "prometheus",
+            "refresh": 1,
+            "regex": "",
+            "type": "datasource"
+         },
+         {
+            "current": { },
+            "datasource": {
+               "type": "prometheus",
+               "uid": "${datasource}"
+            },
+            "definition": "label_values(sam_asset_info, sam_fi_number)",
+            "hide": 0,
+            "includeAll": false,
+            "label": "Room (FI number)",
+            "multi": false,
+            "name": "fi_number",
+            "options": [ ],
+            "query": "label_values(sam_asset_info, sam_fi_number)",
+            "refresh": 2,
+            "sort": 1,
+            "type": "query"
+         }
+      ]
+   },
+   "time": {
+      "from": "now-24h",
+      "to": "now"
+   },
+   "timepicker": { },
+   "timezone": "browser",
+   "title": "SAM — Room",
+   "uid": "sam-room",
+   "version": 1
+}

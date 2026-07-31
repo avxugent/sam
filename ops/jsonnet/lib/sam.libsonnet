@@ -117,20 +117,23 @@
   // Ordered refIds so callers can pass a plain list of exprs.
   refIds:: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
 
-  stat(title, expr, w=4, h=4, unit='short', thresholds=null, description='', links=[]):: {
+  stat(title, expr, w=4, h=4, unit='short', thresholds=null, description='', links=[], mappings=[], legend='', textMode='auto', noValue=null):: {
     type: 'stat',
     title: title,
     description: description,
     w: w,
     h: h,
     datasource: sam.ds,
-    targets: [sam.target(expr, instant=true)],
+    // textMode='name' renders the legend rather than the number, which is how a
+    // label-carrying series (device_firmware_info{version="…"}) is displayed.
+    targets: [sam.target(expr, legend, instant=true)],
     links: links,
     fieldConfig: {
       defaults: {
         unit: unit,
         decimals: 0,
-        mappings: [],
+        mappings: mappings,
+        [if noValue != null then 'noValue']: noValue,
         color: { mode: if thresholds == null then 'fixed' else 'thresholds' },
         thresholds: {
           mode: 'absolute',
@@ -145,11 +148,59 @@
       reduceOptions: { calcs: ['lastNotNull'], fields: '', values: false },
       colorMode: 'value',
       graphMode: 'none',
-      textMode: 'auto',
+      textMode: textMode,
       justifyMode: 'auto',
       orientation: 'auto',
     },
   },
+
+  // ── Field overrides, mappings and links ────────────────────────────────────
+  overrideByName(name, properties):: {
+    matcher: { id: 'byName', options: name },
+    properties: properties,
+  },
+
+  /** Opens another dashboard from a table cell or stat. */
+  dataLink(title, url):: { title: title, url: url, targetBlank: false },
+
+  /**
+   * Reporting state as a single 0/1/2/absent column, mapped to words.
+   *
+   * A device in maintenance and a device that was never scraped both have no
+   * probe series, so a bare probe_success cannot tell them apart — the query in
+   * `stateExpr` folds maintenance in as 2 to keep them distinct.
+   */
+  stateMappings:: [
+    {
+      type: 'value',
+      options: {
+        '1': { text: 'Reporting', color: 'green', index: 0 },
+        '0': { text: 'Not reporting', color: 'red', index: 1 },
+        '2': { text: 'Maintenance', color: 'blue', index: 2 },
+      },
+    },
+    {
+      type: 'special',
+      options: {
+        match: 'null',
+        result: { text: 'Never scraped', color: 'orange', index: 3 },
+      },
+    },
+  ],
+
+  /**
+   * 1 = reporting, 0 = probed and failed, 2 = room in maintenance,
+   * no series = never scraped.
+   *
+   * `or` prefers its left operand, and a device in maintenance is pulled from
+   * service discovery so it never has a probe series — the two sides cannot
+   * both match the same host.
+   */
+  stateExpr(selector):: |||
+    max by (sam_hostname) (probe_success{%(sel)s})
+    or
+    (sam_asset_maintenance and on (sam_hostname) sam_asset_info{%(sel)s}) * 2
+  ||| % { sel: selector },
 
   timeseries(title, targets, w=12, h=8, unit='short', min=null, max=null, description='', legend='list'):: {
     type: 'timeseries',
@@ -225,7 +276,7 @@
   //
   // `order` and `rename` are keyed on the *original* field names — Grafana's
   // organize transform resolves both against the pre-rename names.
-  table(title, targets, joinField, rename, order, w=24, h=10, description='', hidden=[], sortBy=null, noValue=null):: {
+  table(title, targets, joinField, rename, order, w=24, h=10, description='', hidden=[], sortBy=null, noValue=null, overrides=[]):: {
     type: 'table',
     title: title,
     description: description,
@@ -260,7 +311,7 @@
         [if noValue != null then 'noValue']: noValue,
         custom: { align: 'auto', cellOptions: { type: 'auto' }, filterable: true },
       },
-      overrides: [],
+      overrides: overrides,
     },
     options: {
       showHeader: true,
@@ -270,7 +321,55 @@
     },
   },
 
-  row(title):: { type: 'row', title: title, collapsed: false, panels: [] },
+  // `repeat` names a variable the row repeats over. Pointed at a variable that
+  // resolves to one value or none, it becomes a *conditional* row — Grafana has
+  // no native "show this row only if the device exposes these metrics", and
+  // repeating zero times is the closest equivalent.
+  row(title, repeat=null):: {
+    type: 'row',
+    title: title,
+    collapsed: false,
+    panels: [],
+    [if repeat != null then 'repeat']: repeat,
+  },
+
+  /**
+   * Hidden variable that yields exactly one value when `metric` exists for the
+   * selector, and none otherwise. Drives conditional rows.
+   */
+  existsVar(name, metric, selector):: {
+    name: name,
+    label: name,
+    type: 'query',
+    datasource: sam.ds,
+    definition: 'label_values(%s{%s}, sam_hostname)' % [metric, selector],
+    query: 'label_values(%s{%s}, sam_hostname)' % [metric, selector],
+    refresh: 2,
+    sort: 1,
+    multi: false,
+    includeAll: false,
+    // Hidden: it is a presence test, not something to pick from.
+    hide: 2,
+    current: {},
+    options: [],
+  },
+
+  /** Single-select variable, for the one room or device a dashboard is about. */
+  singleVar(name, label, metric, labelName):: {
+    name: name,
+    label: label,
+    type: 'query',
+    datasource: sam.ds,
+    definition: 'label_values(%s, %s)' % [metric, labelName],
+    query: 'label_values(%s, %s)' % [metric, labelName],
+    refresh: 2,
+    sort: 1,
+    multi: false,
+    includeAll: false,
+    current: {},
+    options: [],
+    hide: 0,
+  },
 
   // ── Shared threshold sets ──────────────────────────────────────────────────
   // "any is bad" — green at zero, red as soon as one appears.

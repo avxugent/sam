@@ -29,15 +29,24 @@ describe("GET /api/settings/general", () => {
     mockFindMany.mockResolvedValue([
       { key: "hostname.urlTemplate", value: "https://h/{hostname}" },
       { key: "macAddress.urlTemplate", value: "https://m/{mac}" },
+      { key: "location.urlTemplate", value: "https://g/d/sam-room/room?var-fi_number={fi_number}" },
     ] as never);
     const res = await getGeneral();
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ hostnameUrlTemplate: "https://h/{hostname}", macAddressUrlTemplate: "https://m/{mac}" });
+    expect(await res.json()).toEqual({
+      hostnameUrlTemplate: "https://h/{hostname}",
+      macAddressUrlTemplate: "https://m/{mac}",
+      locationUrlTemplate: "https://g/d/sam-room/room?var-fi_number={fi_number}",
+    });
   });
   it("falls back to empty strings when unset", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
     mockFindMany.mockResolvedValue([] as never);
-    expect(await (await getGeneral()).json()).toEqual({ hostnameUrlTemplate: "", macAddressUrlTemplate: "" });
+    expect(await (await getGeneral()).json()).toEqual({
+      hostnameUrlTemplate: "",
+      macAddressUrlTemplate: "",
+      locationUrlTemplate: "",
+    });
   });
 });
 

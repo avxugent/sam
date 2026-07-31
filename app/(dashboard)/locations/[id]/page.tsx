@@ -5,14 +5,19 @@ import { LocationDetailClient } from "@/components/locations/location-detail-cli
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { isJiraConfigured } from "@/lib/jira";
 
-async function getUrlTemplates(): Promise<{ hostnameUrlTemplate: string | null; macAddressUrlTemplate: string | null }> {
+async function getUrlTemplates(): Promise<{
+  hostnameUrlTemplate: string | null;
+  macAddressUrlTemplate: string | null;
+  locationUrlTemplate: string | null;
+}> {
   const settings = await prisma.appSetting.findMany({
-    where: { key: { in: ["hostname.urlTemplate", "macAddress.urlTemplate"] } },
+    where: { key: { in: ["hostname.urlTemplate", "macAddress.urlTemplate", "location.urlTemplate"] } },
   });
   const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
   return {
     hostnameUrlTemplate: map["hostname.urlTemplate"] || null,
     macAddressUrlTemplate: map["macAddress.urlTemplate"] || null,
+    locationUrlTemplate: map["location.urlTemplate"] || null,
   };
 }
 
@@ -23,7 +28,7 @@ export default async function LocationPage({
 }) {
   const session = await auth();
   const { id } = await params;
-  const { hostnameUrlTemplate, macAddressUrlTemplate } = await getUrlTemplates();
+  const { hostnameUrlTemplate, macAddressUrlTemplate, locationUrlTemplate } = await getUrlTemplates();
 
   const userPref = session?.user?.id
     ? await prisma.user.findUnique({
@@ -115,6 +120,7 @@ export default async function LocationPage({
       defaultTab={defaultTab}
       hostnameUrlTemplate={hostnameUrlTemplate}
       macAddressUrlTemplate={macAddressUrlTemplate}
+      locationUrlTemplate={locationUrlTemplate}
       workLogs={workLogs.map((w) => ({
         id: w.id,
         performedAt: w.performedAt.toISOString(),

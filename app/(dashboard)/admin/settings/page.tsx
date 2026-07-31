@@ -16,6 +16,7 @@ export default async function SettingsPage() {
         in: [
           "hostname.urlTemplate",
           "macAddress.urlTemplate",
+          "location.urlTemplate",
           "app.title",
           "branding.logoStorageKey",
           "branding.faviconStorageKey",
@@ -52,6 +53,7 @@ export default async function SettingsPage() {
         <GeneralSettingsClient
           initialHostnameUrlTemplate={map["hostname.urlTemplate"] ?? ""}
           initialMacAddressUrlTemplate={map["macAddress.urlTemplate"] ?? ""}
+          initialLocationUrlTemplate={map["location.urlTemplate"] ?? ""}
         />
       </div>
 

@@ -41,7 +41,10 @@ import {
   Image as ImageIcon,
   Wrench,
   FolderInput,
+  Activity,
+  ExternalLink,
 } from "lucide-react";
+import { renderLocationUrl } from "@/lib/hostname-template";
 
 type Breadcrumb = { id: string; name: string };
 
@@ -109,6 +112,7 @@ export function LocationDetailClient({
   showLocation = false,
   defaultTab = "assets",
   hostnameUrlTemplate,
+  locationUrlTemplate,
   macAddressUrlTemplate,
   workLogs = [],
   users = [],
@@ -125,6 +129,7 @@ export function LocationDetailClient({
   showLocation?: boolean;
   defaultTab?: string;
   hostnameUrlTemplate?: string | null;
+  locationUrlTemplate?: string | null;
   macAddressUrlTemplate?: string | null;
   workLogs?: WorkLogEntry[];
   users?: WorkLogUserOption[];
@@ -207,6 +212,17 @@ export function LocationDetailClient({
 
   const hasAddress = mapData.address || mapData.city || mapData.country;
 
+  // A template keyed on {fi_number} cannot identify a room that has none, so
+  // suppress the link rather than emit a URL that resolves to an empty room.
+  const monitoringUrl =
+    locationUrlTemplate && (location.fiNumber || !locationUrlTemplate.includes("{fi_number}"))
+      ? renderLocationUrl(locationUrlTemplate, {
+          fiNumber: location.fiNumber,
+          name: location.name,
+          id: location.id,
+        })
+      : null;
+
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
@@ -259,6 +275,18 @@ export function LocationDetailClient({
             <span className="inline-block font-mono text-[11px] text-white bg-white/20 border border-white/25 px-2 py-[2px] rounded-[5px] mt-1">
               {location.fiNumber}
             </span>
+          )}
+          {monitoringUrl && (
+            <a
+              href={monitoringUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-semibold text-[11px] text-white bg-white/20 border border-white/25 hover:bg-white/30 px-2 py-[2px] rounded-[5px] mt-1 ml-2"
+            >
+              <Activity className="h-3 w-3" />
+              {t("monitoring")}
+              <ExternalLink className="h-3 w-3" />
+            </a>
           )}
           {selfMaintenance && (
             <span className="inline-flex items-center gap-1 font-semibold text-[11px] text-[#0f172a] bg-amber-400 border border-amber-300 px-2 py-[2px] rounded-[5px] mt-1 ml-2">

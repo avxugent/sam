@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
+import { renderHostnameUrl, renderLocationUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 
 describe("renderHostnameUrl()", () => {
   it("substitutes all variables", () => {
@@ -48,5 +48,29 @@ describe("renderMacAddressUrl()", () => {
 
   it("lowercases the address", () => {
     expect(renderMacAddressUrl("{mac}", "AABBCCDDEEFF")).toBe("aa:bb:cc:dd:ee:ff");
+  });
+});
+
+describe("renderLocationUrl()", () => {
+  it("substitutes all variables", () => {
+    const url = renderLocationUrl("https://g/d/sam-room/room?var-fi_number={fi_number}&n={location_name}&i={location_id}", {
+      fiNumber: "14.10.100.013",
+      name: "Room 013",
+      id: "clx0abc",
+    });
+    expect(url).toBe("https://g/d/sam-room/room?var-fi_number=14.10.100.013&n=Room 013&i=clx0abc");
+  });
+
+  it("substitutes an empty string for missing fields rather than the literal placeholder", () => {
+    // Callers suppress the link when {fi_number} is used and absent; the
+    // renderer itself must not leak "{fi_number}" into a URL either way.
+    expect(renderLocationUrl("https://g/{fi_number}", { name: "Store room" })).toBe("https://g/");
+    expect(renderLocationUrl("https://g/{location_name}", {})).toBe("https://g/");
+  });
+
+  it("replaces every occurrence of a variable", () => {
+    expect(renderLocationUrl("{fi_number}/{fi_number}", { fiNumber: "14.10.100.013" })).toBe(
+      "14.10.100.013/14.10.100.013"
+    );
   });
 });

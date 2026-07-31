@@ -114,7 +114,14 @@ Download a full CSV export of all assets. The export includes all fields, MAC ad
 
 Application-wide configuration managed through the UI. Changes take effect immediately without a server restart. This includes:
 
-- **General** — hostname / MAC address URL templates.
+- **General** — hostname / MAC address / location URL templates. Each turns a
+  value into a clickable link to an external system. Point them at Grafana to
+  reach the monitoring dashboards from SAM:
+  `https://grafana.example.com/d/sam-device/device?var-hostname={hostname}` for
+  hostnames, and
+  `https://grafana.example.com/d/sam-room/room?var-fi_number={fi_number}` for
+  locations, which adds a *Monitoring* badge to the location page. A location
+  without an FI number shows no link.
 - **Branding** — site name, logo, favicon, background.
 - **Security & compliance** — require two-factor authentication for all local accounts, audit log retention (days), the default asset owner (e.g. a team account applied to new assets when no owner is chosen), and which fixed work-log item + period counts as the periodic inventory review on the compliance dashboard.
 - **Work log items** — define fixed work log items (e.g. *Review asset list*) that technicians can select on a location's work log. These power location coverage reports. See [Work Logs](work-logs.md#fixed-work-log-items).

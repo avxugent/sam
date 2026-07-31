@@ -281,7 +281,8 @@
     "mergeConfirmTitle": "Merge into existing location?",
     "mergeConfirmDescription": "A location named \"{name}\" already exists here. Merging moves all of this location's assets, sub-locations, attachments and work logs into it, then deletes this one. This cannot be undone.",
     "mergeButton": "Merge",
-    "locationMerged": "Locations merged"
+    "locationMerged": "Locations merged",
+    "monitoring": "Monitoring"
   },
   "locationForm": {
     "createTitle": "Add location",
@@ -672,6 +673,8 @@
     "hostnameTemplateHelp": "Template that turns a hostname into a clickable URL. Use '{hostname}' as the placeholder.",
     "macAddressTemplate": "MAC address URL template",
     "macAddressTemplateHelp": "Template that turns a MAC address into a clickable URL. Use '{mac}' as the placeholder.",
+    "locationTemplate": "Location URL template",
+    "locationTemplateHelp": "Template that turns a location into a clickable URL, e.g. its Grafana room dashboard. Use '{fi_number}' as the placeholder.",
     "saved": "Settings saved",
     "twoFactor": "Two-factor authentication",
     "twoFactorEnabledLabel": "Enabled",

@@ -354,9 +354,19 @@ down / maintenance / never-scraped split and the double-probe collapse, but is
 **written and not yet executed** (promtool was unavailable in the authoring
 environment). Run it before the first deploy.
 
-**Phase 3 — room + device dashboards, SAM deep links**
-*Verify:* clicking any location in SAM's tree lands on `sam-room` with the
-correct `fi_number` prefilled; fleet → room → device navigation works.
+**Phase 3 — room + device dashboards, SAM deep links** — built
+`sam-room` (keyed on `fi_number`) and `sam-device` (keyed on `hostname`, with
+conditional vendor rows), data links wiring fleet → room → device, and a
+`location.urlTemplate` setting in SAM.
+
+*Deviation:* no `GRAFANA_BASE_URL` env var. SAM already had an admin-configurable
+`hostname.urlTemplate` rendering a link on every hostname, which covers the
+device link with no code at all; `location.urlTemplate` mirrors it for rooms.
+That keeps one config mechanism instead of two, keeps Grafana's dashboard UIDs
+out of the application, and lets an admin change the target without a redeploy.
+
+*Verify:* clicking a location in SAM lands on `sam-room` with the correct
+`fi_number` prefilled; fleet → room → device navigation works. 980 tests pass.
 
 **Phase 4 — firmware baseline + sync + compliance**
 Schema, admin UI for baselines, sync script, compliance metrics, NIS2 panel.

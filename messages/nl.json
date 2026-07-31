@@ -281,7 +281,8 @@
     "mergeConfirmTitle": "Samenvoegen met bestaande locatie?",
     "mergeConfirmDescription": "Er bestaat hier al een locatie met de naam \"{name}\". Samenvoegen verplaatst alle assets, sublocaties, bijlagen en werklogs van deze locatie ernaartoe en verwijdert deze locatie. Dit kan niet ongedaan worden gemaakt.",
     "mergeButton": "Samenvoegen",
-    "locationMerged": "Locaties samengevoegd"
+    "locationMerged": "Locaties samengevoegd",
+    "monitoring": "Monitoring"
   },
   "locationForm": {
     "createTitle": "Locatie toevoegen",
@@ -672,6 +673,8 @@
     "hostnameTemplateHelp": "Template die een hostnaam omzet naar een klikbare URL. Gebruik '{hostname}' als placeholder.",
     "macAddressTemplate": "MAC-adres URL-template",
     "macAddressTemplateHelp": "Template die een MAC-adres omzet naar een klikbare URL. Gebruik '{mac}' als placeholder.",
+    "locationTemplate": "Locatie URL-template",
+    "locationTemplateHelp": "Template die een locatie omzet naar een klikbare URL, bv. het Grafana-dashboard van de ruimte. Gebruik '{fi_number}' als placeholder.",
     "saved": "Instellingen opgeslagen",
     "twoFactor": "Tweestapsverificatie",
     "twoFactorEnabledLabel": "Ingeschakeld",

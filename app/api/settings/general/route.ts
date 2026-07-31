@@ -4,11 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 
-const GENERAL_KEYS = ["hostname.urlTemplate", "macAddress.urlTemplate"] as const;
+const GENERAL_KEYS = [
+  "hostname.urlTemplate",
+  "macAddress.urlTemplate",
+  "location.urlTemplate",
+] as const;
 
 const schema = z.object({
   hostnameUrlTemplate: z.string().max(1000).optional().nullable(),
   macAddressUrlTemplate: z.string().max(1000).optional().nullable(),
+  locationUrlTemplate: z.string().max(1000).optional().nullable(),
 });
 
 export async function GET() {
@@ -23,6 +28,7 @@ export async function GET() {
   return NextResponse.json({
     hostnameUrlTemplate: map["hostname.urlTemplate"] ?? "",
     macAddressUrlTemplate: map["macAddress.urlTemplate"] ?? "",
+    locationUrlTemplate: map["location.urlTemplate"] ?? "",
   });
 }
 
@@ -35,7 +41,7 @@ export async function PUT(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
-  const { hostnameUrlTemplate, macAddressUrlTemplate } = parsed.data;
+  const { hostnameUrlTemplate, macAddressUrlTemplate, locationUrlTemplate } = parsed.data;
 
   await Promise.all([
     prisma.appSetting.upsert({
@@ -48,6 +54,11 @@ export async function PUT(req: NextRequest) {
       update: { value: macAddressUrlTemplate ?? "" },
       create: { key: "macAddress.urlTemplate", value: macAddressUrlTemplate ?? "" },
     }),
+    prisma.appSetting.upsert({
+      where: { key: "location.urlTemplate" },
+      update: { value: locationUrlTemplate ?? "" },
+      create: { key: "location.urlTemplate", value: locationUrlTemplate ?? "" },
+    }),
   ]);
 
   await logAudit({
@@ -59,6 +70,7 @@ export async function PUT(req: NextRequest) {
     detail: {
       "hostname.urlTemplate": hostnameUrlTemplate ?? "",
       "macAddress.urlTemplate": macAddressUrlTemplate ?? "",
+      "location.urlTemplate": locationUrlTemplate ?? "",
     },
   });
 

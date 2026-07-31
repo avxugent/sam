@@ -377,10 +377,19 @@ Schema, admin UI for baselines, sync script, compliance metrics, NIS2 panel.
 `sam_asset_firmware_compliant 0`; an unmatched version reports *unclassified*,
 not compliant. Comparator unit-tested against real vendor version strings.
 
-**Phase 5 — embedding**
-Grafana auth decision, `d-solo` panels on location and asset pages.
-*Verify:* panels render for a non-admin SAM user without a separate Grafana
-login.
+**Phase 5 — embedding** — built
+`d-solo` panels on the location and asset pages, fetched through SAM's reverse
+proxy at `/api/grafana-embed/[dashboard]` with a Grafana service-account token.
+
+*Auth decision:* proxy rather than anonymous Grafana. Grafana needs no
+browser-reachable URL, the token never reaches the client, and SAM's session
+gates access. The proxy is narrow by construction — allowlisted dashboards, UIDs
+resolved server-side, only rendering parameters and `var-*` forwarded.
+
+*Verify:* panels render for a non-admin SAM user with no separate Grafana login.
+Panel ids are asserted against the built dashboards by
+`__tests__/lib/grafana-panels.test.ts`, so a dashboard reorder fails the build
+rather than silently re-pointing every embed.
 
 ---
 

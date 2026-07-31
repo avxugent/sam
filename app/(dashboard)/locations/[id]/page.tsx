@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { isJiraConfigured } from "@/lib/jira";
+import { isGrafanaConfigured } from "@/lib/grafana";
 
 async function getUrlTemplates(): Promise<{
   hostnameUrlTemplate: string | null;
@@ -121,6 +122,7 @@ export default async function LocationPage({
       hostnameUrlTemplate={hostnameUrlTemplate}
       macAddressUrlTemplate={macAddressUrlTemplate}
       locationUrlTemplate={locationUrlTemplate}
+      grafanaEmbedEnabled={isGrafanaConfigured()}
       workLogs={workLogs.map((w) => ({
         id: w.id,
         performedAt: w.performedAt.toISOString(),

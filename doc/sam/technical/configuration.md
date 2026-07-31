@@ -79,6 +79,27 @@ See [Authentication](authentication.md) for Azure registration steps.
 
 ---
 
+## Grafana panel embedding
+
+Optional. When both variables are set, the location and asset pages embed
+Grafana panels; otherwise they fall back to the URL-template links.
+
+| Variable | Default | Description |
+|---|---|---|
+| `GRAFANA_URL` | — | Grafana base URL as reachable **from the SAM server**, e.g. `http://grafana.internal:3000` |
+| `GRAFANA_TOKEN` | — | Service-account token (Viewer role is enough) |
+
+SAM fetches each panel server-side and forwards the token, so Grafana needs no
+browser-reachable URL and no anonymous access, and the token never reaches the
+client. The proxy at `/api/grafana-embed/[dashboard]` is deliberately narrow: it
+serves only the dashboards on its allowlist, resolves their UIDs itself rather
+than trusting the request, forwards only rendering parameters and `var-*`, and
+sets `frame-ancestors 'self'`.
+
+Grafana must allow being framed — set `GF_SECURITY_ALLOW_EMBEDDING=true`.
+
+---
+
 ## HashiCorp Vault
 
 Used by the Vault path *Test* button in the admin UI. SAM itself never resolves credentials for service discovery — a scrape template's `{vault_path}` emits only the reference, and the exporter reads the secret.
@@ -137,6 +158,8 @@ These live in the `app_settings` table and are managed from **Administration →
 | `assets.defaultOwnerId` | — | User (e.g. a team account) assigned as owner to newly created assets when no owner is chosen |
 | `compliance.reviewWorkLogItemId` | — | The fixed work-log item that marks a location's asset list as reviewed (feeds the compliance dashboard) |
 | `compliance.reviewPeriodMonths` | `12` | Window within which the review item must be present per location |
+| `compliance.firmwareMaxAgeDays` | `90` | How long a firmware reading counts as current. Past this a device at or above its baseline reports as *stale* rather than up to date |
+| `hostname.urlTemplate` / `macAddress.urlTemplate` / `location.urlTemplate` | — | Turn a value into a link to an external system; point them at Grafana to reach the dashboards from SAM |
 
 ---
 
@@ -164,7 +187,7 @@ Read-only. When all three are set, work-log entries with a JIRA key (e.g. `AVT-1
 
 ## Security Notes
 
-- Never log or return `PROMETHEUS_SD_TOKEN`, `VAULT_TOKEN`, `VAULT_SECRET_ID`, or AppRole-derived tokens
+- Never log or return `PROMETHEUS_SD_TOKEN`, `GRAFANA_TOKEN`, `VAULT_TOKEN`, `VAULT_SECRET_ID`, or AppRole-derived tokens
 - Never commit `.env` to version control — it is gitignored
 - All secrets must come from environment variables — never hardcode in source
 - `NEXTAUTH_SECRET` must be unique per deployment — generate with `openssl rand -base64 32`

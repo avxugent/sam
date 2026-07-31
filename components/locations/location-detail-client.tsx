@@ -45,6 +45,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { renderLocationUrl } from "@/lib/hostname-template";
+import { GrafanaPanel, MonitoringSection } from "@/components/monitoring/grafana-panel";
+import { PANELS, panelSrc } from "@/lib/grafana";
 
 type Breadcrumb = { id: string; name: string };
 
@@ -113,6 +115,7 @@ export function LocationDetailClient({
   defaultTab = "assets",
   hostnameUrlTemplate,
   locationUrlTemplate,
+  grafanaEmbedEnabled,
   macAddressUrlTemplate,
   workLogs = [],
   users = [],
@@ -130,6 +133,7 @@ export function LocationDetailClient({
   defaultTab?: string;
   hostnameUrlTemplate?: string | null;
   locationUrlTemplate?: string | null;
+  grafanaEmbedEnabled?: boolean;
   macAddressUrlTemplate?: string | null;
   workLogs?: WorkLogEntry[];
   users?: WorkLogUserOption[];
@@ -222,6 +226,11 @@ export function LocationDetailClient({
           id: location.id,
         })
       : null;
+
+  // Panels are keyed on the FI number, so a location without one has nothing to
+  // show — the room dashboard would resolve to an empty variable.
+  const showPanels = grafanaEmbedEnabled && !!location.fiNumber;
+  const roomVars = { fi_number: location.fiNumber ?? "" };
 
   return (
     <div className="space-y-6">
@@ -438,6 +447,43 @@ export function LocationDetailClient({
       )}
 
       {/* Tabs */}
+      {showPanels && (
+        <MonitoringSection title={t("monitoring")} openUrl={monitoringUrl}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <GrafanaPanel
+              src={panelSrc("room", PANELS.room.devices, roomVars)}
+              title="Devices"
+              height={120}
+              openUrl={monitoringUrl}
+            />
+            <GrafanaPanel
+              src={panelSrc("room", PANELS.room.reporting, roomVars)}
+              title="Reporting"
+              height={120}
+              openUrl={monitoringUrl}
+            />
+            <GrafanaPanel
+              src={panelSrc("room", PANELS.room.notReporting, roomVars)}
+              title="Not reporting"
+              height={120}
+              openUrl={monitoringUrl}
+            />
+            <GrafanaPanel
+              src={panelSrc("room", PANELS.room.availability, roomVars)}
+              title="Availability"
+              height={120}
+              openUrl={monitoringUrl}
+            />
+          </div>
+          <GrafanaPanel
+            src={panelSrc("room", PANELS.room.availabilityOverTime, roomVars)}
+            title="Room availability"
+            height={220}
+            openUrl={monitoringUrl}
+          />
+        </MonitoringSection>
+      )}
+
       <Tabs defaultValue={defaultTab}>
         <TabsList className="flex-wrap h-auto gap-0 border-b border-[#e2e8f0] bg-transparent rounded-none p-0">
           <TabsTrigger

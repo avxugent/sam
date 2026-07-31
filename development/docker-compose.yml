@@ -54,6 +54,12 @@ services:
       VAULT_KV_VERSION: "v2"
       # Prometheus SD — must match the credentials in prometheus/prometheus.yml
       PROMETHEUS_SD_TOKEN: "dev-prometheus-token"
+      # Grafana panel embedding. SAM fetches panels server-side, so this is the
+      # in-network address; the browser never talks to Grafana directly.
+      # The token must be created once in Grafana (Administration → Service
+      # accounts) and passed in, e.g. GRAFANA_TOKEN=... docker compose up.
+      GRAFANA_URL: "${GRAFANA_URL:-http://grafana:3000}"
+      GRAFANA_TOKEN: "${GRAFANA_TOKEN:-}"
     volumes:
       # Bind-mount source for hot reload. node_modules and .next use named
       # volumes so the container-built artifacts don't get overwritten by the

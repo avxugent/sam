@@ -180,7 +180,8 @@
     "deletedUser": "(deleted user)",
     "unclassified": "Unclassified",
     "inheritedFromType": "inherited from type",
-    "endOfSupportPassed": "no longer supported"
+    "endOfSupportPassed": "no longer supported",
+    "monitoring": "Monitoring"
   },
   "assetForm": {
     "createTitle": "Create asset",

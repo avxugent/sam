@@ -161,6 +161,33 @@ the five panel types currently in use.
 Emitted dashboards declare `schemaVersion: 39`. Grafana migrates older schemas
 forward on load, so this stays valid across upgrades.
 
+## Embedding panels in SAM
+
+SAM embeds panels through its own reverse proxy at
+`/api/grafana-embed/[dashboard]` rather than pointing iframes at Grafana. SAM
+fetches each panel server-side with a service-account token, so Grafana needs no
+browser-reachable URL and no anonymous access, and the token never reaches the
+client. Access is gated by SAM's existing session.
+
+```dotenv
+GRAFANA_URL=http://grafana.internal:3000   # as reachable from the SAM server
+GRAFANA_TOKEN=<service account token>      # Viewer role is enough
+```
+
+Grafana must also allow framing: `GF_SECURITY_ALLOW_EMBEDDING=true`.
+
+**Panel ids are the fragile part.** They are assigned by position at build time
+and SAM embeds them by id, so reordering panels re-points every embed — and an
+embed showing the wrong panel renders a plausible chart of the wrong thing,
+which is worse than an error. `lib/grafana.ts` records the id→title mapping and
+`__tests__/lib/grafana-panels.test.ts` asserts it against the built JSON, so a
+reorder fails the build instead of going unnoticed.
+
+The proxy is an authenticated hole through to another service, so it stays
+narrow: only the dashboards on its allowlist, UIDs resolved server-side rather
+than taken from the request, only rendering parameters and `var-*` forwarded,
+and `frame-ancestors 'self'` on the response.
+
 ## Conventions that matter
 
 **Join on `sam_hostname`, never `instance` or `job`.** Each asset type is scraped

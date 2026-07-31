@@ -180,7 +180,8 @@
     "deletedUser": "(verwijderde gebruiker)",
     "unclassified": "Niet geclassificeerd",
     "inheritedFromType": "overgenomen van type",
-    "endOfSupportPassed": "niet langer ondersteund"
+    "endOfSupportPassed": "niet langer ondersteund",
+    "monitoring": "Monitoring"
   },
   "assetForm": {
     "createTitle": "Asset aanmaken",

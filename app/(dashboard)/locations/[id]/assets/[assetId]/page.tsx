@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
+import { isGrafanaConfigured } from "@/lib/grafana";
+import { renderHostnameUrl } from "@/lib/hostname-template";
 
 export default async function AssetPage({
   params,
@@ -59,6 +61,14 @@ export default async function AssetPage({
       decommissionedByName={asset.decommissionedById ? nameById.get(asset.decommissionedById) ?? null : null}
       firmwareAttestedByName={
         asset.firmwareAttestedById ? nameById.get(asset.firmwareAttestedById) ?? null : null
+      }
+      grafanaEmbedEnabled={isGrafanaConfigured()}
+      // Reuses the admin-configured hostname template, so "open in Grafana"
+      // goes wherever hostname links already go rather than hardcoding a UID.
+      deviceDashboardUrl={
+        asset.hostname && hostnameUrlTemplate
+          ? renderHostnameUrl(hostnameUrlTemplate, asset)
+          : null
       }
     />
   );

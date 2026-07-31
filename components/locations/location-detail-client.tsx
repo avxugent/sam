@@ -283,28 +283,37 @@ export function LocationDetailClient({
           <h1 className="text-[24px] font-extrabold text-white tracking-[-0.02em] drop-shadow">
             {location.name}
           </h1>
-          {location.fiNumber && (
-            <span className="inline-block font-mono text-[11px] text-white bg-white/20 border border-white/25 px-2 py-[2px] rounded-[5px] mt-1">
-              {location.fiNumber}
-            </span>
-          )}
-          {monitoringUrl && (
-            <a
-              href={monitoringUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-semibold text-[11px] text-white bg-white/20 border border-white/25 hover:bg-white/30 px-2 py-[2px] rounded-[5px] mt-1 ml-2"
-            >
-              <Activity className="h-3 w-3" />
-              {t("monitoring")}
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
-          {selfMaintenance && (
-            <span className="inline-flex items-center gap-1 font-semibold text-[11px] text-[#0f172a] bg-amber-400 border border-amber-300 px-2 py-[2px] rounded-[5px] mt-1 ml-2">
-              <Wrench className="h-3 w-3" />
-              {t("inMaintenance")}
-            </span>
+          {/* One flex row rather than inline badges: the FI number is
+              inline-block with a mono font while the others are inline-flex
+              with icons, and those sit on different baselines — which showed as
+              the Monitoring link floating above the FI number. Centring them as
+              flex items makes the alignment independent of font metrics. */}
+          {(location.fiNumber || monitoringUrl || selfMaintenance) && (
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              {location.fiNumber && (
+                <span className="inline-flex items-center font-mono text-[11px] leading-none text-white bg-white/20 border border-white/25 px-2 py-1 rounded-[5px]">
+                  {location.fiNumber}
+                </span>
+              )}
+              {monitoringUrl && (
+                <a
+                  href={monitoringUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-semibold text-[11px] leading-none text-white bg-white/20 border border-white/25 hover:bg-white/30 px-2 py-1 rounded-[5px]"
+                >
+                  <Activity className="h-3 w-3" />
+                  {t("monitoring")}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+              {selfMaintenance && (
+                <span className="inline-flex items-center gap-1 font-semibold text-[11px] leading-none text-[#0f172a] bg-amber-400 border border-amber-300 px-2 py-1 rounded-[5px]">
+                  <Wrench className="h-3 w-3" />
+                  {t("inMaintenance")}
+                </span>
+              )}
+            </div>
           )}
           {hasAddress && (
             <p className="text-[12.5px] text-white/75 flex items-center gap-1.5 mt-1">

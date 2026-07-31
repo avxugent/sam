@@ -81,7 +81,7 @@ See [Authentication](authentication.md) for Azure registration steps.
 
 ## HashiCorp Vault
 
-Required only when assets use `{vault_*}` placeholders in their Prometheus scrape templates.
+Used by the Vault path *Test* button in the admin UI. SAM itself never resolves credentials for service discovery — a scrape template's `{vault_path}` emits only the reference, and the exporter reads the secret.
 
 | Variable | Default | Description |
 |---|---|---|

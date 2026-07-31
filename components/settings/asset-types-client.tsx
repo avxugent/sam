@@ -748,7 +748,7 @@ export function AssetTypesClient({ initialTypes }: { initialTypes: AssetType[] }
                   ["{model}", "Model"],
                   ["{manufacturer}", "Manufacturer"],
                   ["{fi_number}", "FI number (14.10.100.013)"],
-                  ["{vault_<key>}", "Value from Vault secret"],
+                  ["{vault_path}", "Vault path reference (not the secret)"],
                 ].map(([v, desc]) => (
                   <div key={v} className="flex items-baseline gap-1.5">
                     <code className="text-blue-700 bg-blue-50 px-1 rounded shrink-0">{v}</code>

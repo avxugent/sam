@@ -102,13 +102,16 @@ model AssetType {
   // Prometheus scrape target template (newline-separated key=value pairs).
   // Keys are Prometheus __labels__ (e.g. __address__, __metrics_path__, __param_*).
   // Values may contain {hostname_fqdn}, {serial}, {model}, {manufacturer},
-  // {fi_number}, and {vault_<key>} placeholders.
+  // {fi_number}, and {vault_path} placeholders. {vault_path} is a non-secret
+  // reference; credentials are never rendered into SD output, and there is no
+  // {vault_<key>} substitution.
+  // Query-string params use __param_<name> (no trailing underscore) —
+  // __param_target__ would produce a param literally named "target__".
   // Example for Pearl recorder exporter:
   //   __address__=https://pearlexporterdev.ugent.be
   //   __metrics_path__=/probe
-  //   __param_target__=https://{hostname_fqdn}
-  //   __param_user__={vault_username}
-  //   __param_password__={vault_password}
+  //   __param_target=https://{hostname_fqdn}
+  //   __param_vault_path={vault_path}
   scrapeTargetTemplate String? @db.Text
   prometheusExposed    Boolean  @default(true)
   // Optional regex (JS RegExp syntax) that a hostname must match for assets
@@ -172,7 +175,8 @@ model Asset {
   notes            String?   @db.Text
   // Optional path to a HashiCorp Vault KV secret containing per-device
   // credentials (e.g. "secret/data/av/rectest001").
-  // Used by the Prometheus SD endpoint to inject {vault_<key>} placeholders.
+  // Emitted by the Prometheus SD endpoint as the {vault_path} reference. SAM
+  // never reads the secret; the exporter resolves it from Vault at scrape time.
   vaultPath        String?
   // Responsible person; soft ref to User (no FK) so it survives user deletion.
   ownerId          String?

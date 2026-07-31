@@ -181,7 +181,12 @@ Many AV devices cannot expose Prometheus metrics directly and are instead monito
 | `{model}` | Asset model |
 | `{manufacturer}` | Manufacturer name |
 | `{fi_number}` | Location FI number (e.g. `14.10.100.013`) |
-| `{vault_<key>}` | Value of `<key>` from the Vault secret at the asset's Vault path |
+| `{vault_path}` | The asset's Vault path — a **non-secret reference**, not the credential |
+
+> Credentials are never rendered into a template. `{vault_path}` passes only the
+> reference; the exporter reads the secret from Vault itself. There is no
+> `{vault_<key>}` substitution — any such placeholder is passed through
+> literally.
 
 **Pearl recorder exporter example:**
 
@@ -189,13 +194,12 @@ Many AV devices cannot expose Prometheus metrics directly and are instead monito
 __address__=https://pearlexporterdev.ugent.be
 __metrics_path__=/probe
 __param_target=https://{hostname_fqdn}
-__param_user={vault_username}
-__param_password={vault_password}
+__param_vault_path={vault_path}
 ```
 
 This results in Prometheus making a request to:
 ```
-https://pearlexporterdev.ugent.be/probe?target=https%3A%2F%2Frectest001.ugent.be&user=admin&password=...
+https://pearlexporterdev.ugent.be/probe?target=https%3A%2F%2Frectest001.ugent.be&vault_path=secret%2Fdata%2Fav%2Frectest001
 ```
 
 **Prometheus config for exporter-based targets:**
@@ -278,13 +282,15 @@ scrape_configs:
         authorization:
           type: Bearer
           credentials: "<PROMETHEUS_SD_TOKEN>"
-    relabel_configs:
-      # Carry SAM labels through to scraped metrics using labelmap
-      - regex: "sam_(.*)"
-        action: labelmap
 ```
 
-After this, every metric scraped from a known device will carry labels like `sam_campus="14"`, `sam_asset_type="Projector"`, etc. — enabling PromQL queries like:
+No `relabel_configs` are needed to carry the SAM labels across: Prometheus
+attaches every non-`__` label from the SD target group to the scraped series
+automatically. Avoid a `regex: "sam_(.*)" / action: labelmap` rule — it *copies*
+the labels rather than renaming them, leaving each series carrying both
+`sam_model` and `model`, `sam_hostname` and `hostname`, and so on.
+
+Every metric scraped from a known device carries labels like `sam_campus="14"`, `sam_asset_type="Projector"`, etc. — enabling PromQL queries like:
 
 ```promql
 # All projectors in campus 14 that are unreachable

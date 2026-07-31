@@ -1,10 +1,20 @@
 /**
  * Grafana panel embedding.
  *
- * Panels are fetched through SAM rather than pointed at Grafana directly, so
- * Grafana never has to be reachable from a browser and its service-account
- * token never leaves the server. SAM's own session and role checks decide who
- * sees a panel.
+ * Panels are fetched through SAM as **rendered images**, not iframes. Grafana's
+ * /d-solo/ is the full Grafana SPA: it loads /public/build/*.js and calls
+ * /api/ds/query using absolute paths, which inside a frame served from SAM's
+ * origin resolve against SAM and 404. Serving the document alone therefore
+ * cannot produce a working panel — only a proxy of Grafana's entire path space
+ * would, and that turns a narrow allowlist into a general passthrough.
+ *
+ * Grafana's image renderer returns a PNG instead, which needs no assets, no
+ * frame and no CSP exemption (img-src 'self' already permits it). The cost is
+ * that panels are static: no tooltips, no zoom. Users click through to Grafana
+ * for that.
+ *
+ * Either way SAM fetches server-side with a service-account token, so Grafana
+ * needs no browser-reachable URL and the token never leaves the server.
  */
 
 export function isGrafanaConfigured(): boolean {
@@ -42,13 +52,25 @@ export function panelSrc(
   dashboard: EmbeddableDashboard,
   panelId: number,
   vars: Record<string, string>,
-  opts: { from?: string; to?: string; theme?: string } = {}
+  opts: {
+    from?: string;
+    to?: string;
+    theme?: string;
+    width?: number;
+    height?: number;
+    scale?: number;
+  } = {}
 ): string {
   const params = new URLSearchParams({
     panelId: String(panelId),
     from: opts.from ?? "now-24h",
     to: opts.to ?? "now",
     theme: opts.theme ?? "light",
+    // Rendered at 2x and displayed at CSS size, so the image is not blurry on
+    // a high-DPI screen.
+    width: String(opts.width ?? 500),
+    height: String(opts.height ?? 200),
+    scale: String(opts.scale ?? 2),
   });
   for (const [k, v] of Object.entries(vars)) {
     params.set(`var-${k}`, v);

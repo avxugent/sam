@@ -89,14 +89,27 @@ Grafana panels; otherwise they fall back to the URL-template links.
 | `GRAFANA_URL` | — | Grafana base URL as reachable **from the SAM server**, e.g. `http://grafana.internal:3000` |
 | `GRAFANA_TOKEN` | — | Service-account token (Viewer role is enough) |
 
-SAM fetches each panel server-side and forwards the token, so Grafana needs no
-browser-reachable URL and no anonymous access, and the token never reaches the
-client. The proxy at `/api/grafana-embed/[dashboard]` is deliberately narrow: it
-serves only the dashboards on its allowlist, resolves their UIDs itself rather
-than trusting the request, forwards only rendering parameters and `var-*`, and
-sets `frame-ancestors 'self'`.
+SAM fetches each panel server-side as a **rendered PNG** and forwards the token,
+so Grafana needs no browser-reachable URL and no anonymous access, and the token
+never reaches the client. The proxy at `/api/grafana-embed/[dashboard]` is
+deliberately narrow: it serves only the dashboards on its allowlist, resolves
+their UIDs itself rather than trusting the request, forwards only rendering
+parameters and `var-*`, and clamps the requested image size.
 
-Grafana must allow being framed — set `GF_SECURITY_ALLOW_EMBEDDING=true`.
+**Requires the [grafana-image-renderer](https://grafana.com/grafana/plugins/grafana-image-renderer/)
+plugin**, usually run as a sidecar container, with Grafana pointed at it:
+
+```
+GF_RENDERING_SERVER_URL=http://grafana-renderer:8081/render
+GF_RENDERING_CALLBACK_URL=http://grafana:3000/
+```
+
+Without it, `/render` errors and SAM shows "unavailable" with a link out.
+
+Images rather than iframes because `/d-solo/` serves the whole Grafana SPA,
+whose absolute asset and API paths resolve against SAM inside a frame and 404.
+The tradeoff is that embedded panels are static — no tooltips, no zoom — so each
+one links through to the live dashboard.
 
 ---
 

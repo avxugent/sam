@@ -4,12 +4,14 @@ import { useState } from "react";
 import { ExternalLink } from "lucide-react";
 
 /**
- * One embedded Grafana panel, fetched through SAM's proxy.
+ * One embedded Grafana panel, fetched through SAM's proxy as a rendered image.
  *
- * The iframe points at SAM, not Grafana, so the browser never needs to reach
- * Grafana and no token is exposed. If the proxy returns an error the frame
- * would show SAM's JSON, which looks like a broken page — so failures render a
- * short message with a link out instead.
+ * An <img> rather than an <iframe>: Grafana's /d-solo/ is the full Grafana SPA
+ * and its absolute asset paths would resolve against SAM inside a frame. A
+ * server-rendered PNG needs no assets and no CSP exemption.
+ *
+ * The tradeoff is that panels are static — no tooltips, no zoom — so every one
+ * links through to the real dashboard.
  */
 export function GrafanaPanel({
   src,
@@ -50,15 +52,27 @@ export function GrafanaPanel({
     );
   }
 
-  return (
-    <iframe
+  const img = (
+    // eslint-disable-next-line @next/next/no-img-element -- proxied binary from
+    // Grafana, not a static asset next/image can optimise.
+    <img
       src={src}
-      title={title}
+      alt={title}
       loading="lazy"
       onError={() => setFailed(true)}
-      className="w-full rounded-[8px] border border-[#e2e8f0] bg-white"
+      className="w-full rounded-[8px] border border-[#e2e8f0] bg-white object-contain"
       style={{ height }}
     />
+  );
+
+  // Static image, so clicking through to the live dashboard is the only way to
+  // hover, zoom or change the time range.
+  return openUrl ? (
+    <a href={openUrl} target="_blank" rel="noopener noreferrer" title={`${title} — open in Grafana`}>
+      {img}
+    </a>
+  ) : (
+    img
   );
 }
 

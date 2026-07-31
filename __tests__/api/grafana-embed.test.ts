@@ -22,9 +22,9 @@ beforeEach(() => {
   process.env.GRAFANA_TOKEN = "svc-token";
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockResolvedValue(
-    new Response("<html>panel</html>", {
+    new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
       status: 200,
-      headers: { "content-type": "text/html; charset=utf-8" },
+      headers: { "content-type": "image/png" },
     })
   );
 });
@@ -54,11 +54,36 @@ describe("GET /api/grafana-embed/[dashboard]", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("resolves the UID itself rather than trusting the request", async () => {
+  it("renders server-side rather than serving the Grafana SPA", async () => {
+    // /d-solo/ is the whole Grafana app; its absolute asset paths would resolve
+    // against SAM inside a frame. /render returns a finished PNG instead.
     await GET(req("panelId=6&var-fi_number=14.10.100.013"), params("room"));
     const url = new URL(fetchMock.mock.calls[0][0]);
-    expect(url.pathname).toBe("/d-solo/sam-room/room");
+    expect(url.pathname).toBe("/render/d-solo/sam-room/room");
     expect(url.searchParams.get("var-fi_number")).toBe("14.10.100.013");
+  });
+
+  it("returns the image with a nosniff header", async () => {
+    const res = await GET(req("panelId=1"), params("room"));
+    expect(res.headers.get("content-type")).toBe("image/png");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
+  it("clamps rendering geometry", async () => {
+    // The renderer drives a headless browser, so an unbounded width would let
+    // any signed-in user tie it up.
+    await GET(req("panelId=1&width=99999&height=99999&scale=50"), params("room"));
+    const url = new URL(fetchMock.mock.calls[0][0]);
+    expect(url.searchParams.get("width")).toBe("2000");
+    expect(url.searchParams.get("height")).toBe("2000");
+    expect(url.searchParams.get("scale")).toBe("3");
+  });
+
+  it("drops geometry that is not a positive number", async () => {
+    await GET(req("panelId=1&width=abc&height=-5"), params("room"));
+    const url = new URL(fetchMock.mock.calls[0][0]);
+    expect(url.searchParams.has("width")).toBe(false);
+    expect(url.searchParams.has("height")).toBe(false);
   });
 
   it("sends the service-account token upstream", async () => {
@@ -84,12 +109,11 @@ describe("GET /api/grafana-embed/[dashboard]", () => {
 
   it("normalises a trailing slash on GRAFANA_URL", async () => {
     await GET(req("panelId=1"), params("room"));
-    expect(String(fetchMock.mock.calls[0][0])).toContain("http://grafana:3000/d-solo/");
+    expect(String(fetchMock.mock.calls[0][0])).toContain("http://grafana:3000/render/d-solo/");
   });
 
-  it("restricts framing to SAM itself", async () => {
+  it("does not cache one user's time range for the next", async () => {
     const res = await GET(req("panelId=1"), params("room"));
-    expect(res.headers.get("content-security-policy")).toBe("frame-ancestors 'self'");
     expect(res.headers.get("cache-control")).toBe("no-store");
   });
 

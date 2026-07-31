@@ -386,6 +386,14 @@ browser-reachable URL, the token never reaches the client, and SAM's session
 gates access. The proxy is narrow by construction — allowlisted dashboards, UIDs
 resolved server-side, only rendering parameters and `var-*` forwarded.
 
+*Correction after first build:* the first attempt framed `/d-solo/` and did not
+work. That path serves the whole Grafana SPA, whose absolute asset and API paths
+resolve against SAM inside the frame and 404 — and SAM's own
+`X-Frame-Options: DENY` blocked the frame before that even surfaced. Switched to
+Grafana's image renderer: `/render/d-solo/` returns a PNG, so there are no
+assets to resolve, no frame, and no CSP exemption. Panels are static in exchange,
+and each links through to the live dashboard.
+
 *Verify:* panels render for a non-admin SAM user with no separate Grafana login.
 Panel ids are asserted against the built dashboards by
 `__tests__/lib/grafana-panels.test.ts`, so a dashboard reorder fails the build

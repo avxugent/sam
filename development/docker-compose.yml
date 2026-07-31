@@ -174,6 +174,18 @@ services:
       - app
     restart: unless-stopped
 
+  # ── Grafana image renderer ────────────────────────────────────────────────────
+  # SAM embeds panels as server-rendered PNGs rather than iframes, which needs
+  # this plugin — Grafana's /render endpoint is what produces them. Without it,
+  # /render answers with an error and SAM's panels show "unavailable".
+  grafana-renderer:
+    image: grafana/grafana-image-renderer:latest
+    environment:
+      # The renderer drives a headless browser; this keeps its logs useful when
+      # a panel renders blank.
+      ENABLE_METRICS: "true"
+    restart: unless-stopped
+
   # ── Grafana ───────────────────────────────────────────────────────────────────
   # Loads the *built* dashboard JSON from the Ansible role, so what you see here
   # is what production gets. Rebuild after editing jsonnet:
@@ -218,12 +230,19 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
       GF_SECURITY_ALLOW_EMBEDDING: "true"
+      # Panel rendering for SAM's embedded images. CALLBACK_URL is how the
+      # renderer reaches Grafana back — it browses the dashboard itself, so this
+      # must be resolvable from the renderer container, not from your laptop.
+      GF_RENDERING_SERVER_URL: "http://grafana-renderer:8081/render"
+      GF_RENDERING_CALLBACK_URL: "http://grafana:3000/"
+      GF_LOG_FILTERS: "rendering:info"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ../ops/ansible/roles/grafana_sam/files/dashboards:/var/lib/grafana/dashboards/sam:ro
       - dev_grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
+      - grafana-renderer
     restart: unless-stopped
 
 # ── Volumes ───────────────────────────────────────────────────────────────────

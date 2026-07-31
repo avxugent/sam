@@ -163,11 +163,20 @@ forward on load, so this stays valid across upgrades.
 
 ## Embedding panels in SAM
 
-SAM embeds panels through its own reverse proxy at
-`/api/grafana-embed/[dashboard]` rather than pointing iframes at Grafana. SAM
-fetches each panel server-side with a service-account token, so Grafana needs no
-browser-reachable URL and no anonymous access, and the token never reaches the
-client. Access is gated by SAM's existing session.
+SAM embeds panels through its own proxy at `/api/grafana-embed/[dashboard]`,
+which fetches each panel from Grafana's **image renderer** as a PNG. SAM does
+this server-side with a service-account token, so Grafana needs no
+browser-reachable URL and no anonymous access, the token never reaches the
+client, and access is gated by SAM's existing session.
+
+Images rather than iframes: `/d-solo/` serves the whole Grafana SPA, and its
+absolute asset and API paths would resolve against SAM inside a frame and 404.
+Rendering server-side avoids that and needs no CSP exemption, since
+`img-src 'self'` already permits it. Embedded panels are therefore static — each
+links through to the live dashboard for tooltips and zoom.
+
+Needs the grafana-image-renderer plugin (a sidecar container in the dev stack)
+with `GF_RENDERING_SERVER_URL` set on Grafana.
 
 ```dotenv
 GRAFANA_URL=http://grafana.internal:3000   # as reachable from the SAM server

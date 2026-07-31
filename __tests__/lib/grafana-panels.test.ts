@@ -67,6 +67,10 @@ describe("panelSrc()", () => {
   it("defaults to a 24h window", () => {
     expect(panelSrc("room", 1, {})).toContain("from=now-24h");
   });
+
+  it("requests a 2x render so the image is not blurry on a high-DPI screen", () => {
+    expect(panelSrc("room", 1, {})).toContain("scale=2");
+  });
 });
 
 describe("EMBEDDABLE_DASHBOARDS", () => {

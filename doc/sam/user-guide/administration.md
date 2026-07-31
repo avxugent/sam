@@ -114,6 +114,13 @@ Download a full CSV export of all assets. The export includes all fields, MAC ad
 
 Application-wide configuration managed through the UI. Changes take effect immediately without a server restart. This includes:
 
+- **Firmware baselines** — the approved firmware version per asset type and
+  model. *Firmware in the field* lists the versions devices actually report,
+  grouped by type and model, with one-click creation of a baseline at the
+  highest version seen — so baselines come from observed reality rather than
+  guesswork. Devices at or above their baseline count as up to date; a device
+  with no matching baseline is reported as *unclassified*, never as compliant.
+  Only devices with an API report firmware at all, so the rest stay unmeasured.
 - **General** — hostname / MAC address / location URL templates. Each turns a
   value into a clickable link to an external system. Point them at Grafana to
   reach the monitoring dashboards from SAM:

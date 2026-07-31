@@ -260,14 +260,15 @@ currency can actually be judged. That is the denominator every other firmware
 figure should be read against.
 
 Baselines live in SAM (`FirmwareBaseline`, keyed on asset type and optionally
-model) and are published as `sam_firmware_baseline_info` so a dashboard can show
-what was expected alongside what is installed.
+model), edited under **Administration → Settings → Firmware baselines**, and
+published as `sam_firmware_baseline_info` so a dashboard can show what was
+expected alongside what is installed.
 
 ## Status
 
 Built: recording rules, alert rules, promtool tests, all three dashboards,
 firmware currency.
 
-Not built yet: the Firmware baselines admin screen — baselines are seeded by
-script or SQL for now. Manual attestation for devices that can never report
-firmware is still an open question.
+Not built yet: manual attestation for devices that can never report firmware —
+until that exists, blackbox-probed assets sit in `no_data` permanently and the
+NIS2 story is "we measure what we can and are explicit about the rest".

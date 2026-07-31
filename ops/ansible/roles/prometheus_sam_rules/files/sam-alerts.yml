@@ -1,0 +1,114 @@
+# SAM alert rules — managed by Ansible, do not edit on the host.
+# Source: ops/ansible/roles/prometheus_sam_rules/files/sam-alerts.yml
+#
+# These consume the recording rules in sam-rules.yml so that alerts and
+# dashboards can never disagree about what "offline" means.
+
+groups:
+  # ── Monitoring pipeline health ───────────────────────────────────────────────
+  # These come first because every alert below depends on them. If SAM stops
+  # publishing the expected set, the device alerts go quiet rather than firing —
+  # a silent failure, so it needs its own alert.
+  - name: sam_pipeline
+    rules:
+      - alert: SamInventoryMetricsAbsent
+        expr: absent(sam_asset_info)
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: SAM is not publishing its asset inventory
+          description: >-
+            sam_asset_info has disappeared, so every "asset not reporting" alert
+            is now silently disabled. Check the sam_inventory scrape job and
+            /api/prometheus/metrics.
+
+      - alert: SamServiceDiscoveryEmpty
+        expr: sum(room:assets_expected:count) > 0 and absent(sam_asset:probe_success)
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: No SAM device is being probed
+          description: >-
+            SAM lists assets to monitor but no probe series exist for any of
+            them. Check the av_devices scrape job and the exporters.
+
+  # ── Device reachability ──────────────────────────────────────────────────────
+  - name: sam_devices
+    rules:
+      - alert: SamAssetNotReporting
+        expr: |
+          sam_asset_info{sam_criticality!~"HIGH|CRITICAL"}
+          unless on (sam_hostname) (sam_asset:probe_success == 1)
+          unless on (sam_hostname) sam_asset_maintenance
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.sam_hostname }} is not reporting'
+          description: >-
+            {{ $labels.sam_asset_type }} ({{ $labels.sam_model }}) in
+            {{ $labels.sam_location_name }} / {{ $labels.sam_fi_number }} has not
+            answered a probe for 15 minutes.
+
+      # Same condition, shorter fuse for assets SAM classifies as important.
+      - alert: SamCriticalAssetNotReporting
+        expr: |
+          sam_asset_info{sam_criticality=~"HIGH|CRITICAL"}
+          unless on (sam_hostname) (sam_asset:probe_success == 1)
+          unless on (sam_hostname) sam_asset_maintenance
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $labels.sam_criticality }} asset {{ $labels.sam_hostname }} is not reporting'
+          description: >-
+            {{ $labels.sam_asset_type }} ({{ $labels.sam_model }}) in
+            {{ $labels.sam_location_name }} / {{ $labels.sam_fi_number }} has not
+            answered a probe for 5 minutes.
+
+      - alert: SamRoomDegraded
+        expr: room:health:ratio < 0.5
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Over half of {{ $labels.sam_location_name }} is not reporting'
+          description: >-
+            {{ $labels.sam_fi_number }}: only
+            {{ $value | humanizePercentage }} of expected assets are answering.
+            A room-wide fault (network, power) is more likely than several
+            simultaneous device failures.
+
+  # ── Inventory and service-discovery hygiene ──────────────────────────────────
+  - name: sam_hygiene
+    rules:
+      # Distinct from SamAssetNotReporting: no probe series has ever existed, so
+      # the fault is in service discovery or the asset type's scrape template,
+      # not the device.
+      - alert: SamAssetsNeverScraped
+        expr: sum(room:assets_never_scraped:count) > 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $value }} SAM asset(s) have never been scraped'
+          description: >-
+            These assets are in service discovery but no exporter has produced a
+            probe result for them. Check the asset type's scrapeTargetTemplate
+            and the exporter logs.
+
+      - alert: SamAssetPastEndOfSupport
+        expr: |
+          (sam_asset_end_of_support_timestamp < time())
+          and on (sam_hostname) sam_asset_info
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: '{{ $labels.sam_hostname }} is past end of support'
+          description: >-
+            {{ $labels.sam_asset_type }} ({{ $labels.sam_model }}) in
+            {{ $labels.sam_location_name }} passed end of support. NIS2 requires
+            a documented plan for unsupported equipment.

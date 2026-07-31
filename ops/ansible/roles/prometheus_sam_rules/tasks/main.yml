@@ -1,0 +1,38 @@
+---
+# Unit tests run on the control node, before anything touches a Prometheus host.
+# They assert the down / maintenance / never-scraped split, which is the part of
+# this role most likely to break silently: a wrong rule still evaluates, it just
+# returns the wrong number.
+- name: Run promtool unit tests for the SAM rules
+  ansible.builtin.command:
+    cmd: promtool test rules sam-rules_test.yml
+    chdir: "{{ role_path }}/tests"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: false
+  when: sam_rules_run_unit_tests | bool
+
+- name: Ensure the Prometheus rules directory exists
+  ansible.builtin.file:
+    path: "{{ prometheus_rules_dir }}"
+    state: directory
+    owner: "{{ prometheus_config_owner }}"
+    group: "{{ prometheus_config_group }}"
+    mode: "0755"
+
+# `validate` runs promtool against the staged copy, so a malformed file is never
+# put in place — Prometheus would otherwise keep the old rules and only complain
+# in its log.
+- name: Install the SAM rule files
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ prometheus_rules_dir }}/{{ item }}"
+    owner: "{{ prometheus_config_owner }}"
+    group: "{{ prometheus_config_group }}"
+    mode: "0644"
+    validate: "{{ (prometheus_promtool | length > 0) | ternary(prometheus_promtool ~ ' check rules %s', omit) }}"
+  loop:
+    - sam-rules.yml
+    - sam-alerts.yml
+  notify: Reload Prometheus

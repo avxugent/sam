@@ -1,0 +1,16 @@
+---
+grafana_provisioning_dir: /etc/grafana/provisioning
+# Dashboard JSON is built from ops/jsonnet — never edited here or in the Grafana UI.
+grafana_dashboards_dir: /var/lib/grafana/dashboards/sam
+grafana_owner: grafana
+grafana_group: grafana
+grafana_folder: SAM
+
+# Prometheus that holds the device metrics and the SAM recording rules.
+sam_prometheus_url: http://prometheus:9090
+sam_prometheus_scrape_interval: 30s
+
+# SAM itself, for the Infinity datasource used by metadata lookup panels.
+sam_base_url: https://sam.example.com
+# Must come from Vault or ansible-vault — never commit this.
+sam_prometheus_sd_token: ""

@@ -1,0 +1,96 @@
+# SAM recording rules — managed by Ansible, do not edit on the host.
+# Source: ops/ansible/roles/prometheus_sam_rules/files/sam-rules.yml
+#
+# Why recording rules rather than dashboard queries:
+#   * the down / maintenance / never-scraped split is defined once, so panels and
+#     alerts cannot disagree about what "offline" means
+#   * overview panels aggregate pre-computed series instead of joining raw
+#     device metrics on every refresh
+#
+# Every join is `on (sam_hostname)`. `instance` and `job` identify the exporter,
+# not the device — each asset type is scraped through its own exporter, and
+# blackbox-probed devices all share one instance.
+
+groups:
+  # ── Per-asset normalisation ──────────────────────────────────────────────────
+  - name: sam_asset
+    interval: 1m
+    rules:
+      # One series per asset regardless of which exporter probed it, or how many
+      # did. A device can be probed by blackbox for reachability *and* by a
+      # vendor exporter for detail; without this collapse every room count would
+      # double-count it. max() reads as "reachable by any probe".
+      #
+      # TRANSITIONAL: the __name__ regex covers custom exporters that still emit
+      # <vendor>_probe_success while blackbox emits the bare name. Narrow this to
+      #   max by (sam_hostname) (probe_success{sam_hostname!=""})
+      # once the custom exporters are migrated. The regex is load-bearing until
+      # then, so do not remove it before checking every exporter.
+      #
+      # sam_hostname!="" excludes blackbox jobs unrelated to SAM (website checks
+      # and so on), which carry no sam_* labels.
+      - record: sam_asset:probe_success
+        expr: |
+          max by (sam_hostname) (
+            {__name__=~"(.+_)?probe_success", sam_hostname!=""}
+          )
+
+  # ── Room rollups ─────────────────────────────────────────────────────────────
+  # sam_campus and sam_building are carried through so dashboards can filter and
+  # re-aggregate without dropping back to raw series. sam_location_name rides
+  # along so tables need no second join for a human-readable room.
+  - name: sam_room
+    interval: 1m
+    rules:
+      # The expected set comes from SAM's inventory, not from what Prometheus
+      # happens to be scraping.
+      - record: room:assets_expected:count
+        expr: |
+          count by (sam_fi_number, sam_campus, sam_building, sam_location_name) (
+            sam_asset_info
+          )
+
+      - record: room:assets_reporting:count
+        expr: |
+          count by (sam_fi_number, sam_campus, sam_building, sam_location_name) (
+            sam_asset_info and on (sam_hostname) (sam_asset:probe_success == 1)
+          )
+
+      # Rooms flagged in maintenance in SAM are dropped from service discovery,
+      # so their silence is expected and must not read as an outage.
+      - record: room:assets_maintenance:count
+        expr: |
+          count by (sam_fi_number, sam_campus, sam_building, sam_location_name) (
+            sam_asset_info and on (sam_hostname) sam_asset_maintenance
+          )
+
+      # No probe series at all — usually a service-discovery or scrape-template
+      # problem rather than a broken device. A strict subset of assets_down.
+      - record: room:assets_never_scraped:count
+        expr: |
+          count by (sam_fi_number, sam_campus, sam_building, sam_location_name) (
+            sam_asset_info
+            unless on (sam_hostname) sam_asset:probe_success
+            unless on (sam_hostname) sam_asset_maintenance
+          )
+
+      # Expected but not answering: covers both probe_success == 0 and no series
+      # at all, which `== 0` alone would miss.
+      - record: room:assets_down:count
+        expr: |
+          count by (sam_fi_number, sam_campus, sam_building, sam_location_name) (
+            sam_asset_info
+            unless on (sam_hostname) (sam_asset:probe_success == 1)
+            unless on (sam_hostname) sam_asset_maintenance
+          )
+
+      # A room with nothing reporting has no series in assets_reporting:count, so
+      # a plain division would drop the room entirely instead of showing 0.
+      # `or (expected * 0)` supplies the zero.
+      - record: room:health:ratio
+        expr: |
+          (
+            room:assets_reporting:count
+            or (room:assets_expected:count * 0)
+          )
+          / room:assets_expected:count

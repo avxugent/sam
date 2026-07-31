@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+# Source: ops/ansible/roles/grafana_sam/templates/dashboards.yaml.j2
+apiVersion: 1
+
+providers:
+  - name: sam
+    orgId: 1
+    folder: {{ grafana_folder }}
+    type: file
+    # git is the source of truth: no UI edits, no accidental deletions.
+    allowUiUpdates: false
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    options:
+      path: {{ grafana_dashboards_dir }}
+      foldersFromFilesStructure: false

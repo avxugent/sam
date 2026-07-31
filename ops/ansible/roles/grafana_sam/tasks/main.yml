@@ -1,0 +1,47 @@
+---
+- name: Fail early when the SAM API token is unset
+  ansible.builtin.assert:
+    that: sam_prometheus_sd_token | length > 0
+    fail_msg: >-
+      sam_prometheus_sd_token is empty. Supply it from Vault or ansible-vault;
+      without it the Infinity datasource cannot authenticate to SAM.
+    quiet: true
+
+- name: Ensure the SAM dashboard directory exists
+  ansible.builtin.file:
+    path: "{{ grafana_dashboards_dir }}"
+    state: directory
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "0755"
+
+# Datasources and dashboard providers are read at Grafana start-up only, so both
+# notify a restart. Dashboard JSON is re-read on updateIntervalSeconds and does
+# not need one.
+- name: Provision datasources
+  ansible.builtin.template:
+    src: datasources.yaml.j2
+    dest: "{{ grafana_provisioning_dir }}/datasources/sam.yaml"
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "0640"
+  notify: Restart Grafana
+
+- name: Provision the dashboard provider
+  ansible.builtin.template:
+    src: dashboards.yaml.j2
+    dest: "{{ grafana_provisioning_dir }}/dashboards/sam.yaml"
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "0640"
+  notify: Restart Grafana
+
+- name: Install the built dashboards
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ grafana_dashboards_dir }}/{{ item | basename }}"
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "0644"
+  with_fileglob:
+    - dashboards/*.json

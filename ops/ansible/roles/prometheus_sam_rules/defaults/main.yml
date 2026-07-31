@@ -1,0 +1,17 @@
+---
+# Where Prometheus looks for rule files. Must be covered by a `rule_files:` glob
+# in prometheus.yml, e.g. `rule_files: ["/etc/prometheus/rules/*.yml"]`.
+prometheus_rules_dir: /etc/prometheus/rules
+prometheus_config_owner: prometheus
+prometheus_config_group: prometheus
+
+# promtool on the *target* host, used to validate a rule file before it is put
+# in place. Set to "" to skip validation (not recommended).
+prometheus_promtool: /usr/local/bin/promtool
+
+# Prometheus reloads rule files on SIGHUP or this endpoint. Requires Prometheus
+# to run with --web.enable-lifecycle.
+prometheus_reload_url: http://127.0.0.1:9090/-/reload
+
+# Run the promtool unit tests on the control node before deploying.
+sam_rules_run_unit_tests: true

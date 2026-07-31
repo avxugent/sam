@@ -1,0 +1,23 @@
+---
+# Example playbook. Both roles are independent; the Prometheus rules must be in
+# place before the dashboards show anything, since every panel reads room:*.
+#
+#   ansible-playbook -i inventory.yml ops/ansible/site.yml
+#
+# Supply sam_prometheus_sd_token from Vault or ansible-vault — never inline.
+
+- name: Prometheus — SAM recording and alert rules
+  hosts: prometheus
+  become: true
+  roles:
+    - prometheus_sam_rules
+
+- name: Grafana — SAM datasources and dashboards
+  hosts: grafana
+  become: true
+  roles:
+    - role: grafana_sam
+      vars:
+        sam_prometheus_url: http://prometheus.internal:9090
+        sam_base_url: https://sam.example.com
+        # sam_prometheus_sd_token: "{{ lookup('community.hashi_vault.hashi_vault', 'secret/sam:prometheus_sd_token') }}"

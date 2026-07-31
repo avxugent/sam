@@ -1,0 +1,43 @@
+# {{ ansible_managed }}
+# Source: ops/ansible/roles/grafana_sam/templates/datasources.yaml.j2
+apiVersion: 1
+
+# Removes a stale datasource if it was renamed in a previous revision.
+deleteDatasources:
+  - name: SAM Prometheus
+    orgId: 1
+  - name: SAM Inventory
+    orgId: 1
+
+datasources:
+  # Dashboards reference a datasource *variable* of type prometheus rather than a
+  # hardcoded UID, and pick this one up because it is the default.
+  - name: SAM Prometheus
+    uid: sam-prometheus
+    orgId: 1
+    type: prometheus
+    access: proxy
+    url: {{ sam_prometheus_url }}
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: {{ sam_prometheus_scrape_interval }}
+      manageAlerts: false
+
+  # Used by metadata lookup panels that read SAM directly
+  # (/api/assets/by-hostname, /api/grafana/*) rather than going through metrics.
+  - name: SAM Inventory
+    uid: sam-inventory
+    orgId: 1
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    url: {{ sam_base_url }}
+    editable: false
+    jsonData:
+      auth_method: none
+      httpHeaderName1: Authorization
+      allowedHosts:
+        - {{ sam_base_url }}
+    secureJsonData:
+      httpHeaderValue1: "Bearer {{ sam_prometheus_sd_token }}"

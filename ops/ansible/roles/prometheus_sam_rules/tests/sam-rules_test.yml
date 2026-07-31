@@ -1,0 +1,136 @@
+# promtool unit tests for the SAM recording rules.
+#
+#   promtool test rules ops/ansible/roles/prometheus_sam_rules/tests/sam-rules_test.yml
+#
+# The scenario is one room containing five assets, one per state the rollups must
+# distinguish, plus an unrelated blackbox job that must be ignored:
+#
+#   a  reporting, probed by blackbox only
+#   b  probed by a custom exporter, probe failed        → down
+#   c  no probe series at all                           → down + never scraped
+#   d  room in maintenance, no probe series             → neither down nor never scraped
+#   e  probed by blackbox AND a custom exporter, both OK → must count once, not twice
+#
+# Expected totals: expected 5, reporting 2 (a, e), down 2 (b, c),
+# never scraped 1 (c), maintenance 1 (d), health ratio 0.4.
+
+rule_files:
+  - ../files/sam-rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    name: room rollups distinguish down, maintenance and never-scraped
+    input_series:
+      # ── The expected set, straight from SAM's inventory ──────────────────────
+      - series: 'sam_asset_info{sam_hostname="a",sam_fi_number="14.10.100.013",sam_campus="14",sam_building="10",sam_location_name="Room 013",sam_asset_type="Recorder",sam_manufacturer="Epiphan",sam_model="Pearl Mini",sam_criticality="HIGH"}'
+        values: '1x20'
+      - series: 'sam_asset_info{sam_hostname="b",sam_fi_number="14.10.100.013",sam_campus="14",sam_building="10",sam_location_name="Room 013",sam_asset_type="Recorder",sam_manufacturer="Epiphan",sam_model="Pearl Mini",sam_criticality="LOW"}'
+        values: '1x20'
+      - series: 'sam_asset_info{sam_hostname="c",sam_fi_number="14.10.100.013",sam_campus="14",sam_building="10",sam_location_name="Room 013",sam_asset_type="Projector",sam_manufacturer="Epson",sam_model="EB-W06",sam_criticality="LOW"}'
+        values: '1x20'
+      - series: 'sam_asset_info{sam_hostname="d",sam_fi_number="14.10.100.013",sam_campus="14",sam_building="10",sam_location_name="Room 013",sam_asset_type="Projector",sam_manufacturer="Epson",sam_model="EB-W06",sam_criticality="LOW"}'
+        values: '1x20'
+      - series: 'sam_asset_info{sam_hostname="e",sam_fi_number="14.10.100.013",sam_campus="14",sam_building="10",sam_location_name="Room 013",sam_asset_type="Switcher",sam_manufacturer="Blackmagic",sam_model="ATEM",sam_criticality="MEDIUM"}'
+        values: '1x20'
+
+      # d's room is in maintenance
+      - series: 'sam_asset_maintenance{sam_hostname="d"}'
+        values: '1x20'
+
+      # ── Probe results ────────────────────────────────────────────────────────
+      - series: 'probe_success{sam_hostname="a",job="blackbox",instance="blackbox:9115"}'
+        values: '1x20'
+      - series: 'pearl_probe_success{sam_hostname="b",job="pearl",instance="pearlexporter:443"}'
+        values: '0x20'
+      # e is probed twice — max() must collapse this to a single series
+      - series: 'probe_success{sam_hostname="e",job="blackbox",instance="blackbox:9115"}'
+        values: '1x20'
+      - series: 'pearl_probe_success{sam_hostname="e",job="pearl",instance="pearlexporter:443"}'
+        values: '1x20'
+
+      # Unrelated blackbox job — no sam_* labels, must be excluded entirely
+      - series: 'probe_success{job="websites",instance="https://example.com"}'
+        values: '1x20'
+
+    promql_expr_test:
+      # ── Normalisation ────────────────────────────────────────────────────────
+      # Three assets have a probe result (a, b, e); the website check is excluded
+      # because it carries no sam_hostname.
+      - expr: count(sam_asset:probe_success)
+        eval_time: 10m
+        exp_samples:
+          - labels: '{}'
+            value: 3
+
+      # e was probed by two jobs but collapses to one series, and job/instance
+      # are gone so the join on sam_hostname can work.
+      - expr: sam_asset:probe_success{sam_hostname="e"}
+        eval_time: 10m
+        exp_samples:
+          - labels: 'sam_asset:probe_success{sam_hostname="e"}'
+            value: 1
+
+      # ── Room rollups ─────────────────────────────────────────────────────────
+      - expr: room:assets_expected:count
+        eval_time: 10m
+        exp_samples:
+          - labels: 'room:assets_expected:count{sam_fi_number="14.10.100.013",sam_campus="14",sam_building="10",sam_location_name="Room 013"}'
+            value: 5
+
+      # a and e. e counted once despite two probes.
+      - expr: room:assets_reporting:count
+        eval_time: 10m
+        exp_samples:
+          - labels: 'room:assets_reporting:count{sam_fi_number="14.10.100.013",sam_campus="14",sam_building="10",sam_location_name="Room 013"}'
+            value: 2
+
+      # b (probe failed) and c (no series). d is excluded — maintenance.
+      - expr: room:assets_down:count
+        eval_time: 10m
+        exp_samples:
+          - labels: 'room:assets_down:count{sam_fi_number="14.10.100.013",sam_campus="14",sam_building="10",sam_location_name="Room 013"}'
+            value: 2
+
+      # c only. d also has no probe series but is in maintenance, so excluded —
+      # this is the case that would otherwise generate false SD alerts.
+      - expr: room:assets_never_scraped:count
+        eval_time: 10m
+        exp_samples:
+          - labels: 'room:assets_never_scraped:count{sam_fi_number="14.10.100.013",sam_campus="14",sam_building="10",sam_location_name="Room 013"}'
+            value: 1
+
+      - expr: room:assets_maintenance:count
+        eval_time: 10m
+        exp_samples:
+          - labels: 'room:assets_maintenance:count{sam_fi_number="14.10.100.013",sam_campus="14",sam_building="10",sam_location_name="Room 013"}'
+            value: 1
+
+      # 2 of 5 reporting. The metric name belongs in `labels` even though the
+      # division drops __name__ from the expression result — what is queried here
+      # is the *recorded* series, which carries it.
+      - expr: room:health:ratio
+        eval_time: 10m
+        exp_samples:
+          - labels: 'room:health:ratio{sam_fi_number="14.10.100.013",sam_campus="14",sam_building="10",sam_location_name="Room 013"}'
+            value: 0.4
+
+  # A room where nothing reports must still produce a ratio of 0 rather than
+  # disappearing from the dashboard.
+  - interval: 1m
+    name: a fully dark room reports 0 rather than no data
+    input_series:
+      - series: 'sam_asset_info{sam_hostname="x",sam_fi_number="14.10.100.099",sam_campus="14",sam_building="10",sam_location_name="Room 099",sam_asset_type="Projector",sam_manufacturer="Epson",sam_model="EB-W06",sam_criticality="LOW"}'
+        values: '1x20'
+    promql_expr_test:
+      - expr: room:health:ratio
+        eval_time: 10m
+        exp_samples:
+          - labels: 'room:health:ratio{sam_fi_number="14.10.100.099",sam_campus="14",sam_building="10",sam_location_name="Room 099"}'
+            value: 0
+      - expr: room:assets_down:count
+        eval_time: 10m
+        exp_samples:
+          - labels: 'room:assets_down:count{sam_fi_number="14.10.100.099",sam_campus="14",sam_building="10",sam_location_name="Room 099"}'
+            value: 1

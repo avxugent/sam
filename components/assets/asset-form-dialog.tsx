@@ -473,6 +473,13 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               <Select
                 value={typeIdValue || ""}
                 onValueChange={(v) => {
+                  // Radix can fire onValueChange("") on its own — e.g. when the
+                  // asset types list finishes loading after this field's value
+                  // was already set by fetchAsset()'s reset(). No SelectItem
+                  // ever has value="" (the clear option is "_none"), so a raw
+                  // "" here is always that internal noise, not a user pick —
+                  // ignore it rather than silently wiping the field.
+                  if (v === "") return;
                   setValue("typeId", v === "_none" ? "" : v, { shouldValidate: true });
                 }}
               >
@@ -669,7 +676,11 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               <Label htmlFor="asset-owner">{tField("owner")}</Label>
               <Select
                 value={ownerIdValue || "_none"}
-                onValueChange={(v) => setValue("ownerId", v === "_none" ? "" : v, { shouldValidate: true })}
+                onValueChange={(v) => {
+                  // See the Type select above — Radix can spuriously fire "".
+                  if (v === "") return;
+                  setValue("ownerId", v === "_none" ? "" : v, { shouldValidate: true });
+                }}
               >
                 <SelectTrigger id="asset-owner">
                   <SelectValue placeholder={t("ownerDefault")} />
@@ -688,7 +699,11 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               <Label htmlFor="asset-supplier">{tField("supplier")}</Label>
               <Select
                 value={supplierIdValue || "_none"}
-                onValueChange={(v) => setValue("supplierId", v === "_none" ? "" : v, { shouldValidate: true })}
+                onValueChange={(v) => {
+                  // See the Type select above — Radix can spuriously fire "".
+                  if (v === "") return;
+                  setValue("supplierId", v === "_none" ? "" : v, { shouldValidate: true });
+                }}
               >
                 <SelectTrigger id="asset-supplier">
                   <SelectValue placeholder={t("noneSupplier")} />
@@ -707,7 +722,11 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               <Label htmlFor="asset-criticality">{tField("criticality")}</Label>
               <Select
                 value={criticalityValue || "_inherit"}
-                onValueChange={(v) => setValue("criticality", v === "_inherit" ? "" : v, { shouldValidate: true })}
+                onValueChange={(v) => {
+                  // See the Type select above — Radix can spuriously fire "".
+                  if (v === "") return;
+                  setValue("criticality", v === "_inherit" ? "" : v, { shouldValidate: true });
+                }}
               >
                 <SelectTrigger id="asset-criticality">
                   <SelectValue placeholder={t("criticalityInherit")} />

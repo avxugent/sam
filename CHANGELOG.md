@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.0-alpha.2] - 2026-08-03
+
+### Fixed
+
+- **Editing an asset could silently clear its type, owner, supplier or criticality.** The edit dialog applied the fetched asset's values before the async-loaded dropdown lists (asset types, users, suppliers) finished populating their `<Select>` options; once the matching option mounted, Radix fired a spurious `onValueChange("")` that wiped the field. Most visible when changing an unrelated field like manufacturer.
+
+---
+
 ## [2.0.0-alpha.1] - 2026-07-30
 
 First alpha of the 2.0 line: monitoring and firmware currency. **Pre-release —

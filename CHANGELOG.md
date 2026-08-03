@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.0-alpha.3] - 2026-08-03
+
+### Fixed
+
+- The asset table on a location page had no default sort — assets rendered in whatever order the API returned them (effectively insertion order). Now defaults to type, ascending; column sorting still works as before.
+
+---
+
 ## [2.0.0-alpha.2] - 2026-08-03
 
 ### Fixed

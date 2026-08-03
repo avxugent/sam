@@ -125,7 +125,7 @@ export function AssetTable({
   const tCommon = useTranslations("common");
   const [assets, setAssets] = useState(initialAssets);
   const [search, setSearch] = useState("");
-  const [sortCol, setSortCol] = useState<SortCol | null>(null);
+  const [sortCol, setSortCol] = useState<SortCol | null>("type");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);

@@ -5,6 +5,54 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.0-alpha.4] - 2026-08-05
+
+Reverts the monitoring summary and firmware currency features shipped in
+2.0.0-alpha.1. The plain "open in Grafana" links introduced alongside them are
+unaffected — they always came from the generic location/hostname URL
+templates, not from this code.
+
+### Removed — Monitoring
+
+- The monitoring summary on location and asset pages (device counts and
+  availability read directly from `room:*`), and the per-user
+  expanded/collapsed/hidden preference under Settings → Profile.
+- `lib/prometheus-query.ts`, `components/monitoring/*`, `PROMETHEUS_URL` and
+  `PROMETHEUS_TOKEN`.
+
+### Removed — Firmware currency (NIS2)
+
+- Firmware baselines admin screen, `assets:sync-firmware`, manual attestation
+  on the asset page, and the firmware section of the NIS2 compliance
+  dashboard (outdated / evidence expired / unmeasured).
+- `FirmwareBaseline`, `FirmwareSource`, and `Asset.firmwareVersion` /
+  `firmwareCheckedAt` / `firmwareSource` / `firmwareAttestedById`.
+- `sam_asset_firmware_status`, `sam_asset_firmware_info`,
+  `sam_firmware_baseline_info` and `sam_assets_firmware` from
+  `/api/prometheus/metrics`. `sam_asset_info`, `sam_asset_maintenance` and
+  `sam_asset_end_of_support_timestamp` are unaffected.
+
+### Changed
+
+- `sam-fleet` and `sam-device` Grafana dashboards: the baseline-comparison
+  firmware panels are replaced with a browsable table/stat of raw
+  `device_firmware_info`, read straight from exporters — there is no
+  approved-baseline concept left anywhere in the system. The
+  `room:firmware_outdated:count` / `room:firmware_unmeasured:count` recording
+  rules are removed accordingly.
+
+### Upgrading
+
+1. `npx prisma db push` — drops `firmware_baselines`, four
+   `assets.firmware*` columns, and `users.monitoringPanel`. **Destructive**:
+   back up first if you want that data kept.
+2. Redeploy `ops/` (`ops/jsonnet/build.sh`, then the Ansible roles) to update
+   the fleet/device dashboards and drop the firmware recording rules.
+3. `PROMETHEUS_URL` / `PROMETHEUS_TOKEN` are no longer read; safe to remove
+   from your environment.
+
+---
+
 ## [2.0.0-alpha.3] - 2026-08-03
 
 ### Fixed

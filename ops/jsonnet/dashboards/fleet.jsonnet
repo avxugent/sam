@@ -4,10 +4,9 @@
 // so the queries stay cheap and the down/maintenance/never-scraped split is
 // defined in exactly one place (ops/prometheus/sam-rules.yml).
 //
-// Firmware panels count only status="outdated" as a violation. "unclassified"
-// (no baseline configured) and "no_data" (device has no API, or has not
-// answered) are shown as *unmeasured* — reporting either as compliant would
-// overstate NIS2 coverage to whoever reads these numbers.
+// There is no approved-firmware baseline anywhere in this system — the
+// "Firmware versions" row below is a browsable inventory (what is installed,
+// per device), not a compliance verdict.
 
 local sam = import '../lib/sam.libsonnet';
 
@@ -188,94 +187,45 @@ sam.dashboard(
       ),
     ],
 
-    sam.row('Firmware currency'),
-    [
-      sam.stat(
-        'Up to date',
-        z('sum(sam_assets_firmware{status="compliant"})'),
-        thresholds=sam.thresholdsNeutral,
-        description='Installed version is at or above the approved baseline. A device ahead of the baseline is not flagged.',
-      ),
-      sam.stat(
-        'Outdated',
-        z('sum(sam_assets_firmware{status="outdated"})'),
-        thresholds=sam.thresholdsAnyIsBad,
-      ),
-      sam.stat(
-        'Evidence expired',
-        z('sum(sam_assets_firmware{status="stale"})'),
-        thresholds=sam.thresholdsAnyIsWarn,
-        description=|||
-          At or above the baseline, but the reading is older than the configured
-          validity window. The device may have changed since — someone has to look
-          again. Not counted as up to date.
-        |||,
-      ),
-      sam.stat(
-        'No baseline set',
-        z('sum(sam_assets_firmware{status="unclassified"})'),
-        thresholds=sam.thresholdsAnyIsWarn,
-        description='No approved version configured for this asset type or model, so currency cannot be judged.',
-      ),
-      sam.stat(
-        'No version reported',
-        z('sum(sam_assets_firmware{status="no_data"})'),
-        thresholds=sam.thresholdsAnyIsWarn,
-        description=|||
-          The device exposes no API to ask, or has not answered since the last sync.
-          Blackbox-probed devices can never report firmware and will sit here
-          permanently — they need a manual attestation to count as evidence.
-        |||,
-      ),
-      sam.stat(
-        'Version unorderable',
-        z('sum(sam_assets_firmware{status="unknown"})'),
-        thresholds=sam.thresholdsAnyIsWarn,
-        description='Installed and approved versions could not be ordered (mismatched shapes). Never counted as compliant.',
-      ),
-      sam.stat(
-        'Measured coverage',
-        |||
-          (sum(sam_assets_firmware{status=~"compliant|outdated|stale"}) or vector(0))
-          / clamp_min(sum(sam_assets_firmware), 1)
-        |||,
-        unit='percentunit',
-        thresholds=sam.thresholdsRatio,
-        description='Share of monitored assets whose firmware currency can actually be judged. The denominator every other figure here should be read against.',
-      ),
-    ],
+    sam.row('Firmware versions'),
     [
       sam.table(
-        'Rooms with outdated firmware',
+        'Installed firmware, per device',
+        // Raw exporter data, joined against SAM's inventory for context — there
+        // is no approved baseline anywhere in this system, so this is a
+        // browsable inventory to sort/filter by eye, not a compliance verdict.
+        // Devices with no firmware API (blackbox-probed) report no version and
+        // are simply absent here.
         targets=[
           {
-            expr: 'sum by (sam_fi_number, sam_location_name, sam_campus, sam_building) (%s)'
-                  % roomFilter('room:firmware_outdated:count'),
+            expr: 'sum by (sam_hostname, sam_fi_number, sam_location_name, sam_campus, sam_building, sam_asset_type, sam_model) (%s)'
+                  % assetFilter,
           },
-          { expr: 'sum by (sam_fi_number) (%s)' % roomFilter('room:firmware_unmeasured:count') },
-          { expr: 'sum by (sam_fi_number) (%s)' % roomFilter('room:assets_expected:count') },
+          { expr: 'sum by (sam_hostname, version) (device_firmware_info)' },
         ],
-        joinField='sam_fi_number',
+        joinField='sam_hostname',
         rename={
+          sam_hostname: 'Hostname',
           sam_fi_number: 'FI number',
           sam_location_name: 'Room',
           sam_campus: 'Campus',
           sam_building: 'Building',
-          'Value #A': 'Outdated',
-          'Value #B': 'Unmeasured',
-          'Value #C': 'Devices',
+          sam_asset_type: 'Type',
+          sam_model: 'Model',
+          version: 'Firmware version',
         },
         order=[
+          'sam_hostname',
           'sam_fi_number',
           'sam_location_name',
+          'sam_asset_type',
+          'sam_model',
+          'version',
           'sam_campus',
           'sam_building',
-          'Value #A',
-          'Value #B',
-          'Value #C',
         ],
-        sortBy=[{ displayName: 'Outdated', desc: true }],
-        noValue='0',
+        hidden=['Value #A', 'Value #B'],
+        sortBy=[{ displayName: 'Room', desc: false }],
         overrides=[
           sam.overrideByName('FI number', [
             {
@@ -284,7 +234,7 @@ sam.dashboard(
             },
           ]),
         ],
-        h=12,
+        h=14,
       ),
     ],
 

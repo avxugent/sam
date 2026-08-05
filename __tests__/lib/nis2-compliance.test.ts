@@ -4,7 +4,6 @@ vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
     asset: { count: vi.fn(), findMany: vi.fn() },
-    firmwareBaseline: { findMany: vi.fn() },
     user: { count: vi.fn() },
     auditLog: { count: vi.fn() },
     appSetting: { findMany: vi.fn(), findUnique: vi.fn() },
@@ -27,7 +26,6 @@ import { computeNis2Compliance, computeNis2Counts } from "@/lib/nis2-compliance"
 
 const mockAssetCount = vi.mocked(prisma.asset.count);
 const mockAssetFindMany = vi.mocked(prisma.asset.findMany);
-const mockBaselineFindMany = vi.mocked(prisma.firmwareBaseline.findMany);
 const mockUserCount = vi.mocked(prisma.user.count);
 const mockAuditCount = vi.mocked(prisma.auditLog.count);
 const mockSettingFindMany = vi.mocked(prisma.appSetting.findMany);
@@ -40,7 +38,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockAssetCount.mockResolvedValue(0 as never);
   mockAssetFindMany.mockResolvedValue([] as never);
-  mockBaselineFindMany.mockResolvedValue([] as never);
   mockUserCount.mockResolvedValue(0 as never);
   mockAuditCount.mockResolvedValue(0 as never);
   mockSettingFindMany.mockResolvedValue([] as never);
@@ -160,82 +157,5 @@ describe("computeNis2Counts()", () => {
     expect(counts.usersWithout2fa).toBe(1);
     expect(counts.auditBacklog).toBe(9);
     expect(counts.locationsMissingReview).toBe(3);
-  });
-});
-
-describe("computeFirmwareStatuses()", () => {
-  it("classifies each asset against the most specific baseline", async () => {
-    mockAssetFindMany.mockResolvedValue([
-      { id: "a1", locationId: "l1", serialNumber: "S1", hostname: "rec001", typeId: "recorder", model: "Pearl Mini", firmwareVersion: "4.17.0", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
-      { id: "a2", locationId: "l1", serialNumber: "S2", hostname: "rec002", typeId: "recorder", model: "Pearl Nano", firmwareVersion: "4.12.3", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
-      // No API: blackbox-probed devices never report a version.
-      { id: "a3", locationId: "l2", serialNumber: "S3", hostname: "proj001", typeId: "projector", model: "EB-W06", firmwareVersion: null, firmwareCheckedAt: null, firmwareSource: null },
-      // No baseline configured for this type at all.
-      { id: "a4", locationId: "l2", serialNumber: "S4", hostname: "sw001", typeId: "switcher", model: "ATEM", firmwareVersion: "9.1", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
-    ] as never);
-    mockSettingFindUnique.mockResolvedValue(null as never);
-    mockBaselineFindMany.mockResolvedValue([
-      { typeId: "recorder", model: null, approvedVersion: "4.18.0" },
-      { typeId: "recorder", model: "Pearl Mini", approvedVersion: "4.17.0" },
-      { typeId: "projector", model: null, approvedVersion: "1.08" },
-    ] as never);
-
-    const { computeFirmwareStatuses, tallyFirmware } = await import("@/lib/nis2-compliance");
-    const statuses = await computeFirmwareStatuses();
-
-    expect(statuses.map((s) => ({ hostname: s.hostname, version: s.version, status: s.status }))).toEqual([
-      // Model-specific baseline (4.17.0) beats the type-wide one (4.18.0).
-      { hostname: "rec001", version: "4.17.0", status: "compliant" },
-      { hostname: "rec002", version: "4.12.3", status: "outdated" },
-      { hostname: "proj001", version: null, status: "no_data" },
-      { hostname: "sw001", version: "9.1", status: "unclassified" },
-    ]);
-    // Sample fields must ride along so the compliance dashboard can link to
-    // the offending assets without a second query.
-    expect(statuses[0]).toMatchObject({ id: "a1", locationId: "l1", serialNumber: "S1" });
-
-    expect(tallyFirmware(statuses)).toEqual({
-      compliant: 1,
-      outdated: 1,
-      stale: 0,
-      unknown: 0,
-      unclassified: 1,
-      no_data: 1,
-    });
-  });
-});
-
-describe("computeFirmwareCompliance()", () => {
-  it("groups the unmeasured states together and reports measurable coverage", async () => {
-    mockAssetFindMany.mockResolvedValue([
-      { id: "a1", locationId: "l1", serialNumber: "S1", hostname: "rec001", typeId: "recorder", model: null, firmwareVersion: "4.18.0", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
-      { id: "a2", locationId: "l1", serialNumber: "S2", hostname: "rec002", typeId: "recorder", model: null, firmwareVersion: "4.12.0", firmwareCheckedAt: new Date(), firmwareSource: "REPORTED" },
-      // Stale: at the baseline, but confirmed long ago.
-      { id: "a3", locationId: "l1", serialNumber: "S3", hostname: "rec003", typeId: "recorder", model: null, firmwareVersion: "4.18.0", firmwareCheckedAt: new Date("2020-01-01"), firmwareSource: "ATTESTED" },
-      // No API and nothing attested.
-      { id: "a4", locationId: "l2", serialNumber: "S4", hostname: "proj001", typeId: "recorder", model: null, firmwareVersion: null, firmwareCheckedAt: null, firmwareSource: null },
-    ] as never);
-    mockBaselineFindMany.mockResolvedValue([
-      { typeId: "recorder", model: null, approvedVersion: "4.18.0" },
-    ] as never);
-    mockSettingFindUnique.mockResolvedValue({ value: "90" } as never);
-
-    const { computeFirmwareCompliance } = await import("@/lib/nis2-compliance");
-    const r = await computeFirmwareCompliance();
-
-    expect(r.outdated.count).toBe(1);
-    expect(r.stale.count).toBe(1);
-    expect(r.unmeasured.count).toBe(1);
-    // 3 of 4 can be judged; the fourth can never report a version.
-    expect(r.measuredCoverage).toBeCloseTo(0.75);
-    expect(r.maxAgeDays).toBe(90);
-    // Samples carry enough to link straight to the asset page.
-    expect(r.outdated.sample[0]).toMatchObject({ id: "a2", locationId: "l1" });
-  });
-
-  it("reports null coverage rather than dividing by zero", async () => {
-    mockAssetFindMany.mockResolvedValue([] as never);
-    const { computeFirmwareCompliance } = await import("@/lib/nis2-compliance");
-    expect((await computeFirmwareCompliance()).measuredCoverage).toBeNull();
   });
 });

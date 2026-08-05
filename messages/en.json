@@ -77,7 +77,6 @@
     "exportCsv": "Export CSV",
     "auditLog": "Audit Log",
     "compliance": "Compliance",
-    "firmwareBaselines": "Firmware Baselines",
     "settings": "Settings",
     "profile": "Profile",
     "twoFactorAuth": "Two-Factor Auth",
@@ -135,8 +134,7 @@
     "owner": "Owner",
     "supplier": "Supplier",
     "criticality": "Criticality",
-    "endOfSupport": "End of support",
-    "firmware": "Firmware"
+    "endOfSupport": "End of support"
   },
   "asset": {
     "title": "Asset",
@@ -180,8 +178,7 @@
     "deletedUser": "(deleted user)",
     "unclassified": "Unclassified",
     "inheritedFromType": "inherited from type",
-    "endOfSupportPassed": "no longer supported",
-    "monitoring": "Monitoring"
+    "endOfSupportPassed": "no longer supported"
   },
   "assetForm": {
     "createTitle": "Create asset",
@@ -665,13 +662,6 @@
     "nis2AuditBacklog": "Audit forwarding backlog",
     "nis2AuditBacklogHelp": "Audit entries not yet delivered to the syslog server.",
     "nis2AuditBacklogNoSyslog": "Syslog forwarding is not configured — entries are only stored locally.",
-    "nis2FirmwareOutdated": "Firmware outdated",
-    "nis2FirmwareOutdatedHelp": "Installed version is below the approved baseline.",
-    "nis2FirmwareStale": "Firmware evidence expired",
-    "nis2FirmwareStaleHelp": "At or above baseline, but last confirmed over {days} days ago. Someone has to look again.",
-    "nis2FirmwareUnmeasured": "Firmware unmeasured",
-    "nis2FirmwareUnmeasuredHelp": "No baseline set, or no version ever established. {coverage} of monitored assets can be judged at all — read every firmware figure against that.",
-    "nis2FirmwareBaselinesLink": "Manage baselines",
     "nis2ViewAuditLink": "View audit log",
     "nis2SampleMore": "Showing {shown} of {total}."
   },
@@ -746,17 +736,7 @@
     "complianceReviewItemHelp": "The work log item that marks a location's asset list as reviewed (used by the compliance dashboard).",
     "complianceReviewPeriod": "Review period (months)",
     "complianceReviewPeriodHelp": "Locations without the review item within this period are flagged on the compliance dashboard.",
-    "firmwareMaxAge": "Firmware evidence validity (days)",
-    "firmwareMaxAgeHelp": "How long a firmware reading counts as current. Past this, a device at or above its baseline is reported as stale rather than up to date — including versions recorded by hand, so someone has to look again.",
-    "complianceReviewPeriodInvalid": "Review period must be between 1 and 120 months.",
-    "monitoringPanelTitle": "Monitoring summary",
-    "monitoringPanelSubtitle": "The device status shown on location and asset pages.",
-    "monitoringPanel_expanded": "Show expanded",
-    "monitoringPanel_expandedDesc": "Always visible when you open a room or device.",
-    "monitoringPanel_collapsed": "Show collapsed",
-    "monitoringPanel_collapsedDesc": "Present but folded away; click the heading to open it.",
-    "monitoringPanel_hidden": "Hide",
-    "monitoringPanel_hiddenDesc": "Never shown. SAM also skips querying Prometheus, so the page loads marginally faster."
+    "complianceReviewPeriodInvalid": "Review period must be between 1 and 120 months."
   },
   "report": {
     "title": "Reports",

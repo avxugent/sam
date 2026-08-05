@@ -56,7 +56,6 @@ describe("GET /api/settings/compliance", () => {
       defaultOwnerId: null,
       reviewWorkLogItemId: null,
       reviewPeriodMonths: 12,
-      firmwareMaxAgeDays: 90,
     });
   });
 

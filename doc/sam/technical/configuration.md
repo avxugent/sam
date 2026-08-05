@@ -79,31 +79,6 @@ See [Authentication](authentication.md) for Azure registration steps.
 
 ---
 
-## Monitoring summaries
-
-Optional. When `PROMETHEUS_URL` is set, the location and asset pages show a
-device-status summary read from the `room:*` recording rules.
-
-| Variable | Default | Description |
-|---|---|---|
-| `PROMETHEUS_URL` | — | Prometheus as reachable **from the SAM server**, e.g. `http://prometheus.internal:9090` |
-| `PROMETHEUS_TOKEN` | — | Optional bearer token |
-
-The counts come back as JSON in milliseconds and SAM renders them in its own
-styling. Nothing is embedded from Grafana: rendering panels was tried as iframes
-and then as server-rendered images, and removed — the first could not work
-(Grafana's `/d-solo/` is a full SPA whose absolute asset paths resolve against
-SAM), and the second was slow and looked foreign inside SAM. Links to the live
-dashboards come from the URL-template settings instead.
-
-Each user chooses whether the summary appears expanded, collapsed or not at all
-under **Settings → Profile**. Hiding it also skips the Prometheus query.
-
-Queries fail soft: unreachable, timed out or malformed responses show a message
-naming what to check, and never fail the page.
-
----
-
 ## HashiCorp Vault
 
 Used by the Vault path *Test* button in the admin UI. SAM itself never resolves credentials for service discovery — a scrape template's `{vault_path}` emits only the reference, and the exporter reads the secret.
@@ -162,7 +137,6 @@ These live in the `app_settings` table and are managed from **Administration →
 | `assets.defaultOwnerId` | — | User (e.g. a team account) assigned as owner to newly created assets when no owner is chosen |
 | `compliance.reviewWorkLogItemId` | — | The fixed work-log item that marks a location's asset list as reviewed (feeds the compliance dashboard) |
 | `compliance.reviewPeriodMonths` | `12` | Window within which the review item must be present per location |
-| `compliance.firmwareMaxAgeDays` | `90` | How long a firmware reading counts as current. Past this a device at or above its baseline reports as *stale* rather than up to date |
 | `hostname.urlTemplate` / `macAddress.urlTemplate` / `location.urlTemplate` | — | Turn a value into a link to an external system; point them at Grafana to reach the dashboards from SAM |
 
 ---
@@ -191,7 +165,7 @@ Read-only. When all three are set, work-log entries with a JIRA key (e.g. `AVT-1
 
 ## Security Notes
 
-- Never log or return `PROMETHEUS_SD_TOKEN`, `PROMETHEUS_TOKEN`, `VAULT_TOKEN`, `VAULT_SECRET_ID`, or AppRole-derived tokens
+- Never log or return `PROMETHEUS_SD_TOKEN`, `VAULT_TOKEN`, `VAULT_SECRET_ID`, or AppRole-derived tokens
 - Never commit `.env` to version control — it is gitignored
 - All secrets must come from environment variables — never hardcode in source
 - `NEXTAUTH_SECRET` must be unique per deployment — generate with `openssl rand -base64 32`

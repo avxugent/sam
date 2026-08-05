@@ -54,12 +54,8 @@ services:
       VAULT_KV_VERSION: "v2"
       # Prometheus SD — must match the credentials in prometheus/prometheus.yml
       PROMETHEUS_SD_TOKEN: "dev-prometheus-token"
-      # SAM reads the room:* recording rules directly for the monitoring
-      # summaries on the location and asset pages — one JSON query each, rather
-      # than a rendered image per number.
-      PROMETHEUS_URL: "${PROMETHEUS_URL:-http://prometheus:9090}"
-    # Lets PROMETHEUS_URL/GRAFANA_URL point at host.docker.internal on Linux as
-    # well as macOS, for a Prometheus or Grafana running outside this stack.
+    # Lets GRAFANA_URL point at host.docker.internal on Linux as well as macOS,
+    # for a Grafana running outside this stack.
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

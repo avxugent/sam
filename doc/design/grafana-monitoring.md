@@ -1,6 +1,13 @@
 # Design — Grafana monitoring & NIS2 firmware compliance
 
-Status: **proposal**, not implemented. Not synced to Confluence (no frontmatter).
+Status: **superseded**. This was implemented, then reverted: the embedded
+monitoring summary and the SAM-side firmware sync/baseline/compliance tracking
+described below were removed from SAM. The Grafana dashboards (fleet/room/device)
+and Prometheus recording rules stay, but the firmware panel now reads the raw
+`device_firmware_info` series straight from exporters — there is no baseline
+comparison anywhere in the system anymore. Kept for the rationale behind the
+label contract and dashboard architecture, which is still accurate. Not synced
+to Confluence (no frontmatter).
 
 Goal: visualise the assets SAM exposes to Prometheus — fleet overview, per-room
 drill-down, per-device detail — and track firmware currency for NIS2. All

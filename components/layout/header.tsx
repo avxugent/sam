@@ -21,7 +21,6 @@ import {
   Search,
   X,
   ShieldCheck,
-  Cpu,
   Users,
   Tag,
   Factory,
@@ -58,7 +57,7 @@ type QuickResult = {
 
 type AdminNavItem = {
   href: string;
-  labelKey: "users" | "assetTypes" | "manufacturers" | "suppliers" | "modelCleanup" | "importCsv" | "exportCsv" | "auditLog" | "compliance" | "firmwareBaselines" | "settings";
+  labelKey: "users" | "assetTypes" | "manufacturers" | "suppliers" | "modelCleanup" | "importCsv" | "exportCsv" | "auditLog" | "compliance" | "settings";
   icon: React.ReactNode;
   adminOnly: boolean;
 };
@@ -73,7 +72,6 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/export", labelKey: "exportCsv", icon: <Download className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/audit", labelKey: "auditLog", icon: <ClipboardList className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/compliance", labelKey: "compliance", icon: <ShieldCheck className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/firmware-baselines", labelKey: "firmwareBaselines", icon: <Cpu className="h-4 w-4" />, adminOnly: true },
   { href: "/admin/settings", labelKey: "settings", icon: <Settings className="h-4 w-4" />, adminOnly: true },
 ];
 

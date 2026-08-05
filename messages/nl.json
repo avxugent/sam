@@ -77,7 +77,6 @@
     "exportCsv": "CSV exporteren",
     "auditLog": "Audit-log",
     "compliance": "Compliance",
-    "firmwareBaselines": "Firmware-baselines",
     "settings": "Instellingen",
     "profile": "Profiel",
     "twoFactorAuth": "Tweestapsverificatie",
@@ -135,8 +134,7 @@
     "owner": "Eigenaar",
     "supplier": "Leverancier",
     "criticality": "Kriticiteit",
-    "endOfSupport": "Einde ondersteuning",
-    "firmware": "Firmware"
+    "endOfSupport": "Einde ondersteuning"
   },
   "asset": {
     "title": "Asset",
@@ -180,8 +178,7 @@
     "deletedUser": "(verwijderde gebruiker)",
     "unclassified": "Niet geclassificeerd",
     "inheritedFromType": "overgenomen van type",
-    "endOfSupportPassed": "niet langer ondersteund",
-    "monitoring": "Monitoring"
+    "endOfSupportPassed": "niet langer ondersteund"
   },
   "assetForm": {
     "createTitle": "Asset aanmaken",
@@ -665,13 +662,6 @@
     "nis2AuditBacklog": "Audit-doorstuurachterstand",
     "nis2AuditBacklogHelp": "Auditregels nog niet afgeleverd bij de syslogserver.",
     "nis2AuditBacklogNoSyslog": "Syslog-doorsturen is niet geconfigureerd — regels worden alleen lokaal bewaard.",
-    "nis2FirmwareOutdated": "Firmware verouderd",
-    "nis2FirmwareOutdatedHelp": "Geïnstalleerde versie ligt onder de goedgekeurde baseline.",
-    "nis2FirmwareStale": "Firmware-bewijs verlopen",
-    "nis2FirmwareStaleHelp": "Op of boven de baseline, maar meer dan {days} dagen geleden bevestigd. Iemand moet opnieuw kijken.",
-    "nis2FirmwareUnmeasured": "Firmware niet meetbaar",
-    "nis2FirmwareUnmeasuredHelp": "Geen baseline ingesteld, of nooit een versie vastgesteld. {coverage} van de bewaakte assets is überhaupt te beoordelen — lees elk firmwarecijfer daartegen af.",
-    "nis2FirmwareBaselinesLink": "Baselines beheren",
     "nis2ViewAuditLink": "Bekijk auditlog",
     "nis2SampleMore": "{shown} van {total} getoond."
   },
@@ -746,17 +736,7 @@
     "complianceReviewItemHelp": "Het werklogitem dat de assetlijst van een locatie als gecontroleerd markeert (gebruikt door het compliance-dashboard).",
     "complianceReviewPeriod": "Controleperiode (maanden)",
     "complianceReviewPeriodHelp": "Locaties zonder het controle-item binnen deze periode worden gemarkeerd op het compliance-dashboard.",
-    "firmwareMaxAge": "Geldigheid firmware-bewijs (dagen)",
-    "firmwareMaxAgeHelp": "Hoe lang een firmware-meting als actueel telt. Daarna wordt een toestel op of boven zijn baseline als verouderd bewijs gerapporteerd in plaats van up-to-date — ook handmatig ingevoerde versies, zodat iemand opnieuw moet kijken.",
-    "complianceReviewPeriodInvalid": "Controleperiode moet tussen 1 en 120 maanden liggen.",
-    "monitoringPanelTitle": "Monitoringoverzicht",
-    "monitoringPanelSubtitle": "De toestelstatus op locatie- en assetpagina’s.",
-    "monitoringPanel_expanded": "Uitgeklapt tonen",
-    "monitoringPanel_expandedDesc": "Altijd zichtbaar bij het openen van een ruimte of toestel.",
-    "monitoringPanel_collapsed": "Ingeklapt tonen",
-    "monitoringPanel_collapsedDesc": "Aanwezig maar dichtgeklapt; klik op de titel om te openen.",
-    "monitoringPanel_hidden": "Verbergen",
-    "monitoringPanel_hiddenDesc": "Nooit tonen. SAM bevraagt Prometheus dan ook niet, waardoor de pagina iets sneller laadt."
+    "complianceReviewPeriodInvalid": "Controleperiode moet tussen 1 en 120 maanden liggen."
   },
   "report": {
     "title": "Rapporten",

@@ -4,7 +4,6 @@ vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
     asset: { count: vi.fn(), groupBy: vi.fn(), findMany: vi.fn() },
-    firmwareBaseline: { findMany: vi.fn() },
     location: { count: vi.fn(), findMany: vi.fn() },
     assetType: { findMany: vi.fn() },
     manufacturer: { findMany: vi.fn() },
@@ -17,20 +16,16 @@ vi.mock("@/lib/prometheus-auth", () => ({
 vi.mock("@/lib/nis2-compliance", () => ({
   __esModule: true,
   computeNis2Counts: vi.fn(),
-  computeFirmwareStatuses: vi.fn(),
 }));
 
 import { prisma } from "@/lib/prisma";
 import { checkPrometheusAuth } from "@/lib/prometheus-auth";
-import { computeNis2Counts, computeFirmwareStatuses } from "@/lib/nis2-compliance";
+import { computeNis2Counts } from "@/lib/nis2-compliance";
 import { GET } from "@/app/api/prometheus/metrics/route";
 import { NextRequest, NextResponse } from "next/server";
 
 const mockAuth = vi.mocked(checkPrometheusAuth);
 const mockCounts = vi.mocked(computeNis2Counts);
-const mockFirmware = vi.mocked(computeFirmwareStatuses);
-
-const NO_FIRMWARE = { compliant: 0, outdated: 0, stale: 0, unknown: 0, unclassified: 0, no_data: 0 };
 
 function req() {
   return new NextRequest("http://localhost/api/prometheus/metrics");
@@ -46,8 +41,6 @@ beforeEach(() => {
   vi.mocked(prisma.location.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.assetType.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.manufacturer.findMany).mockResolvedValue([] as never);
-  vi.mocked(prisma.firmwareBaseline.findMany).mockResolvedValue([] as never);
-  mockFirmware.mockResolvedValue([] as never);
   mockCounts.mockResolvedValue({
     assetsMissingOwner: 4,
     assetsMissingCriticality: 3,
@@ -56,7 +49,6 @@ beforeEach(() => {
     locationsMissingReview: 5,
     usersWithout2fa: 1,
     auditBacklog: 6,
-    firmware: NO_FIRMWARE,
   });
 });
 
@@ -89,7 +81,6 @@ describe("GET /api/prometheus/metrics — NIS2 gauges", () => {
       locationsMissingReview: null,
       usersWithout2fa: 0,
       auditBacklog: 0,
-      firmware: NO_FIRMWARE,
     });
     const body = await (await GET(req())).text();
     expect(body).not.toContain("sam_locations_missing_review");
@@ -205,66 +196,5 @@ describe("GET /api/prometheus/metrics — per-asset info series", () => {
       hostname: { not: null },
       OR: [{ typeId: null }, { type: { prometheusExposed: true } }],
     });
-  });
-});
-
-describe("GET /api/prometheus/metrics — firmware currency", () => {
-  it("emits one status series per asset and a version series only where known", async () => {
-    mockFirmware.mockResolvedValue([
-      { hostname: "rec001", version: "4.18.1", source: "REPORTED", status: "compliant" },
-      { hostname: "rec002", version: "4.12.3", source: "REPORTED", status: "outdated" },
-      // No API, so a person recorded the version by hand.
-      { hostname: "proj001", version: "1.08", source: "ATTESTED", status: "compliant" },
-      { hostname: "proj002", version: null, source: null, status: "no_data" },
-    ] as never);
-    const body = await (await GET(req())).text();
-
-    expect(body).toContain('sam_asset_firmware_status{sam_hostname="rec001",status="compliant"} 1');
-    expect(body).toContain('sam_asset_firmware_status{sam_hostname="rec002",status="outdated"} 1');
-    expect(body).toContain('sam_asset_firmware_status{sam_hostname="proj002",status="no_data"} 1');
-
-    expect(body).toContain(
-      'sam_asset_firmware_info{sam_hostname="rec001",version="4.18.1",source="REPORTED"} 1'
-    );
-    // An attested version is evidence too, distinguishable by its source label.
-    expect(body).toContain(
-      'sam_asset_firmware_info{sam_hostname="proj001",version="1.08",source="ATTESTED"} 1'
-    );
-    // No version at all means no version series — not an empty label.
-    expect(body).not.toContain('sam_asset_firmware_info{sam_hostname="proj002"');
-  });
-
-  it("publishes the baselines so a dashboard can show what was expected", async () => {
-    vi.mocked(prisma.firmwareBaseline.findMany).mockResolvedValue([
-      { model: null, approvedVersion: "4.18.0", type: { name: "Recorder" } },
-      { model: "Pearl Mini", approvedVersion: "4.17.0", type: { name: "Recorder" } },
-    ] as never);
-    const body = await (await GET(req())).text();
-    expect(body).toContain(
-      'sam_firmware_baseline_info{sam_asset_type="Recorder",sam_model="",version="4.18.0"} 1'
-    );
-    expect(body).toContain(
-      'sam_firmware_baseline_info{sam_asset_type="Recorder",sam_model="Pearl Mini",version="4.17.0"} 1'
-    );
-  });
-
-  it("counts unmeasured assets apart from compliant ones", async () => {
-    mockCounts.mockResolvedValue({
-      assetsMissingOwner: 0,
-      assetsMissingCriticality: 0,
-      assetsPastEndOfSupport: 0,
-      assetsWithoutEndOfSupportDate: 0,
-      locationsMissingReview: null,
-      usersWithout2fa: 0,
-      auditBacklog: 0,
-      firmware: { compliant: 7, outdated: 2, stale: 4, unknown: 1, unclassified: 3, no_data: 5 },
-    });
-    const body = await (await GET(req())).text();
-    expect(body).toContain('sam_assets_firmware{status="compliant"} 7');
-    expect(body).toContain('sam_assets_firmware{status="outdated"} 2');
-    expect(body).toContain('sam_assets_firmware{status="stale"} 4');
-    expect(body).toContain('sam_assets_firmware{status="unknown"} 1');
-    expect(body).toContain('sam_assets_firmware{status="unclassified"} 3');
-    expect(body).toContain('sam_assets_firmware{status="no_data"} 5');
   });
 });

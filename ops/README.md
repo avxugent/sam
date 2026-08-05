@@ -163,19 +163,13 @@ forward on load, so this stays valid across upgrades.
 
 ## Monitoring summaries in SAM
 
-SAM shows device counts on its location and asset pages by querying the `room:*`
-recording rules directly (`PROMETHEUS_URL`), rendering them in its own styling.
-
-**Nothing is embedded from Grafana.** Panel embedding was built twice and removed
-both times: as iframes it could not work at all — `/d-solo/` is the full Grafana
-SPA and its absolute asset paths resolve against SAM — and as server-rendered
-PNGs it was slow enough to question the point and looked foreign in SAM's UI. If
-richer visualisation is wanted later, that is a fresh decision rather than a
-revival of this one.
-
-Links to the live dashboards come from the admin URL templates, so the drill-down
-path fleet → room → device still works; it just opens Grafana rather than
-inlining it.
+SAM does not query Prometheus itself. It shows nothing beyond a link out: the
+location and asset pages carry a *Monitoring* badge / hostname link built from
+the admin URL templates, so the drill-down path fleet → room → device still
+works — it just opens Grafana rather than showing anything inline. A location-
+or asset-page monitoring summary rendered by SAM was tried and removed; if
+richer in-SAM visualisation is wanted later, that is a fresh decision rather
+than a revival of this one.
 
 ## Conventions that matter## Conventions that matter
 
@@ -264,27 +258,16 @@ probe series and `probe_success` alone cannot tell them apart:
 | `2` | Room in maintenance |
 | *no series* | Never scraped |
 
-### Firmware currency
+### Firmware versions
 
-Only `status="outdated"` is a violation. `unclassified` (no baseline configured)
-and `no_data` (device has no API, or has not answered) are counted as
-*unmeasured* — reporting either as compliant would overstate NIS2 coverage.
-
-Blackbox-probed devices have no API and will sit in `no_data` permanently, so
-the fleet dashboard shows *Measured coverage* — the share of assets whose
-currency can actually be judged. That is the denominator every other firmware
-figure should be read against.
-
-Baselines live in SAM (`FirmwareBaseline`, keyed on asset type and optionally
-model), edited under **Administration → Firmware Baselines**, and
-published as `sam_firmware_baseline_info` so a dashboard can show what was
-expected alongside what is installed.
+There is no approved-baseline concept anywhere in this system — SAM does not
+track or sync firmware. `sam-fleet` and `sam-device` read the raw
+`device_firmware_info{sam_hostname, version}` series published by exporters
+directly, joined against `sam_asset_info` for room/type/model context. This is
+a browsable inventory (what is installed, per device, sortable and filterable)
+rather than a compliance verdict. Blackbox-probed devices have no firmware API
+and simply have no version to show.
 
 ## Status
 
-Built: recording rules, alert rules, promtool tests, all three dashboards,
-firmware currency.
-
-Devices with no API are recorded by hand on the asset page (`source=ATTESTED`).
-Attestations age out like any other evidence, so `no_data` now means "nothing has
-ever been established" rather than "we cannot tell".
+Built: recording rules, alert rules, promtool tests, all three dashboards.

@@ -28,14 +28,6 @@ enum Criticality {
   CRITICAL
 }
 
-/// How SAM learned an asset's installed firmware version.
-enum FirmwareSource {
-  /// Read from the device via an exporter (scripts/sync-firmware.mjs).
-  REPORTED
-  /// Recorded by a person, for devices with no API to ask.
-  ATTESTED
-}
-
 enum DisposalMethod {
   WIPED
   DESTROYED
@@ -61,10 +53,6 @@ model User {
   locationDefaultTab String  @default("assets") // "assets" | "sublocations"
   // UI preference: colour scheme
   theme              String  @default("light")  // "light" | "dark" | "system"
-  // UI preference: the monitoring summary on location and asset pages.
-  // "expanded" | "collapsed" | "hidden" — hidden also skips the Prometheus
-  // query, so someone who does not want it pays nothing for it.
-  monitoringPanel    String  @default("expanded")
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -138,7 +126,6 @@ model AssetType {
   assets      Asset[]
   stockItems  StockItem[]
   presets     MaintenancePreset[]
-  firmwareBaselines FirmwareBaseline[]
 
   @@map("asset_types")
 }
@@ -171,26 +158,6 @@ model Supplier {
   @@map("suppliers")
 }
 
-/// Approved firmware per asset type, optionally narrowed to one model.
-/// An asset with no matching row is *unclassified* — deliberately distinct
-/// from compliant, so the NIS2 figures never overstate coverage.
-model FirmwareBaseline {
-  id              String   @id @default(cuid())
-  typeId          String
-  /// null applies to every model of the type. A row naming an exact model wins.
-  model           String?  @db.VarChar(255)
-  approvedVersion String   @db.VarChar(100)
-  notes           String?  @db.Text
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  type AssetType @relation(fields: [typeId], references: [id], onDelete: Cascade)
-
-  @@unique([typeId, model])
-  @@index([typeId])
-  @@map("firmware_baselines")
-}
-
 model Asset {
   id               String    @id @default(cuid())
   locationId       String
@@ -216,19 +183,6 @@ model Asset {
   // null = inherit AssetType.defaultCriticality
   criticality      Criticality?
   endOfSupportDate DateTime? @db.Date
-  // Installed firmware. Written either by scripts/sync-firmware.mjs from
-  // Prometheus, or by a person for devices with no API to ask. Null means no
-  // version has ever been established — never assume it is up to date.
-  //
-  // firmwareCheckedAt is when the version was last *confirmed*, not when it
-  // changed, so evidence can age out: a reading older than
-  // compliance.firmwareMaxAgeDays is reported as stale rather than compliant.
-  firmwareVersion    String?   @db.VarChar(100)
-  firmwareCheckedAt  DateTime?
-  firmwareSource     FirmwareSource?
-  // Soft ref to User (no FK) so the attestation survives the user's deletion —
-  // it is compliance evidence and must outlive the account.
-  firmwareAttestedById String?
   supplierId       String?
   status               AssetStatus @default(INSTALLED)
   decommissionedAt     DateTime?

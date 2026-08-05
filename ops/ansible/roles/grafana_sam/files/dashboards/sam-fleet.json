@@ -946,491 +946,8 @@
          },
          "id": 16,
          "panels": [ ],
-         "title": "Firmware currency",
+         "title": "Firmware versions",
          "type": "row"
-      },
-      {
-         "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-         },
-         "description": "Installed version is at or above the approved baseline. A device ahead of the baseline is not flagged.",
-         "fieldConfig": {
-            "defaults": {
-               "color": {
-                  "mode": "thresholds"
-               },
-               "decimals": 0,
-               "mappings": [ ],
-               "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                     {
-                        "color": "text",
-                        "value": null
-                     }
-                  ]
-               },
-               "unit": "short"
-            },
-            "overrides": [ ]
-         },
-         "gridPos": {
-            "h": 4,
-            "w": 4,
-            "x": 0,
-            "y": 38
-         },
-         "id": 17,
-         "links": [ ],
-         "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-               "calcs": [
-                  "lastNotNull"
-               ],
-               "fields": "",
-               "values": false
-            },
-            "textMode": "auto"
-         },
-         "targets": [
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
-               "editorMode": "code",
-               "expr": "(sum(sam_assets_firmware{status=\"compliant\"})) or vector(0)",
-               "instant": true,
-               "legendFormat": "",
-               "range": false,
-               "refId": "A"
-            }
-         ],
-         "title": "Up to date",
-         "type": "stat"
-      },
-      {
-         "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-         },
-         "description": "",
-         "fieldConfig": {
-            "defaults": {
-               "color": {
-                  "mode": "thresholds"
-               },
-               "decimals": 0,
-               "mappings": [ ],
-               "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                     {
-                        "color": "green",
-                        "value": null
-                     },
-                     {
-                        "color": "red",
-                        "value": 1
-                     }
-                  ]
-               },
-               "unit": "short"
-            },
-            "overrides": [ ]
-         },
-         "gridPos": {
-            "h": 4,
-            "w": 4,
-            "x": 4,
-            "y": 38
-         },
-         "id": 18,
-         "links": [ ],
-         "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-               "calcs": [
-                  "lastNotNull"
-               ],
-               "fields": "",
-               "values": false
-            },
-            "textMode": "auto"
-         },
-         "targets": [
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
-               "editorMode": "code",
-               "expr": "(sum(sam_assets_firmware{status=\"outdated\"})) or vector(0)",
-               "instant": true,
-               "legendFormat": "",
-               "range": false,
-               "refId": "A"
-            }
-         ],
-         "title": "Outdated",
-         "type": "stat"
-      },
-      {
-         "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-         },
-         "description": "At or above the baseline, but the reading is older than the configured\nvalidity window. The device may have changed since — someone has to look\nagain. Not counted as up to date.\n",
-         "fieldConfig": {
-            "defaults": {
-               "color": {
-                  "mode": "thresholds"
-               },
-               "decimals": 0,
-               "mappings": [ ],
-               "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                     {
-                        "color": "green",
-                        "value": null
-                     },
-                     {
-                        "color": "orange",
-                        "value": 1
-                     }
-                  ]
-               },
-               "unit": "short"
-            },
-            "overrides": [ ]
-         },
-         "gridPos": {
-            "h": 4,
-            "w": 4,
-            "x": 8,
-            "y": 38
-         },
-         "id": 19,
-         "links": [ ],
-         "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-               "calcs": [
-                  "lastNotNull"
-               ],
-               "fields": "",
-               "values": false
-            },
-            "textMode": "auto"
-         },
-         "targets": [
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
-               "editorMode": "code",
-               "expr": "(sum(sam_assets_firmware{status=\"stale\"})) or vector(0)",
-               "instant": true,
-               "legendFormat": "",
-               "range": false,
-               "refId": "A"
-            }
-         ],
-         "title": "Evidence expired",
-         "type": "stat"
-      },
-      {
-         "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-         },
-         "description": "No approved version configured for this asset type or model, so currency cannot be judged.",
-         "fieldConfig": {
-            "defaults": {
-               "color": {
-                  "mode": "thresholds"
-               },
-               "decimals": 0,
-               "mappings": [ ],
-               "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                     {
-                        "color": "green",
-                        "value": null
-                     },
-                     {
-                        "color": "orange",
-                        "value": 1
-                     }
-                  ]
-               },
-               "unit": "short"
-            },
-            "overrides": [ ]
-         },
-         "gridPos": {
-            "h": 4,
-            "w": 4,
-            "x": 12,
-            "y": 38
-         },
-         "id": 20,
-         "links": [ ],
-         "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-               "calcs": [
-                  "lastNotNull"
-               ],
-               "fields": "",
-               "values": false
-            },
-            "textMode": "auto"
-         },
-         "targets": [
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
-               "editorMode": "code",
-               "expr": "(sum(sam_assets_firmware{status=\"unclassified\"})) or vector(0)",
-               "instant": true,
-               "legendFormat": "",
-               "range": false,
-               "refId": "A"
-            }
-         ],
-         "title": "No baseline set",
-         "type": "stat"
-      },
-      {
-         "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-         },
-         "description": "The device exposes no API to ask, or has not answered since the last sync.\nBlackbox-probed devices can never report firmware and will sit here\npermanently — they need a manual attestation to count as evidence.\n",
-         "fieldConfig": {
-            "defaults": {
-               "color": {
-                  "mode": "thresholds"
-               },
-               "decimals": 0,
-               "mappings": [ ],
-               "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                     {
-                        "color": "green",
-                        "value": null
-                     },
-                     {
-                        "color": "orange",
-                        "value": 1
-                     }
-                  ]
-               },
-               "unit": "short"
-            },
-            "overrides": [ ]
-         },
-         "gridPos": {
-            "h": 4,
-            "w": 4,
-            "x": 16,
-            "y": 38
-         },
-         "id": 21,
-         "links": [ ],
-         "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-               "calcs": [
-                  "lastNotNull"
-               ],
-               "fields": "",
-               "values": false
-            },
-            "textMode": "auto"
-         },
-         "targets": [
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
-               "editorMode": "code",
-               "expr": "(sum(sam_assets_firmware{status=\"no_data\"})) or vector(0)",
-               "instant": true,
-               "legendFormat": "",
-               "range": false,
-               "refId": "A"
-            }
-         ],
-         "title": "No version reported",
-         "type": "stat"
-      },
-      {
-         "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-         },
-         "description": "Installed and approved versions could not be ordered (mismatched shapes). Never counted as compliant.",
-         "fieldConfig": {
-            "defaults": {
-               "color": {
-                  "mode": "thresholds"
-               },
-               "decimals": 0,
-               "mappings": [ ],
-               "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                     {
-                        "color": "green",
-                        "value": null
-                     },
-                     {
-                        "color": "orange",
-                        "value": 1
-                     }
-                  ]
-               },
-               "unit": "short"
-            },
-            "overrides": [ ]
-         },
-         "gridPos": {
-            "h": 4,
-            "w": 4,
-            "x": 20,
-            "y": 38
-         },
-         "id": 22,
-         "links": [ ],
-         "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-               "calcs": [
-                  "lastNotNull"
-               ],
-               "fields": "",
-               "values": false
-            },
-            "textMode": "auto"
-         },
-         "targets": [
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
-               "editorMode": "code",
-               "expr": "(sum(sam_assets_firmware{status=\"unknown\"})) or vector(0)",
-               "instant": true,
-               "legendFormat": "",
-               "range": false,
-               "refId": "A"
-            }
-         ],
-         "title": "Version unorderable",
-         "type": "stat"
-      },
-      {
-         "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-         },
-         "description": "Share of monitored assets whose firmware currency can actually be judged. The denominator every other figure here should be read against.",
-         "fieldConfig": {
-            "defaults": {
-               "color": {
-                  "mode": "thresholds"
-               },
-               "decimals": 0,
-               "mappings": [ ],
-               "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                     {
-                        "color": "red",
-                        "value": null
-                     },
-                     {
-                        "color": "orange",
-                        "value": 0.90000000000000002
-                     },
-                     {
-                        "color": "green",
-                        "value": 0.98999999999999999
-                     }
-                  ]
-               },
-               "unit": "percentunit"
-            },
-            "overrides": [ ]
-         },
-         "gridPos": {
-            "h": 4,
-            "w": 4,
-            "x": 24,
-            "y": 38
-         },
-         "id": 23,
-         "links": [ ],
-         "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-               "calcs": [
-                  "lastNotNull"
-               ],
-               "fields": "",
-               "values": false
-            },
-            "textMode": "auto"
-         },
-         "targets": [
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
-               "editorMode": "code",
-               "expr": "(sum(sam_assets_firmware{status=~\"compliant|outdated|stale\"}) or vector(0))\n/ clamp_min(sum(sam_assets_firmware), 1)\n",
-               "instant": true,
-               "legendFormat": "",
-               "range": false,
-               "refId": "A"
-            }
-         ],
-         "title": "Measured coverage",
-         "type": "stat"
       },
       {
          "datasource": {
@@ -1446,8 +963,7 @@
                      "type": "auto"
                   },
                   "filterable": true
-               },
-               "noValue": "0"
+               }
             },
             "overrides": [
                {
@@ -1471,12 +987,12 @@
             ]
          },
          "gridPos": {
-            "h": 12,
+            "h": 14,
             "w": 24,
             "x": 0,
-            "y": 42
+            "y": 38
          },
-         "id": 24,
+         "id": 17,
          "options": {
             "cellHeight": "sm",
             "footer": {
@@ -1490,8 +1006,8 @@
             "showHeader": true,
             "sortBy": [
                {
-                  "desc": true,
-                  "displayName": "Outdated"
+                  "desc": false,
+                  "displayName": "Room"
                }
             ]
          },
@@ -1502,7 +1018,7 @@
                   "uid": "${datasource}"
                },
                "editorMode": "code",
-               "expr": "sum by (sam_fi_number, sam_location_name, sam_campus, sam_building) (room:firmware_outdated:count{sam_campus=~\"$campus\", sam_building=~\"$building\"})",
+               "expr": "sum by (sam_hostname, sam_fi_number, sam_location_name, sam_campus, sam_building, sam_asset_type, sam_model) (sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\"})",
                "format": "table",
                "instant": true,
                "legendFormat": "",
@@ -1515,33 +1031,20 @@
                   "uid": "${datasource}"
                },
                "editorMode": "code",
-               "expr": "sum by (sam_fi_number) (room:firmware_unmeasured:count{sam_campus=~\"$campus\", sam_building=~\"$building\"})",
+               "expr": "sum by (sam_hostname, version) (device_firmware_info)",
                "format": "table",
                "instant": true,
                "legendFormat": "",
                "range": false,
                "refId": "B"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
-               "editorMode": "code",
-               "expr": "sum by (sam_fi_number) (room:assets_expected:count{sam_campus=~\"$campus\", sam_building=~\"$building\"})",
-               "format": "table",
-               "instant": true,
-               "legendFormat": "",
-               "range": false,
-               "refId": "C"
             }
          ],
-         "title": "Rooms with outdated firmware",
+         "title": "Installed firmware, per device",
          "transformations": [
             {
                "id": "joinByField",
                "options": {
-                  "byField": "sam_fi_number",
+                  "byField": "sam_hostname",
                   "mode": "outer"
                }
             },
@@ -1552,29 +1055,31 @@
                      "Time": true,
                      "Time 1": true,
                      "Time 2": true,
-                     "Time 3": true,
+                     "Value #A": true,
+                     "Value #B": true,
                      "__name__": true,
                      "__name__ 1": true,
-                     "__name__ 2": true,
-                     "__name__ 3": true
+                     "__name__ 2": true
                   },
                   "indexByName": {
-                     "Value #A": 4,
-                     "Value #B": 5,
-                     "Value #C": 6,
-                     "sam_building": 3,
-                     "sam_campus": 2,
-                     "sam_fi_number": 0,
-                     "sam_location_name": 1
+                     "sam_asset_type": 3,
+                     "sam_building": 7,
+                     "sam_campus": 6,
+                     "sam_fi_number": 1,
+                     "sam_hostname": 0,
+                     "sam_location_name": 2,
+                     "sam_model": 4,
+                     "version": 5
                   },
                   "renameByName": {
-                     "Value #A": "Outdated",
-                     "Value #B": "Unmeasured",
-                     "Value #C": "Devices",
+                     "sam_asset_type": "Type",
                      "sam_building": "Building",
                      "sam_campus": "Campus",
                      "sam_fi_number": "FI number",
-                     "sam_location_name": "Room"
+                     "sam_hostname": "Hostname",
+                     "sam_location_name": "Room",
+                     "sam_model": "Model",
+                     "version": "Firmware version"
                   }
                }
             }
@@ -1587,9 +1092,9 @@
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 54
+            "y": 52
          },
-         "id": 25,
+         "id": 18,
          "panels": [ ],
          "title": "Lifecycle",
          "type": "row"
@@ -1628,9 +1133,9 @@
             "h": 4,
             "w": 4,
             "x": 0,
-            "y": 55
+            "y": 53
          },
-         "id": 26,
+         "id": 19,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1697,9 +1202,9 @@
             "h": 4,
             "w": 4,
             "x": 4,
-            "y": 55
+            "y": 53
          },
-         "id": 27,
+         "id": 20,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1766,9 +1271,9 @@
             "h": 4,
             "w": 4,
             "x": 8,
-            "y": 55
+            "y": 53
          },
-         "id": 28,
+         "id": 21,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1835,9 +1340,9 @@
             "h": 4,
             "w": 4,
             "x": 12,
-            "y": 55
+            "y": 53
          },
-         "id": 29,
+         "id": 22,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -1904,9 +1409,9 @@
             "h": 4,
             "w": 4,
             "x": 16,
-            "y": 55
+            "y": 53
          },
-         "id": 30,
+         "id": 23,
          "links": [ ],
          "options": {
             "colorMode": "value",

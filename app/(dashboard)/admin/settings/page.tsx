@@ -27,7 +27,6 @@ export default async function SettingsPage() {
           "assets.defaultOwnerId",
           "compliance.reviewWorkLogItemId",
           "compliance.reviewPeriodMonths",
-          "compliance.firmwareMaxAgeDays",
         ],
       },
     },
@@ -75,7 +74,6 @@ export default async function SettingsPage() {
           initialDefaultOwnerId={map["assets.defaultOwnerId"] || null}
           initialReviewWorkLogItemId={map["compliance.reviewWorkLogItemId"] || null}
           initialReviewPeriodMonths={parseInt(map["compliance.reviewPeriodMonths"] ?? "12", 10)}
-          initialFirmwareMaxAgeDays={parseInt(map["compliance.firmwareMaxAgeDays"] ?? "90", 10)}
           users={users}
           workLogItems={workLogItems.map((i) => ({ id: i.id, name: i.name }))}
         />

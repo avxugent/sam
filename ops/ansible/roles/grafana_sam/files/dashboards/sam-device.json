@@ -108,7 +108,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
          },
-         "description": "Last version synced from the exporter into SAM. \"not reported\" means the device has no API, or has not answered since the last sync.",
+         "description": "Installed version, as reported by the exporter. \"not reported\" means the device has no API, or has not answered.",
          "fieldConfig": {
             "defaults": {
                "color": {
@@ -132,7 +132,7 @@
          },
          "gridPos": {
             "h": 4,
-            "w": 5,
+            "w": 10,
             "x": 4,
             "y": 0
          },
@@ -159,80 +159,14 @@
                   "uid": "${datasource}"
                },
                "editorMode": "code",
-               "expr": "sam_asset_firmware_info{sam_hostname=\"$hostname\"}",
+               "expr": "device_firmware_info{sam_hostname=\"$hostname\"}",
                "instant": true,
                "legendFormat": "{{version}}",
                "range": false,
                "refId": "A"
             }
          ],
-         "title": "Firmware",
-         "type": "stat"
-      },
-      {
-         "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-         },
-         "description": "Against the approved baseline. Only \"compliant\" is evidence of currency —\n\"unclassified\" (no baseline set) and \"no_data\" (nothing reported) are\nunmeasured, not up to date.\n",
-         "fieldConfig": {
-            "defaults": {
-               "color": {
-                  "mode": "fixed"
-               },
-               "decimals": 0,
-               "mappings": [ ],
-               "noValue": "unclassified",
-               "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                     {
-                        "color": "text",
-                        "value": null
-                     }
-                  ]
-               },
-               "unit": "short"
-            },
-            "overrides": [ ]
-         },
-         "gridPos": {
-            "h": 4,
-            "w": 5,
-            "x": 9,
-            "y": 0
-         },
-         "id": 3,
-         "links": [ ],
-         "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-               "calcs": [
-                  "lastNotNull"
-               ],
-               "fields": "",
-               "values": false
-            },
-            "textMode": "name"
-         },
-         "targets": [
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
-               "editorMode": "code",
-               "expr": "sam_asset_firmware_status{sam_hostname=\"$hostname\"}",
-               "instant": true,
-               "legendFormat": "{{status}}",
-               "range": false,
-               "refId": "A"
-            }
-         ],
-         "title": "Firmware status",
+         "title": "Firmware version",
          "type": "stat"
       },
       {
@@ -267,7 +201,7 @@
             "x": 14,
             "y": 0
          },
-         "id": 4,
+         "id": 3,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -332,7 +266,7 @@
             "x": 18,
             "y": 0
          },
-         "id": 5,
+         "id": 4,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -398,7 +332,7 @@
             "x": 21,
             "y": 0
          },
-         "id": 6,
+         "id": 5,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -458,7 +392,7 @@
             "x": 0,
             "y": 4
          },
-         "id": 7,
+         "id": 6,
          "options": {
             "legend": {
                "calcs": [ ],
@@ -515,7 +449,7 @@
             "x": 12,
             "y": 4
          },
-         "id": 8,
+         "id": 7,
          "options": {
             "legend": {
                "calcs": [ ],
@@ -553,7 +487,7 @@
             "x": 0,
             "y": 11
          },
-         "id": 9,
+         "id": 8,
          "panels": [ ],
          "repeat": "has_recorder",
          "title": "Recorder",
@@ -586,7 +520,7 @@
             "x": 0,
             "y": 12
          },
-         "id": 10,
+         "id": 9,
          "options": {
             "legend": {
                "calcs": [ ],
@@ -643,7 +577,7 @@
             "x": 8,
             "y": 12
          },
-         "id": 11,
+         "id": 10,
          "options": {
             "legend": {
                "calcs": [ ],
@@ -705,7 +639,7 @@
             "x": 16,
             "y": 12
          },
-         "id": 12,
+         "id": 11,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -746,7 +680,7 @@
             "x": 0,
             "y": 19
          },
-         "id": 13,
+         "id": 12,
          "panels": [ ],
          "repeat": "has_projector",
          "title": "Projector",
@@ -779,7 +713,7 @@
             "x": 0,
             "y": 20
          },
-         "id": 14,
+         "id": 13,
          "options": {
             "legend": {
                "calcs": [ ],
@@ -836,7 +770,7 @@
             "x": 12,
             "y": 20
          },
-         "id": 15,
+         "id": 14,
          "options": {
             "legend": {
                "calcs": [ ],
@@ -874,7 +808,7 @@
             "x": 0,
             "y": 27
          },
-         "id": 16,
+         "id": 15,
          "panels": [ ],
          "title": "Lifecycle",
          "type": "row"
@@ -912,7 +846,7 @@
             "x": 0,
             "y": 28
          },
-         "id": 17,
+         "id": 16,
          "links": [ ],
          "options": {
             "colorMode": "value",
@@ -986,7 +920,7 @@
             "x": 6,
             "y": 28
          },
-         "id": 18,
+         "id": 17,
          "links": [ ],
          "options": {
             "colorMode": "value",

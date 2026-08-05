@@ -88,55 +88,6 @@ Review clusters of similar-but-not-identical asset model spellings (typos, abbre
 
 ---
 
-## Firmware Baselines
-
-**Administration → Firmware Baselines**
-
-The approved firmware version per asset type, optionally narrowed to one model.
-A row naming a model wins over the type-wide row.
-
-**Firmware in the field** lists the versions devices actually report, grouped by
-type and model, with the number of devices on each version. Each group that has
-no baseline yet offers one-click creation at the highest version seen, so
-baselines come from observed reality rather than guesswork — a fleet of hundreds
-of devices usually collapses to a handful of groups.
-
-**Approved versions** lists what is configured. Click a version to edit it in
-place. Deleting a baseline returns every matching asset to *unclassified*, so it
-is recorded in the audit log.
-
-### How a device is judged
-
-| Status | Meaning |
-|---|---|
-| Up to date | Installed version is at or above the baseline. A device ahead of the baseline is not flagged, so a staged rollout stays quiet |
-| Outdated | Installed version is below the baseline |
-| Evidence expired | At or above the baseline, but the reading is older than the configured validity window |
-| Unclassified | No baseline configured for this asset type or model |
-| No version reported | No version has ever been established — no API and nothing recorded by hand |
-| Unorderable | Installed and approved versions could not be compared |
-
-Only *up to date* is evidence of currency. The rest are unmeasured, never
-compliant. A version *below* the baseline stays outdated however old the reading
-— staleness must not hide a real violation.
-
-Versions are collected by the `assets:sync-firmware` script; see
-[Maintenance Scripts](../technical/scripts.md).
-
-### Recording a version by hand
-
-Many AV devices have no API and can never report their firmware. On the asset
-page, the **Firmware** field lets anyone but a Viewer record what they saw; it is
-tagged *attested* rather than *reported*, and stamped with who and when.
-
-An attestation ages like any other evidence. Past **Settings → Firmware evidence
-validity (days)** (default 90) it becomes *evidence expired*, so someone has to
-look again — an entry that counted forever would be worse than none. If the
-device later gains an API, the next sync replaces the attestation: measured
-evidence beats recollection.
-
----
-
 ## Audit Log
 
 **Administration → Audit Log**
@@ -165,7 +116,7 @@ Application-wide configuration managed through the UI. Changes take effect immed
 
 - **General** — hostname / MAC address / location URL templates. Each turns a
   value into a clickable link to an external system. Point them at Grafana to
-  reach the monitoring dashboards from SAM:
+  reach the dashboards from SAM:
   `https://grafana.example.com/d/sam-device/device?var-hostname={hostname}` for
   hostnames, and
   `https://grafana.example.com/d/sam-room/room?var-fi_number={fi_number}` for
@@ -185,12 +136,6 @@ One page aggregating the NIS2 evidence gaps, each as a stat card with an expanda
 
 - **Assets without owner** and **assets unclassified** (no criticality on the asset or its type)
 - **Assets past end-of-support** (plus how many have no date at all)
-- **Firmware outdated**, **firmware evidence expired**, and **firmware unmeasured** —
-  the last of these states the share of monitored assets whose currency can be
-  judged at all, because devices with no API can never report a version. Read
-  every firmware figure against that percentage: a small unmeasured count over a
-  small measurable population is not the reassurance it looks like. See
-  [Firmware Baselines](#firmware-baselines).
 - **Locations not reviewed** — leaf locations missing the configured review work-log item within the review period
 - **Local users without 2FA** and the **audit forwarding backlog**
 

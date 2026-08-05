@@ -45,9 +45,6 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { renderLocationUrl } from "@/lib/hostname-template";
-import { MonitoringSection } from "@/components/monitoring/grafana-panel";
-import { RoomMonitoringStats } from "@/components/monitoring/monitoring-stats";
-import type { MonitoringResult, RoomMonitoring } from "@/lib/prometheus-query";
 
 type Breadcrumb = { id: string; name: string };
 
@@ -116,8 +113,6 @@ export function LocationDetailClient({
   defaultTab = "assets",
   hostnameUrlTemplate,
   locationUrlTemplate,
-  roomMonitoring,
-  monitoringPreference = "expanded",
   macAddressUrlTemplate,
   workLogs = [],
   users = [],
@@ -135,8 +130,6 @@ export function LocationDetailClient({
   defaultTab?: string;
   hostnameUrlTemplate?: string | null;
   locationUrlTemplate?: string | null;
-  roomMonitoring?: MonitoringResult<RoomMonitoring>;
-  monitoringPreference?: string;
   macAddressUrlTemplate?: string | null;
   workLogs?: WorkLogEntry[];
   users?: WorkLogUserOption[];
@@ -229,11 +222,6 @@ export function LocationDetailClient({
           id: location.id,
         })
       : null;
-
-  // Panels are keyed on the FI number, so a location without one has nothing to
-  // show — the room dashboard would resolve to an empty variable.
-  // Only rooms have monitoring: the summary is keyed on the FI number.
-  const showMonitoring = monitoringPreference !== "hidden" && !!location.fiNumber;
 
   return (
     <div className="space-y-6">
@@ -459,16 +447,6 @@ export function LocationDetailClient({
       )}
 
       {/* Tabs */}
-      {showMonitoring && (
-        <MonitoringSection
-          title={t("monitoring")}
-          openUrl={monitoringUrl}
-          defaultOpen={monitoringPreference !== "collapsed"}
-        >
-          <RoomMonitoringStats result={roomMonitoring ?? { status: "not-configured" }} />
-        </MonitoringSection>
-      )}
-
       <Tabs defaultValue={defaultTab}>
         <TabsList className="flex-wrap h-auto gap-0 border-b border-[#e2e8f0] bg-transparent rounded-none p-0">
           <TabsTrigger

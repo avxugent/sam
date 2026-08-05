@@ -37,7 +37,6 @@ type Props = {
   email: string;
   provider: string;
   locationDefaultTab?: string;
-  monitoringPanel?: string;
   serverTheme?: string;
 };
 
@@ -46,7 +45,6 @@ export function ProfileClient({
   email,
   provider,
   locationDefaultTab = "assets",
-  monitoringPanel = "expanded",
   serverTheme: _serverTheme,
 }: Props) {
   const t = useTranslations("settings");
@@ -149,39 +147,6 @@ export function ProfileClient({
       toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
     } finally {
       setLocTabSaving(false);
-    }
-  }
-
-  // ── Monitoring panel preference ────────────────────────────────────────────
-  type MonitoringPref = "expanded" | "collapsed" | "hidden";
-  const [monPref, setMonPref] = useState<MonitoringPref>(
-    monitoringPanel === "collapsed" || monitoringPanel === "hidden"
-      ? monitoringPanel
-      : "expanded"
-  );
-  const [monSaving, setMonSaving] = useState(false);
-
-  async function saveMonPref(value: MonitoringPref) {
-    setMonPref(value);
-    setMonSaving(true);
-    try {
-      const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ monitoringPanel: value }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        toast({ title: tCommon("error"), description: body.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
-      } else {
-        toast({ title: t("preferencesSaved") });
-        // Server components read this on render, so the pages need refetching.
-        router.refresh();
-      }
-    } catch {
-      toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
-    } finally {
-      setMonSaving(false);
     }
   }
 
@@ -389,39 +354,6 @@ export function ProfileClient({
             );
           })}
           {locTabSaving && <p className="text-xs text-[#64748b]">{tCommon("saving")}…</p>}
-        </CardContent>
-      </Card>
-
-      {/* Monitoring panel preference */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("monitoringPanelTitle")}</CardTitle>
-          <CardDescription>{t("monitoringPanelSubtitle")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {(["expanded", "collapsed", "hidden"] as const).map((value) => {
-            const active = monPref === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                disabled={monSaving}
-                onClick={() => saveMonPref(value)}
-                className={cn(
-                  "w-full text-left rounded-[8px] border px-4 py-3 text-sm transition-colors",
-                  active
-                    ? "border-[#1e64c8] bg-[#eff6ff] text-[#1e64c8] font-medium"
-                    : "border-[#e2e8f0] bg-white text-[#0f172a] hover:border-[#94a3b8]"
-                )}
-              >
-                <span className="font-medium">{t(`monitoringPanel_${value}`)}</span>
-                <p className="text-xs mt-0.5 text-[#64748b]">
-                  {t(`monitoringPanel_${value}Desc`)}
-                </p>
-              </button>
-            );
-          })}
-          {monSaving && <p className="text-xs text-[#64748b]">{tCommon("saving")}…</p>}
         </CardContent>
       </Card>
     </div>

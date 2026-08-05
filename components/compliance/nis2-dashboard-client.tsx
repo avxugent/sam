@@ -13,10 +13,7 @@ type CardKey =
   | "pastEndOfSupport"
   | "missingReview"
   | "usersWithout2fa"
-  | "auditBacklog"
-  | "firmwareOutdated"
-  | "firmwareStale"
-  | "firmwareUnmeasured";
+  | "auditBacklog";
 
 function countColor(count: number): string {
   return count === 0 ? "text-[#16a34a]" : "text-[#dc2626]";
@@ -202,40 +199,6 @@ export function Nis2DashboardClient({ result }: { result: Nis2ComplianceResult }
           linkLabel={t("nis2ManageUsersLink")}
         />
         <StatCard
-          title={t("nis2FirmwareOutdated")}
-          subtitle={t("nis2FirmwareOutdatedHelp")}
-          count={result.firmware.outdated.count}
-          expandable={result.firmware.outdated.count > 0}
-          expanded={expanded === "firmwareOutdated"}
-          onToggle={() => toggle("firmwareOutdated")}
-        />
-        <StatCard
-          title={t("nis2FirmwareStale")}
-          subtitle={t("nis2FirmwareStaleHelp", { days: result.firmware.maxAgeDays })}
-          count={result.firmware.stale.count}
-          expandable={result.firmware.stale.count > 0}
-          expanded={expanded === "firmwareStale"}
-          onToggle={() => toggle("firmwareStale")}
-        />
-        <StatCard
-          title={t("nis2FirmwareUnmeasured")}
-          // The coverage figure belongs in the same card as the count. Read
-          // alone, "12 unmeasured" sounds small; "12 unmeasured, 30% of the
-          // fleet measurable at all" is the honest version.
-          subtitle={t("nis2FirmwareUnmeasuredHelp", {
-            coverage:
-              result.firmware.measuredCoverage === null
-                ? "—"
-                : `${Math.round(result.firmware.measuredCoverage * 100)}%`,
-          })}
-          count={result.firmware.unmeasured.count}
-          expandable={result.firmware.unmeasured.count > 0}
-          expanded={expanded === "firmwareUnmeasured"}
-          onToggle={() => toggle("firmwareUnmeasured")}
-          href="/admin/firmware-baselines"
-          linkLabel={t("nis2FirmwareBaselinesLink")}
-        />
-        <StatCard
           title={t("nis2AuditBacklog")}
           subtitle={
             result.auditBacklog.syslogConfigured
@@ -248,21 +211,6 @@ export function Nis2DashboardClient({ result }: { result: Nis2ComplianceResult }
         />
       </div>
 
-      {expanded === "firmwareOutdated" && (
-        <AssetSampleList
-          sample={result.firmware.outdated.sample}
-          total={result.firmware.outdated.count}
-        />
-      )}
-      {expanded === "firmwareStale" && (
-        <AssetSampleList sample={result.firmware.stale.sample} total={result.firmware.stale.count} />
-      )}
-      {expanded === "firmwareUnmeasured" && (
-        <AssetSampleList
-          sample={result.firmware.unmeasured.sample}
-          total={result.firmware.unmeasured.count}
-        />
-      )}
       {expanded === "missingOwner" && (
         <AssetSampleList sample={result.assetsMissingOwner.sample} total={result.assetsMissingOwner.count} />
       )}

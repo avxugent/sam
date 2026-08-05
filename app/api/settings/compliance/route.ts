@@ -10,7 +10,6 @@ const KEYS = [
   "assets.defaultOwnerId",
   "compliance.reviewWorkLogItemId",
   "compliance.reviewPeriodMonths",
-  "compliance.firmwareMaxAgeDays",
 ] as const;
 
 const schema = z.object({
@@ -19,7 +18,6 @@ const schema = z.object({
   defaultOwnerId: z.string().max(64).optional().nullable(),
   reviewWorkLogItemId: z.string().max(64).optional().nullable(),
   reviewPeriodMonths: z.number().int().min(1).max(120).optional(),
-  firmwareMaxAgeDays: z.number().int().min(1).max(3650).optional(),
 });
 
 export async function GET() {
@@ -38,7 +36,6 @@ export async function GET() {
     defaultOwnerId: map["assets.defaultOwnerId"] || null,
     reviewWorkLogItemId: map["compliance.reviewWorkLogItemId"] || null,
     reviewPeriodMonths: parseInt(map["compliance.reviewPeriodMonths"] ?? "12", 10),
-    firmwareMaxAgeDays: parseInt(map["compliance.firmwareMaxAgeDays"] ?? "90", 10),
   });
 }
 
@@ -66,9 +63,6 @@ export async function PUT(req: NextRequest) {
   }
   if (parsed.data.reviewPeriodMonths !== undefined) {
     entries.push({ key: "compliance.reviewPeriodMonths", value: String(parsed.data.reviewPeriodMonths) });
-  }
-  if (parsed.data.firmwareMaxAgeDays !== undefined) {
-    entries.push({ key: "compliance.firmwareMaxAgeDays", value: String(parsed.data.firmwareMaxAgeDays) });
   }
 
   for (const { key, value } of entries) {

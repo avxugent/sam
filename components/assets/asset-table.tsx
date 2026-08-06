@@ -6,19 +6,8 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
-import { useToast } from "@/components/ui/use-toast";
+import { RemoveAssetDialog } from "@/components/assets/remove-asset-dialog";
 import { formatDate } from "@/lib/utils";
 import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown, ExternalLink, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { renderHostnameUrl } from "@/lib/hostname-template";
@@ -121,7 +110,6 @@ export function AssetTable({
   macAddressUrlTemplate?: string | null;
 }) {
   const router = useRouter();
-  const { toast } = useToast();
   const t = useTranslations("asset");
   const tField = useTranslations("field");
   const tCommon = useTranslations("common");
@@ -179,14 +167,7 @@ export function AssetTable({
   const safePage = Math.min(page, totalPages);
   const paginated = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
 
-  async function handleDelete(id: string) {
-    const res = await fetch(`/api/assets/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
-      return;
-    }
-    toast({ title: t("assetDeleted") });
+  function handleRemoved(id: string) {
     setAssets((prev) => prev.filter((a) => a.id !== id));
     router.refresh();
   }
@@ -335,35 +316,20 @@ export function AssetTable({
                             </Button>
                           </AssetFormDialog>
 
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`Delete asset ${asset.model || asset.hostname || asset.serialNumber || asset.id}`}
-                                className="h-[30px] w-[30px] text-destructive hover:text-destructive hover:bg-red-50"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>{t("deleteSimpleTitle")}</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  {t("deleteConfirmDescription")}
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(asset.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  {tCommon("delete")}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <RemoveAssetDialog
+                            assetId={asset.id}
+                            assetName={asset.model || asset.hostname || asset.serialNumber || asset.id}
+                            onRemoved={() => handleRemoved(asset.id)}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Remove asset ${asset.model || asset.hostname || asset.serialNumber || asset.id}`}
+                              className="h-[30px] w-[30px] text-destructive hover:text-destructive hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </RemoveAssetDialog>
                         </>
                       )}
                     </div>

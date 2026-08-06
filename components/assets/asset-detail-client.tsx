@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
+import { RemoveAssetDialog } from "@/components/assets/remove-asset-dialog";
 import { formatDate } from "@/lib/utils";
 import {
   ChevronRight,
@@ -33,12 +34,9 @@ import {
   Wrench,
   ExternalLink,
   FolderInput,
-  ArchiveX,
   RotateCcw,
   TriangleAlert,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 import { getAssetTypeIcon } from "@/lib/asset-type-icon";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
@@ -86,8 +84,6 @@ type Asset = {
   location: { id: string; name: string };
   attachments: Attachment[];
 };
-
-const DISPOSAL_METHODS = ["WIPED", "DESTROYED", "RETURNED", "RESOLD", "OTHER"] as const;
 
 type Breadcrumb = { id: string; name: string };
 
@@ -154,31 +150,7 @@ export function AssetDetailClient({
   const isDecommissioned = asset.status === "DECOMMISSIONED";
   const [attachments, setAttachments] = useState(asset.attachments);
   const [moveOpen, setMoveOpen] = useState(false);
-  const [decommissionNote, setDecommissionNote] = useState("");
-  const [disposalMethod, setDisposalMethod] = useState("");
-  const [decommissioning, setDecommissioning] = useState(false);
   const [reinstating, setReinstating] = useState(false);
-  const [returningToStock, setReturningToStock] = useState(false);
-
-  async function handleDecommission() {
-    if (!disposalMethod) return;
-    setDecommissioning(true);
-    const res = await fetch(`/api/assets/${asset.id}/decommission`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ note: decommissionNote || null, disposalMethod }),
-    });
-    setDecommissioning(false);
-    if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
-      return;
-    }
-    toast({ title: tDecom("decommissionAsset") });
-    setDecommissionNote("");
-    setDisposalMethod("");
-    router.refresh();
-  }
 
   async function handleReinstate() {
     setReinstating(true);
@@ -190,32 +162,6 @@ export function AssetDetailClient({
       return;
     }
     toast({ title: tDecom("reinstated") });
-    router.refresh();
-  }
-
-  async function handleReturnToStock() {
-    setReturningToStock(true);
-    const res = await fetch(`/api/assets/${asset.id}/return-to-stock`, { method: "POST" });
-    setReturningToStock(false);
-    if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
-      return;
-    }
-    toast({ title: t("returnedToStock") });
-    router.push("/stock");
-    router.refresh();
-  }
-
-  async function handleDelete() {
-    const res = await fetch(`/api/assets/${asset.id}`, { method: "DELETE" });
-    if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
-      return;
-    }
-    toast({ title: t("assetDeleted") });
-    router.push(`/locations/${asset.locationId}`);
     router.refresh();
   }
 
@@ -339,119 +285,28 @@ export function AssetDetailClient({
               {t("moveAssetButton")}
             </Button>
 
-            {/* Return to stock */}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5">
-                  <Package className="h-3.5 w-3.5" />
-                  {t("returnToStock")}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t("returnToStockConfirmTitle", { name: displayName })}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t("returnToStockConfirmDescription")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleReturnToStock}
-                    disabled={returningToStock}
-                    className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
-                  >
-                    {returningToStock ? t("returningToStock") : t("returnToStock")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
-            {/* Decommission */}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-[34px] rounded-[7px] border-[#fde047] text-[#92400e] hover:bg-[#fef9c3] text-[13px] gap-1.5">
-                  <ArchiveX className="h-3.5 w-3.5" />
-                  {tDecom("decommissionAsset")}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{tDecom("decommissionConfirmTitle", { name: displayName })}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {tDecom("decommissionConfirmDescription")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <div className="px-6 pb-2 space-y-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="disposal-method" className="text-[13px]">
-                      {tDecom("disposalMethodLabel")} <span aria-hidden="true" className="text-destructive">*</span>
-                    </Label>
-                    <select
-                      id="disposal-method"
-                      value={disposalMethod}
-                      onChange={(e) => setDisposalMethod(e.target.value)}
-                      className="w-full h-9 px-3 rounded-md border border-input bg-transparent text-[13px] focus:outline-none focus:ring-1 focus:ring-ring"
-                    >
-                      <option value="">{tDecom("disposalMethodPlaceholder")}</option>
-                      {DISPOSAL_METHODS.map((m) => (
-                        <option key={m} value={m}>{tDecom(`disposalMethod.${m}`)}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="decommission-note" className="text-[13px]">{tDecom("decommissionReasonLabel")}</Label>
-                    <Input
-                      id="decommission-note"
-                      value={decommissionNote}
-                      onChange={(e) => setDecommissionNote(e.target.value)}
-                      placeholder={tDecom("decommissionReasonPlaceholder")}
-                      maxLength={500}
-                    />
-                  </div>
-                </div>
-                <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => { setDecommissionNote(""); setDisposalMethod(""); }}>{tCommon("cancel")}</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDecommission}
-                    disabled={decommissioning || !disposalMethod}
-                    className="bg-[#ca8a04] hover:bg-[#a16207] text-white"
-                  >
-                    {decommissioning ? tDecom("decommissioning") : tDecom("decommissionAsset")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-[34px] rounded-[7px] border-[#fecaca] text-[#ef4444] hover:bg-red-50 text-[13px] gap-1.5"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  {tCommon("delete")}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t("deleteConfirmTitle", { name: displayName })}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t("deleteConfirmDescription")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    {tCommon("delete")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <RemoveAssetDialog
+              assetId={asset.id}
+              assetName={displayName}
+              onRemoved={(action) => {
+                if (action === "stock") {
+                  router.push("/stock");
+                } else if (action === "delete") {
+                  router.push(`/locations/${asset.locationId}`);
+                } else {
+                  router.refresh();
+                }
+              }}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-[34px] rounded-[7px] border-[#fecaca] text-[#ef4444] hover:bg-red-50 text-[13px] gap-1.5"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {t("removeAsset")}
+              </Button>
+            </RemoveAssetDialog>
           </div>
         )}
       </div>

@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.0-alpha.6] - 2026-08-06
+
+### Changed
+
+- **Deleting an asset now asks what you actually want first.** The Delete button (asset table row and asset detail page) opens a dialog offering three choices — return to stock, decommission, or delete — instead of jumping straight to a delete confirmation. Delete is still there for genuine mistakes, but it's listed last and flagged, nudging toward the two options that keep a traceable record. The asset detail page's separate Return-to-stock and Decommission buttons are gone; this one dialog replaces all three.
+
+---
+
 ## [2.0.0-alpha.5] - 2026-08-06
 
 ### Added

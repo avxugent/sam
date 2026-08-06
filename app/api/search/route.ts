@@ -191,7 +191,7 @@ export async function GET(req: NextRequest) {
         SELECT l.id, lt.rootId FROM locations l
         INNER JOIN loc_tree lt ON l.parentId = lt.id
       )
-      SELECT lt.rootId, COUNT(a.id) AS assetCount
+      SELECT lt.rootId, COALESCE(SUM(a.quantity), 0) AS assetCount
       FROM loc_tree lt
       LEFT JOIN assets a ON a.locationId = lt.id AND a.status = 'INSTALLED'
       GROUP BY lt.rootId

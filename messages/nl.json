@@ -134,7 +134,8 @@
     "owner": "Eigenaar",
     "supplier": "Leverancier",
     "criticality": "Kriticiteit",
-    "endOfSupport": "Einde ondersteuning"
+    "endOfSupport": "Einde ondersteuning",
+    "quantity": "Aantal"
   },
   "asset": {
     "title": "Asset",
@@ -219,6 +220,9 @@
     "errHostnameFqdn": "Hostname moet een volledig gekwalificeerde domeinnaam zijn (bv. device.example.com)",
     "errHostnamePattern": "Hostname komt niet overeen met het vereiste formaat voor {typeName}.",
     "errMacRequiredForHostname": "Minstens één MAC-adres is verplicht als er een hostname is ingesteld.",
+    "errQuantityMin": "Aantal moet minstens 1 zijn",
+    "errQuantityIdentity": "Aantal moet 1 zijn als er een serienummer, hostname of MAC-adres is ingesteld.",
+    "quantityHint": "Enkel voor bulkitems zonder individuele identiteit",
     "hostnamePatternHint": "Moet overeenkomen met: {pattern}",
     "vaultKeys": "Sleutels:",
     "modelSimilarTitle": "Bedoelde u een bestaand model?",

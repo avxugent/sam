@@ -43,6 +43,7 @@ const updateSchema = z
     model: z.string().min(1, "Model is required").max(255).optional(),
     serialNumber: z.string().max(100).optional().nullable(),
     hostname: z.string().max(255).optional().nullable(),
+    quantity: z.number().int().min(1).max(9999).optional(),
     installationDate: z.string().optional().nullable(),
     invoiceNumber: z.string().max(100).optional().nullable(),
     invoiceDate: z.string().optional().nullable(),
@@ -155,6 +156,32 @@ export async function PUT(
     }
   }
 
+  // Quantity > 1 only makes sense for bulk items with no individual identity.
+  // Re-derive the effective serial/hostname/MAC/quantity against `before` so a
+  // partial update that omits identity fields can't sneak past the check.
+  if (
+    assetData.quantity !== undefined ||
+    assetData.serialNumber !== undefined ||
+    assetData.hostname !== undefined ||
+    macAddresses !== undefined
+  ) {
+    const effectiveSerial = (
+      assetData.serialNumber !== undefined ? assetData.serialNumber : before?.serialNumber
+    )?.trim();
+    const effectiveHostname = (
+      assetData.hostname !== undefined ? assetData.hostname : before?.hostname
+    )?.trim();
+    const effectiveMacCount = macAddresses !== undefined ? macAddresses.length : (before?.macAddresses.length ?? 0);
+    const effectiveQuantity = assetData.quantity !== undefined ? assetData.quantity : (before?.quantity ?? 1);
+    const hasIdentity = !!effectiveSerial || !!effectiveHostname || effectiveMacCount > 0;
+    if (hasIdentity && effectiveQuantity !== 1) {
+      return NextResponse.json(
+        { error: "Quantity must be 1 when a serial number, hostname, or MAC address is set." },
+        { status: 400 }
+      );
+    }
+  }
+
   let asset;
   try {
     asset = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -216,6 +243,8 @@ export async function PUT(
     const d = parsed.data;
     if (d.model !== undefined && d.model !== before.model)
       changes["Model"] = { from: before.model ?? null, to: d.model };
+    if (d.quantity !== undefined && d.quantity !== before.quantity)
+      changes["Quantity"] = { from: before.quantity, to: d.quantity };
     if (d.serialNumber !== undefined && d.serialNumber !== before.serialNumber)
       changes["Serial number"] = { from: before.serialNumber ?? null, to: d.serialNumber ?? null };
     if (d.hostname !== undefined && (d.hostname?.trim() ?? null) !== before.hostname)

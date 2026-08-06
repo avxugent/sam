@@ -42,6 +42,7 @@ const createAssetSchema = z
     model: z.string().min(1, "Model is required").max(255),
     serialNumber: z.string().max(100).optional().nullable(),
     hostname: z.string().max(255).optional().nullable(),
+    quantity: z.number().int().min(1).max(9999).default(1),
     installationDate: z.string().optional().nullable(),
     invoiceNumber: z.string().max(100).optional().nullable(),
     invoiceDate: z.string().optional().nullable(),
@@ -62,6 +63,14 @@ const createAssetSchema = z
         code: z.ZodIssueCode.custom,
         path: ["macAddresses"],
         message: "At least one MAC address is required when hostname is set.",
+      });
+    }
+    const hasIdentity = !!data.serialNumber?.trim() || hostnameSet || hasValidMac;
+    if (hasIdentity && data.quantity !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["quantity"],
+        message: "Quantity must be 1 when a serial number, hostname, or MAC address is set.",
       });
     }
   });
@@ -209,6 +218,7 @@ export async function POST(
         ...(asset.manufacturer ? { "Manufacturer": asset.manufacturer.name } : {}),
         "Model": asset.model,
         ...(asset.serialNumber ? { "Serial number": asset.serialNumber } : {}),
+        ...(asset.quantity !== 1 ? { "Quantity": asset.quantity } : {}),
       },
     },
   });

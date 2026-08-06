@@ -248,7 +248,25 @@ export async function POST(req: NextRequest) {
 
       addCustom("GUID", "GUID");
       // FI nummer is stored on the location directly — not as a custom field
-      addCustom("Quantity", "QUANTITY");
+
+      // Quantity is only meaningful for bulk items with no individual identity
+      // (no serial number, hostname, or MAC address).
+      const serialValue = v(row, "SERIAL") || null;
+      const hostnameValue = v(row, "IP_HOSTNAME") || null;
+      const hasIdentity = !!serialValue || !!hostnameValue || macAddresses.length > 0;
+      const quantityRaw = v(row, "QUANTITY");
+      let quantity = 1;
+      if (quantityRaw) {
+        const parsedQuantity = parseInt(quantityRaw, 10);
+        if (!Number.isFinite(parsedQuantity) || parsedQuantity < 1) {
+          stats.errors.push(`Row ${rowNum}: QUANTITY "${quantityRaw}" is not a positive integer, defaulted to 1.`);
+        } else if (hasIdentity && parsedQuantity !== 1) {
+          stats.errors.push(`Row ${rowNum}: QUANTITY ${parsedQuantity} ignored — asset has a serial number, hostname, or MAC address.`);
+        } else {
+          quantity = parsedQuantity;
+        }
+      }
+
       addCustom("Diagonal (inch)", "DIAGONAL");
       addCustom("Width (cm)", "WIDTH");
       addCustom("Height (cm)", "HEIGHT");
@@ -267,8 +285,9 @@ export async function POST(req: NextRequest) {
           typeId,
           manufacturerId,
           model: v(row, "MODEL") || null,
-          serialNumber: v(row, "SERIAL") || null,
-          hostname: v(row, "IP_HOSTNAME") || null,
+          serialNumber: serialValue,
+          hostname: hostnameValue,
+          quantity,
           installationDate,
           invoiceDate,
           invoiceNumber: v(row, "Factuurnummer") || null,

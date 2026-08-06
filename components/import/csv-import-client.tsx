@@ -50,7 +50,7 @@ const COLUMN_MAPPING = [
   { csv: "END_OF_SUPPORT", sam: "End-of-support date" },
   { csv: "SUPPLIER", sam: "Supplier (auto-created)" },
   { csv: "GUID", sam: "Custom Field: GUID" },
-  { csv: "QUANTITY", sam: "Custom Field: Quantity" },
+  { csv: "QUANTITY", sam: "Quantity (ignored when a serial number, hostname, or MAC address is set)" },
   { csv: "DIAGONAL", sam: "Custom Field: Diagonal (inch)" },
   { csv: "WIDTH", sam: "Custom Field: Width (cm)" },
   { csv: "HEIGHT", sam: "Custom Field: Height (cm)" },

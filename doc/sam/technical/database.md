@@ -171,6 +171,7 @@ The core entity — a physical device installed in a location.
 | `model` | string? | Model name (free text + autocomplete) |
 | `serialNumber` | string? | Serial number |
 | `hostname` | string? | Network hostname (globally unique) |
+| `quantity` | int | Number of physical units this row represents (default `1`). Only meaningful for bulk items with no individual identity (e.g. speakers, batteries) — locked to `1` whenever `serialNumber`, `hostname`, or a MAC address is set |
 | `installationDate` | DateTime? | When installed |
 | `invoiceNumber` | string? | Purchase invoice reference |
 | `warrantyMonths` | int? | Warranty period |
@@ -192,6 +193,8 @@ Assets with `hostname` are included in Prometheus Service Discovery output.
 A hostname implies a MAC address is required (enforced via `superRefine()` in both form and API).
 
 `hostname` carries a unique constraint across **all** assets regardless of `status` — a decommissioned asset keeps its hostname permanently (it is never reassigned to another asset), preserving an audit trail. Hostnames are also validated against the asset's type's `hostnamePattern` when set, falling back to a generic FQDN check otherwise. Attempting to reuse a hostname already assigned to another asset returns `409`.
+
+"Total assets" figures shown for a location (sidebar tree, location list, location detail, search) sum `quantity` across matching rows rather than counting rows — a single row with `quantity=20` (a box of batteries) counts as 20 assets. This is enforced via `superRefine()` in both the form and the API: `quantity` must be `1` whenever the asset has a serial number, hostname, or MAC address.
 
 ---
 

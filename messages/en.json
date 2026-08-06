@@ -134,7 +134,8 @@
     "owner": "Owner",
     "supplier": "Supplier",
     "criticality": "Criticality",
-    "endOfSupport": "End of support"
+    "endOfSupport": "End of support",
+    "quantity": "Quantity"
   },
   "asset": {
     "title": "Asset",
@@ -219,6 +220,9 @@
     "errHostnameFqdn": "Hostname must be a fully qualified domain name (e.g. device.example.com)",
     "errHostnamePattern": "Hostname does not match the required format for {typeName}.",
     "errMacRequiredForHostname": "At least one MAC address is required when a hostname is set.",
+    "errQuantityMin": "Quantity must be at least 1",
+    "errQuantityIdentity": "Quantity must be 1 when a serial number, hostname, or MAC address is set.",
+    "quantityHint": "Only for bulk items with no individual identity",
     "hostnamePatternHint": "Must match: {pattern}",
     "vaultKeys": "Keys:",
     "modelSimilarTitle": "Did you mean an existing model?",

@@ -5,6 +5,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.0-alpha.5] - 2026-08-06
+
+### Added
+
+- **`Asset.quantity`** — a real quantity field for bulk items with no individual identity (speakers, batteries, cables). Locked to 1 whenever a serial number, hostname, or MAC address is set, enforced in both the asset form and the API — including a DB-aware check on update, so a partial request can't bypass it by simply omitting the existing serial/hostname/MAC. "Total assets" figures for a location (sidebar tree, locations list, location detail, search) now sum `quantity` instead of counting rows.
+- **`assets:migrate-quantity` script** (`npm run assets:migrate-quantity`, dry-run: `npm run assets:migrate-quantity:dry-run`) — one-off migration moving the legacy free-text `"Quantity"` custom field (written by the old CSV import) onto the real field, then deleting it. Flags rather than applies anything unsafe: a value on an asset that also has a serial/hostname/MAC, or a non-numeric value.
+
+### Changed
+
+- CSV import's `QUANTITY` column now sets `Asset.quantity` directly instead of a free-text custom field; ignored (and flagged in the results) on rows that also have a serial number, hostname, or MAC.
+- CSV export (active + decommissioned) gained a `QUANTITY` column sourced from `Asset.quantity`, keeping the import/export round-trip lossless.
+
+### Removed
+
+- Dangling `assets:sync-firmware` / `assets:sync-firmware:dry-run` npm scripts left over from the 2.0.0-alpha.4 firmware-currency revert — the script file no longer exists.
+
+### Upgrading
+
+1. `npx prisma db push` — adds `Asset.quantity` (`Int`, default `1`).
+2. Optional: `npm run assets:migrate-quantity:dry-run` then `npm run assets:migrate-quantity` to move any existing `"Quantity"` custom field values onto the new column.
+
+---
+
 ## [2.0.0-alpha.4] - 2026-08-05
 
 Reverts the monitoring summary and firmware currency features shipped in

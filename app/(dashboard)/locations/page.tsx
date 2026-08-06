@@ -16,7 +16,7 @@ async function getRecursiveAssetCounts(): Promise<Record<string, number>> {
       FROM loc_tree lt
       INNER JOIN locations l ON l.parentId = lt.loc_id
     )
-    SELECT lt.root_id AS id, COUNT(a.id) AS totalAssets
+    SELECT lt.root_id AS id, COALESCE(SUM(a.quantity), 0) AS totalAssets
     FROM loc_tree lt
     LEFT JOIN assets a ON a.locationId = lt.loc_id
     GROUP BY lt.root_id
@@ -52,7 +52,7 @@ function toNode(loc: DbLocation): LocationNode {
 }
 
 export default async function AllLocationsPage() {
-  const [tNav, assetCountMap, rawTree, totalAssets] = await Promise.all([
+  const [tNav, assetCountMap, rawTree, totalAssetQuantity] = await Promise.all([
     getTranslations("nav"),
     getRecursiveAssetCounts(),
     prisma.location.findMany({
@@ -80,10 +80,11 @@ export default async function AllLocationsPage() {
         },
       },
     }),
-    prisma.asset.count(),
+    prisma.asset.aggregate({ _sum: { quantity: true } }),
   ]);
 
   const locationTree = rawTree.map(toNode);
+  const totalAssets = totalAssetQuantity._sum.quantity ?? 0;
 
   return (
     <div className="space-y-4">

@@ -76,9 +76,30 @@ export default async function LocationPage({
     orderBy: { createdAt: "desc" },
   });
 
-  const subtreeAssetCount = await prisma.asset.count({
+  // "Total assets" counts physical units (quantity), not asset rows, so a
+  // bulk item like a box of 20 batteries counts as 20.
+  const subtreeAssetQuantity = await prisma.asset.aggregate({
     where: { locationId: { in: locationIds } },
+    _sum: { quantity: true },
   });
+  const subtreeAssetCount = subtreeAssetQuantity._sum.quantity ?? 0;
+
+  const directQuantitySums = await prisma.asset.groupBy({
+    by: ["locationId"],
+    where: { locationId: { in: [location.id, ...location.children.map((c) => c.id)] } },
+    _sum: { quantity: true },
+  });
+  const directQuantityByLocationId = new Map(
+    directQuantitySums.map((r) => [r.locationId, r._sum.quantity ?? 0])
+  );
+  const locationWithQuantities = {
+    ...location,
+    _count: { ...location._count, assets: directQuantityByLocationId.get(location.id) ?? 0 },
+    children: location.children.map((c) => ({
+      ...c,
+      _count: { ...c._count, assets: directQuantityByLocationId.get(c.id) ?? 0 },
+    })),
+  };
 
   const workLogs = await prisma.workLog.findMany({
     where: { locationId: id },
@@ -110,7 +131,7 @@ export default async function LocationPage({
 
   return (
     <LocationDetailClient
-      location={location}
+      location={locationWithQuantities}
       assets={assets}
       subtreeAssetCount={subtreeAssetCount}
       breadcrumbs={breadcrumbs}

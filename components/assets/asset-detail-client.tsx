@@ -61,6 +61,7 @@ type Asset = {
   model?: string | null;
   serialNumber?: string | null;
   hostname?: string | null;
+  quantity: number;
   installationDate?: Date | string | null;
   invoiceNumber?: string | null;
   invoiceDate?: Date | string | null;
@@ -473,6 +474,9 @@ export function AssetDetailClient({
               <div><FieldLabel>{tField("manufacturer")}</FieldLabel><FieldValue value={asset.manufacturer?.name} /></div>
               <div><FieldLabel>{tField("model")}</FieldLabel><FieldValue value={asset.model} /></div>
               <div><FieldLabel>{tField("serialNumber")}</FieldLabel><FieldValue value={asset.serialNumber} mono /></div>
+              {asset.quantity !== 1 && (
+                <div><FieldLabel>{tField("quantity")}</FieldLabel><FieldValue value={String(asset.quantity)} /></div>
+              )}
               <div>
                 <FieldLabel>{tField("hostname")}</FieldLabel>
                 {asset.hostname && hostnameUrlTemplate ? (

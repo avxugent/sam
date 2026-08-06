@@ -76,6 +76,7 @@ type Asset = {
   model?: string | null;
   serialNumber?: string | null;
   hostname?: string | null;
+  quantity: number;
   installationDate?: Date | string | null;
   type?: { id: string; name: string } | null;
   manufacturer?: { id: string; name: string } | null;

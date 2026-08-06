@@ -197,6 +197,46 @@ describe("<AssetFormDialog /> validation", () => {
     expect(screen.getByRole("button", { name: "Test" })).toBeInTheDocument();
   });
 
+  it("allows setting quantity > 1 on a bulk item with no identity fields", async () => {
+    renderDialog();
+    await openDialog();
+
+    const quantityInput = screen.getByLabelText("Quantity") as HTMLInputElement;
+    expect(quantityInput).not.toBeDisabled();
+    await userEvent.clear(quantityInput);
+    await userEvent.type(quantityInput, "5");
+    expect(quantityInput).toHaveValue(5);
+  });
+
+  it("locks quantity to 1 once a serial number is entered", async () => {
+    renderDialog();
+    const user = await openDialog();
+
+    const quantityInput = screen.getByLabelText("Quantity") as HTMLInputElement;
+    await user.clear(quantityInput);
+    await user.type(quantityInput, "5");
+
+    await user.type(screen.getByPlaceholderText("SN-XXXX"), "SN-1");
+
+    await waitFor(() => {
+      expect(quantityInput).toBeDisabled();
+      expect(quantityInput).toHaveValue(1);
+    });
+  });
+
+  it("locks quantity to 1 once hostname + MAC are set", async () => {
+    renderDialog();
+    const user = await openDialog();
+
+    await user.type(screen.getByPlaceholderText(/device\.example\.com/i), "projector.ugent.be");
+    await user.click(screen.getByRole("button", { name: /Add MAC/i }));
+    await user.type(screen.getByPlaceholderText("AA:BB:CC:DD:EE:FF"), "AA:BB:CC:DD:EE:FF");
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Quantity")).toBeDisabled();
+    });
+  });
+
   it("clears create-form fields when reopened after cancelling (no stale data)", async () => {
     renderDialog();
     const user = await openDialog();

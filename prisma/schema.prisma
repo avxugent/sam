@@ -168,6 +168,10 @@ model Asset {
   // Globally unique across all assets regardless of status, so a
   // decommissioned asset's hostname is never reassigned (audit trail).
   hostname         String?   @unique
+  // Number of physical units this row represents. Only meaningful for
+  // bulk items with no individual identity (e.g. speakers, batteries) —
+  // locked to 1 whenever serialNumber or hostname is set.
+  quantity         Int       @default(1)
   installationDate DateTime? @db.Date
   invoiceNumber    String?
   invoiceDate      DateTime? @db.Date

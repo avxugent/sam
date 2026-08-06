@@ -37,7 +37,7 @@ The CSV file must have a header row. The following column names are recognised:
 | `END_OF_SUPPORT` | No | End-of-support date (ISO format or DD/MM/YYYY) |
 | `SUPPLIER` | No | Supplier name (created if not exists). When empty, the supplier default window applies |
 | `GUID` | No | Stored as a custom field |
-| `QUANTITY` | No | Stored as a custom field |
+| `QUANTITY` | No | Number of physical units. Only applied when the row has no `SERIAL`, `IP_HOSTNAME`, or `MAC` — an individually-identified item can't have a bulk quantity, so a `QUANTITY` other than 1 on such a row is ignored (flagged in the results) and the asset is created with quantity 1 |
 
 Additional columns not listed above are imported as **custom fields** on the asset.
 
@@ -63,7 +63,7 @@ Download the inventory as CSV files. Go to **Administration → Export** (Admin 
 
 ### Active assets export
 
-Click **Download CSV**. Contains only **currently active** assets (status *Installed*), including custom fields, MAC addresses, location path, timestamps, and the NIS2 columns (`OWNER` as email, `CRITICALITY`, `END_OF_SUPPORT`, `SUPPLIER`). Assets in rooms that are in maintenance still count as active and are included. Decommissioned assets are **not** included. This is the import-compatible format.
+Click **Download CSV**. Contains only **currently active** assets (status *Installed*), including quantity, custom fields, MAC addresses, location path, timestamps, and the NIS2 columns (`OWNER` as email, `CRITICALITY`, `END_OF_SUPPORT`, `SUPPLIER`). Assets in rooms that are in maintenance still count as active and are included. Decommissioned assets are **not** included. This is the import-compatible format.
 
 ### Decommissioned assets export
 

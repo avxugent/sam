@@ -77,6 +77,7 @@ const schema = z
         (v) => !v || v.trim() === "" || FQDN_REGEX.test(v.trim()),
         "Hostname must be a fully qualified domain name (e.g. device.example.com)"
       ),
+    quantity: z.number().int().min(1, "Quantity must be at least 1"),
     installationDate: z.string().optional(),
     invoiceNumber: z.string().max(100).optional(),
     invoiceDate: z.string().optional(),
@@ -168,6 +169,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       model: z.string().min(1, t("errModelRequired")).max(255),
       serialNumber: z.string().max(100).optional(),
       hostname: z.string().max(255).optional(),
+      quantity: z.number().int().min(1, t("errQuantityMin")),
       installationDate: z.string().optional(),
       invoiceNumber: z.string().max(100).optional(),
       invoiceDate: z.string().optional(),
@@ -208,6 +210,14 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
           });
         }
       }
+      const hasIdentity = !!data.serialNumber?.trim() || hostnameSet || hasValidMac;
+      if (hasIdentity && data.quantity !== 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["quantity"],
+          message: t("errQuantityIdentity"),
+        });
+      }
     });
   }, [t, assetTypes]);
 
@@ -225,6 +235,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       typeId: "",
       manufacturerId: "",
       model: "",
+      quantity: 1,
       macAddresses: [],
       customFields: [],
       vaultPath: "",
@@ -241,6 +252,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   });
 
   const modelValue = useWatch({ control, name: "model" });
+  const serialNumberValue = useWatch({ control, name: "serialNumber" });
   const hostnameValue = useWatch({ control, name: "hostname" });
   const vaultPathValue = useWatch({ control, name: "vaultPath" });
   const macValues = useWatch({ control, name: "macAddresses" });
@@ -254,6 +266,15 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   useEffect(() => {
     if (macFields.length > 0) trigger("macAddresses");
   }, [hostnameValue, macFields.length, trigger]);
+
+  // Lock quantity to 1 as soon as the asset gains an individual identity
+  const hasIdentityValue =
+    !!serialNumberValue?.trim() ||
+    !!hostnameValue?.trim() ||
+    macValues.some((m) => m.address.trim() !== "");
+  useEffect(() => {
+    if (hasIdentityValue) setValue("quantity", 1, { shouldValidate: true });
+  }, [hasIdentityValue, setValue]);
 
   const fetchDropdowns = useCallback(async () => {
     const [typesRes, mfrsRes, suppliersRes, usersRes] = await Promise.all([
@@ -284,6 +305,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       model: asset.model || "",
       serialNumber: asset.serialNumber || "",
       hostname: asset.hostname || "",
+      quantity: asset.quantity ?? 1,
       installationDate: asset.installationDate
         ? new Date(asset.installationDate).toISOString().split("T")[0]
         : "",
@@ -317,7 +339,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         // Clear any values left over from a previous (e.g. cancelled) entry —
         // the form component stays mounted across open/close, so create mode
         // must reset explicitly rather than relying on defaultValues.
-        reset({ typeId: "", manufacturerId: "", model: "", macAddresses: [], customFields: [], vaultPath: "" });
+        reset({ typeId: "", manufacturerId: "", model: "", quantity: 1, macAddresses: [], customFields: [], vaultPath: "" });
         // Pre-select the supplier whose default window covers today (the API
         // would apply the same default; showing it keeps the form honest).
         dropdowns.then((fetched) => {
@@ -433,7 +455,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
     toast({ title: mode === "create" ? tAsset("assetCreated") : tAsset("assetUpdated") });
     setOpen(false);
-    reset({ typeId: "", manufacturerId: "", model: "", macAddresses: [], customFields: [], vaultPath: "" });
+    reset({ typeId: "", manufacturerId: "", model: "", quantity: 1, macAddresses: [], customFields: [], vaultPath: "" });
     setModelSimilarMatch(null);
     setDismissedModelValue(null);
     router.refresh();
@@ -615,6 +637,27 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 {...register("serialNumber")}
                 placeholder={t("serialPlaceholder")}
               />
+            </div>
+
+            {/* Quantity — locked to 1 once the asset has an individual identity */}
+            <div className="space-y-1.5">
+              <Label htmlFor="quantity">{tField("quantity")}</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min={1}
+                step={1}
+                aria-invalid={!!errors.quantity}
+                aria-describedby={errors.quantity ? "quantity-err" : "quantity-hint"}
+                {...register("quantity", { valueAsNumber: true })}
+                disabled={hasIdentityValue}
+                className={cn(errors.quantity && "border-destructive")}
+              />
+              {errors.quantity ? (
+                <p id="quantity-err" className="text-xs text-destructive">{errors.quantity.message}</p>
+              ) : (
+                <p id="quantity-hint" className="text-xs text-muted-foreground">{t("quantityHint")}</p>
+              )}
             </div>
 
             {/* Hostname — optional, must be FQDN if filled */}

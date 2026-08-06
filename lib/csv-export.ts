@@ -7,13 +7,13 @@ import { prisma } from "@/lib/prisma";
 import { resolveLocationPathsBatch } from "@/lib/location-path";
 
 const CUSTOM_FIELD_COLUMNS = [
-  "GUID", "QUANTITY", "DIAGONAL", "WIDTH", "HEIGHT",
+  "GUID", "DIAGONAL", "WIDTH", "HEIGHT",
   "MIC_TYPE", "FREQUENCY", "ROOM_LOCATION", "INTEGRATOR", "CONTACTPERSOON",
 ];
 
 const COLUMNS = [
   "CAMPUS", "GEBOUW", "LOKAAL", "FI NUMMER",
-  "TYPE", "BRAND", "MODEL", "SERIAL", "MAC", "IP_HOSTNAME",
+  "TYPE", "BRAND", "MODEL", "SERIAL", "QUANTITY", "MAC", "IP_HOSTNAME",
   "INSTALL_DATE", "Factuurdatum", "Factuurnummer",
   ...CUSTOM_FIELD_COLUMNS,
   "OWNER", "CRITICALITY", "END_OF_SUPPORT", "SUPPLIER",
@@ -121,6 +121,7 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
       asset.manufacturer?.name ?? "",
       asset.model ?? "",
       asset.serialNumber ?? "",
+      String(asset.quantity),
       macs,
       asset.hostname ?? "",
       installDate,
@@ -151,7 +152,7 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
       hierarchy.building,
       hierarchy.room || loc.name,
       fiNumber,
-      "", "", "", "", "", "", "", "", "",
+      "", "", "", "", "", "", "", "", "", "",
       ...CUSTOM_FIELD_COLUMNS.map(() => ""),
       "", "", "", "",
     ];
@@ -222,6 +223,7 @@ export async function generateDecommissionedCsv(): Promise<string> {
       asset.manufacturer?.name ?? "",
       asset.model ?? "",
       asset.serialNumber ?? "",
+      String(asset.quantity),
       macs,
       asset.hostname ?? "",
       formatDateCell(asset.installationDate ?? null),

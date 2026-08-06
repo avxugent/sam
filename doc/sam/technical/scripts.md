@@ -144,6 +144,23 @@ node scripts/normalize-models.mjs --dry-run
 
 ---
 
+### `migrate-quantity-custom-field.mjs`
+
+**npm alias:** `npm run assets:migrate-quantity` (dry-run: `npm run assets:migrate-quantity:dry-run`)
+
+One-off migration. Before `Asset.quantity` existed, the CSV import wrote the legacy `QUANTITY` column into a free-text `"Quantity"` custom field, which nothing counted. This script moves that value onto the real `Asset.quantity` column and deletes the custom field row. An asset with a serial number, hostname, or MAC address is left at quantity 1 and flagged for manual review instead of being changed (an individually-identified item can't have a bulk quantity), as is any value that isn't a positive integer. The script is idempotent — deleting the custom field as it goes means a second run finds nothing left to do.
+
+```bash
+node scripts/migrate-quantity-custom-field.mjs
+node scripts/migrate-quantity-custom-field.mjs --dry-run
+```
+
+| Flag | Description |
+|---|---|
+| `--dry-run` | Preview without writing |
+
+---
+
 ### `sync-lokalen.mjs`
 
 **npm alias:** `npm run locations:sync-lokalen`

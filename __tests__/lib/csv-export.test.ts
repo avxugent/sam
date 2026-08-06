@@ -31,6 +31,7 @@ function asset(overrides: Record<string, unknown> = {}) {
     id: "a1",
     model: "OptiPlex 7090",
     serialNumber: "SN123",
+    quantity: 1,
     hostname: "pc-01",
     installationDate: new Date("2024-01-15T00:00:00Z"),
     invoiceDate: new Date("2024-02-20T00:00:00Z"),
@@ -72,13 +73,21 @@ describe("generateExportCsv()", () => {
     expect(row[5]).toBe("Dell");
     expect(row[6]).toBe("OptiPlex 7090");
     expect(row[7]).toBe("SN123");
-    expect(row[8]).toBe("aa:bb:cc:dd:ee:ff");
-    expect(row[9]).toBe("pc-01");
-    expect(row[10]).toBe("2024-01-15");
-    expect(row[11]).toBe("2024-02-20");
-    expect(row[12]).toBe("INV-9");
+    expect(row[8]).toBe("1");
+    expect(row[9]).toBe("aa:bb:cc:dd:ee:ff");
+    expect(row[10]).toBe("pc-01");
+    expect(row[11]).toBe("2024-01-15");
+    expect(row[12]).toBe("2024-02-20");
+    expect(row[13]).toBe("INV-9");
     // GUID is the first custom field column
-    expect(row[13]).toBe("G-1");
+    expect(row[14]).toBe("G-1");
+  });
+
+  it("exports the physical unit count for a bulk item", async () => {
+    mockAssetFind.mockResolvedValue([asset({ quantity: 12, serialNumber: null })] as never);
+    const csv = await generateExportCsv();
+    const row = csv.split("\r\n")[1].split(";");
+    expect(row[8]).toBe("12");
   });
 
   it("excludes decommissioned by default; includes them when asked", async () => {
@@ -130,8 +139,8 @@ describe("generateExportCsv()", () => {
     ] as never);
     const csv = await generateExportCsv();
     const row = csv.split("\r\n")[1].split(";");
-    expect(row[10]).toBe("");
     expect(row[11]).toBe("");
+    expect(row[12]).toBe("");
   });
 
   it("filters on status only — never excludes maintenance-room assets", async () => {

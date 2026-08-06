@@ -37,6 +37,7 @@ type Asset = {
   model?: string | null;
   serialNumber?: string | null;
   hostname?: string | null;
+  quantity: number;
   installationDate?: Date | string | null;
   type?: { id: string; name: string } | null;
   manufacturer?: { id: string; name: string } | null;
@@ -60,6 +61,7 @@ function exportToCsv(assets: Asset[], filename: string, headers: string[]) {
     a.serialNumber,
     a.hostname,
     a.macAddresses.map((m) => m.address).join("; "),
+    String(a.quantity),
     a.location?.name,
     a.installationDate ? new Date(a.installationDate).toLocaleDateString("sv-SE") : null,
   ].map(escapeCell).join(","));
@@ -218,7 +220,7 @@ export function AssetTable({
           variant="outline"
           size="sm"
           className="h-[36px] px-3 text-[13px] gap-1.5 flex-shrink-0"
-          onClick={() => exportToCsv(sorted, "assets.csv", [tField("type"), tField("manufacturer"), tField("model"), tField("serialNumber"), tField("hostname"), tField("macAddresses"), tField("location"), tField("installed")])}
+          onClick={() => exportToCsv(sorted, "assets.csv", [tField("type"), tField("manufacturer"), tField("model"), tField("serialNumber"), tField("hostname"), tField("macAddresses"), tField("quantity"), tField("location"), tField("installed")])}
           title={t("exportTitle")}
         >
           <Download className="h-3.5 w-3.5" />
@@ -278,6 +280,9 @@ export function AssetTable({
                   </td>
                   <td className="px-4 py-[11px] font-medium text-[#0f172a]">
                     {asset.model || <span className="text-[#64748b] font-normal italic">{t("noModel")}</span>}
+                    {asset.quantity > 1 && (
+                      <span className="ml-1.5 text-[11px] font-normal text-[#64748b]">×{asset.quantity}</span>
+                    )}
                   </td>
                   <td className="px-4 py-[11px] text-[#64748b] font-mono text-[11.5px]">
                     {asset.serialNumber || "—"}

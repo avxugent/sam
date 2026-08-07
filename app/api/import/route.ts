@@ -71,12 +71,14 @@ export async function POST(req: NextRequest) {
 
   // Pre-load existing locations (campus/building/room)
   const existingLocations = await prisma.location.findMany({
-    select: { id: true, name: true, parentId: true },
+    select: { id: true, name: true, parentId: true, fiNumber: true },
   });
-  // Build a lookup: parentId|name -> id
+  // Build lookups: parentId|name -> id, and fiNumber -> id
   const locationLookup = new Map<string, string>();
+  const fiNumberLookup = new Map<string, string>();
   existingLocations.forEach((l) => {
     locationLookup.set(`${l.parentId ?? ""}|${l.name.toLowerCase()}`, l.id);
+    if (l.fiNumber) fiNumberLookup.set(l.fiNumber, l.id);
   });
 
   const stats = { created: 0, skipped: 0, errors: [] as string[] };
@@ -89,30 +91,25 @@ export async function POST(req: NextRequest) {
     const key = `${parentId ?? ""}|${name.toLowerCase()}`;
     if (locationLookup.has(key)) {
       const existingId = locationLookup.get(key)!;
-      // If we have a fiNumber and the existing location doesn't, update it
-      if (fiNumber) {
+      // If we have a fiNumber and it isn't already owned by another location, apply it
+      if (fiNumber && !fiNumberLookup.has(fiNumber)) {
         await prisma.location.updateMany({
           where: { id: existingId, fiNumber: null },
           data: { fiNumber },
         });
+        fiNumberLookup.set(fiNumber, existingId);
       }
       return existingId;
     }
 
     // Safely handle duplicate fiNumber — if it collides, store null
-    let safeFiNumber: string | null = fiNumber ?? null;
-    if (safeFiNumber) {
-      const existing = await prisma.location.findUnique({
-        where: { fiNumber: safeFiNumber },
-        select: { id: true },
-      });
-      if (existing) safeFiNumber = null; // already taken by another location
-    }
+    const safeFiNumber = fiNumber && !fiNumberLookup.has(fiNumber) ? fiNumber : null;
 
     const loc = await prisma.location.create({
       data: { name, parentId, fiNumber: safeFiNumber },
     });
     locationLookup.set(key, loc.id);
+    if (safeFiNumber) fiNumberLookup.set(safeFiNumber, loc.id);
     return loc.id;
   }
 
@@ -171,13 +168,21 @@ export async function POST(req: NextRequest) {
       const rawFi = v(row, "FI NUMMER", "FI_NUMMER");
       const fiNumber = rawFi && FI_REGEX.test(rawFi) ? rawFi : null;
 
-      // Build location hierarchy; FI number is applied to the room (LOKAAL) level
-      let campusId: string | null = null;
-      let gebouwId: string | null = null;
+      // Build location hierarchy; FI number is applied to the room (LOKAAL) level.
+      // If a location already exists with this FI number, reuse it directly —
+      // it's the authoritative key, so CAMPUS/GEBOUW/LOKAAL name drift is ignored.
+      let locationId: string;
+      const existingByFi = fiNumber ? fiNumberLookup.get(fiNumber) : undefined;
+      if (existingByFi) {
+        locationId = existingByFi;
+      } else {
+        let campusId: string | null = null;
+        let gebouwId: string | null = null;
 
-      if (campus) campusId = await getOrCreateLocation(campus, null);
-      if (gebouw) gebouwId = await getOrCreateLocation(gebouw, campusId);
-      const locationId = await getOrCreateLocation(lokaal, gebouwId ?? campusId, fiNumber);
+        if (campus) campusId = await getOrCreateLocation(campus, null);
+        if (gebouw) gebouwId = await getOrCreateLocation(gebouw, campusId);
+        locationId = await getOrCreateLocation(lokaal, gebouwId ?? campusId, fiNumber);
+      }
 
       // Type and manufacturer
       const typeName = v(row, "TYPE");

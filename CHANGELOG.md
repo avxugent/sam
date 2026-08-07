@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.0-alpha.7] - 2026-08-07
+
+### Fixed
+
+- CSV import no longer fails with a `locations_fiNumber_key` unique-constraint error when a row's `FI NUMMER` is already assigned to another location — the row is matched to that existing location and applied safely instead of attempting a colliding update.
+
+### Changed
+
+- CSV import now treats `FI NUMMER` as the authoritative match key for locations: if a location already exists with the row's FI number, that location is reused for the asset directly, and its `CAMPUS`/`GEBOUW`/`LOKAAL` text is ignored (so renamed rooms or spelling drift in the export no longer create duplicate locations). Falls back to the previous name-based hierarchy matching when the FI number is absent or unknown.
+
+---
+
 ## [2.0.0-alpha.6] - 2026-08-06
 
 ### Changed

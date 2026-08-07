@@ -22,7 +22,7 @@ The CSV file must have a header row. The following column names are recognised:
 | `LOKAAL` | Yes | Room/location name (matched or created) |
 | `CAMPUS` | No | Campus name (parent of building) |
 | `GEBOUW` | No | Building name (parent of room) |
-| `FI NUMMER` | No | FI number stored on the location |
+| `FI NUMMER` | No | FI number stored on the location. If a location already exists with this FI number, that location is reused for the asset — `CAMPUS`/`GEBOUW`/`LOKAAL` on the row are ignored in that case (the FI number is treated as the authoritative key, not the name path) |
 | `TYPE` | No | Asset type name (created if not exists) |
 | `BRAND` | No | Manufacturer name (created if not exists) |
 | `MODEL` | No | Asset model |

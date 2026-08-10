@@ -1,0 +1,391 @@
+{
+   "annotations": {
+      "list": [ ]
+   },
+   "description": "Firmware versions across the fleet, and which devices are behind.\n\n\"Behind\" is judged against ops/jsonnet/lib/firmware-baseline.libsonnet, a\nhand-maintained list of the latest known-good version per model — not a\nlive signal from any vendor. A model with no entry in that file does not\nappear in the \"Needs update\" table; it is unmaintained, not compliant.\n\nDevices with no firmware API (blackbox-probed) never report a version and\nare absent from both tables.\n",
+   "editable": false,
+   "graphTooltip": 1,
+   "panels": [
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 0
+         },
+         "id": 1,
+         "panels": [ ],
+         "title": "Firmware breakdown",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "Every firmware version currently reported in the fleet, grouped by asset type and model.",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "filterable": true
+               }
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 1
+         },
+         "id": 2,
+         "options": {
+            "cellHeight": "sm",
+            "footer": {
+               "countRows": false,
+               "fields": "",
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+               {
+                  "desc": false,
+                  "displayName": "Type"
+               }
+            ]
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "count by (sam_asset_type, sam_model, version) (sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) device_firmware_info)",
+               "format": "table",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Deployed firmware, by type and model",
+         "transformations": [
+            {
+               "id": "joinByField",
+               "options": {
+                  "byField": "sam_model",
+                  "mode": "outer"
+               }
+            },
+            {
+               "id": "organize",
+               "options": {
+                  "excludeByName": {
+                     "Time": true,
+                     "Time 1": true,
+                     "__name__": true,
+                     "__name__ 1": true
+                  },
+                  "indexByName": {
+                     "Value": 3,
+                     "sam_asset_type": 0,
+                     "sam_model": 1,
+                     "version": 2
+                  },
+                  "renameByName": {
+                     "Value": "Devices",
+                     "sam_asset_type": "Type",
+                     "sam_model": "Model",
+                     "version": "Firmware version"
+                  }
+               }
+            }
+         ],
+         "type": "table"
+      },
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 13
+         },
+         "id": 3,
+         "panels": [ ],
+         "title": "Needs update",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "Installed version does not match the baseline for that model. Empty means nothing is behind — or no baseline is configured yet.",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "filterable": true
+               }
+            },
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Hostname"
+                  },
+                  "properties": [
+                     {
+                        "id": "links",
+                        "value": [
+                           {
+                              "targetBlank": false,
+                              "title": "Device detail",
+                              "url": "/d/sam-device/device?var-hostname=${__value.text}"
+                           }
+                        ]
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "FI number"
+                  },
+                  "properties": [
+                     {
+                        "id": "links",
+                        "value": [
+                           {
+                              "targetBlank": false,
+                              "title": "Room detail",
+                              "url": "/d/sam-room/room?var-fi_number=${__value.text}"
+                           }
+                        ]
+                     }
+                  ]
+               }
+            ]
+         },
+         "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 14
+         },
+         "id": 4,
+         "options": {
+            "cellHeight": "sm",
+            "footer": {
+               "countRows": false,
+               "fields": "",
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+               {
+                  "desc": false,
+                  "displayName": "Type"
+               }
+            ]
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "(sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) device_firmware_info unless on (sam_model, version) label_replace(vector(1) unless vector(1), \"version\", \"$1\", \"latest_version\", \"(.*)\"))\nand on (sam_model) (vector(1) unless vector(1))\n",
+               "format": "table",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "vector(1) unless vector(1)",
+               "format": "table",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "B"
+            }
+         ],
+         "title": "Devices behind the configured baseline",
+         "transformations": [
+            {
+               "id": "joinByField",
+               "options": {
+                  "byField": "sam_model",
+                  "mode": "outer"
+               }
+            },
+            {
+               "id": "organize",
+               "options": {
+                  "excludeByName": {
+                     "Time": true,
+                     "Time 1": true,
+                     "Time 2": true,
+                     "Value #A": true,
+                     "Value #B": true,
+                     "__name__": true,
+                     "__name__ 1": true,
+                     "__name__ 2": true
+                  },
+                  "indexByName": {
+                     "latest_version": 6,
+                     "sam_asset_type": 3,
+                     "sam_fi_number": 1,
+                     "sam_hostname": 0,
+                     "sam_location_name": 2,
+                     "sam_model": 4,
+                     "version": 5
+                  },
+                  "renameByName": {
+                     "latest_version": "Latest version",
+                     "sam_asset_type": "Type",
+                     "sam_fi_number": "FI number",
+                     "sam_hostname": "Hostname",
+                     "sam_location_name": "Room",
+                     "sam_model": "Model",
+                     "version": "Installed version"
+                  }
+               }
+            }
+         ],
+         "type": "table"
+      }
+   ],
+   "refresh": "1m",
+   "schemaVersion": 39,
+   "tags": [
+      "sam"
+   ],
+   "templating": {
+      "list": [
+         {
+            "current": { },
+            "hide": 0,
+            "label": "Data source",
+            "name": "datasource",
+            "query": "prometheus",
+            "refresh": 1,
+            "regex": "",
+            "type": "datasource"
+         },
+         {
+            "allValue": ".*",
+            "current": {
+               "selected": true,
+               "text": [
+                  "All"
+               ],
+               "value": [
+                  "$__all"
+               ]
+            },
+            "datasource": {
+               "type": "prometheus",
+               "uid": "${datasource}"
+            },
+            "definition": "label_values(sam_asset_info, sam_campus)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Campus",
+            "multi": true,
+            "name": "campus",
+            "options": [ ],
+            "query": "label_values(sam_asset_info, sam_campus)",
+            "refresh": 2,
+            "sort": 1,
+            "type": "query"
+         },
+         {
+            "allValue": ".*",
+            "current": {
+               "selected": true,
+               "text": [
+                  "All"
+               ],
+               "value": [
+                  "$__all"
+               ]
+            },
+            "datasource": {
+               "type": "prometheus",
+               "uid": "${datasource}"
+            },
+            "definition": "label_values(sam_asset_info, sam_building)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Building",
+            "multi": true,
+            "name": "building",
+            "options": [ ],
+            "query": "label_values(sam_asset_info, sam_building)",
+            "refresh": 2,
+            "sort": 1,
+            "type": "query"
+         },
+         {
+            "allValue": ".*",
+            "current": {
+               "selected": true,
+               "text": [
+                  "All"
+               ],
+               "value": [
+                  "$__all"
+               ]
+            },
+            "datasource": {
+               "type": "prometheus",
+               "uid": "${datasource}"
+            },
+            "definition": "label_values(sam_asset_info, sam_asset_type)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Asset type",
+            "multi": true,
+            "name": "asset_type",
+            "options": [ ],
+            "query": "label_values(sam_asset_info, sam_asset_type)",
+            "refresh": 2,
+            "sort": 1,
+            "type": "query"
+         }
+      ]
+   },
+   "time": {
+      "from": "now-24h",
+      "to": "now"
+   },
+   "timepicker": { },
+   "timezone": "browser",
+   "title": "SAM — Firmware",
+   "uid": "sam-firmware",
+   "version": 1
+}

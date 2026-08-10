@@ -10,6 +10,7 @@ Design rationale lives in [`doc/design/grafana-monitoring.md`](../doc/design/gra
 ops/
 ├── jsonnet/
 │   ├── lib/sam.libsonnet            shared panel/layout helpers
+│   ├── lib/firmware-baseline.libsonnet  latest-firmware-per-model map
 │   ├── dashboards/*.jsonnet         one file per dashboard
 │   └── build.sh                     → roles/grafana_sam/files/dashboards/*.json
 └── ansible/
@@ -151,7 +152,7 @@ created — that is the never-scraped case, and it is worth keeping visible.
 
 ## Why not Grafonnet
 
-Three dashboards do not justify vendoring a large generated library, and
+Four dashboards do not justify vendoring a large generated library, and
 `sam.libsonnet` has no external dependencies — `jsonnet` alone builds it, with no
 `jsonnet-bundler` step and no library version pinned to a Grafana release. The
 tradeoff is that we own the dashboard schema knowledge rather than borrowing it.
@@ -260,14 +261,22 @@ probe series and `probe_success` alone cannot tell them apart:
 
 ### Firmware versions
 
-There is no approved-baseline concept anywhere in this system — SAM does not
-track or sync firmware. `sam-fleet` and `sam-device` read the raw
-`device_firmware_info{sam_hostname, version}` series published by exporters
-directly, joined against `sam_asset_info` for room/type/model context. This is
-a browsable inventory (what is installed, per device, sortable and filterable)
-rather than a compliance verdict. Blackbox-probed devices have no firmware API
-and simply have no version to show.
+SAM itself tracks no approved firmware baseline — that feature was removed
+(see `../doc/design/grafana-monitoring.md`). `sam-fleet` and `sam-device` read
+the raw `device_firmware_info{sam_hostname, version}` series published by
+exporters directly, joined against `sam_asset_info` for room/type/model
+context: a browsable inventory (what is installed, per device, sortable and
+filterable), not a compliance verdict. Blackbox-probed devices have no
+firmware API and simply have no version to show.
+
+`sam-firmware` adds an ops-only baseline on top of that same raw data: a
+breakdown of every version deployed, by type and model, plus a "needs update"
+table driven by `ops/jsonnet/lib/firmware-baseline.libsonnet` — a small
+hand-maintained map of model → latest known-good version, edited and committed
+like any other source file here. It lives in ops/, not in SAM's database, and
+nothing in the app reads it; a model missing from the file reads as
+unmaintained, not compliant.
 
 ## Status
 
-Built: recording rules, alert rules, promtool tests, all three dashboards.
+Built: recording rules, alert rules, promtool tests, all four dashboards.

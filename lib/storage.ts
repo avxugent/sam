@@ -107,7 +107,10 @@ export async function assertSafePath(
 // ── LocalDriver ──────────────────────────────────────────────────────────────
 
 function getUploadRoot(): string {
-  return resolve(process.cwd(), process.env.UPLOAD_DIR || "./uploads");
+  // UPLOAD_DIR is a runtime volume mount, not a project file — without this,
+  // build-time file tracing can't prove the path is bounded and falls back to
+  // tracing the whole project into the standalone output.
+  return resolve(/* turbopackIgnore: true */ process.cwd(), process.env.UPLOAD_DIR || "./uploads");
 }
 
 class LocalDriver implements StorageDriver {

@@ -5,6 +5,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.0] - 2026-08-10
+
+First stable 2.0 release.
+
+### Added
+
+- **`sam-firmware` Grafana dashboard** — every firmware version currently deployed, broken down by asset type and model, plus a "needs update" table of devices whose installed version doesn't match the latest known-good version for their model. That baseline is `ops/jsonnet/lib/firmware-baseline.libsonnet`, a small hand-maintained map — not a live signal, and deliberately separate from SAM's own (removed) FirmwareBaseline feature. It lives in `ops/` only; SAM itself still tracks no baseline.
+
+### Security
+
+- Patched `next-auth` / `@auth/core` (critical): malformed `Authorization: Bearer` headers no longer throw uncaught exceptions in `getToken()`, the email normalizer now runs Unicode normalization before validation (closing a homoglyph `@` bypass), and OAuth state/nonce/PKCE cookies are now bound to the provider that created them. `next` itself is not upgraded this release — its own advisories (Turbopack middleware bypass under single-locale i18n routing, Server Actions DoS/SSRF) don't apply here: SAM sets no `i18n.locales` in `next.config.ts`, and its only Server Action is a trivial locale-cookie setter. Deferred as a follow-up since fixing it requires a `next` upgrade that surfaces unrelated TypeScript regressions in test files.
+
+### Upgrading
+
+1. Redeploy `ops/` (`ops/jsonnet/build.sh`, then the Ansible roles) to pick up the new `sam-firmware` dashboard.
+2. No database schema change in this release.
+
+---
+
 ## [2.0.0-alpha.7] - 2026-08-07
 
 ### Fixed

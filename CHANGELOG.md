@@ -5,6 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.1] - 2026-08-17
+
+### Added
+
+- **Location reports** — optional location-scope filter (campus, building, or any sub-tree) via a searchable multi-select picker in the report builder, instead of always scanning every leaf location.
+- **Per-manufacturer Prometheus scrape template overrides** — different brands under the same asset type can now use a different exporter/endpoint. Configure per-manufacturer overrides alongside an asset type's default scrape template; assets fall back to the type's default when no override matches their manufacturer. Merging two manufacturers now reconciles any conflicting overrides (the target's override wins) instead of failing.
+
+### Fixed
+
+- **`sam-firmware` Grafana dashboard** — firmware panels now read the correct per-vendor metric names (`extron_firmware_info` / `pearl_system_info`) and join against the baseline per-hostname via `group_left`, instead of a Grafana-side join keyed on `sam_model` that collapsed every device sharing a model into one row. Also fixes a PromQL operator-precedence bug in `outdatedWithLatest` that silently dropped `latest_version` from the joined result.
+
+### Performance
+
+- **Location reports** — removed duplicate full-table location scans: ancestor name/id resolution is now a single pass, and the report builder derives location paths in memory instead of re-querying.
+
+---
+
 ## [2.0.0] - 2026-08-10
 
 First stable 2.0 release.

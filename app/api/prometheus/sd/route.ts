@@ -9,7 +9,9 @@
  * SAM metadata labels. When the asset's type has a scrapeTargetTemplate
  * configured, the rendered __address__, __metrics_path__, and __param_*
  * labels are included so Prometheus routes scrape requests to the correct
- * external exporter rather than directly to the device.
+ * external exporter rather than directly to the device. If the asset type
+ * also has an AssetTypeManufacturerTemplate matching the asset's brand, that
+ * override is used instead of the type's default template.
  *
  * Credentials are never placed in the SD output. A template may emit the
  * asset's Vault path as a non-secret reference via {vault_path}; the external
@@ -82,9 +84,17 @@ export async function GET(req: NextRequest) {
       serialNumber: true,
       vaultPath: true,
       locationId: true,
+      manufacturerId: true,
       location: { select: { inMaintenance: true } },
       type: {
-        select: { name: true, scrapeTargetTemplate: true, prometheusExposed: true },
+        select: {
+          name: true,
+          scrapeTargetTemplate: true,
+          prometheusExposed: true,
+          manufacturerTemplates: {
+            select: { manufacturerId: true, scrapeTargetTemplate: true },
+          },
+        },
       },
       manufacturer: { select: { name: true } },
     },
@@ -149,7 +159,12 @@ export async function GET(req: NextRequest) {
     if (asset.model) labels.sam_model = safeLabel(asset.model);
 
     // ── Scrape target template ───────────────────────────────────────────────
-    const template = asset.type?.scrapeTargetTemplate;
+    // A manufacturer-specific override (if configured for this asset's brand)
+    // wins over the asset type's default template.
+    const manufacturerOverride = asset.type?.manufacturerTemplates.find(
+      (t) => t.manufacturerId === asset.manufacturerId
+    );
+    const template = manufacturerOverride?.scrapeTargetTemplate ?? asset.type?.scrapeTargetTemplate;
 
     if (template?.trim()) {
       // Build the variable map from asset fields. vault_path is a non-secret

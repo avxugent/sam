@@ -38,8 +38,14 @@ type AssetRow = {
   serialNumber: string | null;
   vaultPath: string | null;
   locationId: string;
+  manufacturerId: string | null;
   location: { inMaintenance: boolean } | null;
-  type: { name: string; scrapeTargetTemplate: string | null; prometheusExposed: boolean } | null;
+  type: {
+    name: string;
+    scrapeTargetTemplate: string | null;
+    prometheusExposed: boolean;
+    manufacturerTemplates: { manufacturerId: string; scrapeTargetTemplate: string }[];
+  } | null;
   manufacturer: { name: string } | null;
 };
 
@@ -51,8 +57,9 @@ function asset(overrides: Partial<AssetRow> = {}): AssetRow {
     serialNumber: "SN1",
     vaultPath: "secret/av/rectest001",
     locationId: "loc1",
+    manufacturerId: "m1",
     location: { inMaintenance: false },
-    type: { name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: true },
+    type: { name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: true, manufacturerTemplates: [] },
     manufacturer: { name: "Epiphan" },
     ...overrides,
   };
@@ -99,6 +106,7 @@ describe("GET /api/prometheus/sd", () => {
             "__address__=https://pearlexporterdev.ugent.be\n" +
             "__metrics_path__=/probe\n" +
             "__param_target=https://{hostname_fqdn}",
+          manufacturerTemplates: [],
         },
       }),
     ] as never);
@@ -139,5 +147,47 @@ describe("GET /api/prometheus/sd", () => {
     const groups = await res.json();
     expect(groups).toHaveLength(0);
     expect(res.headers.get("X-SAM-Target-Count")).toBe("0");
+  });
+
+  it("uses the manufacturer-specific override when one matches the asset's brand", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    mockFindMany.mockResolvedValue([
+      asset({
+        manufacturerId: "m1",
+        type: {
+          name: "Recorder",
+          prometheusExposed: true,
+          scrapeTargetTemplate: "__address__=https://default-exporter.ugent.be",
+          manufacturerTemplates: [
+            { manufacturerId: "m1", scrapeTargetTemplate: "__address__=https://epiphan-exporter.ugent.be" },
+          ],
+        },
+      }),
+    ] as never);
+
+    const res = await GET(req());
+    const groups = await res.json();
+    expect(groups[0].targets).toEqual(["epiphan-exporter.ugent.be"]);
+  });
+
+  it("falls back to the type default when no override matches the asset's manufacturer", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    mockFindMany.mockResolvedValue([
+      asset({
+        manufacturerId: "m2",
+        type: {
+          name: "Recorder",
+          prometheusExposed: true,
+          scrapeTargetTemplate: "__address__=https://default-exporter.ugent.be",
+          manufacturerTemplates: [
+            { manufacturerId: "m1", scrapeTargetTemplate: "__address__=https://epiphan-exporter.ugent.be" },
+          ],
+        },
+      }),
+    ] as never);
+
+    const res = await GET(req());
+    const groups = await res.json();
+    expect(groups[0].targets).toEqual(["default-exporter.ugent.be"]);
   });
 });

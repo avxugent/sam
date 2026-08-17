@@ -186,6 +186,8 @@ Many AV devices cannot expose Prometheus metrics directly and are monitored via 
 
 **Configure in:** Administration → Asset Types → expand a type → Edit template
 
+**Per-brand overrides:** Different manufacturers under the same asset type sometimes need different exporters or endpoints. A manufacturer under an asset type's expanded panel can be given its own template, which takes priority over the type's default. Resolution order for a given asset: manufacturer-specific override (matching the asset's type **and** manufacturer) → the asset type's default template → no template (asset scraped directly by hostname). Overrides are managed alongside the default template in the same Asset Types panel, via `POST`/`PUT`/`DELETE` on `/api/asset-types/[id]/manufacturer-templates` and `/api/asset-types/manufacturer-templates/[id]`.
+
 **Format:** One `key=value` pair per line. Keys override Prometheus `__labels__`. Comments start with `#`.
 
 **Available variables:**

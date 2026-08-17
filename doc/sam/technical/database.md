@@ -139,6 +139,21 @@ Hardware manufacturers.
 
 ---
 
+### AssetTypeManufacturerTemplate
+
+Per-brand override of an `AssetType`'s default `scrapeTargetTemplate`, for manufacturers under that type whose devices need a different exporter/endpoint.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string (cuid) | Primary key |
+| `typeId` | string | FK to AssetType, `onDelete: Cascade` |
+| `manufacturerId` | string | FK to Manufacturer, `onDelete: Cascade` |
+| `scrapeTargetTemplate` | string | Same format as `AssetType.scrapeTargetTemplate` |
+
+`(typeId, manufacturerId)` has a `@@unique` constraint — one override per brand per type. Duplicate inserts return Prisma error `P2002` → API returns 409. See [Integrations](integrations.md) for the resolution order against the type's default template.
+
+---
+
 ### Supplier
 
 Suppliers/resellers assets were purchased from (supply-chain evidence, distinct from Manufacturer).

@@ -542,7 +542,15 @@
     "defaultCriticality": "Default criticality",
     "defaultCriticalityHelp": "Applies to assets of this type without their own criticality (NIS2 classification).",
     "defaultCriticalityNone": "None (unclassified)",
-    "defaultCriticalitySaved": "Default criticality saved"
+    "defaultCriticalitySaved": "Default criticality saved",
+    "manufacturerOverrides": "Brand-specific scrape templates",
+    "manufacturerOverridesHelp": "Override the default scrape template above for a specific manufacturer under this type (e.g. a different exporter per brand).",
+    "addOverride": "Add override",
+    "noOverridesYet": "No brand overrides yet",
+    "selectManufacturer": "Manufacturer",
+    "overrideAdded": "Brand override added",
+    "overrideUpdated": "Brand override updated",
+    "overrideDeleted": "Brand override removed"
   },
   "manufacturers": {
     "title": "Manufacturers",

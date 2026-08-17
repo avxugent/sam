@@ -49,6 +49,7 @@ Asset types categorise assets (Projector, Display, Audio Processor, etc.).
 - **Delete** — only possible if no assets of that type exist.
 - **Maintenance presets** — expand a type to define reusable maintenance task descriptions for work logs.
 - **Hostname format** — expand a type and set an optional regular expression under **Hostname format (regex)**. When set, hostnames entered for assets of this type must match it (checked case-insensitively); leave it empty to fall back to the generic domain-name check. Hostnames are always globally unique across every asset, regardless of type or status.
+- **Brand-specific scrape templates** — expand a type and use **Add override** under **Brand-specific scrape templates** to give a manufacturer under that type its own Prometheus scrape template (e.g. because that brand needs a different exporter). Assets of that type and manufacturer use the override; every other manufacturer keeps using the type's default template.
 
 ---
 

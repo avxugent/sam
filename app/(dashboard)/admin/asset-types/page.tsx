@@ -7,20 +7,26 @@ export default async function AssetTypesPage() {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") redirect("/");
 
-  const types = await prisma.assetType.findMany({
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      scrapeTargetTemplate: true,
-      prometheusExposed: true,
-      hostnamePattern: true,
-      defaultCriticality: true,
-      // Count active assets only — decommissioned ones are excluded from the
-      // badge and drilldown (the drilldown API defaults to INSTALLED too).
-      _count: { select: { assets: { where: { status: "INSTALLED" } } } },
-    },
-  });
+  const [types, manufacturers] = await Promise.all([
+    prisma.assetType.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        scrapeTargetTemplate: true,
+        prometheusExposed: true,
+        hostnamePattern: true,
+        defaultCriticality: true,
+        // Count active assets only — decommissioned ones are excluded from the
+        // badge and drilldown (the drilldown API defaults to INSTALLED too).
+        _count: { select: { assets: { where: { status: "INSTALLED" } } } },
+      },
+    }),
+    prisma.manufacturer.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
   return (
     <div>
@@ -31,7 +37,7 @@ export default async function AssetTypesPage() {
           exporter-based monitoring.
         </p>
       </div>
-      <AssetTypesClient initialTypes={types} />
+      <AssetTypesClient initialTypes={types} manufacturers={manufacturers} />
     </div>
   );
 }

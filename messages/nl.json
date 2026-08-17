@@ -542,7 +542,15 @@
     "defaultCriticality": "Standaard kriticiteit",
     "defaultCriticalityHelp": "Geldt voor assets van dit type zonder eigen kriticiteit (NIS2-classificatie).",
     "defaultCriticalityNone": "Geen (niet geclassificeerd)",
-    "defaultCriticalitySaved": "Standaard kriticiteit opgeslagen"
+    "defaultCriticalitySaved": "Standaard kriticiteit opgeslagen",
+    "manufacturerOverrides": "Merkspecifieke scrape-sjablonen",
+    "manufacturerOverridesHelp": "Overschrijf het standaard scrape-sjabloon hierboven voor een specifieke fabrikant onder dit type (bv. een andere exporter per merk).",
+    "addOverride": "Override toevoegen",
+    "noOverridesYet": "Nog geen merk-overrides",
+    "selectManufacturer": "Fabrikant",
+    "overrideAdded": "Merk-override toegevoegd",
+    "overrideUpdated": "Merk-override bijgewerkt",
+    "overrideDeleted": "Merk-override verwijderd"
   },
   "manufacturers": {
     "title": "Fabrikanten",

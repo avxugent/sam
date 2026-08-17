@@ -100,6 +100,9 @@ model AssetType {
   id        String   @id @default(cuid())
   name      String   @unique
   // Prometheus scrape target template (newline-separated key=value pairs).
+  // This is the default template for the type; a matching row in
+  // AssetTypeManufacturerTemplate (this type + the asset's manufacturer)
+  // overrides it for that brand.
   // Keys are Prometheus __labels__ (e.g. __address__, __metrics_path__, __param_*).
   // Values may contain {hostname_fqdn}, {serial}, {model}, {manufacturer},
   // {fi_number}, and {vault_path} placeholders. {vault_path} is a non-secret
@@ -126,6 +129,7 @@ model AssetType {
   assets      Asset[]
   stockItems  StockItem[]
   presets     MaintenancePreset[]
+  manufacturerTemplates AssetTypeManufacturerTemplate[]
 
   @@map("asset_types")
 }
@@ -137,8 +141,29 @@ model Manufacturer {
 
   assets     Asset[]
   stockItems StockItem[]
+  typeTemplates AssetTypeManufacturerTemplate[]
 
   @@map("manufacturers")
+}
+
+// Per-(AssetType, Manufacturer) override of AssetType.scrapeTargetTemplate.
+// Lets brands under the same asset type that expose metrics differently
+// (different exporter/endpoint) get their own template. Resolution order in
+// the SD endpoint: this override (matched on the asset's manufacturerId) →
+// AssetType.scrapeTargetTemplate → no template.
+model AssetTypeManufacturerTemplate {
+  id                   String   @id @default(cuid())
+  typeId               String
+  manufacturerId       String
+  scrapeTargetTemplate String   @db.Text
+  createdAt            DateTime @default(now())
+
+  type         AssetType    @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  manufacturer Manufacturer @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+
+  @@unique([typeId, manufacturerId])
+  @@index([manufacturerId])
+  @@map("asset_type_manufacturer_templates")
 }
 
 model Supplier {

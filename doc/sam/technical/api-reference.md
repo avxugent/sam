@@ -77,6 +77,10 @@ Key validated fields:
 | `POST` | `/api/asset-types/[id]/presets` | ADMIN | Create maintenance preset |
 | `GET` | `/api/asset-types/presets/[id]` | VIEWER | Get preset |
 | `PUT` | `/api/asset-types/presets/[id]` | ADMIN | Update preset |
+| `GET` | `/api/asset-types/[id]/manufacturer-templates` | VIEWER | List brand-specific scrape template overrides for this type |
+| `POST` | `/api/asset-types/[id]/manufacturer-templates` | ADMIN | Create a brand-specific scrape template override |
+| `PUT` | `/api/asset-types/manufacturer-templates/[id]` | ADMIN | Update a brand-specific scrape template override |
+| `DELETE` | `/api/asset-types/manufacturer-templates/[id]` | ADMIN | Delete a brand-specific scrape template override |
 
 ---
 

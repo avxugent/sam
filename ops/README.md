@@ -263,8 +263,8 @@ probe series and `probe_success` alone cannot tell them apart:
 
 SAM itself tracks no approved firmware baseline — that feature was removed
 (see `../doc/design/grafana-monitoring.md`). `sam-fleet` and `sam-device` read
-the raw `device_firmware_info{sam_hostname, version}` series published by
-exporters directly, joined against `sam_asset_info` for room/type/model
+the raw `(extron_firmware_info or pearl_system_info){sam_hostname, version}`
+series published by exporters directly, joined against `sam_asset_info` for room/type/model
 context: a browsable inventory (what is installed, per device, sortable and
 filterable), not a compliance verdict. Blackbox-probed devices have no
 firmware API and simply have no version to show.

@@ -69,7 +69,7 @@
                   "uid": "${datasource}"
                },
                "editorMode": "code",
-               "expr": "count by (sam_asset_type, sam_model, version) (sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) device_firmware_info)",
+               "expr": "count by (sam_asset_type, sam_model, version) (sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) (extron_firmware_info or pearl_system_info))",
                "format": "table",
                "instant": true,
                "legendFormat": "",
@@ -212,25 +212,12 @@
                   "uid": "${datasource}"
                },
                "editorMode": "code",
-               "expr": "(sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) device_firmware_info unless on (sam_model, version) label_replace(vector(1) unless vector(1), \"version\", \"$1\", \"latest_version\", \"(.*)\"))\nand on (sam_model) (vector(1) unless vector(1))\n",
+               "expr": "((sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) (extron_firmware_info or pearl_system_info) unless on (sam_model, version) label_replace(label_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.11.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.5\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.13.0002-b001\", \"\", \"\"), \"version\", \"$1\", \"latest_version\", \"(.*)\"))\nand on (sam_model) (label_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.11.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.5\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.13.0002-b001\", \"\", \"\"))\n) * on (sam_model) group_left(latest_version) (label_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.11.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.5\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.13.0002-b001\", \"\", \"\"))",
                "format": "table",
                "instant": true,
                "legendFormat": "",
                "range": false,
                "refId": "A"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
-               "editorMode": "code",
-               "expr": "vector(1) unless vector(1)",
-               "format": "table",
-               "instant": true,
-               "legendFormat": "",
-               "range": false,
-               "refId": "B"
             }
          ],
          "title": "Devices behind the configured baseline",
@@ -238,7 +225,7 @@
             {
                "id": "joinByField",
                "options": {
-                  "byField": "sam_model",
+                  "byField": "sam_hostname",
                   "mode": "outer"
                }
             },
@@ -248,12 +235,9 @@
                   "excludeByName": {
                      "Time": true,
                      "Time 1": true,
-                     "Time 2": true,
-                     "Value #A": true,
-                     "Value #B": true,
+                     "Value": true,
                      "__name__": true,
-                     "__name__ 1": true,
-                     "__name__ 2": true
+                     "__name__ 1": true
                   },
                   "indexByName": {
                      "latest_version": 6,

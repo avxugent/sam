@@ -201,7 +201,7 @@ sam.dashboard(
             expr: 'sum by (sam_hostname, sam_fi_number, sam_location_name, sam_campus, sam_building, sam_asset_type, sam_model) (%s)'
                   % assetFilter,
           },
-          { expr: 'sum by (sam_hostname, version) (device_firmware_info)' },
+          { expr: 'sum by (sam_hostname, version) (extron_firmware_info or pearl_system_info)' },
         ],
         joinField='sam_hostname',
         rename={

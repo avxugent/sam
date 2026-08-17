@@ -126,8 +126,12 @@ function probe(target, module) {
   // exporters, and making sure panels handle the absence rather than showing a
   // stale firmware version for an unreachable device.
   if (up) {
+    // Real devices report through exactly one vendor exporter — Pearl for the
+    // recorder module, Extron for everything else — matching the dashboards'
+    // `extron_firmware_info or pearl_system_info` union.
+    const firmwareMetric = module === "recorder" ? "pearl_system_info" : "extron_firmware_info";
     sections.push(
-      metric("device_firmware_info", "gauge", "Installed firmware; version is in the label", [
+      metric(firmwareMetric, "gauge", "Installed firmware; version is in the label", [
         { labels: { version: versions[h % versions.length] }, value: 1 },
       ]),
       ...moduleMetrics(module, target, h)

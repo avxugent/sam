@@ -49,7 +49,9 @@ sam.dashboard(
       ),
       sam.stat(
         'Firmware version',
-        'device_firmware_info%s' % dev,
+        // A label matcher can't apply to a parenthesized union directly, so it
+        // has to be repeated on each vendor metric rather than wrapped once.
+        'extron_firmware_info{%(sel)s} or pearl_system_info{%(sel)s}' % { sel: devSel },
         w=10,
         h=4,
         // The value is always 1; the version lives in a label, so render the

@@ -1,7 +1,9 @@
 // Firmware inventory — "what is deployed, and what needs updating".
 //
 // Two things, both derived from the same join of SAM's inventory
-// (sam_asset_info) against the raw exporter metric (device_firmware_info):
+// (sam_asset_info) against the raw per-vendor exporter metrics (each carrying
+// a `version` label: extron_firmware_info, pearl_system_info — add to the
+// `or` chain below as more vendors report firmware):
 //   1. a breakdown of every firmware version currently seen, by type and model
 //   2. devices whose installed version does not match the latest known-good
 //      version for their model
@@ -47,18 +49,23 @@ local baselineVector =
       for model in models
     ]);
 
-// Renamed so its label lines up with device_firmware_info's `version` for the
+// Renamed so its label lines up with the exporter metrics' `version` for the
 // `unless` match below.
 local baselineAsVersion =
   'label_replace(%s, "version", "$1", "latest_version", "(.*)")' % baselineVector;
 
 local filter = '{sam_campus=~"$campus", sam_building=~"$building", sam_asset_type=~"$asset_type"}';
 
+// Every vendor metric that carries a device's installed firmware as a
+// `version` label. A device reports through exactly one of these (its own
+// vendor's exporter), so the union has at most one row per hostname.
+local firmwareInfo = 'extron_firmware_info or pearl_system_info';
+
 // Every device that reports a firmware version, with SAM's inventory labels
 // attached. group_left(version) is needed because vector matching drops
 // unmatched labels from the right-hand side by default.
 local reportedFirmware =
-  'sam_asset_info%s * on (sam_hostname) group_left(version) device_firmware_info' % filter;
+  'sam_asset_info%s * on (sam_hostname) group_left(version) (%s)' % [filter, firmwareInfo];
 
 // (model, version) pairs not present in the baseline's (model, latest_version)
 // set, restricted to models that actually have a baseline entry.
@@ -66,6 +73,17 @@ local outdated = |||
   (%(reported)s unless on (sam_model, version) %(baselineAsVersion)s)
   and on (sam_model) (%(baselineVector)s)
 ||| % { reported: reportedFirmware, baselineAsVersion: baselineAsVersion, baselineVector: baselineVector };
+
+// outdated's rows already have everything except latest_version — group_left
+// it in from baselineVector, keyed on sam_model like the unless/and above.
+// This has to happen in PromQL, not as a Grafana table join: sam_model is not
+// unique per device, so joining two independent queries on it at the
+// table-transform level collapses every device sharing a model into one row
+// instead of fanning the model's single baseline value out across each of
+// them. group_left does that fan-out correctly because it operates on the
+// actual per-series match, not a merge keyed only on the display column.
+local outdatedWithLatest =
+  '(%s) * on (sam_model) group_left(latest_version) (%s)' % [outdated, baselineVector];
 
 sam.dashboard(
   uid='sam-firmware',
@@ -110,14 +128,8 @@ sam.dashboard(
     [
       sam.table(
         'Devices behind the configured baseline',
-        // A: mismatched devices, with SAM's inventory context. B: the baseline
-        // vector itself, joined in purely to carry latest_version onto the row
-        // — A alone already has exactly the right set of devices.
-        targets=[
-          { expr: outdated },
-          { expr: baselineVector },
-        ],
-        joinField='sam_model',
+        targets=[{ expr: outdatedWithLatest }],
+        joinField='sam_hostname',
         rename={
           sam_hostname: 'Hostname',
           sam_fi_number: 'FI number',
@@ -136,7 +148,7 @@ sam.dashboard(
           'version',
           'latest_version',
         ],
-        hidden=['Value #A', 'Value #B'],
+        hidden=['Value'],
         sortBy=[{ displayName: 'Type', desc: false }],
         overrides=[
           sam.overrideByName('Hostname', [

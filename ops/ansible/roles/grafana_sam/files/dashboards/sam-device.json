@@ -159,7 +159,7 @@
                   "uid": "${datasource}"
                },
                "editorMode": "code",
-               "expr": "device_firmware_info{sam_hostname=\"$hostname\"}",
+               "expr": "extron_firmware_info{sam_hostname=\"$hostname\"} or pearl_system_info{sam_hostname=\"$hostname\"}",
                "instant": true,
                "legendFormat": "{{version}}",
                "range": false,

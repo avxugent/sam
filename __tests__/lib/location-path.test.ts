@@ -12,7 +12,8 @@ import {
   findFiNumber,
   getAllDescendantLocationIds,
   resolveLocationPath,
-  resolveAncestorIdsBatch,
+  resolveAncestorChainsBatch,
+  buildLocationPathsFromRows,
   type LocationAncestor,
 } from "@/lib/location-path";
 import { prisma } from "@/lib/prisma";
@@ -181,24 +182,51 @@ describe("resolveLocationPath()", () => {
   });
 });
 
-describe("resolveAncestorIdsBatch()", () => {
+describe("resolveAncestorChainsBatch()", () => {
   it("returns empty map for an empty input array", async () => {
-    expect(await resolveAncestorIdsBatch([])).toEqual(new Map());
+    expect(await resolveAncestorChainsBatch([])).toEqual(new Map());
   });
 
-  it("returns the root→leaf id chain, including the location itself", async () => {
+  it("returns the root→leaf id and name chains, including the location itself", async () => {
     mockQueryRaw.mockResolvedValueOnce([
       { id: "c14", name: "Campus 14", parentId: null },
       { id: "b10", name: "Building 10", parentId: "c14" },
       { id: "room", name: "Room", parentId: "b10" },
     ] as never);
-    const result = await resolveAncestorIdsBatch(["room"]);
-    expect(result.get("room")).toEqual(["c14", "b10", "room"]);
+    const result = await resolveAncestorChainsBatch(["room"]);
+    expect(result.get("room")).toEqual({
+      ids: ["c14", "b10", "room"],
+      names: ["Campus 14", "Building 10", "Room"],
+    });
   });
 
   it("omits ids that aren't found in the location table", async () => {
     mockQueryRaw.mockResolvedValueOnce([{ id: "c14", name: "Campus 14", parentId: null }] as never);
-    const result = await resolveAncestorIdsBatch(["missing"]);
+    const result = await resolveAncestorChainsBatch(["missing"]);
     expect(result.has("missing")).toBe(false);
+  });
+});
+
+describe("buildLocationPathsFromRows()", () => {
+  const rows = [
+    { id: "c14", name: "Campus 14", parentId: null },
+    { id: "b10", name: "Building 10", parentId: "c14" },
+    { id: "room", name: "Room", parentId: "b10" },
+  ];
+
+  it("builds a path string for every row", () => {
+    const result = buildLocationPathsFromRows(rows, " › ");
+    expect(result.get("room")).toBe("Campus 14 › Building 10 › Room");
+    expect(result.get("c14")).toBe("Campus 14");
+  });
+
+  it("defaults to ' - ' as the separator", () => {
+    const result = buildLocationPathsFromRows(rows);
+    expect(result.get("room")).toBe("Campus 14 - Building 10 - Room");
+  });
+
+  it("falls back to just the row's own name if its parent isn't in the row set", () => {
+    const result = buildLocationPathsFromRows([{ id: "orphan", name: "Orphan", parentId: "missing-parent" }]);
+    expect(result.get("orphan")).toBe("Orphan");
   });
 });

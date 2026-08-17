@@ -106,56 +106,59 @@ export async function resolveLocationPathsBatch(
 }
 
 /**
- * Like resolveLocationPathsBatch, but returns the ordered ancestor *names*
- * (root → leaf) for each requested ID instead of a joined string. Lets callers
- * group by tree level (e.g. campus = [0], building = [1]).
+ * Like resolveLocationPathsBatch, but takes rows the caller already fetched
+ * (must include parentId) instead of issuing its own query — for callers
+ * that need the full (id, name, parentId) row set for another purpose too,
+ * so a second full-table scan isn't worth it just to get paths.
  */
-export async function resolveAncestorNamesBatch(
-  locationIds: string[]
-): Promise<Map<string, string[]>> {
-  if (locationIds.length === 0) return new Map();
+export function buildLocationPathsFromRows(
+  rows: { id: string; name: string; parentId: string | null }[],
+  separator = " - "
+): Map<string, string> {
+  const byId = new Map(rows.map((l) => [l.id, l]));
 
-  type Row = { id: string; name: string; parentId: string | null };
-  const allLocs = await prisma.$queryRaw<Row[]>`SELECT id, name, parentId FROM locations`;
-  const byId = new Map<string, Row>(allLocs.map((l) => [l.id, l]));
-
-  const result = new Map<string, string[]>();
-  for (const id of locationIds) {
-    const names: string[] = [];
-    let cur: Row | undefined = byId.get(id);
+  const result = new Map<string, string>();
+  for (const row of rows) {
+    const path: string[] = [];
+    let cur: typeof row | undefined = row;
     while (cur) {
-      names.unshift(cur.name);
+      path.unshift(cur.name);
       cur = cur.parentId ? byId.get(cur.parentId) : undefined;
     }
-    if (names.length > 0) result.set(id, names);
+    result.set(row.id, path.join(separator));
   }
   return result;
 }
 
+export type AncestorChain = { ids: string[]; names: string[] };
+
 /**
- * Like resolveAncestorNamesBatch, but returns the ordered ancestor *ids*
- * (root → leaf, including the location itself) for each requested id. Lets
- * callers test whether a location falls under a given scope (e.g. a
- * selected campus or building) without a separate recursive query per scope.
+ * Like resolveLocationPathsBatch, but returns the ordered ancestor *ids* and
+ * *names* (root → leaf, each including the location itself) for each
+ * requested id in a single pass — one query, one tree walk. Lets callers
+ * group by tree level (e.g. campus = [0], building = [1]) and test whether a
+ * location falls under a given scope (e.g. a selected campus or building).
  */
-export async function resolveAncestorIdsBatch(
+export async function resolveAncestorChainsBatch(
   locationIds: string[]
-): Promise<Map<string, string[]>> {
+): Promise<Map<string, AncestorChain>> {
   if (locationIds.length === 0) return new Map();
 
   type Row = { id: string; name: string; parentId: string | null };
   const allLocs = await prisma.$queryRaw<Row[]>`SELECT id, name, parentId FROM locations`;
   const byId = new Map<string, Row>(allLocs.map((l) => [l.id, l]));
 
-  const result = new Map<string, string[]>();
+  const result = new Map<string, AncestorChain>();
   for (const id of locationIds) {
     const ids: string[] = [];
+    const names: string[] = [];
     let cur: Row | undefined = byId.get(id);
     while (cur) {
       ids.unshift(cur.id);
+      names.unshift(cur.name);
       cur = cur.parentId ? byId.get(cur.parentId) : undefined;
     }
-    if (ids.length > 0) result.set(id, ids);
+    if (ids.length > 0) result.set(id, { ids, names });
   }
   return result;
 }

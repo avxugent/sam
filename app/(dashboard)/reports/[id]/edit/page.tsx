@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { resolveLocationPathsBatch } from "@/lib/location-path";
+import { buildLocationPathsFromRows } from "@/lib/location-path";
 import { reportDefinitionSchema } from "@/lib/report-schema";
 import { ReportBuilder } from "@/components/reports/ReportBuilder";
 import { BarChart2, ChevronLeft } from "lucide-react";
@@ -22,12 +22,12 @@ export default async function EditReportPage({ params }: { params: Promise<{ id:
   const [assetTypes, manufacturers, locations, workLogItems, suppliers] = await Promise.all([
     prisma.assetType.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.manufacturer.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.location.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.location.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, parentId: true } }),
     prisma.workLogItem.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
     prisma.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
-  const locationPaths = await resolveLocationPathsBatch(locations.map((l) => l.id), " › ");
+  const locationPaths = buildLocationPathsFromRows(locations, " › ");
   const locationScopeOptions = locations.map((l) => ({ id: l.id, name: locationPaths.get(l.id) ?? l.name }));
 
   return (

@@ -77,6 +77,7 @@ const locationReportDefinitionSchema = z.object({
   status: z.enum(["all", "filled", "notFilled"]),
   periodCount: z.number().int().positive().max(1000).optional(),
   periodUnit: z.enum(["days", "months", "years"]).optional(),
+  locationIds: z.array(z.string().min(1).max(64)).max(200).optional(),
 });
 
 // Location schema is tried first so a `source: "location"` definition matches

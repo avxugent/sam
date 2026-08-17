@@ -826,7 +826,10 @@
     "unitDays": "days",
     "unitMonths": "months",
     "unitYears": "years",
-    "overdue": "Last done outside the time window"
+    "overdue": "Last done outside the time window",
+    "locationScope": "Location scope",
+    "locationScopeHelp": "Limit the report to specific campuses, buildings, or rooms. Leave empty to include all locations.",
+    "removeScopeLocation": "Remove {name} from scope"
   },
   "workLog": {
     "title": "Work Log",

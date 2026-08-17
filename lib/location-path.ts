@@ -132,6 +132,34 @@ export async function resolveAncestorNamesBatch(
   return result;
 }
 
+/**
+ * Like resolveAncestorNamesBatch, but returns the ordered ancestor *ids*
+ * (root → leaf, including the location itself) for each requested id. Lets
+ * callers test whether a location falls under a given scope (e.g. a
+ * selected campus or building) without a separate recursive query per scope.
+ */
+export async function resolveAncestorIdsBatch(
+  locationIds: string[]
+): Promise<Map<string, string[]>> {
+  if (locationIds.length === 0) return new Map();
+
+  type Row = { id: string; name: string; parentId: string | null };
+  const allLocs = await prisma.$queryRaw<Row[]>`SELECT id, name, parentId FROM locations`;
+  const byId = new Map<string, Row>(allLocs.map((l) => [l.id, l]));
+
+  const result = new Map<string, string[]>();
+  for (const id of locationIds) {
+    const ids: string[] = [];
+    let cur: Row | undefined = byId.get(id);
+    while (cur) {
+      ids.unshift(cur.id);
+      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+    }
+    if (ids.length > 0) result.set(id, ids);
+  }
+  return result;
+}
+
 // CUID format used by Prisma @default(cuid())
 const CUID_REGEX = /^[0-9a-z]{25}$/;
 

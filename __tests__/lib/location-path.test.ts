@@ -12,6 +12,7 @@ import {
   findFiNumber,
   getAllDescendantLocationIds,
   resolveLocationPath,
+  resolveAncestorIdsBatch,
   type LocationAncestor,
 } from "@/lib/location-path";
 import { prisma } from "@/lib/prisma";
@@ -177,5 +178,27 @@ describe("resolveLocationPath()", () => {
   it("returns an empty array when the location has no rows", async () => {
     mockQueryRaw.mockResolvedValueOnce([] as never);
     expect(await resolveLocationPath("missing")).toEqual([]);
+  });
+});
+
+describe("resolveAncestorIdsBatch()", () => {
+  it("returns empty map for an empty input array", async () => {
+    expect(await resolveAncestorIdsBatch([])).toEqual(new Map());
+  });
+
+  it("returns the root→leaf id chain, including the location itself", async () => {
+    mockQueryRaw.mockResolvedValueOnce([
+      { id: "c14", name: "Campus 14", parentId: null },
+      { id: "b10", name: "Building 10", parentId: "c14" },
+      { id: "room", name: "Room", parentId: "b10" },
+    ] as never);
+    const result = await resolveAncestorIdsBatch(["room"]);
+    expect(result.get("room")).toEqual(["c14", "b10", "room"]);
+  });
+
+  it("omits ids that aren't found in the location table", async () => {
+    mockQueryRaw.mockResolvedValueOnce([{ id: "c14", name: "Campus 14", parentId: null }] as never);
+    const result = await resolveAncestorIdsBatch(["missing"]);
+    expect(result.has("missing")).toBe(false);
   });
 });

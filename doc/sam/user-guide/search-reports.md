@@ -45,6 +45,8 @@ When creating a report you choose a **report type**:
 
   An optional **time window** (e.g. *within the last 1 year*) makes the check periodic: an item only counts as filled if its most recent entry falls inside the window; older entries are shown as overdue. Combine the window with *Show: Only not filled in* to list every location whose review is due — for example *all rooms not reviewed in the last year*.
 
+  An optional **location scope** restricts the rows to one or more selected locations — any level of the tree (campus, building, floor, or room). Every leaf location under a selected node is included. Leave it empty to include all locations.
+
 ### Creating an asset report
 
 1. Click **New report**.
@@ -76,10 +78,11 @@ The supplier, criticality (effective value) and end-of-support fields are also a
 
 1. Click **New report** and give it a name.
 2. Set the **report type** to **Locations**.
-3. Select one or more **work log items** to report on.
-4. Optionally set **Show** to *Only filled in* or *Only not filled in*.
-5. Optionally set a **time window** (number + days/months/years) — leave the number empty to count entries from any date.
-6. **Save** the report, then open it to see the per-location coverage table, grouped by campus and building. Export to CSV as usual.
+3. Optionally search and select one or more locations under **Location scope** to limit the report to specific campuses, buildings, floors, or rooms. Leave empty to include every location.
+4. Select one or more **work log items** to report on.
+5. Optionally set **Show** to *Only filled in* or *Only not filled in*.
+6. Optionally set a **time window** (number + days/months/years) — leave the number empty to count entries from any date.
+7. **Save** the report, then open it to see the per-location coverage table, grouped by campus and building. Export to CSV as usual.
 
 ### Editing or deleting a report
 

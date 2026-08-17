@@ -17,7 +17,13 @@ global.fetch = mockFetch as never;
 
 import { ReportBuilder } from "@/components/reports/ReportBuilder";
 
-const OPTS = { assetTypes: [{ id: "t1", name: "Laptop" }], manufacturers: [{ id: "m1", name: "Dell" }], locations: [{ id: "l1", name: "Room 1" }], workLogItems: [{ id: "wi1", name: "Review asset list" }] };
+const OPTS = {
+  assetTypes: [{ id: "t1", name: "Laptop" }],
+  manufacturers: [{ id: "m1", name: "Dell" }],
+  locations: [{ id: "l1", name: "Room 1" }],
+  locationScopeOptions: [{ id: "l1", name: "Campus 14 › Building 10 › Room 1" }],
+  workLogItems: [{ id: "wi1", name: "Review asset list" }],
+};
 
 function renderBuilder(props = {}) {
   return render(<ReportBuilder {...OPTS} {...props} />);
@@ -132,6 +138,60 @@ describe("<ReportBuilder />", () => {
     expect(body.definition.source).toBe("location");
     expect(body.definition.itemIds).toEqual(["wi1"]);
     expect(body.definition.status).toBe("all");
+  });
+
+  it("includes the selected location scope in a location report definition", async () => {
+    const user = userEvent.setup();
+    renderBuilder({ initialName: "Coverage", initialDefinition: { source: "location", itemIds: ["wi1"], status: "all" } });
+    await user.click(screen.getByRole("button", { name: "Campus 14 › Building 10 › Room 1" }));
+    await user.click(screen.getByRole("button", { name: "saveReport" }));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.definition.locationIds).toEqual(["l1"]);
+  });
+
+  it("removes a scope chip via its remove button", async () => {
+    const user = userEvent.setup();
+    renderBuilder({
+      initialName: "Coverage",
+      initialDefinition: { source: "location", itemIds: ["wi1"], status: "all", locationIds: ["l1"] },
+    });
+    expect(screen.getAllByText("Campus 14 › Building 10 › Room 1").length).toBeGreaterThan(0);
+    await user.click(screen.getByRole("button", { name: /removeScopeLocation/ }));
+    await user.click(screen.getByRole("button", { name: "saveReport" }));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.definition.locationIds).toBeUndefined();
+  });
+
+  it("filters the location scope list by search query", async () => {
+    const user = userEvent.setup();
+    renderBuilder({
+      initialDefinition: { source: "location", itemIds: ["wi1"], status: "all" },
+      locationScopeOptions: [
+        { id: "l1", name: "Campus 14 › Building 10 › Room 1" },
+        { id: "l2", name: "Campus 20 › Building 5 › Room 2" },
+      ],
+    });
+    await user.type(screen.getByPlaceholderText("searchLocations"), "Campus 20");
+    expect(screen.queryByText("Campus 14 › Building 10 › Room 1")).not.toBeInTheDocument();
+    expect(screen.getByText("Campus 20 › Building 5 › Room 2")).toBeInTheDocument();
+  });
+
+  it("shows the empty state when a scope search matches nothing", async () => {
+    const user = userEvent.setup();
+    renderBuilder({ initialDefinition: { source: "location", itemIds: ["wi1"], status: "all" } });
+    await user.type(screen.getByPlaceholderText("searchLocations"), "nonexistent-location-xyz");
+    expect(screen.getByText("noLocationsFound")).toBeInTheDocument();
+  });
+
+  it("omits locationIds when no scope location is selected", async () => {
+    const user = userEvent.setup();
+    renderBuilder({ initialName: "Coverage", initialDefinition: { source: "location", itemIds: ["wi1"], status: "all" } });
+    await user.click(screen.getByRole("button", { name: "saveReport" }));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.definition.locationIds).toBeUndefined();
   });
 
   it("includes the time window in a location report definition", async () => {

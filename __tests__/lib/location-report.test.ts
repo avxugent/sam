@@ -109,4 +109,46 @@ describe("runLocationReport()", () => {
     expect(result.itemColumns).toEqual([]);
     expect(result.filledCount).toBe(0);
   });
+
+  it("restricts rows to leaves under a selected room-level scope id", async () => {
+    const result = await runLocationReport({
+      source: "location",
+      itemIds: ["wi1"],
+      status: "all",
+      locationIds: ["loc1"],
+    });
+    expect(result.rows.map((r) => r.id)).toEqual(["loc1"]);
+    expect(result.total).toBe(1);
+  });
+
+  it("includes every leaf under a selected building-level scope id", async () => {
+    const result = await runLocationReport({
+      source: "location",
+      itemIds: ["wi1"],
+      status: "all",
+      locationIds: ["b10"],
+    });
+    expect(result.rows.map((r) => r.id).sort()).toEqual(["loc1", "loc2"]);
+  });
+
+  it("returns no rows when the scope id matches no location", async () => {
+    const result = await runLocationReport({
+      source: "location",
+      itemIds: ["wi1"],
+      status: "all",
+      locationIds: ["nonexistent"],
+    });
+    expect(result.rows).toEqual([]);
+    expect(result.total).toBe(0);
+  });
+
+  it("ignores an empty locationIds array (no scoping)", async () => {
+    const result = await runLocationReport({
+      source: "location",
+      itemIds: ["wi1"],
+      status: "all",
+      locationIds: [],
+    });
+    expect(result.total).toBe(2);
+  });
 });

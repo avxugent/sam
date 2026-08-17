@@ -826,7 +826,10 @@
     "unitDays": "dagen",
     "unitMonths": "maanden",
     "unitYears": "jaar",
-    "overdue": "Laatst gedaan buiten het tijdsvenster"
+    "overdue": "Laatst gedaan buiten het tijdsvenster",
+    "locationScope": "Locatiebereik",
+    "locationScopeHelp": "Beperk het rapport tot specifieke campussen, gebouwen of ruimtes. Laat leeg om alle locaties op te nemen.",
+    "removeScopeLocation": "{name} verwijderen uit bereik"
   },
   "workLog": {
     "title": "Werklog",

@@ -85,6 +85,10 @@ export type LocationReportDefinition = {
   // status "notFilled" this answers "not reviewed in the last year".
   periodCount?: number;
   periodUnit?: LocationReportPeriodUnit;
+  // Optional scope: location ids (any tree level — campus, building, floor,
+  // room). When set, only leaf locations under one of these ids are included.
+  // Empty/omitted means all locations.
+  locationIds?: string[];
 };
 
 export type ReportDefinition = AssetReportDefinition | LocationReportDefinition;

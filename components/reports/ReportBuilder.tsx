@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Trash2, Save } from "lucide-react";
+import { Plus, Trash2, Save, Search, X } from "lucide-react";
 import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey, ReportDefinition, ReportSource, LocationReportStatus, LocationReportPeriodUnit } from "@/lib/report-types";
 import { isLocationReport } from "@/lib/report-types";
 
@@ -49,6 +49,7 @@ type Props = {
   assetTypes: AssetOption[];
   manufacturers: AssetOption[];
   locations: AssetOption[];
+  locationScopeOptions: AssetOption[];
   workLogItems: AssetOption[];
   suppliers: AssetOption[];
 };
@@ -63,6 +64,7 @@ export function ReportBuilder({
   assetTypes,
   manufacturers,
   locations,
+  locationScopeOptions,
   workLogItems,
   suppliers,
 }: Props) {
@@ -71,6 +73,7 @@ export function ReportBuilder({
   const t = useTranslations("report");
   const tField = useTranslations("field");
   const tCommon = useTranslations("common");
+  const tLocation = useTranslations("location");
 
   const fieldLabels: Record<ReportFilterField, string> = {
     typeId: tField("type"),
@@ -155,11 +158,22 @@ export function ReportBuilder({
   const [locationStatus, setLocationStatus] = useState<LocationReportStatus>(initLocation?.status ?? "all");
   const [periodCount, setPeriodCount] = useState<string>(initLocation?.periodCount ? String(initLocation.periodCount) : "");
   const [periodUnit, setPeriodUnit] = useState<LocationReportPeriodUnit>(initLocation?.periodUnit ?? "years");
+  const [locationScopeIds, setLocationScopeIds] = useState<string[]>(initLocation?.locationIds ?? []);
+  const [scopeQuery, setScopeQuery] = useState("");
   const [saving, setSaving] = useState(false);
 
   function toggleItem(id: string) {
     setItemIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
   }
+
+  function toggleScopeLocation(id: string) {
+    setLocationScopeIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+  }
+
+  const filteredScopeOptions = scopeQuery
+    ? locationScopeOptions.filter((o) => o.name.toLowerCase().includes(scopeQuery.toLowerCase()))
+    : locationScopeOptions;
+  const scopeNameById = new Map(locationScopeOptions.map((o) => [o.id, o.name]));
 
   const sourceOptions = [
     { value: "asset" as ReportSource, label: t("sourceAsset") },
@@ -247,6 +261,7 @@ export function ReportBuilder({
         itemIds,
         status: locationStatus,
         ...(hasPeriod ? { periodCount: count, periodUnit } : {}),
+        ...(locationScopeIds.length > 0 ? { locationIds: locationScopeIds } : {}),
       };
     } else {
       if (columns.length === 0) {
@@ -331,6 +346,67 @@ export function ReportBuilder({
       {/* Location report config */}
       {source === "location" && (
         <div className="space-y-4 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
+          <div className="space-y-2">
+            <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("locationScope")}</h2>
+            <p className="text-[12px] text-[#94a3b8]">{t("locationScopeHelp")}</p>
+
+            {locationScopeIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {locationScopeIds.map((id) => (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 rounded-full text-[11.5px] font-medium bg-[#e8f0fc] text-[#1e64c8]"
+                  >
+                    {scopeNameById.get(id) ?? id}
+                    <button
+                      type="button"
+                      onClick={() => toggleScopeLocation(id)}
+                      aria-label={t("removeScopeLocation", { name: scopeNameById.get(id) ?? id })}
+                      className="hover:bg-[#d6e4f7] rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
+              <Input
+                value={scopeQuery}
+                onChange={(e) => setScopeQuery(e.target.value)}
+                placeholder={tLocation("searchLocations")}
+                className="pl-8 h-[34px] text-[12.5px]"
+              />
+            </div>
+            <div className="border border-[#e2e8f0] rounded-[8px] overflow-y-auto max-h-48">
+              {filteredScopeOptions.length === 0 ? (
+                <div className="flex items-center justify-center h-16 text-[12.5px] text-[#94a3b8]">
+                  {tLocation("noLocationsFound")}
+                </div>
+              ) : (
+                <ul className="divide-y divide-[#f1f5f9]">
+                  {filteredScopeOptions.map((o) => {
+                    const active = locationScopeIds.includes(o.id);
+                    return (
+                      <li key={o.id}>
+                        <button
+                          type="button"
+                          onClick={() => toggleScopeLocation(o.id)}
+                          className={`w-full text-left px-3 py-2 text-[12.5px] transition-colors ${
+                            active ? "bg-[#e8f0fc] text-[#1e64c8] font-medium" : "hover:bg-[#f8fafc] text-[#334155]"
+                          }`}
+                        >
+                          {o.name}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
           <div className="space-y-2">
             <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("workLogItems")}</h2>
             {workLogItems.length === 0 ? (

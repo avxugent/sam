@@ -1,6 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { resolveLocationPathsBatch, resolveAncestorNamesBatch } from "@/lib/location-path";
+import { resolveLocationPathsBatch, resolveAncestorNamesBatch, resolveAncestorIdsBatch } from "@/lib/location-path";
 import { effectiveCriticality } from "@/lib/criticality";
 import type {
   ReportDefinition,
@@ -253,15 +253,31 @@ export async function runLocationReport(
     .map((id) => ({ id, name: itemNameById.get(id)! }));
 
   // Leaf locations only.
-  const leaves = await prisma.location.findMany({
+  const allLeaves = await prisma.location.findMany({
     where: { children: { none: {} } },
     select: { id: true, name: true, fiNumber: true },
   });
-  const leafIds = leaves.map((l) => l.id);
+  const allLeafIds = allLeaves.map((l) => l.id);
 
   // Resolve the full ancestor chain (root → leaf) for every leaf in one query,
   // so we can derive campus / building grouping labels and the path string.
-  const ancestorsById = await resolveAncestorNamesBatch(leafIds);
+  const ancestorsById = await resolveAncestorNamesBatch(allLeafIds);
+
+  // Optional scope: restrict to leaves under one of the selected location
+  // ids (any tree level). A leaf is in scope if its own id or any ancestor's
+  // id is in the selected set.
+  const scopeIds = definition.locationIds && definition.locationIds.length > 0
+    ? new Set(definition.locationIds)
+    : null;
+  const leaves = scopeIds
+    ? await (async () => {
+        const ancestorIdsById = await resolveAncestorIdsBatch(allLeafIds);
+        return allLeaves.filter((l) =>
+          (ancestorIdsById.get(l.id) ?? [l.id]).some((id) => scopeIds.has(id))
+        );
+      })()
+    : allLeaves;
+  const leafIds = leaves.map((l) => l.id);
 
   // Cutoff for the optional time window. "Filled" means the latest entry is on
   // or after this date; when no window is set, any entry counts.

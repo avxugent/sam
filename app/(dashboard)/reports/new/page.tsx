@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { resolveLocationPathsBatch } from "@/lib/location-path";
 import { ReportBuilder } from "@/components/reports/ReportBuilder";
 import { BarChart2 } from "lucide-react";
 
@@ -19,6 +20,9 @@ export default async function NewReportPage() {
     prisma.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
+  const locationPaths = await resolveLocationPathsBatch(locations.map((l) => l.id), " › ");
+  const locationScopeOptions = locations.map((l) => ({ id: l.id, name: locationPaths.get(l.id) ?? l.name }));
+
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-start gap-3">
@@ -35,6 +39,7 @@ export default async function NewReportPage() {
         assetTypes={assetTypes}
         manufacturers={manufacturers}
         locations={locations}
+        locationScopeOptions={locationScopeOptions}
         workLogItems={workLogItems}
         suppliers={suppliers}
       />

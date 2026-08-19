@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.4] - 2026-08-19
+
+### Fixed
+
+- **Asset & stock item forms** — the model combobox now shows existing spellings immediately on focus, instead of waiting for 2 characters to be typed first.
+
+---
+
 ## [2.0.3] - 2026-08-19
 
 ### Added

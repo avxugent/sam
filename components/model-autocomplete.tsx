@@ -77,7 +77,7 @@ export function ModelAutocomplete({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open}>
       <PopoverAnchor asChild>
         <Input
           id={id}

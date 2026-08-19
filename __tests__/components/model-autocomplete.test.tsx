@@ -58,12 +58,18 @@ describe("<ModelAutocomplete />", () => {
     expect(url.searchParams.get("manufacturerId")).toBe("m1");
   });
 
-  it("does not fetch for a single character", async () => {
+  it("shows suggestions immediately on focus, before any typing", async () => {
+    mockFetch.mockImplementation(() =>
+      jsonResp([{ model: "Dell PowerEdge R740", typeId: "t1", manufacturerId: "m1" }])
+    );
     const user = userEvent.setup();
     render(<Harness />);
-    await user.type(screen.getByPlaceholderText("model placeholder"), "D");
-    await new Promise((r) => setTimeout(r, 350));
-    expect(mockFetch).not.toHaveBeenCalled();
+
+    await user.click(screen.getByPlaceholderText("model placeholder"));
+
+    const url = await waitFor(() => new URL(mockFetch.mock.calls.at(-1)![0], "http://localhost"));
+    expect(url.searchParams.get("q")).toBe("");
+    expect(await screen.findByText("Dell PowerEdge R740")).toBeInTheDocument();
   });
 
   it("selecting a suggestion sets the exact stored spelling and fires onSelect", async () => {

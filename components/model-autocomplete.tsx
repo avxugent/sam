@@ -57,10 +57,6 @@ export function ModelAutocomplete({
   const trimmed = (value ?? "").trim();
 
   useEffect(() => {
-    if (trimmed.length < 2) {
-      setSuggestions([]);
-      return;
-    }
     const timer = setTimeout(async () => {
       const params = new URLSearchParams({ q: trimmed });
       if (typeId) params.set("typeId", typeId);
@@ -81,7 +77,7 @@ export function ModelAutocomplete({
   }
 
   return (
-    <Popover open={open && trimmed.length > 0} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
         <Input
           id={id}

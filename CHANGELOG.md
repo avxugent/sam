@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.2] - 2026-08-19
+
+### Added
+
+- **Asset form** — the MAC address field now auto-inserts `:` separators every 2 hex digits as you type, instead of requiring them to be typed manually. Existing paste/format validation is unchanged.
+
+---
+
 ## [2.0.1] - 2026-08-17
 
 ### Added

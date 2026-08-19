@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.3] - 2026-08-19
+
+### Added
+
+- **Asset & stock item forms** — the "Model" field is now a real combobox: typing shows existing spellings already in use (scoped to the selected type/manufacturer), picking one reuses its exact stored spelling, and adding a new spelling is an explicit "Create ..." action instead of a typo.
+
+### Fixed
+
+- `GET /api/models` — suggestion deduplication is now case/punctuation-insensitive, so the same model stored under two different casings no longer shows up twice in the dropdown.
+- Stock item form — the model suggestion dropdown was silently always empty due to a response-shape mismatch with `/api/models`; now fixed.
+
+---
+
 ## [2.0.2] - 2026-08-19
 
 ### Added

@@ -53,6 +53,20 @@ describe("GET /api/models", () => {
     expect(body[1]).toEqual({ model: "Dell P2422H", typeId: "t2", manufacturerId: "m2" });
   });
 
+  it("deduplicates case/punctuation variants of the same model, keeping the first-seen spelling", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockFindMany.mockResolvedValue([
+      { model: "Dell PowerEdge R740", typeId: "t1", manufacturerId: "m1" },
+      { model: "dell poweredge r740", typeId: "t1", manufacturerId: "m1" },
+      { model: "Dell PowerEdge  R740", typeId: "t1", manufacturerId: "m1" },
+    ] as never);
+
+    const res = await GET(req({ q: "Dell" }));
+    const body = await res.json();
+    expect(body).toHaveLength(1);
+    expect(body[0]).toEqual({ model: "Dell PowerEdge R740", typeId: "t1", manufacturerId: "m1" });
+  });
+
   it("passes typeId and manufacturerId filters to prisma", async () => {
     mockAuth.mockResolvedValue(session() as never);
     mockFindMany.mockResolvedValue([

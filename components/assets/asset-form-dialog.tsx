@@ -34,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ModelAutocomplete } from "@/components/model-autocomplete";
 import { cn } from "@/lib/utils";
 import { matchesHostnamePattern } from "@/lib/hostname-pattern";
 import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
@@ -118,7 +119,6 @@ type Supplier = {
   defaultUntil: string | null;
 };
 type UserLite = { id: string; name: string };
-type ModelSuggestion = { model: string; typeId: string | null; manufacturerId: string | null };
 
 type VaultTestResult = {
   ok: boolean;
@@ -147,8 +147,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [usersLite, setUsersLite] = useState<UserLite[]>([]);
-  const [modelSuggestions, setModelSuggestions] = useState<ModelSuggestion[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [modelSimilarMatch, setModelSimilarMatch] = useState<{ model: string } | null>(null);
   const [dismissedModelValue, setDismissedModelValue] = useState<string | null>(null);
   const [manufacturerSearch, setManufacturerSearch] = useState("");
@@ -359,27 +357,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     setManufacturerSearch(m ? m.name : "");
   }, [manufacturerIdValue, manufacturers]);
 
-  // Model autocomplete — filtered by selected type and manufacturer
-  useEffect(() => {
-    if (!modelValue || modelValue.length < 2) {
-      setModelSuggestions([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      const params = new URLSearchParams({ q: modelValue });
-      if (typeIdValue) params.set("typeId", typeIdValue);
-      if (manufacturerIdValue) params.set("manufacturerId", manufacturerIdValue);
-      const res = await fetch(`/api/models?${params}`);
-      if (res.ok) setModelSuggestions(await res.json());
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [modelValue, typeIdValue, manufacturerIdValue]);
-
-  function handleModelBlur() {
-    setTimeout(() => setShowSuggestions(false), 200);
-    void checkModelSimilarity();
-  }
-
   async function checkModelSimilarity() {
     const trimmed = modelValue?.trim();
     if (!trimmed || trimmed === dismissedModelValue) return;
@@ -589,43 +566,32 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               <Label htmlFor="model">
                 {tField("model")} <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
-              <Input
+              <ModelAutocomplete
                 id="model"
                 aria-required="true"
                 aria-invalid={!!errors.model}
                 aria-describedby={errors.model ? "model-err" : undefined}
-                {...register("model")}
+                registered={register("model")}
+                value={modelValue}
+                typeId={typeIdValue}
+                manufacturerId={manufacturerIdValue}
                 placeholder={t("modelPlaceholder")}
-                autoComplete="off"
-                className={cn(errors.model && "border-destructive")}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={handleModelBlur}
+                error={!!errors.model}
+                createLabel={(v) => t("createModelOption", { value: v })}
+                noResultsLabel={(v) => t("modelNoResults", { value: v })}
+                onBlur={() => void checkModelSimilarity()}
+                onSelect={(s) => {
+                  setValue("model", s.model, { shouldValidate: true });
+                  if (!typeIdValue && s.typeId) {
+                    setValue("typeId", s.typeId, { shouldValidate: true });
+                  }
+                  if (!manufacturerIdValue && s.manufacturerId) {
+                    setValue("manufacturerId", s.manufacturerId, { shouldValidate: true });
+                  }
+                }}
               />
               {errors.model && (
                 <p id="model-err" className="text-xs text-destructive">{errors.model.message}</p>
-              )}
-              {showSuggestions && modelSuggestions.length > 0 && (
-                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md overflow-hidden">
-                  {modelSuggestions.map((s) => (
-                    <button
-                      key={s.model}
-                      type="button"
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
-                      onMouseDown={() => {
-                        setValue("model", s.model, { shouldValidate: true });
-                        if (!typeIdValue && s.typeId) {
-                          setValue("typeId", s.typeId, { shouldValidate: true });
-                        }
-                        if (!manufacturerIdValue && s.manufacturerId) {
-                          setValue("manufacturerId", s.manufacturerId, { shouldValidate: true });
-                        }
-                        setShowSuggestions(false);
-                      }}
-                    >
-                      {s.model}
-                    </button>
-                  ))}
-                </div>
               )}
             </div>
 

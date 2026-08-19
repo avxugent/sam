@@ -29,3 +29,13 @@ if (typeof Element !== "undefined") {
     Element.prototype.scrollIntoView = () => {};
   }
 }
+
+// cmdk and @radix-ui/react-popper (used by the model combobox) call
+// `new ResizeObserver(...)` to track element size; jsdom doesn't implement it.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

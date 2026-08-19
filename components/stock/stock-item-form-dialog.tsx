@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
@@ -24,6 +24,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { ModelAutocomplete } from "@/components/model-autocomplete";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -107,8 +108,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   // Initialised synchronously from prop so the value is ready before any fetch completes
   const [selectedTypeId, setSelectedTypeId] = useState(initialData?.typeId ?? "");
   const [selectedMfgId, setSelectedMfgId] = useState(initialData?.manufacturerId ?? "");
-  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const {
     register,
@@ -134,6 +133,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   });
 
   const serialNumber = useWatch({ control, name: "serialNumber" });
+  const modelValue = useWatch({ control, name: "model" });
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -156,14 +156,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     });
   }, [open]);
 
-  const fetchModelSuggestions = useCallback(async (q: string) => {
-    if (!q || q.length < 2) { setModelSuggestions([]); return; }
-    const res = await fetch(`/api/models?q=${encodeURIComponent(q)}`);
-    const data = await res.json();
-    setModelSuggestions(data.models ?? []);
-    setShowSuggestions(true);
-  }, []);
-
   function handleClose() {
     setOpen(false);
     if (mode === "create") {
@@ -171,8 +163,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
       setSelectedTypeId("");
       setSelectedMfgId("");
     }
-    setModelSuggestions([]);
-    setShowSuggestions(false);
   }
 
   async function onSubmit(data: FormData) {
@@ -273,38 +263,19 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
           {/* Model */}
           <div className="space-y-1 relative">
             <Label htmlFor="model">{tField("model")} <span className="text-destructive">*</span></Label>
-            <Input
+            <ModelAutocomplete
               id="model"
-              {...register("model")}
+              registered={register("model")}
+              value={modelValue}
+              typeId={selectedTypeId}
+              manufacturerId={selectedMfgId}
               placeholder={t("modelPlaceholder")}
-              className={cn(errors.model && "border-destructive")}
-              autoComplete="off"
-              onChange={(e) => {
-                register("model").onChange(e);
-                fetchModelSuggestions(e.target.value);
-              }}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-              onFocus={() => { if (modelSuggestions.length) setShowSuggestions(true); }}
+              error={!!errors.model}
+              createLabel={(v) => t("createModelOption", { value: v })}
+              noResultsLabel={(v) => t("modelNoResults", { value: v })}
+              onSelect={(s) => setValue("model", s.model, { shouldValidate: true })}
             />
             {errors.model && <p className="text-xs text-destructive">{errors.model.message}</p>}
-            {showSuggestions && modelSuggestions.length > 0 && (
-              <ul className="absolute z-50 w-full bg-white border border-[#e2e8f0] rounded-md shadow-sm mt-1 max-h-40 overflow-y-auto">
-                {modelSuggestions.map((s) => (
-                  <li key={s}>
-                    <button
-                      type="button"
-                      className="w-full text-left px-3 py-1.5 text-[13px] hover:bg-[#f1f5f9]"
-                      onMouseDown={() => {
-                        setValue("model", s, { shouldValidate: true });
-                        setShowSuggestions(false);
-                      }}
-                    >
-                      {s}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
 
           {/* Serial + Quantity row */}

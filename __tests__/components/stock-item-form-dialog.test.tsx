@@ -75,6 +75,28 @@ describe("<StockItemFormDialog /> create", () => {
     // no POST attempted
     expect(mockFetch).not.toHaveBeenCalledWith("/api/stock", expect.anything());
   });
+
+  it("shows model suggestions from /api/models and fills the exact stored spelling on pick", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url === "/api/asset-types") return Promise.resolve(jsonResp([{ id: "at1", name: "Laptop" }]));
+      if (url === "/api/manufacturers") return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
+      if (url.startsWith("/api/models?")) {
+        return Promise.resolve(
+          jsonResp([{ model: "Dell UltraSharp U2722D", typeId: "at1", manufacturerId: "m1" }])
+        );
+      }
+      return Promise.resolve(jsonResp({}));
+    });
+
+    const user = await openCreate();
+    const modelInput = screen.getByPlaceholderText("modelPlaceholder");
+    await user.type(modelInput, "Dell Ultra");
+
+    const suggestion = await screen.findByText("Dell UltraSharp U2722D");
+    await user.click(suggestion);
+
+    expect(modelInput).toHaveValue("Dell UltraSharp U2722D");
+  });
 });
 
 describe("<StockItemFormDialog /> edit", () => {

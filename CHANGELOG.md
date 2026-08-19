@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.5] - 2026-08-19
+
+### Fixed
+
+- **Asset & stock item forms** — the model combobox no longer fails to open on focus. Its own outside-click dismissal was racing the focus event that opens it, closing the dropdown immediately even though suggestions had already loaded.
+
+---
+
 ## [2.0.4] - 2026-08-19
 
 ### Fixed

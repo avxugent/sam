@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { matchesHostnamePattern } from "@/lib/hostname-pattern";
-import { normalizeMacAddress } from "@/lib/mac-address";
+import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
 import { isWindowActive } from "@/lib/supplier-window";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { Loader2, Plus, Trash2, KeyRound, CheckCircle2, XCircle } from "lucide-react";
@@ -827,7 +827,11 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             {macFields.map((field, i) => (
               <div key={field.id} className="flex gap-2">
                 <Input
-                  {...register(`macAddresses.${i}.address`)}
+                  {...register(`macAddresses.${i}.address`, {
+                    onChange: (e) => {
+                      e.target.value = formatMacInputValue(e.target.value);
+                    },
+                  })}
                   aria-label={`${tField("macAddress")} ${i + 1}`}
                   aria-invalid={!!errors.macAddresses?.[i]?.address}
                   aria-describedby={errors.macAddresses?.[i]?.address ? `mac-err-${i}` : undefined}

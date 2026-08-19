@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeMacAddress } from "@/lib/mac-address";
+import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
 
 describe("normalizeMacAddress()", () => {
   it("normalizes an already-canonical address (uppercase, unchanged)", () => {
@@ -36,5 +36,39 @@ describe("normalizeMacAddress()", () => {
 
   it("returns null for a stray non-hex prefix", () => {
     expect(normalizeMacAddress("N48:21:0B:2D:9D:74")).toBeNull();
+  });
+});
+
+describe("formatMacInputValue()", () => {
+  it("returns empty string for empty input", () => {
+    expect(formatMacInputValue("")).toBe("");
+  });
+
+  it("does not insert a colon before the second digit of a group", () => {
+    expect(formatMacInputValue("A")).toBe("A");
+  });
+
+  it("inserts a colon once a new group starts", () => {
+    expect(formatMacInputValue("AAB")).toBe("AA:B");
+  });
+
+  it("formats a full address as it fills in", () => {
+    expect(formatMacInputValue("001B667F2F69")).toBe("00:1B:66:7F:2F:69");
+  });
+
+  it("uppercases lowercase hex digits", () => {
+    expect(formatMacInputValue("74fe487a8236")).toBe("74:FE:48:7A:82:36");
+  });
+
+  it("strips non-hex characters typed by the user", () => {
+    expect(formatMacInputValue("00:1B:66:7F:2F:69")).toBe("00:1B:66:7F:2F:69");
+  });
+
+  it("ignores stray letters outside the hex alphabet", () => {
+    expect(formatMacInputValue("00g1h66")).toBe("00:16:6");
+  });
+
+  it("truncates input beyond 12 hex digits", () => {
+    expect(formatMacInputValue("001B667F2F69FFFF")).toBe("00:1B:66:7F:2F:69");
   });
 });

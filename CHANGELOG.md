@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.6] - 2026-08-20
+
+### Fixed
+
+- **Model Cleanup** — models whose spelling differs only by case (e.g. "PowerEdge R740" vs "poweredge r740") are now flagged as duplicates. The assets table's case-insensitive collation was silently merging these at the database level before the duplicate-detection logic ever saw them.
+- `POST /api/models/merge` — merging now matches the exact selected spelling only, so an unselected case-variant row is no longer swept in alongside the checked ones.
+- `scripts/normalize-models.mjs` — now actually normalizes case-only spelling variants, as documented; it previously missed them for the same underlying reason.
+
+---
+
 ## [2.0.5] - 2026-08-19
 
 ### Fixed

@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.7] - 2026-08-20
+
+### Fixed
+
+- **Grafana — "SAM — Firmware" dashboard** — the firmware-version join could fail with `many-to-many matching not allowed` whenever a device's `sam_model` label value changed (e.g. right after a Model Cleanup case-spelling merge). Prometheus treats a changed label as a new time series, so the old one briefly coexists with the new one; the join's right-hand side is now deduplicated with `max by (sam_hostname, version)` so this no longer crashes the panel.
+
+---
+
 ## [2.0.6] - 2026-08-20
 
 ### Fixed

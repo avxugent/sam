@@ -58,8 +58,15 @@ local filter = '{sam_campus=~"$campus", sam_building=~"$building", sam_asset_typ
 
 // Every vendor metric that carries a device's installed firmware as a
 // `version` label. A device reports through exactly one of these (its own
-// vendor's exporter), so the union has at most one row per hostname.
-local firmwareInfo = 'extron_firmware_info or pearl_system_info';
+// vendor's exporter), so the union has at most one row per hostname — in
+// steady state. It can transiently have two: SAM's SD labels (sam_model and
+// friends) are attached to the exporter's series by Prometheus relabeling,
+// so a label value edited in SAM (e.g. a Model Cleanup case-spelling merge)
+// mints a brand-new series on the next scrape while the old one lingers
+// until it goes stale. `max by (sam_hostname, version)` collapses any such
+// overlap down to one row per hostname before the join below, which
+// otherwise fails outright ("many-to-many matching not allowed").
+local firmwareInfo = 'max by (sam_hostname, version) (extron_firmware_info or pearl_system_info)';
 
 // Every device that reports a firmware version, with SAM's inventory labels
 // attached. group_left(version) is needed because vector matching drops

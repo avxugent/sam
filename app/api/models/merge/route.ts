@@ -25,11 +25,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No variants to merge." }, { status: 400 });
   }
 
+  // BINARY-exact match, not tx.asset.updateMany({ where: { model: variant } }):
+  // the assets table's default collation is case-insensitive, so a plain
+  // equality match would also sweep up any other row that happens to be a
+  // case variant of `variant` — including ones the admin left unchecked in
+  // the cleanup UI, breaking the "unchecked entries are left untouched"
+  // contract documented for this page.
   const movedCount = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     let total = 0;
     for (const variant of toMerge) {
-      const result = await tx.asset.updateMany({ where: { model: variant }, data: { model: canonical } });
-      total += result.count;
+      const result = await tx.$executeRaw`
+        UPDATE assets SET model = ${canonical} WHERE BINARY model = ${variant}
+      `;
+      total += result;
     }
     return total;
   });

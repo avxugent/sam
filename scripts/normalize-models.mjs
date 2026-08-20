@@ -25,18 +25,25 @@ function normalize(raw) {
   return raw.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
-const rows = await prisma.asset.groupBy({
-  by: ["model"],
-  where: { model: { not: null } },
-  _count: { id: true },
-});
+// Raw SQL grouped on BINARY model, not prisma.asset.groupBy({ by: ["model"] }):
+// the assets table's default collation is case-insensitive, so a plain
+// `GROUP BY model` would merge case-only variants (e.g. "PowerEdge R740" /
+// "poweredge r740") into a single row at the SQL level before this script
+// ever sees more than one spelling — silently skipping exactly the case
+// differences this script exists to normalize.
+const rows = await prisma.$queryRaw`
+  SELECT ANY_VALUE(model) AS model, COUNT(*) AS count
+  FROM assets
+  WHERE model IS NOT NULL
+  GROUP BY BINARY model
+`;
 
 const groups = new Map();
 for (const r of rows) {
   const key = normalize(r.model);
   if (!key) continue;
   if (!groups.has(key)) groups.set(key, []);
-  groups.get(key).push({ model: r.model, count: r._count.id });
+  groups.get(key).push({ model: r.model, count: Number(r.count) });
 }
 
 let groupsChanged = 0;

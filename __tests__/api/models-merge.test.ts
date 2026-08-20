@@ -27,12 +27,12 @@ function post(body: object) {
 }
 
 const tx = {
-  asset: { updateMany: vi.fn().mockResolvedValue({ count: 2 }) },
+  $executeRaw: vi.fn().mockResolvedValue(2),
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  tx.asset.updateMany.mockResolvedValue({ count: 2 });
+  tx.$executeRaw.mockResolvedValue(2);
   vi.mocked(prisma.$transaction).mockImplementation(((cb: (t: typeof tx) => unknown) => cb(tx)) as never);
 });
 
@@ -69,14 +69,10 @@ describe("POST /api/models/merge", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, movedCount: 4 });
 
-    expect(tx.asset.updateMany).toHaveBeenCalledWith({
-      where: { model: "poweredge r740" },
-      data: { model: "PowerEdge R740" },
-    });
-    expect(tx.asset.updateMany).toHaveBeenCalledWith({
-      where: { model: "PowerEdge  R740" },
-      data: { model: "PowerEdge R740" },
-    });
+    expect(tx.$executeRaw).toHaveBeenCalledTimes(2);
+    const calls = tx.$executeRaw.mock.calls.map((args) => (args as unknown[]).slice(1));
+    expect(calls).toContainEqual(["PowerEdge R740", "poweredge r740"]);
+    expect(calls).toContainEqual(["PowerEdge R740", "PowerEdge  R740"]);
 
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -89,5 +85,13 @@ describe("POST /api/models/merge", () => {
         },
       })
     );
+  });
+
+  it("matches on BINARY model so the DB's case-insensitive collation can't sweep up an unselected case-variant row", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    await POST(post({ canonical: "PowerEdge R740", variants: ["poweredge r740"] }));
+
+    const sql = tx.$executeRaw.mock.calls[0][0] as unknown as TemplateStringsArray;
+    expect(sql.join("")).toMatch(/WHERE\s+BINARY model/);
   });
 });

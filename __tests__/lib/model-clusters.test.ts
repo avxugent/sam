@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    asset: { groupBy: vi.fn() },
+    $queryRaw: vi.fn(),
     assetType: { findMany: vi.fn() },
     manufacturer: { findMany: vi.fn() },
   },
@@ -11,7 +11,7 @@ vi.mock("@/lib/prisma", () => ({
 import { prisma } from "@/lib/prisma";
 import { getModelItems, getModelClusters } from "@/lib/model-clusters";
 
-const mockGroupBy = vi.mocked(prisma.asset.groupBy);
+const mockQueryRaw = vi.mocked(prisma.$queryRaw);
 const mockTypes = vi.mocked(prisma.assetType.findMany);
 const mockManufacturers = vi.mocked(prisma.manufacturer.findMany);
 
@@ -19,9 +19,9 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("getModelItems()", () => {
   it("attaches distinct type/manufacturer names to each raw model spelling", async () => {
-    mockGroupBy.mockResolvedValue([
-      { model: "PowerEdge R740", typeId: "t1", manufacturerId: "m1", _count: { id: 5 } },
-      { model: "HPE ProLiant DL380", typeId: "t1", manufacturerId: "m2", _count: { id: 3 } },
+    mockQueryRaw.mockResolvedValue([
+      { model: "PowerEdge R740", typeId: "t1", manufacturerId: "m1", count: BigInt(5) },
+      { model: "HPE ProLiant DL380", typeId: "t1", manufacturerId: "m2", count: BigInt(3) },
     ] as never);
     mockTypes.mockResolvedValue([{ id: "t1", name: "Server" }] as never);
     mockManufacturers.mockResolvedValue([
@@ -37,9 +37,9 @@ describe("getModelItems()", () => {
   });
 
   it("merges counts and unions type/manufacturer names for the same raw spelling across typeId/manufacturerId combos", async () => {
-    mockGroupBy.mockResolvedValue([
-      { model: "PowerEdge R740", typeId: "t1", manufacturerId: "m1", _count: { id: 5 } },
-      { model: "PowerEdge R740", typeId: "t2", manufacturerId: "m1", _count: { id: 1 } },
+    mockQueryRaw.mockResolvedValue([
+      { model: "PowerEdge R740", typeId: "t1", manufacturerId: "m1", count: BigInt(5) },
+      { model: "PowerEdge R740", typeId: "t2", manufacturerId: "m1", count: BigInt(1) },
     ] as never);
     mockTypes.mockResolvedValue([
       { id: "t1", name: "Server" },
@@ -54,8 +54,8 @@ describe("getModelItems()", () => {
   });
 
   it("returns empty types/manufacturers when typeId/manufacturerId are null", async () => {
-    mockGroupBy.mockResolvedValue([
-      { model: "PowerEdge R740", typeId: null, manufacturerId: null, _count: { id: 5 } },
+    mockQueryRaw.mockResolvedValue([
+      { model: "PowerEdge R740", typeId: null, manufacturerId: null, count: BigInt(5) },
     ] as never);
     mockTypes.mockResolvedValue([] as never);
     mockManufacturers.mockResolvedValue([] as never);
@@ -63,14 +63,25 @@ describe("getModelItems()", () => {
     const items = await getModelItems();
     expect(items).toEqual([{ model: "PowerEdge R740", count: 5, types: [], manufacturers: [] }]);
   });
+
+  it("groups by BINARY model so the DB's case-insensitive collation can't merge case-only variants before they reach clustering", async () => {
+    mockQueryRaw.mockResolvedValue([] as never);
+    mockTypes.mockResolvedValue([] as never);
+    mockManufacturers.mockResolvedValue([] as never);
+
+    await getModelItems();
+
+    const sql = mockQueryRaw.mock.calls[0][0] as unknown as TemplateStringsArray;
+    expect(sql.join("")).toMatch(/GROUP BY\s+BINARY model/);
+  });
 });
 
 describe("getModelClusters()", () => {
   it("groups similar spellings computed from getModelItems()", async () => {
-    mockGroupBy.mockResolvedValue([
-      { model: "PowerEdge R740", typeId: "t1", manufacturerId: "m1", _count: { id: 5 } },
-      { model: "poweredge r740", typeId: "t1", manufacturerId: "m1", _count: { id: 2 } },
-      { model: "HPE ProLiant DL380", typeId: "t1", manufacturerId: "m2", _count: { id: 3 } },
+    mockQueryRaw.mockResolvedValue([
+      { model: "PowerEdge R740", typeId: "t1", manufacturerId: "m1", count: BigInt(5) },
+      { model: "poweredge r740", typeId: "t1", manufacturerId: "m1", count: BigInt(2) },
+      { model: "HPE ProLiant DL380", typeId: "t1", manufacturerId: "m2", count: BigInt(3) },
     ] as never);
     mockTypes.mockResolvedValue([{ id: "t1", name: "Server" }] as never);
     mockManufacturers.mockResolvedValue([
@@ -88,9 +99,9 @@ describe("getModelClusters()", () => {
   });
 
   it("returns no clusters when nothing is similar", async () => {
-    mockGroupBy.mockResolvedValue([
-      { model: "PowerEdge R740", typeId: null, manufacturerId: null, _count: { id: 5 } },
-      { model: "HPE ProLiant DL380", typeId: null, manufacturerId: null, _count: { id: 3 } },
+    mockQueryRaw.mockResolvedValue([
+      { model: "PowerEdge R740", typeId: null, manufacturerId: null, count: BigInt(5) },
+      { model: "HPE ProLiant DL380", typeId: null, manufacturerId: null, count: BigInt(3) },
     ] as never);
     mockTypes.mockResolvedValue([] as never);
     mockManufacturers.mockResolvedValue([] as never);

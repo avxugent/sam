@@ -25,7 +25,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkPrometheusAuth } from "@/lib/prometheus-auth";
-import { parseFiNumber } from "@/lib/location-path";
+import { parseFiNumber, buildLocationPathsFromRows } from "@/lib/location-path";
 import { computeNis2Counts } from "@/lib/nis2-compliance";
 
 // ─── Text format helpers ─────────────────────────────────────────────────────
@@ -322,6 +322,11 @@ export async function GET(req: NextRequest) {
 
   const locationsById = new Map(allLocations.map((l) => [l.id, l]));
 
+  // Root → leaf name path per location, e.g. "Campus A / Building 10 / Room
+  // 013" — same separator as buildLocationPathString() in /api/prometheus/sd
+  // so sam_location_path reads identically wherever it's emitted.
+  const locationPaths = buildLocationPathsFromRows(allLocations, " / ");
+
   /** Nearest FI number walking leaf → root; mirrors findFiNumber() in SD. */
   function inheritedFiNumber(locationId: string): string | null {
     let current = locationsById.get(locationId);
@@ -350,6 +355,7 @@ export async function GET(req: NextRequest) {
         sam_building: parts?.building ?? "",
         sam_floor: parts?.floor ?? "",
         sam_room: parts?.room ?? "",
+        sam_location_path: locationPaths.get(asset.locationId) ?? "",
         sam_location_name: asset.location?.name ?? "",
         sam_asset_type: asset.type?.name ?? "",
         sam_manufacturer: asset.manufacturer?.name ?? "",

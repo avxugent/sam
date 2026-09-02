@@ -120,6 +120,7 @@ describe("GET /api/prometheus/metrics — per-asset info series", () => {
     expect(body).toContain(
       'sam_asset_info{sam_hostname="rectest001",sam_fi_number="14.10.100.013",' +
         'sam_campus="14",sam_building="10",sam_floor="100",sam_room="013",' +
+        'sam_location_path="Campus A / Building 10 / Room 013",' +
         'sam_location_name="Room 013",sam_asset_type="Recorder",' +
         'sam_manufacturer="Epiphan",sam_model="Pearl-2",sam_criticality="HIGH"} 1'
     );
@@ -132,6 +133,7 @@ describe("GET /api/prometheus/metrics — per-asset info series", () => {
     const body = await (await GET(req())).text();
     expect(body).toContain('sam_fi_number="14.10.100.001"');
     expect(body).toContain('sam_room="001"');
+    expect(body).toContain('sam_location_path="Campus A / Building 10 / Store room"');
   });
 
   it("emits empty labels rather than dropping them when metadata is missing", async () => {
@@ -148,7 +150,8 @@ describe("GET /api/prometheus/metrics — per-asset info series", () => {
     const body = await (await GET(req())).text();
     expect(body).toContain(
       'sam_asset_info{sam_hostname="rectest001",sam_fi_number="",sam_campus="",' +
-        'sam_building="",sam_floor="",sam_room="",sam_location_name="Campus A",' +
+        'sam_building="",sam_floor="",sam_room="",sam_location_path="Campus A",' +
+        'sam_location_name="Campus A",' +
         'sam_asset_type="",sam_manufacturer="",sam_model="",sam_criticality=""} 1'
     );
   });

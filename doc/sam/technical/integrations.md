@@ -131,9 +131,9 @@ showing as down.
 `sam_asset_info` closes that gap: one series per `INSTALLED` asset that has a
 hostname and a Prometheus-exposed type, regardless of maintenance state. Its
 labels (`sam_hostname`, `sam_fi_number`, `sam_campus`, `sam_building`,
-`sam_floor`, `sam_room`, `sam_location_name`, `sam_asset_type`,
-`sam_manufacturer`, `sam_model`, `sam_criticality`) match the SD group labels
-exactly, so it joins directly against device metrics:
+`sam_floor`, `sam_room`, `sam_location_path`, `sam_location_name`,
+`sam_asset_type`, `sam_manufacturer`, `sam_model`, `sam_criticality`) match the
+SD group labels exactly, so it joins directly against device metrics:
 
 ```promql
 # One probe result per asset. A device may be probed by several jobs (blackbox

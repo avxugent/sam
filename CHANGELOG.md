@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.8] - 2026-09-02
+
+### Fixed
+
+- **Prometheus — `sam_asset_info`** — added the missing `sam_location_path` label (e.g. `Campus A / Building 10 / Room 013`). The metric's labels are documented to match the `/api/prometheus/sd` group labels exactly, but this one was missing, so a direct query like `sam_asset_info{sam_criticality=~"HIGH|CRITICAL"}` had no way to show where a device actually is beyond the leaf room name and numeric campus/building codes.
+
+---
+
 ## [2.0.7] - 2026-08-20
 
 ### Fixed

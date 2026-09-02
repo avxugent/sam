@@ -1,0 +1,518 @@
+{
+   "annotations": {
+      "list": [ ]
+   },
+   "description": "Currently firing alerts across the fleet, and which rooms they affect.\n\nSourced from Prometheus's ALERTS series, so this always matches what\nAlertmanager is actually paging on. A room appears here only while an\nalert about it is firing — it is not a room inventory (see the Fleet\noverview dashboard for that).\n",
+   "editable": false,
+   "graphTooltip": 1,
+   "panels": [
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 0
+         },
+         "id": 1,
+         "panels": [ ],
+         "title": "Overview",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     },
+                     {
+                        "color": "red",
+                        "value": 1
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 0,
+            "y": 1
+         },
+         "id": 2,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "count(ALERTS{alertstate=\"firing\"}) or vector(0)",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Firing alerts",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "Distinct rooms with at least one firing alert. Fleet-wide alerts (no room label) are not counted here.",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     },
+                     {
+                        "color": "red",
+                        "value": 1
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 6,
+            "y": 1
+         },
+         "id": 3,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "count(count by (sam_fi_number) (ALERTS{alertstate=\"firing\", sam_fi_number!=\"\"})) or vector(0)",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Rooms with issues",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "Firing alert instances grouped by severity. A severity with nothing firing has no row.",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "filterable": true
+               }
+            },
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Severity"
+                  },
+                  "properties": [
+                     {
+                        "id": "mappings",
+                        "value": [
+                           {
+                              "options": {
+                                 "critical": {
+                                    "color": "red",
+                                    "index": 0,
+                                    "text": "critical"
+                                 },
+                                 "info": {
+                                    "color": "blue",
+                                    "index": 2,
+                                    "text": "info"
+                                 },
+                                 "warning": {
+                                    "color": "orange",
+                                    "index": 1,
+                                    "text": "warning"
+                                 }
+                              },
+                              "type": "value"
+                           }
+                        ]
+                     },
+                     {
+                        "id": "custom.cellOptions",
+                        "value": {
+                           "type": "color-text"
+                        }
+                     }
+                  ]
+               }
+            ]
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 1
+         },
+         "id": 4,
+         "options": {
+            "cellHeight": "sm",
+            "footer": {
+               "countRows": false,
+               "fields": "",
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+               {
+                  "desc": false,
+                  "displayName": "Severity"
+               }
+            ]
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "count by (severity) (ALERTS{alertstate=\"firing\"})",
+               "format": "table",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Alerts by severity",
+         "transformations": [
+            {
+               "id": "joinByField",
+               "options": {
+                  "byField": "severity",
+                  "mode": "outer"
+               }
+            },
+            {
+               "id": "organize",
+               "options": {
+                  "excludeByName": {
+                     "Time": true,
+                     "Time 1": true,
+                     "__name__": true,
+                     "__name__ 1": true
+                  },
+                  "indexByName": {
+                     "Value": 1,
+                     "severity": 0
+                  },
+                  "renameByName": {
+                     "Value": "Count",
+                     "severity": "Severity"
+                  }
+               }
+            }
+         ],
+         "type": "table"
+      },
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 9
+         },
+         "id": 5,
+         "panels": [ ],
+         "title": "Active alerts",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "One row per firing alert, sorted by Room so everything wrong in one room lands together. Filter by Room to isolate one. Blank Room/Hostname means a fleet-wide alert, not tied to any one room or device.",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "filterable": true
+               }
+            },
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Severity"
+                  },
+                  "properties": [
+                     {
+                        "id": "mappings",
+                        "value": [
+                           {
+                              "options": {
+                                 "critical": {
+                                    "color": "red",
+                                    "index": 0,
+                                    "text": "critical"
+                                 },
+                                 "info": {
+                                    "color": "blue",
+                                    "index": 2,
+                                    "text": "info"
+                                 },
+                                 "warning": {
+                                    "color": "orange",
+                                    "index": 1,
+                                    "text": "warning"
+                                 }
+                              },
+                              "type": "value"
+                           }
+                        ]
+                     },
+                     {
+                        "id": "custom.cellOptions",
+                        "value": {
+                           "type": "color-text"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "FI number"
+                  },
+                  "properties": [
+                     {
+                        "id": "links",
+                        "value": [
+                           {
+                              "targetBlank": false,
+                              "title": "Room detail",
+                              "url": "/d/sam-room/room?var-fi_number=${__value.text}"
+                           }
+                        ]
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Hostname"
+                  },
+                  "properties": [
+                     {
+                        "id": "links",
+                        "value": [
+                           {
+                              "targetBlank": false,
+                              "title": "Device detail",
+                              "url": "/d/sam-device/device?var-hostname=${__value.text}"
+                           }
+                        ]
+                     }
+                  ]
+               }
+            ]
+         },
+         "gridPos": {
+            "h": 16,
+            "w": 24,
+            "x": 0,
+            "y": 10
+         },
+         "id": 6,
+         "options": {
+            "cellHeight": "sm",
+            "footer": {
+               "countRows": false,
+               "fields": "",
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+               {
+                  "desc": false,
+                  "displayName": "Room"
+               }
+            ]
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "ALERTS{alertstate=\"firing\"}",
+               "format": "table",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Active alerts, grouped by room",
+         "transformations": [
+            {
+               "id": "joinByField",
+               "options": {
+                  "byField": "alertname",
+                  "mode": "outer"
+               }
+            },
+            {
+               "id": "organize",
+               "options": {
+                  "excludeByName": {
+                     "Time": true,
+                     "Time 1": true,
+                     "Value": true,
+                     "__name__": true,
+                     "__name__ 1": true,
+                     "alertstate": true,
+                     "instance": true,
+                     "job": true,
+                     "sam_criticality": true,
+                     "sam_floor": true,
+                     "sam_manufacturer": true,
+                     "sam_room": true
+                  },
+                  "indexByName": {
+                     "alertname": 5,
+                     "sam_asset_type": 7,
+                     "sam_building": 3,
+                     "sam_campus": 2,
+                     "sam_fi_number": 1,
+                     "sam_hostname": 6,
+                     "sam_location_name": 0,
+                     "sam_model": 8,
+                     "severity": 4
+                  },
+                  "renameByName": {
+                     "alertname": "Alert",
+                     "sam_asset_type": "Type",
+                     "sam_building": "Building",
+                     "sam_campus": "Campus",
+                     "sam_fi_number": "FI number",
+                     "sam_hostname": "Hostname",
+                     "sam_location_name": "Room",
+                     "sam_model": "Model",
+                     "severity": "Severity"
+                  }
+               }
+            }
+         ],
+         "type": "table"
+      }
+   ],
+   "refresh": "1m",
+   "schemaVersion": 39,
+   "tags": [
+      "sam"
+   ],
+   "templating": {
+      "list": [
+         {
+            "current": { },
+            "hide": 0,
+            "label": "Data source",
+            "name": "datasource",
+            "query": "prometheus",
+            "refresh": 1,
+            "regex": "",
+            "type": "datasource"
+         }
+      ]
+   },
+   "time": {
+      "from": "now-24h",
+      "to": "now"
+   },
+   "timepicker": { },
+   "timezone": "browser",
+   "title": "SAM — Alerts",
+   "uid": "sam-alerts",
+   "version": 1
+}

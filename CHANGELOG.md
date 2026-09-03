@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.9] - 2026-09-03
+
+### Added
+
+- **Prometheus scrape templates** — asset types can now override their scrape target template per model, not just per manufacturer. A new `AssetTypeModelTemplate` tier (asset type + manufacturer + model) resolves ahead of the existing manufacturer-level override, so a single brand under one asset type can point different models at different exporters/endpoints. Managed from the asset type settings UI alongside manufacturer overrides.
+
+---
+
 ## [2.0.8] - 2026-09-02
 
 ### Fixed

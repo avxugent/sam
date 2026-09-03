@@ -154,6 +154,22 @@ Per-brand override of an `AssetType`'s default `scrapeTargetTemplate`, for manuf
 
 ---
 
+### AssetTypeModelTemplate
+
+Per-model override, more specific than `AssetTypeManufacturerTemplate`, for a manufacturer + model combination under an `AssetType` whose devices need a different exporter/endpoint than the rest of that brand.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string (cuid) | Primary key |
+| `typeId` | string | FK to AssetType, `onDelete: Cascade` |
+| `manufacturerId` | string | FK to Manufacturer, `onDelete: Cascade` |
+| `model` | string | Matched against `Asset.model` case-insensitively (trimmed) — `model` is free text, not a lookup table |
+| `scrapeTargetTemplate` | string | Same format as `AssetType.scrapeTargetTemplate` |
+
+`(typeId, manufacturerId, model)` has a `@@unique` constraint — one override per model per brand per type. Duplicate inserts return Prisma error `P2002` → API returns 409. See [Integrations](integrations.md) for the resolution order against the manufacturer and type-default templates.
+
+---
+
 ### Supplier
 
 Suppliers/resellers assets were purchased from (supply-chain evidence, distinct from Manufacturer).

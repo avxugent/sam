@@ -554,7 +554,14 @@
     "selectManufacturer": "Fabrikant",
     "overrideAdded": "Merk-override toegevoegd",
     "overrideUpdated": "Merk-override bijgewerkt",
-    "overrideDeleted": "Merk-override verwijderd"
+    "overrideDeleted": "Merk-override verwijderd",
+    "model": "Model",
+    "modelOverrides": "Modelspecifieke scrape-sjablonen",
+    "modelOverridesHelp": "Overschrijf het scrape-sjabloon hierboven voor een specifieke combinatie fabrikant + model onder dit type (heeft voorrang op het merkspecifieke sjabloon).",
+    "noModelOverridesYet": "Nog geen model-overrides",
+    "modelOverrideAdded": "Model-override toegevoegd",
+    "modelOverrideUpdated": "Model-override bijgewerkt",
+    "modelOverrideDeleted": "Model-override verwijderd"
   },
   "manufacturers": {
     "title": "Fabrikanten",

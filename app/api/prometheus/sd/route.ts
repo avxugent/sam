@@ -9,9 +9,10 @@
  * SAM metadata labels. When the asset's type has a scrapeTargetTemplate
  * configured, the rendered __address__, __metrics_path__, and __param_*
  * labels are included so Prometheus routes scrape requests to the correct
- * external exporter rather than directly to the device. If the asset type
- * also has an AssetTypeManufacturerTemplate matching the asset's brand, that
- * override is used instead of the type's default template.
+ * external exporter rather than directly to the device. Overrides apply most
+ * specific first: an AssetTypeModelTemplate matching the asset's brand + model,
+ * then an AssetTypeManufacturerTemplate matching the asset's brand, then the
+ * type's default template.
  *
  * Credentials are never placed in the SD output. A template may emit the
  * asset's Vault path as a non-secret reference via {vault_path}; the external
@@ -57,6 +58,7 @@ import {
 } from "@/lib/location-path";
 import {
   renderScrapeTemplate,
+  resolveScrapeTemplate,
   type TemplateVars,
 } from "@/lib/scrape-template";
 
@@ -93,6 +95,9 @@ export async function GET(req: NextRequest) {
           prometheusExposed: true,
           manufacturerTemplates: {
             select: { manufacturerId: true, scrapeTargetTemplate: true },
+          },
+          modelTemplates: {
+            select: { manufacturerId: true, model: true, scrapeTargetTemplate: true },
           },
         },
       },
@@ -159,12 +164,10 @@ export async function GET(req: NextRequest) {
     if (asset.model) labels.sam_model = safeLabel(asset.model);
 
     // ── Scrape target template ───────────────────────────────────────────────
-    // A manufacturer-specific override (if configured for this asset's brand)
-    // wins over the asset type's default template.
-    const manufacturerOverride = asset.type?.manufacturerTemplates.find(
-      (t) => t.manufacturerId === asset.manufacturerId
-    );
-    const template = manufacturerOverride?.scrapeTargetTemplate ?? asset.type?.scrapeTargetTemplate;
+    // Most specific override wins: model+manufacturer → manufacturer → type default.
+    const template = asset.type
+      ? resolveScrapeTemplate(asset.type, asset.manufacturerId, asset.model)
+      : null;
 
     if (template?.trim()) {
       // Build the variable map from asset fields. vault_path is a non-secret

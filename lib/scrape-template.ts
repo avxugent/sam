@@ -117,6 +117,45 @@ export function validateTemplate(template: string): string[] {
   return errors;
 }
 
+export type ScrapeTemplateSource = {
+  scrapeTargetTemplate: string | null;
+  manufacturerTemplates: { manufacturerId: string; scrapeTargetTemplate: string }[];
+  modelTemplates: { manufacturerId: string; model: string; scrapeTargetTemplate: string }[];
+};
+
+/**
+ * Resolves the effective scrape template for an asset, most specific wins:
+ *   1. AssetTypeModelTemplate  (matches manufacturerId AND model, case/whitespace-insensitive)
+ *   2. AssetTypeManufacturerTemplate (matches manufacturerId)
+ *   3. AssetType.scrapeTargetTemplate (the type's default)
+ * Returns null if none apply.
+ */
+export function resolveScrapeTemplate(
+  type: ScrapeTemplateSource,
+  manufacturerId: string | null,
+  model: string | null
+): string | null {
+  const normalizedModel = model?.trim().toLowerCase() ?? "";
+
+  if (manufacturerId && normalizedModel) {
+    const modelOverride = type.modelTemplates.find(
+      (t) =>
+        t.manufacturerId === manufacturerId &&
+        t.model.trim().toLowerCase() === normalizedModel
+    );
+    if (modelOverride) return modelOverride.scrapeTargetTemplate;
+  }
+
+  if (manufacturerId) {
+    const manufacturerOverride = type.manufacturerTemplates.find(
+      (t) => t.manufacturerId === manufacturerId
+    );
+    if (manufacturerOverride) return manufacturerOverride.scrapeTargetTemplate;
+  }
+
+  return type.scrapeTargetTemplate;
+}
+
 /** Returns the set of variable names used in the template (for the UI preview). */
 export function getUsedVariables(template: string): {
   standard: string[];

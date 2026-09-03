@@ -554,7 +554,14 @@
     "selectManufacturer": "Manufacturer",
     "overrideAdded": "Brand override added",
     "overrideUpdated": "Brand override updated",
-    "overrideDeleted": "Brand override removed"
+    "overrideDeleted": "Brand override removed",
+    "model": "Model",
+    "modelOverrides": "Model-specific scrape templates",
+    "modelOverridesHelp": "Override the scrape template above for a specific manufacturer + model under this type (takes precedence over the brand-specific template).",
+    "noModelOverridesYet": "No model overrides yet",
+    "modelOverrideAdded": "Model override added",
+    "modelOverrideUpdated": "Model override updated",
+    "modelOverrideDeleted": "Model override removed"
   },
   "manufacturers": {
     "title": "Manufacturers",

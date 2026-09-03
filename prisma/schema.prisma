@@ -37,54 +37,54 @@ enum DisposalMethod {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String?  // null for SSO-only users
-  provider     String   @default("credentials") // "credentials" | "microsoft-entra-id"
-  role         Role     @default(VIEWER)
+  id                 String    @id @default(cuid())
+  name               String
+  email              String    @unique
+  passwordHash       String? // null for SSO-only users
+  provider           String    @default("credentials") // "credentials" | "microsoft-entra-id"
+  role               Role      @default(VIEWER)
   // TOTP-based two-factor authentication (credentials users only)
-  totpSecret   String?  // base32-encoded secret; null = 2FA not set up
-  totpEnabled  Boolean  @default(false) // true only after user has verified first code
+  totpSecret         String? // base32-encoded secret; null = 2FA not set up
+  totpEnabled        Boolean   @default(false) // true only after user has verified first code
   // Forced enrollment flags (set by admin)
-  mustChangePassword Boolean @default(false) // cleared after user successfully changes password
-  twoFactorRequired  Boolean @default(false) // stays set; forces 2FA setup on next login
+  mustChangePassword Boolean   @default(false) // cleared after user successfully changes password
+  twoFactorRequired  Boolean   @default(false) // stays set; forces 2FA setup on next login
   // UI preference: which tab opens first when navigating to a location with sub-locations
-  locationDefaultTab String  @default("assets") // "assets" | "sublocations"
+  locationDefaultTab String    @default("assets") // "assets" | "sublocations"
   // UI preference: colour scheme
-  theme              String  @default("light")  // "light" | "dark" | "system"
-  lastLoginAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  theme              String    @default("light") // "light" | "dark" | "system"
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  attachments         Attachment[]
-  workLogs            WorkLog[]            @relation("WorkLogPerformer")
+  attachments Attachment[]
+  workLogs    WorkLog[]    @relation("WorkLogPerformer")
 
   @@map("users")
 }
 
 model Location {
-  id             String   @id @default(cuid())
-  name           String
-  description    String?  @db.Text
-  parentId       String?
-  order          Int      @default(0)
+  id            String   @id @default(cuid())
+  name          String
+  description   String?  @db.Text
+  parentId      String?
+  order         Int      @default(0)
   // Facility identifier, e.g. "14.10.100.013"
   // Segments: CC.BB.FFF.RRR  (campus.building.floor.room)
-  fiNumber       String?  @unique
+  fiNumber      String?  @unique
   // Address fields
-  address        String?
-  city           String?
-  country        String?
-  latitude       Float?
-  longitude      Float?
+  address       String?
+  city          String?
+  country       String?
+  latitude      Float?
+  longitude     Float?
   // Cover image: references an Attachment id (image)
-  coverImageId   String?
+  coverImageId  String?
   // When true, assets in this room are excluded from Prometheus service
   // discovery. Only rooms (leaf locations) may be placed in maintenance.
-  inMaintenance  Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  inMaintenance Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   parent      Location?    @relation("LocationTree", fields: [parentId], references: [id], onDelete: Restrict)
   children    Location[]   @relation("LocationTree")
@@ -97,12 +97,13 @@ model Location {
 }
 
 model AssetType {
-  id        String   @id @default(cuid())
-  name      String   @unique
+  id                   String       @id @default(cuid())
+  name                 String       @unique
   // Prometheus scrape target template (newline-separated key=value pairs).
-  // This is the default template for the type; a matching row in
-  // AssetTypeManufacturerTemplate (this type + the asset's manufacturer)
-  // overrides it for that brand.
+  // This is the default template for the type. Overrides, most specific wins:
+  //   AssetTypeModelTemplate (this type + manufacturer + model) →
+  //   AssetTypeManufacturerTemplate (this type + manufacturer) →
+  //   this default.
   // Keys are Prometheus __labels__ (e.g. __address__, __metrics_path__, __param_*).
   // Values may contain {hostname_fqdn}, {serial}, {model}, {manufacturer},
   // {fi_number}, and {vault_path} placeholders. {vault_path} is a non-secret
@@ -115,21 +116,22 @@ model AssetType {
   //   __metrics_path__=/probe
   //   __param_target=https://{hostname_fqdn}
   //   __param_vault_path={vault_path}
-  scrapeTargetTemplate String? @db.Text
-  prometheusExposed    Boolean  @default(true)
+  scrapeTargetTemplate String?      @db.Text
+  prometheusExposed    Boolean      @default(true)
   // Optional regex (JS RegExp syntax) that a hostname must match for assets
   // of this type. Tested case-insensitively; not auto-anchored, so the admin
   // controls whether ^/$ are required for an exact match. When null, assets
   // of this type fall back to the generic FQDN check.
-  hostnamePattern      String?  @db.VarChar(500)
+  hostnamePattern      String?      @db.VarChar(500)
   // Default criticality for assets of this type; per-asset override wins.
   defaultCriticality   Criticality?
-  createdAt            DateTime @default(now())
+  createdAt            DateTime     @default(now())
 
-  assets      Asset[]
-  stockItems  StockItem[]
-  presets     MaintenancePreset[]
+  assets                Asset[]
+  stockItems            StockItem[]
+  presets               MaintenancePreset[]
   manufacturerTemplates AssetTypeManufacturerTemplate[]
+  modelTemplates        AssetTypeModelTemplate[]
 
   @@map("asset_types")
 }
@@ -139,9 +141,10 @@ model Manufacturer {
   name      String   @unique
   createdAt DateTime @default(now())
 
-  assets     Asset[]
-  stockItems StockItem[]
-  typeTemplates AssetTypeManufacturerTemplate[]
+  assets         Asset[]
+  stockItems     StockItem[]
+  typeTemplates  AssetTypeManufacturerTemplate[]
+  modelTemplates AssetTypeModelTemplate[]
 
   @@map("manufacturers")
 }
@@ -149,8 +152,8 @@ model Manufacturer {
 // Per-(AssetType, Manufacturer) override of AssetType.scrapeTargetTemplate.
 // Lets brands under the same asset type that expose metrics differently
 // (different exporter/endpoint) get their own template. Resolution order in
-// the SD endpoint: this override (matched on the asset's manufacturerId) →
-// AssetType.scrapeTargetTemplate → no template.
+// the SD endpoint: AssetTypeModelTemplate → this override (matched on the
+// asset's manufacturerId) → AssetType.scrapeTargetTemplate → no template.
 model AssetTypeManufacturerTemplate {
   id                   String   @id @default(cuid())
   typeId               String
@@ -164,6 +167,29 @@ model AssetTypeManufacturerTemplate {
   @@unique([typeId, manufacturerId])
   @@index([manufacturerId])
   @@map("asset_type_manufacturer_templates")
+}
+
+// Per-(AssetType, Manufacturer, Model) override — the most specific tier.
+// `model` is matched against Asset.model case-insensitively (trimmed), since
+// model is a free-text field rather than a lookup table. Lets a single brand
+// under one asset type expose different models through different
+// exporters/endpoints. Resolution order in the SD endpoint: this override
+// (matched on the asset's manufacturerId + model) →
+// AssetTypeManufacturerTemplate → AssetType.scrapeTargetTemplate → no template.
+model AssetTypeModelTemplate {
+  id                   String   @id @default(cuid())
+  typeId               String
+  manufacturerId       String
+  model                String   @db.VarChar(255)
+  scrapeTargetTemplate String   @db.Text
+  createdAt            DateTime @default(now())
+
+  type         AssetType    @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  manufacturer Manufacturer @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+
+  @@unique([typeId, manufacturerId, model])
+  @@index([manufacturerId])
+  @@map("asset_type_model_templates")
 }
 
 model Supplier {
@@ -184,50 +210,50 @@ model Supplier {
 }
 
 model Asset {
-  id               String    @id @default(cuid())
-  locationId       String
-  typeId           String?
-  manufacturerId   String?
-  model            String?
-  serialNumber     String?
+  id                   String          @id @default(cuid())
+  locationId           String
+  typeId               String?
+  manufacturerId       String?
+  model                String?
+  serialNumber         String?
   // Globally unique across all assets regardless of status, so a
   // decommissioned asset's hostname is never reassigned (audit trail).
-  hostname         String?   @unique
+  hostname             String?         @unique
   // Number of physical units this row represents. Only meaningful for
   // bulk items with no individual identity (e.g. speakers, batteries) —
   // locked to 1 whenever serialNumber or hostname is set.
-  quantity         Int       @default(1)
-  installationDate DateTime? @db.Date
-  invoiceNumber    String?
-  invoiceDate      DateTime? @db.Date
-  warrantyMonths   Int?
-  notes            String?   @db.Text
+  quantity             Int             @default(1)
+  installationDate     DateTime?       @db.Date
+  invoiceNumber        String?
+  invoiceDate          DateTime?       @db.Date
+  warrantyMonths       Int?
+  notes                String?         @db.Text
   // Optional path to a HashiCorp Vault KV secret containing per-device
   // credentials (e.g. "secret/data/av/rectest001").
   // Emitted by the Prometheus SD endpoint as the {vault_path} reference. SAM
   // never reads the secret; the exporter resolves it from Vault at scrape time.
-  vaultPath        String?
+  vaultPath            String?
   // Responsible person; soft ref to User (no FK) so it survives user deletion.
-  ownerId          String?
+  ownerId              String?
   // null = inherit AssetType.defaultCriticality
-  criticality      Criticality?
-  endOfSupportDate DateTime? @db.Date
-  supplierId       String?
-  status               AssetStatus @default(INSTALLED)
+  criticality          Criticality?
+  endOfSupportDate     DateTime?       @db.Date
+  supplierId           String?
+  status               AssetStatus     @default(INSTALLED)
   decommissionedAt     DateTime?
-  decommissionNote     String?     @db.VarChar(500)
+  decommissionNote     String?         @db.VarChar(500)
   disposalMethod       DisposalMethod?
   // Soft ref to User (no FK), survives user deletion.
   decommissionedById   String?
-  lastLocationName     String?     @db.VarChar(255)
-  lastLocationFiNumber String?     @db.VarChar(20)
-  createdAt            DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  lastLocationName     String?         @db.VarChar(255)
+  lastLocationFiNumber String?         @db.VarChar(20)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
-  location     Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  type         AssetType?   @relation(fields: [typeId], references: [id])
+  location     Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  type         AssetType?    @relation(fields: [typeId], references: [id])
   manufacturer Manufacturer? @relation(fields: [manufacturerId], references: [id])
-  supplier     Supplier?    @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  supplier     Supplier?     @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   macAddresses MacAddress[]
   customFields CustomField[]
   attachments  Attachment[]
@@ -269,13 +295,13 @@ model CustomField {
 model Attachment {
   id             String   @id @default(cuid())
   attachmentType String   @default("file") // "file" | "link"
-  filename       String?  // null for link attachments
-  originalName   String   // file original name OR link display label
-  displayName    String?  // user-editable display name; null = fall back to originalName
+  filename       String? // null for link attachments
+  originalName   String // file original name OR link display label
+  displayName    String? // user-editable display name; null = fall back to originalName
   description    String?  @db.Text
-  mimeType       String?  // null for link attachments
-  size           Int?     // null for link attachments
-  path           String?  // null for link attachments
+  mimeType       String? // null for link attachments
+  size           Int? // null for link attachments
+  path           String? // null for link attachments
   url            String?  @db.Text // set for link attachments
   locationId     String?
   assetId        String?
@@ -296,8 +322,8 @@ model AuditLog {
   timestamp   DateTime  @default(now())
   userId      String?
   userEmail   String?
-  action      String    // CREATE | UPDATE | DELETE | IMPORT | EXPORT
-  entityType  String    // Asset | Location | User | AssetType | Manufacturer | Attachment
+  action      String // CREATE | UPDATE | DELETE | IMPORT | EXPORT
+  entityType  String // Asset | Location | User | AssetType | Manufacturer | Attachment
   entityId    String?
   entityName  String?
   detail      String?   @db.Text // JSON
@@ -326,8 +352,8 @@ model Report {
   id          String   @id @default(cuid())
   name        String   @db.VarChar(255)
   description String?  @db.Text
-  definition  String   @db.Text  // JSON-encoded ReportDefinition
-  createdById String?             // soft ref — no FK, survives user deletion
+  definition  String   @db.Text // JSON-encoded ReportDefinition
+  createdById String? // soft ref — no FK, survives user deletion
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -337,10 +363,10 @@ model Report {
 model WorkLog {
   id            String   @id @default(cuid())
   locationId    String
-  assetId       String?            // optional — null for location-wide work
-  itemId        String?            // optional — fixed work-log item (e.g. "Review asset list")
-  performedById String             // user who performed the work
-  performedAt   DateTime @db.Date  // when the work was done
+  assetId       String? // optional — null for location-wide work
+  itemId        String? // optional — fixed work-log item (e.g. "Review asset list")
+  performedById String // user who performed the work
+  performedAt   DateTime @db.Date // when the work was done
   description   String   @db.Text
   jiraIssueKey  String?  @db.VarChar(64)
   createdAt     DateTime @default(now())

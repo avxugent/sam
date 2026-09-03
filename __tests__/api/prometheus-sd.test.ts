@@ -45,6 +45,7 @@ type AssetRow = {
     scrapeTargetTemplate: string | null;
     prometheusExposed: boolean;
     manufacturerTemplates: { manufacturerId: string; scrapeTargetTemplate: string }[];
+    modelTemplates: { manufacturerId: string; model: string; scrapeTargetTemplate: string }[];
   } | null;
   manufacturer: { name: string } | null;
 };
@@ -59,7 +60,13 @@ function asset(overrides: Partial<AssetRow> = {}): AssetRow {
     locationId: "loc1",
     manufacturerId: "m1",
     location: { inMaintenance: false },
-    type: { name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: true, manufacturerTemplates: [] },
+    type: {
+      name: "Recorder",
+      scrapeTargetTemplate: null,
+      prometheusExposed: true,
+      manufacturerTemplates: [],
+      modelTemplates: [],
+    },
     manufacturer: { name: "Epiphan" },
     ...overrides,
   };
@@ -107,6 +114,7 @@ describe("GET /api/prometheus/sd", () => {
             "__metrics_path__=/probe\n" +
             "__param_target=https://{hostname_fqdn}",
           manufacturerTemplates: [],
+          modelTemplates: [],
         },
       }),
     ] as never);
@@ -161,6 +169,7 @@ describe("GET /api/prometheus/sd", () => {
           manufacturerTemplates: [
             { manufacturerId: "m1", scrapeTargetTemplate: "__address__=https://epiphan-exporter.ugent.be" },
           ],
+          modelTemplates: [],
         },
       }),
     ] as never);
@@ -182,6 +191,7 @@ describe("GET /api/prometheus/sd", () => {
           manufacturerTemplates: [
             { manufacturerId: "m1", scrapeTargetTemplate: "__address__=https://epiphan-exporter.ugent.be" },
           ],
+          modelTemplates: [],
         },
       }),
     ] as never);
@@ -189,5 +199,55 @@ describe("GET /api/prometheus/sd", () => {
     const res = await GET(req());
     const groups = await res.json();
     expect(groups[0].targets).toEqual(["default-exporter.ugent.be"]);
+  });
+
+  it("uses the model-specific override even when a manufacturer override also matches", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    mockFindMany.mockResolvedValue([
+      asset({
+        manufacturerId: "m1",
+        model: "Pearl-2",
+        type: {
+          name: "Recorder",
+          prometheusExposed: true,
+          scrapeTargetTemplate: "__address__=https://default-exporter.ugent.be",
+          manufacturerTemplates: [
+            { manufacturerId: "m1", scrapeTargetTemplate: "__address__=https://epiphan-exporter.ugent.be" },
+          ],
+          modelTemplates: [
+            { manufacturerId: "m1", model: "Pearl-2", scrapeTargetTemplate: "__address__=https://pearl2-exporter.ugent.be" },
+          ],
+        },
+      }),
+    ] as never);
+
+    const res = await GET(req());
+    const groups = await res.json();
+    expect(groups[0].targets).toEqual(["pearl2-exporter.ugent.be"]);
+  });
+
+  it("falls back to the manufacturer override when the model does not match", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    mockFindMany.mockResolvedValue([
+      asset({
+        manufacturerId: "m1",
+        model: "Pearl-1",
+        type: {
+          name: "Recorder",
+          prometheusExposed: true,
+          scrapeTargetTemplate: "__address__=https://default-exporter.ugent.be",
+          manufacturerTemplates: [
+            { manufacturerId: "m1", scrapeTargetTemplate: "__address__=https://epiphan-exporter.ugent.be" },
+          ],
+          modelTemplates: [
+            { manufacturerId: "m1", model: "Pearl-2", scrapeTargetTemplate: "__address__=https://pearl2-exporter.ugent.be" },
+          ],
+        },
+      }),
+    ] as never);
+
+    const res = await GET(req());
+    const groups = await res.json();
+    expect(groups[0].targets).toEqual(["epiphan-exporter.ugent.be"]);
   });
 });

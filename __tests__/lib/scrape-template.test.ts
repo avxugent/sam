@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   renderScrapeTemplate,
+  resolveScrapeTemplate,
   validateTemplate,
   getUsedVariables,
   type TemplateVars,
+  type ScrapeTemplateSource,
 } from "@/lib/scrape-template";
 
 const baseVars: TemplateVars = {
@@ -85,6 +87,52 @@ describe("renderScrapeTemplate()", () => {
     expect(labels["__param_target__"]).toBe(
       "https://rectest001.ugent.be/path?a=b&c=d"
     );
+  });
+});
+
+// ── resolveScrapeTemplate ───────────────────────────────────────────────────
+
+describe("resolveScrapeTemplate()", () => {
+  const type: ScrapeTemplateSource = {
+    scrapeTargetTemplate: "__address__=default",
+    manufacturerTemplates: [
+      { manufacturerId: "epson", scrapeTargetTemplate: "__address__=epson-default" },
+    ],
+    modelTemplates: [
+      { manufacturerId: "epson", model: "Pearl-2", scrapeTargetTemplate: "__address__=epson-pearl2" },
+    ],
+  };
+
+  it("falls back to the type default when no manufacturer or model matches", () => {
+    expect(resolveScrapeTemplate(type, "other-brand", "Other")).toBe("__address__=default");
+    expect(resolveScrapeTemplate(type, null, null)).toBe("__address__=default");
+  });
+
+  it("uses the manufacturer override when no model override matches", () => {
+    expect(resolveScrapeTemplate(type, "epson", "Some-Other-Model")).toBe("__address__=epson-default");
+    expect(resolveScrapeTemplate(type, "epson", null)).toBe("__address__=epson-default");
+  });
+
+  it("uses the model override when both manufacturer and model match", () => {
+    expect(resolveScrapeTemplate(type, "epson", "Pearl-2")).toBe("__address__=epson-pearl2");
+  });
+
+  it("matches model case-insensitively and trims whitespace", () => {
+    expect(resolveScrapeTemplate(type, "epson", " pearl-2 ")).toBe("__address__=epson-pearl2");
+    expect(resolveScrapeTemplate(type, "epson", "PEARL-2")).toBe("__address__=epson-pearl2");
+  });
+
+  it("does not apply a model override matching a different manufacturer", () => {
+    expect(resolveScrapeTemplate(type, "other-brand", "Pearl-2")).toBe("__address__=default");
+  });
+
+  it("returns null when the type has no default template either", () => {
+    const bare: ScrapeTemplateSource = {
+      scrapeTargetTemplate: null,
+      manufacturerTemplates: [],
+      modelTemplates: [],
+    };
+    expect(resolveScrapeTemplate(bare, "epson", "Pearl-2")).toBeNull();
   });
 });
 

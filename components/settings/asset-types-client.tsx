@@ -44,6 +44,7 @@ import { validateTemplate } from "@/lib/scrape-template";
 import { validateHostnamePattern } from "@/lib/hostname-pattern";
 import { MaintenancePresetsManager } from "@/components/settings/maintenance-presets-manager";
 import { ManufacturerTemplateOverrides } from "@/components/settings/manufacturer-template-overrides";
+import { ModelTemplateOverrides } from "@/components/settings/model-template-overrides";
 import { ScrapeTemplateFields } from "@/components/settings/scrape-template-fields";
 
 type AssetType = {
@@ -608,6 +609,13 @@ export function AssetTypesClient({
 
                     <div className="pt-4 mt-4 border-t">
                       <ManufacturerTemplateOverrides
+                        assetTypeId={item.id}
+                        manufacturers={manufacturers}
+                      />
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t">
+                      <ModelTemplateOverrides
                         assetTypeId={item.id}
                         manufacturers={manufacturers}
                       />

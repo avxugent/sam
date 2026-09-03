@@ -186,7 +186,11 @@ Many AV devices cannot expose Prometheus metrics directly and are monitored via 
 
 **Configure in:** Administration → Asset Types → expand a type → Edit template
 
-**Per-brand overrides:** Different manufacturers under the same asset type sometimes need different exporters or endpoints. A manufacturer under an asset type's expanded panel can be given its own template, which takes priority over the type's default. Resolution order for a given asset: manufacturer-specific override (matching the asset's type **and** manufacturer) → the asset type's default template → no template (asset scraped directly by hostname). Overrides are managed alongside the default template in the same Asset Types panel, via `POST`/`PUT`/`DELETE` on `/api/asset-types/[id]/manufacturer-templates` and `/api/asset-types/manufacturer-templates/[id]`.
+**Per-brand overrides:** Different manufacturers under the same asset type sometimes need different exporters or endpoints. A manufacturer under an asset type's expanded panel can be given its own template, which takes priority over the type's default. Overrides are managed alongside the default template in the same Asset Types panel, via `POST`/`PUT`/`DELETE` on `/api/asset-types/[id]/manufacturer-templates` and `/api/asset-types/manufacturer-templates/[id]`.
+
+**Per-model overrides:** Within a manufacturer, a specific model can be given an even more specific template — useful when one model in a brand's lineup exposes metrics differently from the rest. Model overrides are matched against `Asset.model` case-insensitively (trimmed), since model is a free-text field rather than a lookup table. Managed via `POST`/`PUT`/`DELETE` on `/api/asset-types/[id]/model-templates` and `/api/asset-types/model-templates/[id]`.
+
+**Resolution order** for a given asset, most specific wins: model-specific override (matching the asset's type, manufacturer, **and** model) → manufacturer-specific override (matching the asset's type **and** manufacturer) → the asset type's default template → no template (asset scraped directly by hostname). Implemented in `resolveScrapeTemplate()` in `lib/scrape-template.ts`.
 
 **Format:** One `key=value` pair per line. Keys override Prometheus `__labels__`. Comments start with `#`.
 

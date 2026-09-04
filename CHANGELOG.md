@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.10] - 2026-09-04
+
+### Added
+
+- **Prometheus — `sam_worklog_items_by_location`** — new gauge exposing the number of work-log entries recorded per room, labeled with `sam_fi_number`, `sam_location_path`, and `sam_location_name` to match the existing asset gauges for easy joining in Grafana.
+
+---
+
 ## [2.0.9] - 2026-09-03
 
 ### Added

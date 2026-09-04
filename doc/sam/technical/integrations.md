@@ -120,6 +120,7 @@ scrape_configs:
 | `sam_asset_info{sam_hostname="…", …}` | gauge | Always `1`. One series per asset expected to report, carrying its SAM metadata |
 | `sam_asset_maintenance{sam_hostname="…"}` | gauge | Always `1`. Asset's room is in maintenance, so missing metrics are expected |
 | `sam_asset_end_of_support_timestamp{sam_hostname="…"}` | gauge | End-of-support date as a Unix timestamp |
+| `sam_worklog_items_by_location{sam_fi_number="…", sam_location_path="…", sam_location_name="…"}` | gauge | Number of work-log entries recorded per room |
 
 #### `sam_asset_info` — the expected-set series
 

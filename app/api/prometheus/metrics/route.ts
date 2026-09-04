@@ -72,6 +72,7 @@ export async function GET(req: NextRequest) {
     assetsByManufacturer,
     allLocations,
     assetsByLocation,
+    workLogsByLocation,
     monitoredAssets,
   ] = await Promise.all([
     // Total asset count
@@ -105,6 +106,12 @@ export async function GET(req: NextRequest) {
 
     // Assets per locationId (to roll up to campus level)
     prisma.asset.groupBy({
+      by: ["locationId"],
+      _count: { id: true },
+    }),
+
+    // Work-log items per locationId (per room)
+    prisma.workLog.groupBy({
       by: ["locationId"],
       _count: { id: true },
     }),
@@ -403,6 +410,25 @@ export async function GET(req: NextRequest) {
       "sam_asset_end_of_support_timestamp",
       "End-of-support date per asset as a Unix timestamp in seconds",
       eosSamples
+    )
+  );
+
+  // 9. Work-log items per room (location)
+  sections.push(
+    gauge(
+      "sam_worklog_items_by_location",
+      "Number of work-log entries recorded per room",
+      workLogsByLocation.map((row) => {
+        const fiNumber = inheritedFiNumber(row.locationId);
+        return {
+          labels: {
+            sam_fi_number: fiNumber ?? "",
+            sam_location_path: locationPaths.get(row.locationId) ?? "",
+            sam_location_name: locationsById.get(row.locationId)?.name ?? "",
+          },
+          value: row._count.id,
+        };
+      })
     )
   );
 

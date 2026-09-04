@@ -4,6 +4,7 @@ vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
     asset: { count: vi.fn(), groupBy: vi.fn(), findMany: vi.fn() },
+    workLog: { groupBy: vi.fn() },
     location: { count: vi.fn(), findMany: vi.fn() },
     assetType: { findMany: vi.fn() },
     manufacturer: { findMany: vi.fn() },
@@ -37,6 +38,7 @@ beforeEach(() => {
   vi.mocked(prisma.asset.count).mockResolvedValue(0 as never);
   vi.mocked(prisma.asset.groupBy).mockResolvedValue([] as never);
   vi.mocked(prisma.asset.findMany).mockResolvedValue([] as never);
+  vi.mocked(prisma.workLog.groupBy).mockResolvedValue([] as never);
   vi.mocked(prisma.location.count).mockResolvedValue(0 as never);
   vi.mocked(prisma.location.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.assetType.findMany).mockResolvedValue([] as never);
@@ -199,5 +201,44 @@ describe("GET /api/prometheus/metrics — per-asset info series", () => {
       hostname: { not: null },
       OR: [{ typeId: null }, { type: { prometheusExposed: true } }],
     });
+  });
+});
+
+describe("GET /api/prometheus/metrics — work-log items per room", () => {
+  const LOCATIONS = [
+    { id: "campus", name: "Campus A", fiNumber: null, parentId: null },
+    { id: "bld", name: "Building 10", fiNumber: "14.10.100.001", parentId: "campus" },
+    { id: "room", name: "Room 013", fiNumber: "14.10.100.013", parentId: "bld" },
+    { id: "noFi", name: "Store room", fiNumber: null, parentId: "bld" },
+  ];
+
+  beforeEach(() => {
+    vi.mocked(prisma.location.findMany).mockResolvedValue(LOCATIONS as never);
+  });
+
+  it("emits one series per room with its work-log count", async () => {
+    vi.mocked(prisma.workLog.groupBy).mockResolvedValue([
+      { locationId: "room", _count: { id: 3 } },
+    ] as never);
+    const body = await (await GET(req())).text();
+    expect(body).toContain(
+      'sam_worklog_items_by_location{sam_fi_number="14.10.100.013",' +
+        'sam_location_path="Campus A / Building 10 / Room 013",' +
+        'sam_location_name="Room 013"} 3'
+    );
+  });
+
+  it("inherits the nearest ancestor FI number when the room has none", async () => {
+    vi.mocked(prisma.workLog.groupBy).mockResolvedValue([
+      { locationId: "noFi", _count: { id: 2 } },
+    ] as never);
+    const body = await (await GET(req())).text();
+    expect(body).toContain('sam_fi_number="14.10.100.001"');
+  });
+
+  it("omits the series entirely when there are no work-log entries", async () => {
+    const body = await (await GET(req())).text();
+    expect(body).not.toContain("sam_worklog_items_by_location{");
+    expect(body).toContain("# HELP sam_worklog_items_by_location");
   });
 });

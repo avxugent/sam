@@ -362,7 +362,8 @@
     "unassigned": "Niet toegewezen",
     "selectLocation": "Opslaglocatie selecteren…",
     "filterByLocation": "Filteren op locatie",
-    "allLocations": "Alle locaties"
+    "allLocations": "Alle locaties",
+    "showAllLocations": "Alle locaties tonen"
   },
   "decommissioned": {
     "title": "Buiten dienst",

@@ -362,7 +362,8 @@
     "unassigned": "Unassigned",
     "selectLocation": "Select storage location…",
     "filterByLocation": "Filter by location",
-    "allLocations": "All locations"
+    "allLocations": "All locations",
+    "showAllLocations": "Show all locations"
   },
   "decommissioned": {
     "title": "Decommissioned",

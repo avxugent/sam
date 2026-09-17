@@ -15,7 +15,7 @@ Click **Stock** in the left sidebar.
 
 The stock list shows all items in inventory. Each row shows the asset type, manufacturer, model, serial number (or quantity for bulk items), and its storage location.
 
-Use the **search box** to filter by type, model, serial number, or manufacturer, and the **location filter** to narrow the list down to stock kept at a specific location. Results can be sorted by clicking column headers.
+Use the **search box** to filter by type, model, serial number, or manufacturer, and the **location filter** to narrow the list down to stock kept at a specific location. The location filter only lists locations that currently hold stock, to keep it short. Results can be sorted by clicking column headers.
 
 ## Adding a stock item
 
@@ -23,7 +23,7 @@ Use the **search box** to filter by type, model, serial number, or manufacturer,
 2. Fill in:
    - **Type** and **Manufacturer** — required
    - **Model** — required
-   - **Storage location** — where this item is physically kept; pick a location from the tree, or leave it "Unassigned"
+   - **Storage location** — where this item is physically kept; the list only shows locations that already hold stock, so tick **Show all locations** to pick one that doesn't yet — the item you're adding becomes its first, and it appears in the restricted list from then on. Leave unset to keep the item "Unassigned"
    - **Serial number** — enter if the item has a fixed serial; leave blank for bulk items
    - **Quantity** — for bulk items without individual serials
    - **MAC address** — optional; carried over to the asset when a single unit is deployed

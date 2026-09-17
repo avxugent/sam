@@ -26,7 +26,11 @@ beforeEach(() => {
   mockFetch.mockImplementation((url: string) => {
     if (url === "/api/asset-types") return Promise.resolve(jsonResp([{ id: "at1", name: "Laptop" }]));
     if (url === "/api/manufacturers") return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
-    if (url === "/api/locations") return Promise.resolve(jsonResp([{ id: "loc1", name: "Room A", parentId: null }]));
+    if (url === "/api/locations") {
+      return Promise.resolve(jsonResp([
+        { id: "loc1", name: "Room A", parentId: null, _count: { stockItems: 1 } },
+      ]));
+    }
     return Promise.resolve(jsonResp({}));
   });
 });
@@ -80,6 +84,27 @@ describe("<StockItemFormDialog /> create", () => {
     // label now reads the picked location's breadcrumb; only the list row still says "unassigned"
     expect(screen.getAllByText("unassigned").length).toBe(1);
     expect(screen.getAllByText("Room A").length).toBeGreaterThan(0);
+  });
+
+  it("hides locations with no stock by default, revealed via the show-all toggle", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url === "/api/asset-types") return Promise.resolve(jsonResp([{ id: "at1", name: "Laptop" }]));
+      if (url === "/api/manufacturers") return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
+      if (url === "/api/locations") {
+        return Promise.resolve(jsonResp([
+          { id: "loc1", name: "Room A", parentId: null, _count: { stockItems: 1 } },
+          { id: "loc2", name: "Room B", parentId: null, _count: { stockItems: 0 } },
+        ]));
+      }
+      return Promise.resolve(jsonResp({}));
+    });
+    const user = await openCreate();
+
+    await screen.findByText("Room A");
+    expect(screen.queryByText("Room B")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "showAllLocations" }));
+    expect(await screen.findByText("Room B")).toBeInTheDocument();
   });
 
   it("blocks submit and shows validation errors when required fields are empty", async () => {

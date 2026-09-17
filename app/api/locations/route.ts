@@ -30,13 +30,13 @@ export async function GET() {
   const locations = await prisma.location.findMany({
     where: { parentId: null },
     include: {
-      _count: { select: { assets: true, children: true } },
+      _count: { select: { assets: true, children: true, stockItems: true } },
       children: {
         include: {
-          _count: { select: { assets: true, children: true } },
+          _count: { select: { assets: true, children: true, stockItems: true } },
           children: {
             include: {
-              _count: { select: { assets: true, children: true } },
+              _count: { select: { assets: true, children: true, stockItems: true } },
             },
             orderBy: [{ order: "asc" }, { name: "asc" }],
           },

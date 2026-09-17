@@ -25,6 +25,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/model-autocomplete";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Loader2, MapPin, Search, ChevronRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -54,15 +55,21 @@ type LocationNode = {
   name: string;
   parentId: string | null;
   children?: LocationNode[];
+  _count?: { stockItems: number };
 };
 
-type FlatLocation = { id: string; name: string; breadcrumb: string };
+type FlatLocation = { id: string; name: string; breadcrumb: string; hasStock: boolean };
 
 function flattenLocations(nodes: LocationNode[], ancestors: string[] = []): FlatLocation[] {
   const result: FlatLocation[] = [];
   for (const node of nodes) {
     const path = [...ancestors, node.name];
-    result.push({ id: node.id, name: node.name, breadcrumb: path.join(" › ") });
+    result.push({
+      id: node.id,
+      name: node.name,
+      breadcrumb: path.join(" › "),
+      hasStock: (node._count?.stockItems ?? 0) > 0,
+    });
     if (node.children?.length) result.push(...flattenLocations(node.children, path));
   }
   return result;
@@ -130,6 +137,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [locations, setLocations] = useState<FlatLocation[]>([]);
   const [locationQuery, setLocationQuery] = useState("");
+  const [showAllLocations, setShowAllLocations] = useState(false);
   // Initialised synchronously from prop so the value is ready before any fetch completes
   const [selectedTypeId, setSelectedTypeId] = useState(initialData?.typeId ?? "");
   const [selectedMfgId, setSelectedMfgId] = useState(initialData?.manufacturerId ?? "");
@@ -193,6 +201,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
       setSelectedMfgId("");
       setSelectedLocationId("");
       setLocationQuery("");
+      setShowAllLocations(false);
     }
   }
 
@@ -238,9 +247,9 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     ? locations.find((l) => l.id === selectedLocationId)?.breadcrumb ?? initialData?.locationBreadcrumb ?? t("selectLocation")
     : t("unassigned");
 
-  const filteredLocations = locations.filter((l) =>
-    l.breadcrumb.toLowerCase().includes(locationQuery.toLowerCase())
-  );
+  const filteredLocations = locations
+    .filter((l) => showAllLocations || l.hasStock || l.id === selectedLocationId)
+    .filter((l) => l.breadcrumb.toLowerCase().includes(locationQuery.toLowerCase()));
 
   if (!mounted) return <>{children}</>;
 
@@ -332,6 +341,14 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
                 className="pl-8 h-9 text-[13px]"
               />
             </div>
+            <label htmlFor="showAllLocations" className="flex items-center gap-1.5 text-[12px] text-[#64748b] cursor-pointer">
+              <Checkbox
+                id="showAllLocations"
+                checked={showAllLocations}
+                onCheckedChange={(v) => setShowAllLocations(v === true)}
+              />
+              {t("showAllLocations")}
+            </label>
             <div className="border border-[#e2e8f0] rounded-[8px] overflow-y-auto max-h-36">
               <ul className="divide-y divide-[#f1f5f9]">
                 <li>

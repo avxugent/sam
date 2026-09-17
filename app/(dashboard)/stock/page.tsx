@@ -28,7 +28,7 @@ export default async function StockPage({
 
   const t = await getTranslations("stock");
 
-  const [allItems, activeType, allLocations] = await Promise.all([
+  const [allItems, activeType, allLocations, stockLocationRows] = await Promise.all([
     prisma.stockItem.findMany({
       where: {
         ...(typeId ? { typeId } : {}),
@@ -41,11 +41,20 @@ export default async function StockPage({
       ? prisma.assetType.findUnique({ where: { id: typeId }, select: { name: true } })
       : Promise.resolve(null),
     prisma.location.findMany({ select: { id: true, name: true, parentId: true } }),
+    // Independent of the typeId/locationId filters above, so the dropdown
+    // doesn't shrink or reorder just because another filter is applied.
+    prisma.stockItem.findMany({
+      where: { locationId: { not: null } },
+      select: { locationId: true },
+      distinct: ["locationId"],
+    }),
   ]);
 
+  const stockLocationIds = new Set(stockLocationRows.map((r) => r.locationId!));
   const locationBreadcrumbMap = buildLocationPathsFromRows(allLocations, " › ");
   const locationBreadcrumbs = Object.fromEntries(locationBreadcrumbMap);
   const locationOptions = allLocations
+    .filter((l) => stockLocationIds.has(l.id))
     .map((l) => ({ id: l.id, breadcrumb: locationBreadcrumbMap.get(l.id) ?? l.name }))
     .sort((a, b) => a.breadcrumb.localeCompare(b.breadcrumb));
 

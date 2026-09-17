@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.11] - 2026-09-17
+
+### Added
+
+- **Stock — storage locations** — stock items can now be assigned a physical storage location, picked from the same Location tree used for assets/rooms. The stock list gets a "Storage location" column and a filter, the add/edit form gets a location picker, and the stock CSV export gets a matching column. A location that still holds stock cannot be deleted.
+
+---
+
 ## [2.0.10] - 2026-09-04
 
 ### Added

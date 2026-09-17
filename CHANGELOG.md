@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.12] - 2026-09-17
+
+### Changed
+
+- **Stock — storage location pickers scoped to locations in use** — the stock list's location filter and the add/edit form's location picker now only list locations that already hold stock, cutting clutter in a large tree. The form picker adds a "Show all locations" toggle to reveal the full tree when assigning the first item to a new location.
+
+---
+
 ## [2.0.11] - 2026-09-17
 
 ### Added

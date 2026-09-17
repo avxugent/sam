@@ -379,7 +379,8 @@ Pre-deployment inventory — hardware received but not yet installed.
 | `serialNumber` | string? | Serial number |
 | `quantity` | int | Number of identical units |
 | `notes` | string? | Free-text notes |
-| `reservedForLocationId` | string? | Optional reservation |
+| `locationId` | string? | FK to Location — physical storage location (e.g. a storage room). `onDelete: Restrict`: a Location holding stock cannot be deleted. Distinct from `reservedForLocationId`. |
+| `reservedForLocationId` | string? | Optional reservation — where the unit is earmarked to be deployed, not where it's stored |
 | `invoiceNumber` | string? | Purchase invoice reference |
 | `metadata` | JSON? | Extra fields (hostname, MACs, custom fields) carried to deployed asset |
 

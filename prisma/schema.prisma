@@ -91,6 +91,7 @@ model Location {
   assets      Asset[]
   attachments Attachment[]
   workLogs    WorkLog[]
+  stockItems  StockItem[]
 
   @@index([parentId])
   @@map("locations")
@@ -421,6 +422,10 @@ model StockItem {
   serialNumber          String?   @db.VarChar(100)
   quantity              Int       @default(1)
   notes                 String?   @db.Text
+  // Physical storage location: where the stock currently sits (a Location
+  // in the same tree used for assets, e.g. a storage room). Distinct from
+  // reservedForLocationId (where a unit is earmarked to be deployed).
+  locationId            String?
   reservedForLocationId String?
   invoiceNumber         String?   @db.VarChar(100)
   invoiceDate           DateTime? @db.Date
@@ -432,8 +437,10 @@ model StockItem {
 
   type         AssetType     @relation(fields: [typeId], references: [id])
   manufacturer Manufacturer? @relation(fields: [manufacturerId], references: [id])
+  location     Location?     @relation(fields: [locationId], references: [id], onDelete: Restrict)
 
   @@index([typeId])
   @@index([manufacturerId])
+  @@index([locationId])
   @@map("stock_items")
 }

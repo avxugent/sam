@@ -15,6 +15,7 @@ const createSchema = z
     serialNumber: z.string().max(100).optional().nullable(),
     quantity: z.number().int().min(1).default(1),
     notes: z.string().max(5000).optional().nullable(),
+    locationId: z.string().optional().nullable(),
     reservedForLocationId: z.string().optional().nullable(),
     invoiceNumber: z.string().max(100).optional().nullable(),
     invoiceDate: z.string().optional().nullable(),
@@ -41,11 +42,13 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const typeId = searchParams.get("typeId");
+  const locationId = searchParams.get("locationId");
   const q = searchParams.get("q");
 
   const items = await prisma.stockItem.findMany({
     where: {
       ...(typeId ? { typeId } : {}),
+      ...(locationId ? { locationId } : {}),
       ...(q
         ? {
             OR: [
@@ -59,6 +62,7 @@ export async function GET(req: NextRequest) {
     include: {
       type: true,
       manufacturer: true,
+      location: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -85,12 +89,13 @@ export async function POST(req: NextRequest) {
       manufacturerId: rest.manufacturerId ?? null,
       serialNumber: rest.serialNumber ?? null,
       notes: rest.notes ?? null,
+      locationId: rest.locationId ?? null,
       reservedForLocationId: rest.reservedForLocationId ?? null,
       invoiceNumber: rest.invoiceNumber ?? null,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
       metadata: mac ? JSON.stringify({ macAddresses: [{ address: mac }] }) : null,
     },
-    include: { type: true, manufacturer: true },
+    include: { type: true, manufacturer: true, location: { select: { id: true, name: true } } },
   });
 
   await logAudit({

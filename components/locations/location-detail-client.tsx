@@ -198,6 +198,8 @@ export function LocationDetailClient({
       const err = await res.json();
       const description = err.error === "HAS_SUBLOCATIONS"
         ? t("deleteHasSubLocations")
+        : err.error === "HAS_STOCK"
+        ? t("deleteHasStock")
         : err.error;
       toast({ title: tCommon("error"), description, variant: "destructive" });
       return;

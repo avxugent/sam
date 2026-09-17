@@ -293,7 +293,8 @@
     "mergeConfirmDescription": "Er bestaat hier al een locatie met de naam \"{name}\". Samenvoegen verplaatst alle assets, sublocaties, bijlagen en werklogs van deze locatie ernaartoe en verwijdert deze locatie. Dit kan niet ongedaan worden gemaakt.",
     "mergeButton": "Samenvoegen",
     "locationMerged": "Locaties samengevoegd",
-    "monitoring": "Monitoring"
+    "monitoring": "Monitoring",
+    "deleteHasStock": "Kan een locatie met voorraad niet verwijderen. Verplaats of ontkoppel de voorraad eerst."
   },
   "locationForm": {
     "createTitle": "Locatie toevoegen",
@@ -356,7 +357,12 @@
     "errModelRequired": "Model is verplicht",
     "errQuantityMin": "Hoeveelheid moet minimaal 1 zijn",
     "errQuantitySerial": "Hoeveelheid moet 1 zijn als er een serienummer is ingesteld.",
-    "errMacInvalid": "Ongeldig MAC-adres (verwacht AA:BB:CC:DD:EE:FF)"
+    "errMacInvalid": "Ongeldig MAC-adres (verwacht AA:BB:CC:DD:EE:FF)",
+    "location": "Opslaglocatie",
+    "unassigned": "Niet toegewezen",
+    "selectLocation": "Opslaglocatie selecteren…",
+    "filterByLocation": "Filteren op locatie",
+    "allLocations": "Alle locaties"
   },
   "decommissioned": {
     "title": "Buiten dienst",

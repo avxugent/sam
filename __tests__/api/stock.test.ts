@@ -88,6 +88,15 @@ describe("GET /api/stock", () => {
       where: expect.objectContaining({ typeId: "type-1" }),
     }));
   });
+
+  it("passes locationId filter to query", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER") as never);
+    mockFindMany.mockResolvedValue([] as never);
+    await GET(req("GET", "http://localhost/api/stock?locationId=loc-1"));
+    expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ locationId: "loc-1" }),
+    }));
+  });
 });
 
 // ── POST /api/stock ────────────────────────────────────────────────────────────
@@ -163,6 +172,26 @@ describe("POST /api/stock", () => {
     await POST(req("POST", "http://localhost/api/stock", { typeId: "type-1", model: "M", quantity: 1 }));
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ metadata: null }),
+    }));
+  });
+
+  it("stores the picked storage location", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockCreate.mockResolvedValue({ ...SAMPLE_ITEM, locationId: "loc-1" } as never);
+    await POST(req("POST", "http://localhost/api/stock", {
+      typeId: "type-1", model: "M", quantity: 1, locationId: "loc-1",
+    }));
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ locationId: "loc-1" }),
+    }));
+  });
+
+  it("defaults locationId to null when not given", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
+    await POST(req("POST", "http://localhost/api/stock", { typeId: "type-1", model: "M", quantity: 1 }));
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ locationId: null }),
     }));
   });
 });
@@ -244,6 +273,16 @@ describe("PUT /api/stock/[id]", () => {
     mockFindUnique.mockResolvedValue(SAMPLE_ITEM as never);
     const res = await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddress: "xyz" }), { params: PARAMS });
     expect(res.status).toBe(400);
+  });
+
+  it("updates the storage location", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockFindUnique.mockResolvedValue(SAMPLE_ITEM as never);
+    mockUpdate.mockResolvedValue({ ...SAMPLE_ITEM, locationId: "loc-2" } as never);
+    await PUT(req("PUT", "http://localhost/api/stock/item-1", { locationId: "loc-2" }), { params: PARAMS });
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ locationId: "loc-2" }),
+    }));
   });
 });
 

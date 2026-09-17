@@ -15,6 +15,7 @@ const updateSchema = z
     serialNumber: z.string().max(100).optional().nullable(),
     quantity: z.number().int().min(1).optional(),
     notes: z.string().max(5000).optional().nullable(),
+    locationId: z.string().optional().nullable(),
     reservedForLocationId: z.string().optional().nullable(),
     invoiceNumber: z.string().max(100).optional().nullable(),
     invoiceDate: z.string().optional().nullable(),
@@ -53,8 +54,10 @@ export async function GET(
       serialNumber: true,
       quantity: true,
       notes: true,
+      locationId: true,
       invoiceNumber: true,
       invoiceDate: true,
+      location: { select: { id: true, name: true } },
     },
   });
   if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -105,7 +108,7 @@ export async function PUT(
         : {}),
       ...metadataUpdate,
     },
-    include: { type: true, manufacturer: true },
+    include: { type: true, manufacturer: true, location: { select: { id: true, name: true } } },
   });
 
   const changes: Record<string, { from: unknown; to: unknown }> = {};

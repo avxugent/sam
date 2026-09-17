@@ -293,7 +293,8 @@
     "mergeConfirmDescription": "A location named \"{name}\" already exists here. Merging moves all of this location's assets, sub-locations, attachments and work logs into it, then deletes this one. This cannot be undone.",
     "mergeButton": "Merge",
     "locationMerged": "Locations merged",
-    "monitoring": "Monitoring"
+    "monitoring": "Monitoring",
+    "deleteHasStock": "Cannot delete a location that still holds stock. Move or unassign the stock first."
   },
   "locationForm": {
     "createTitle": "Add location",
@@ -356,7 +357,12 @@
     "errModelRequired": "Model is required",
     "errQuantityMin": "Quantity must be at least 1",
     "errQuantitySerial": "Quantity must be 1 when a serial number is set.",
-    "errMacInvalid": "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)"
+    "errMacInvalid": "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
+    "location": "Storage location",
+    "unassigned": "Unassigned",
+    "selectLocation": "Select storage location…",
+    "filterByLocation": "Filter by location",
+    "allLocations": "All locations"
   },
   "decommissioned": {
     "title": "Decommissioned",

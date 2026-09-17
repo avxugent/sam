@@ -57,7 +57,7 @@ Key validated fields:
 | `GET` | `/api/locations/[id]` | VIEWER | Get location with ancestor path |
 | `PUT` | `/api/locations/[id]` | EDITOR | Update location (returns `409 LOCATION_NAME_EXISTS` with `targetId` when the new name collides with a sibling). Accepts `inMaintenance` (boolean) — allowed only on rooms (leaf locations); setting it `true` on a location with sub-locations returns `400` |
 | `POST` | `/api/locations/[id]/merge` | EDITOR | Merge this location into a sibling (`targetId`): moves its assets, sub-locations, attachments and work logs to the target, then deletes it |
-| `DELETE` | `/api/locations/[id]` | EDITOR | Delete location and its assets. Blocked with `400 HAS_SUBLOCATIONS` if children exist, unless `?cascade=true` is passed — then the whole sub-tree is deleted |
+| `DELETE` | `/api/locations/[id]` | EDITOR | Delete location and its assets. Blocked with `400 HAS_SUBLOCATIONS` if children exist, unless `?cascade=true` is passed — then the whole sub-tree is deleted. Also blocked with `400 HAS_STOCK` if the location (or, when cascading, any descendant) still holds stock |
 | `GET` | `/api/locations/[id]/assets` | VIEWER | Assets in location |
 | `GET` | `/api/locations/[id]/attachments` | VIEWER | Location attachments |
 | `POST` | `/api/locations/[id]/work-logs` | EDITOR | Create work log for location |
@@ -136,6 +136,8 @@ Upload request: `multipart/form-data` with `file` field. Max size: 50 MB.
 | `POST` | `/api/stock/[id]/deploy` | EDITOR | Deploy stock item as asset at a location |
 
 Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom fields) from the stock item to the new asset. Returns `409` if the carried-over hostname is already assigned to another asset.
+
+`GET /api/stock` accepts an optional `?locationId=` filter for the storage location. Create/update bodies accept an optional `locationId` — the physical storage location (a `Location`, same tree used for assets), distinct from `reservedForLocationId`.
 
 ---
 

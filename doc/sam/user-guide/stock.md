@@ -5,7 +5,7 @@ sync_to_confluence: true
 
 # Stock Management
 
-Stock items represent hardware that has been received but not yet installed. Use stock management to track spare equipment, reserve items for specific locations, and deploy them when installation is ready.
+Stock items represent hardware that has been received but not yet installed. Use stock management to track spare equipment kept across different storage locations, and deploy them when installation is ready.
 
 ## Accessing stock
 
@@ -13,9 +13,9 @@ Click **Stock** in the left sidebar.
 
 ## Stock item list
 
-The stock list shows all items in inventory. Each row shows the asset type, manufacturer, model, serial number (or quantity for bulk items), and any reservation.
+The stock list shows all items in inventory. Each row shows the asset type, manufacturer, model, serial number (or quantity for bulk items), and its storage location.
 
-Use the **search box** to filter by type, model, serial number, or manufacturer. Results can be sorted by clicking column headers.
+Use the **search box** to filter by type, model, serial number, or manufacturer, and the **location filter** to narrow the list down to stock kept at a specific location. Results can be sorted by clicking column headers.
 
 ## Adding a stock item
 
@@ -23,6 +23,7 @@ Use the **search box** to filter by type, model, serial number, or manufacturer.
 2. Fill in:
    - **Type** and **Manufacturer** — required
    - **Model** — required
+   - **Storage location** — where this item is physically kept; pick a location from the tree, or leave it "Unassigned"
    - **Serial number** — enter if the item has a fixed serial; leave blank for bulk items
    - **Quantity** — for bulk items without individual serials
    - **MAC address** — optional; carried over to the asset when a single unit is deployed
@@ -30,6 +31,8 @@ Use the **search box** to filter by type, model, serial number, or manufacturer.
    - **Notes** — optional
    - **Reserved for location** — optionally link to the location this item is destined for
 3. Click **Save**.
+
+A location that still holds stock cannot be deleted — move or unassign its stock first.
 
 > Requires Editor or Admin role.
 

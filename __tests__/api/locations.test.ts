@@ -12,6 +12,7 @@ vi.mock("@/lib/prisma", () => ({
       delete: vi.fn(),
       count: vi.fn(),
     },
+    stockItem: { count: vi.fn() },
     $queryRaw: vi.fn(),
     $transaction: vi.fn(),
   },

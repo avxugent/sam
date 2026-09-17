@@ -4,7 +4,9 @@ import { getTranslations } from "next-intl/server";
 import { Package, Plus } from "lucide-react";
 import { StockItemTable } from "@/components/stock/stock-item-table";
 import { StockItemFormDialog } from "@/components/stock/stock-item-form-dialog";
+import { StockLocationFilter } from "@/components/stock/stock-location-filter";
 import { Button } from "@/components/ui/button";
+import { buildLocationPathsFromRows } from "@/lib/location-path";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +18,9 @@ export async function generateMetadata() {
 export default async function StockPage({
   searchParams,
 }: {
-  searchParams: Promise<{ typeId?: string }>;
+  searchParams: Promise<{ typeId?: string; locationId?: string }>;
 }) {
-  const { typeId } = await searchParams;
+  const { typeId, locationId } = await searchParams;
 
   const session = await auth();
   const userRole = session?.user?.role ?? "VIEWER";
@@ -26,16 +28,26 @@ export default async function StockPage({
 
   const t = await getTranslations("stock");
 
-  const [allItems, activeType] = await Promise.all([
+  const [allItems, activeType, allLocations] = await Promise.all([
     prisma.stockItem.findMany({
-      where: typeId ? { typeId } : {},
-      include: { type: true, manufacturer: true },
+      where: {
+        ...(typeId ? { typeId } : {}),
+        ...(locationId ? { locationId } : {}),
+      },
+      include: { type: true, manufacturer: true, location: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     }),
     typeId
       ? prisma.assetType.findUnique({ where: { id: typeId }, select: { name: true } })
       : Promise.resolve(null),
+    prisma.location.findMany({ select: { id: true, name: true, parentId: true } }),
   ]);
+
+  const locationBreadcrumbMap = buildLocationPathsFromRows(allLocations, " › ");
+  const locationBreadcrumbs = Object.fromEntries(locationBreadcrumbMap);
+  const locationOptions = allLocations
+    .map((l) => ({ id: l.id, breadcrumb: locationBreadcrumbMap.get(l.id) ?? l.name }))
+    .sort((a, b) => a.breadcrumb.localeCompare(b.breadcrumb));
 
   const totalUnits = allItems.reduce((sum, i) => sum + i.quantity, 0);
   const title = activeType ? activeType.name : t("title");
@@ -57,17 +69,25 @@ export default async function StockPage({
             </p>
           </div>
         </div>
-        {canEdit && (
-          <StockItemFormDialog mode="create">
-            <Button size="sm" className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white flex items-center gap-1.5">
-              <Plus className="h-3.5 w-3.5" />
-              {t("addItem")}
-            </Button>
-          </StockItemFormDialog>
-        )}
+        <div className="flex items-center gap-2">
+          <StockLocationFilter locations={locationOptions} />
+          {canEdit && (
+            <StockItemFormDialog mode="create">
+              <Button size="sm" className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white flex items-center gap-1.5">
+                <Plus className="h-3.5 w-3.5" />
+                {t("addItem")}
+              </Button>
+            </StockItemFormDialog>
+          )}
+        </div>
       </div>
 
-      <StockItemTable key={typeId ?? "all"} items={allItems} userRole={userRole} />
+      <StockItemTable
+        key={`${typeId ?? "all"}-${locationId ?? "all"}`}
+        items={allItems}
+        userRole={userRole}
+        locationBreadcrumbs={locationBreadcrumbs}
+      />
     </div>
   );
 }

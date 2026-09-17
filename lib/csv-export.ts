@@ -251,7 +251,7 @@ export async function generateDecommissionedCsv(): Promise<string> {
 }
 
 const STOCK_COLUMNS = [
-  "TYPE", "BRAND", "MODEL", "SERIAL", "QUANTITY",
+  "TYPE", "BRAND", "MODEL", "SERIAL", "QUANTITY", "STORAGE_LOCATION",
   "RESERVED_FOR", "RESERVED_FI", "MAC", "NOTES", "INVOICE_DATE", "INVOICE_NUMBER",
 ];
 
@@ -283,7 +283,10 @@ export async function generateStockCsv(): Promise<string> {
       items.map((i) => i.reservedForLocationId).filter((id): id is string => !!id)
     ),
   ];
-  const pathMap = await resolveLocationPathsBatch(reservedIds);
+  const storageIds = [
+    ...new Set(items.map((i) => i.locationId).filter((id): id is string => !!id)),
+  ];
+  const pathMap = await resolveLocationPathsBatch([...new Set([...reservedIds, ...storageIds])]);
   const reservedLocations = reservedIds.length
     ? await prisma.location.findMany({
         where: { id: { in: reservedIds } },
@@ -295,6 +298,7 @@ export async function generateStockCsv(): Promise<string> {
   const rows: string[] = [STOCK_COLUMNS.join(";")];
 
   for (const item of items) {
+    const storageLocation = item.locationId ? pathMap.get(item.locationId) ?? "" : "";
     const reservedFor = item.reservedForLocationId
       ? pathMap.get(item.reservedForLocationId) ?? ""
       : "";
@@ -308,6 +312,7 @@ export async function generateStockCsv(): Promise<string> {
       item.model ?? "",
       item.serialNumber ?? "",
       String(item.quantity),
+      storageLocation,
       reservedFor,
       reservedFi,
       macsFromStockMetadata(item.metadata),

@@ -47,10 +47,12 @@ export type StockItem = {
   invoiceNumber: string | null;
   invoiceDate: Date | string | null;
   notes: string | null;
+  locationId: string | null;
   reservedForLocationId: string | null;
   metadata: string | null;
   type: { id: string; name: string };
   manufacturer: { id: string; name: string } | null;
+  location: { id: string; name: string } | null;
 };
 
 // The first MAC address stored in the item's metadata blob, if any.
@@ -95,9 +97,11 @@ function Th({ col, label, sortCol, sortDir, onSort }: {
 export function StockItemTable({
   items: initialItems,
   userRole,
+  locationBreadcrumbs = {},
 }: {
   items: StockItem[];
   userRole: string;
+  locationBreadcrumbs?: Record<string, string>;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -188,13 +192,16 @@ export function StockItemTable({
               <Th col="model" label={t("model")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
               <Th col="serialNumber" label={t("serial")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
               <Th col="quantity" label={t("qty")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">
+                {t("location")}
+              </th>
               {canEdit && <th className="px-3 py-2.5 w-[100px]" />}
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f1f5f9]">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={canEdit ? 6 : 5} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">
+                <td colSpan={canEdit ? 7 : 6} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">
                   {t("noStockItems")}
                 </td>
               </tr>
@@ -215,6 +222,11 @@ export function StockItemTable({
                   </td>
                   <td className="px-3 py-2.5 text-[#64748b]">
                     {item.serialNumber ? "—" : <span className="font-medium text-[#0f172a]">×{item.quantity}</span>}
+                  </td>
+                  <td className="px-3 py-2.5 text-[#64748b] text-[12.5px]">
+                    {item.locationId
+                      ? locationBreadcrumbs[item.locationId] ?? item.location?.name ?? "—"
+                      : <span className="text-[#cbd5e1]">{t("unassigned")}</span>}
                   </td>
                   {canEdit && (
                     <td className="px-3 py-2.5">
@@ -240,6 +252,10 @@ export function StockItemTable({
                             serialNumber: item.serialNumber ?? null,
                             quantity: item.quantity,
                             notes: item.notes ?? null,
+                            locationId: item.locationId ?? null,
+                            locationBreadcrumb: item.locationId
+                              ? locationBreadcrumbs[item.locationId] ?? item.location?.name ?? null
+                              : null,
                             invoiceNumber: item.invoiceNumber ?? null,
                             invoiceDate: item.invoiceDate
                               ? new Date(item.invoiceDate).toISOString().slice(0, 10)

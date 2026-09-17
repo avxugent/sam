@@ -233,6 +233,7 @@ describe("generateStockCsv()", () => {
       model: "Latitude 5540",
       serialNumber: "SN-STK",
       quantity: 3,
+      locationId: "bldg",
       reservedForLocationId: "room",
       metadata: JSON.stringify({ macAddresses: [{ address: "11:22:33:44:55:66" }] }),
       notes: "spare",
@@ -255,7 +256,7 @@ describe("generateStockCsv()", () => {
     mockStockFind.mockResolvedValue([stockItem()] as never);
     const csv = await generateStockCsv();
     const lines = csv.split("\r\n");
-    expect(lines[0]).toBe("TYPE;BRAND;MODEL;SERIAL;QUANTITY;RESERVED_FOR;RESERVED_FI;MAC;NOTES;INVOICE_DATE;INVOICE_NUMBER");
+    expect(lines[0]).toBe("TYPE;BRAND;MODEL;SERIAL;QUANTITY;STORAGE_LOCATION;RESERVED_FOR;RESERVED_FI;MAC;NOTES;INVOICE_DATE;INVOICE_NUMBER");
 
     const row = lines[1].split(";");
     expect(row[0]).toBe("Laptop");
@@ -263,17 +264,19 @@ describe("generateStockCsv()", () => {
     expect(row[2]).toBe("Latitude 5540");
     expect(row[3]).toBe("SN-STK");
     expect(row[4]).toBe("3");
-    expect(row[5]).toBe("Campus A - Building B - Room 101");
-    expect(row[6]).toBe("14.10.100.013");
-    expect(row[7]).toBe("11:22:33:44:55:66");
-    expect(row[8]).toBe("spare");
-    expect(row[9]).toBe("2024-05-01");
-    expect(row[10]).toBe("INV-STK");
+    expect(row[5]).toBe("Campus A - Building B");
+    expect(row[6]).toBe("Campus A - Building B - Room 101");
+    expect(row[7]).toBe("14.10.100.013");
+    expect(row[8]).toBe("11:22:33:44:55:66");
+    expect(row[9]).toBe("spare");
+    expect(row[10]).toBe("2024-05-01");
+    expect(row[11]).toBe("INV-STK");
   });
 
-  it("leaves reserved/mac columns empty for unreserved items with no metadata", async () => {
+  it("leaves location/reserved/mac columns empty for unassigned items with no metadata", async () => {
     mockStockFind.mockResolvedValue([
       stockItem({
+        locationId: null,
         reservedForLocationId: null,
         metadata: null,
         type: null,
@@ -288,11 +291,12 @@ describe("generateStockCsv()", () => {
     const row = csv.split("\r\n")[1].split(";");
     expect(row[0]).toBe(""); // TYPE
     expect(row[1]).toBe(""); // BRAND
-    expect(row[5]).toBe(""); // RESERVED_FOR
-    expect(row[6]).toBe(""); // RESERVED_FI
-    expect(row[7]).toBe(""); // MAC
-    expect(row[8]).toBe(""); // NOTES
-    expect(row[9]).toBe(""); // INVOICE_DATE
+    expect(row[5]).toBe(""); // STORAGE_LOCATION
+    expect(row[6]).toBe(""); // RESERVED_FOR
+    expect(row[7]).toBe(""); // RESERVED_FI
+    expect(row[8]).toBe(""); // MAC
+    expect(row[9]).toBe(""); // NOTES
+    expect(row[10]).toBe(""); // INVOICE_DATE
   });
 
   it("treats malformed metadata as no mac addresses", async () => {
@@ -301,7 +305,7 @@ describe("generateStockCsv()", () => {
     ] as never);
     const csv = await generateStockCsv();
     const row = csv.split("\r\n")[1].split(";");
-    expect(row[7]).toBe(""); // MAC — parse failure falls back to empty
+    expect(row[8]).toBe(""); // MAC — parse failure falls back to empty
   });
 });
 

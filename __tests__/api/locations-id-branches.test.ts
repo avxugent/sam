@@ -8,6 +8,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     location: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn(), delete: vi.fn(), count: vi.fn() },
     attachment: { findUnique: vi.fn() },
+    stockItem: { count: vi.fn() },
   },
 }));
 vi.mock("@/lib/location-path", () => ({ getAllDescendantLocationIds: vi.fn() }));
@@ -33,6 +34,7 @@ function del() {
 beforeEach(() => {
   vi.clearAllMocks();
   mockDescendants.mockResolvedValue([]);
+  vi.mocked(prisma.stockItem.count).mockResolvedValue(0 as never);
 });
 
 describe("GET /api/locations/[id]", () => {
@@ -201,6 +203,28 @@ describe("DELETE /api/locations/[id]", () => {
     const res = await DELETE(del(), { params: params() });
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: "HAS_SUBLOCATIONS" });
+  });
+  it("400 when the leaf location still holds stock", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    vi.mocked(prisma.location.count).mockResolvedValue(0 as never);
+    vi.mocked(prisma.stockItem.count).mockResolvedValue(3 as never);
+    const res = await DELETE(del(), { params: params() });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "HAS_STOCK" });
+    expect(prisma.location.delete).not.toHaveBeenCalled();
+  });
+  it("400 when cascading and a descendant still holds stock", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    vi.mocked(prisma.location.count).mockResolvedValue(2 as never);
+    mockDescendants.mockResolvedValue(["child1", "child2"]);
+    vi.mocked(prisma.stockItem.count).mockResolvedValue(1 as never);
+    const req = new NextRequest("http://localhost/api/locations/loc1?cascade=true", { method: "DELETE" });
+    const res = await DELETE(req, { params: params() });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "HAS_STOCK" });
+    expect(vi.mocked(prisma.stockItem.count)).toHaveBeenCalledWith({
+      where: { locationId: { in: ["loc1", "child1", "child2"] } },
+    });
   });
   it("deletes a leaf location and audits a snapshot", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);

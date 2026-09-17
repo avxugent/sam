@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/model-autocomplete";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPin, Search, ChevronRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 // IEEE 802 MAC address — colon, hyphen, or dot-separated, upper or lower case.
@@ -40,6 +40,7 @@ type FormData = {
   serialNumber?: string;
   quantity: number;
   notes?: string;
+  locationId?: string;
   invoiceNumber?: string;
   invoiceDate?: string;
   macAddress?: string;
@@ -47,6 +48,25 @@ type FormData = {
 
 type AssetType = { id: string; name: string };
 type Manufacturer = { id: string; name: string };
+
+type LocationNode = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  children?: LocationNode[];
+};
+
+type FlatLocation = { id: string; name: string; breadcrumb: string };
+
+function flattenLocations(nodes: LocationNode[], ancestors: string[] = []): FlatLocation[] {
+  const result: FlatLocation[] = [];
+  for (const node of nodes) {
+    const path = [...ancestors, node.name];
+    result.push({ id: node.id, name: node.name, breadcrumb: path.join(" › ") });
+    if (node.children?.length) result.push(...flattenLocations(node.children, path));
+  }
+  return result;
+}
 
 export type StockItemInitialData = {
   typeId: string;
@@ -57,6 +77,8 @@ export type StockItemInitialData = {
   serialNumber: string | null;
   quantity: number;
   notes: string | null;
+  locationId: string | null;
+  locationBreadcrumb: string | null;
   invoiceNumber: string | null;
   invoiceDate: string | null;
   macAddress: string | null;
@@ -84,6 +106,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     serialNumber: z.string().max(100).optional(),
     quantity: z.number().int().min(1, t("errQuantityMin")),
     notes: z.string().max(5000).optional(),
+    locationId: z.string().optional(),
     invoiceNumber: z.string().max(100).optional(),
     invoiceDate: z.string().optional(),
     macAddress: z
@@ -105,9 +128,12 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  const [locations, setLocations] = useState<FlatLocation[]>([]);
+  const [locationQuery, setLocationQuery] = useState("");
   // Initialised synchronously from prop so the value is ready before any fetch completes
   const [selectedTypeId, setSelectedTypeId] = useState(initialData?.typeId ?? "");
   const [selectedMfgId, setSelectedMfgId] = useState(initialData?.manufacturerId ?? "");
+  const [selectedLocationId, setSelectedLocationId] = useState(initialData?.locationId ?? "");
 
   const {
     register,
@@ -126,6 +152,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
       model: initialData?.model ?? "",
       serialNumber: initialData?.serialNumber ?? "",
       notes: initialData?.notes ?? "",
+      locationId: initialData?.locationId ?? "",
       invoiceNumber: initialData?.invoiceNumber ?? "",
       invoiceDate: initialData?.invoiceDate ?? "",
       macAddress: initialData?.macAddress ?? "",
@@ -150,18 +177,22 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     Promise.all([
       fetch("/api/asset-types").then((r) => r.json()),
       fetch("/api/manufacturers").then((r) => r.json()),
-    ]).then(([types, mfrs]) => {
+      fetch("/api/locations").then((r) => r.json()),
+    ]).then(([types, mfrs, locTree]) => {
       setAssetTypes(types as AssetType[]);
       setManufacturers(mfrs as Manufacturer[]);
+      setLocations(flattenLocations(locTree as LocationNode[]));
     });
   }, [open]);
 
   function handleClose() {
     setOpen(false);
     if (mode === "create") {
-      reset({ quantity: 1, typeId: "", manufacturerId: "", model: "", serialNumber: "", notes: "", invoiceNumber: "", invoiceDate: "", macAddress: "" });
+      reset({ quantity: 1, typeId: "", manufacturerId: "", model: "", serialNumber: "", notes: "", locationId: "", invoiceNumber: "", invoiceDate: "", macAddress: "" });
       setSelectedTypeId("");
       setSelectedMfgId("");
+      setSelectedLocationId("");
+      setLocationQuery("");
     }
   }
 
@@ -177,6 +208,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
         manufacturerId: data.manufacturerId || null,
         serialNumber: data.serialNumber || null,
         notes: data.notes || null,
+        locationId: data.locationId || null,
         invoiceNumber: data.invoiceNumber || null,
         invoiceDate: data.invoiceDate || null,
         macAddress: data.macAddress?.trim() || null,
@@ -201,6 +233,14 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
 
   const mfgLabel = manufacturers.find((m) => m.id === selectedMfgId)?.name
     ?? (selectedMfgId ? (initialData?.manufacturerName ?? t("selectManufacturer")) : t("selectManufacturer"));
+
+  const locationLabel = selectedLocationId
+    ? locations.find((l) => l.id === selectedLocationId)?.breadcrumb ?? initialData?.locationBreadcrumb ?? t("selectLocation")
+    : t("unassigned");
+
+  const filteredLocations = locations.filter((l) =>
+    l.breadcrumb.toLowerCase().includes(locationQuery.toLowerCase())
+  );
 
   if (!mounted) return <>{children}</>;
 
@@ -276,6 +316,70 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
               onSelect={(s) => setValue("model", s.model, { shouldValidate: true })}
             />
             {errors.model && <p className="text-xs text-destructive">{errors.model.message}</p>}
+          </div>
+
+          {/* Storage location */}
+          <div className="space-y-1">
+            <Label htmlFor="locationSearch">{t("location")}</Label>
+            <p className="text-[12px] text-[#64748b]">{locationLabel}</p>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
+              <Input
+                id="locationSearch"
+                placeholder={t("selectLocation")}
+                value={locationQuery}
+                onChange={(e) => setLocationQuery(e.target.value)}
+                className="pl-8 h-9 text-[13px]"
+              />
+            </div>
+            <div className="border border-[#e2e8f0] rounded-[8px] overflow-y-auto max-h-36">
+              <ul className="divide-y divide-[#f1f5f9]">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedLocationId("");
+                      setValue("locationId", "", { shouldValidate: true });
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-[12.5px] transition-colors",
+                      !selectedLocationId ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#64748b]"
+                    )}
+                  >
+                    {t("unassigned")}
+                  </button>
+                </li>
+                {filteredLocations.map((loc) => {
+                  const parts = loc.breadcrumb.split(" › ");
+                  const isSelected = selectedLocationId === loc.id;
+                  return (
+                    <li key={loc.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedLocationId(loc.id);
+                          setValue("locationId", loc.id, { shouldValidate: true });
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 flex items-center gap-1.5 transition-colors",
+                          isSelected ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#0f172a]"
+                        )}
+                      >
+                        <MapPin className={cn("h-3 w-3 flex-shrink-0", isSelected ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
+                        <span className="flex items-center gap-1 text-[12.5px] flex-wrap">
+                          {parts.map((part, i) => (
+                            <span key={i} className="flex items-center gap-1">
+                              {i > 0 && <ChevronRight className="h-2.5 w-2.5 opacity-40" />}
+                              <span className={i === parts.length - 1 ? "font-medium" : "text-[#64748b]"}>{part}</span>
+                            </span>
+                          ))}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           </div>
 
           {/* Serial + Quantity row */}

@@ -26,6 +26,7 @@ beforeEach(() => {
   mockFetch.mockImplementation((url: string) => {
     if (url === "/api/asset-types") return Promise.resolve(jsonResp([{ id: "at1", name: "Laptop" }]));
     if (url === "/api/manufacturers") return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
+    if (url === "/api/locations") return Promise.resolve(jsonResp([{ id: "loc1", name: "Room A", parentId: null }]));
     return Promise.resolve(jsonResp({}));
   });
 });
@@ -39,6 +40,8 @@ const EDIT_DATA: StockItemInitialData = {
   serialNumber: null,
   quantity: 5,
   notes: "spare",
+  locationId: "loc1",
+  locationBreadcrumb: "Room A",
   invoiceNumber: null,
   invoiceDate: null,
   macAddress: null,
@@ -65,6 +68,18 @@ describe("<StockItemFormDialog /> create", () => {
     await openCreate();
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith("/api/asset-types"));
     expect(mockFetch).toHaveBeenCalledWith("/api/manufacturers");
+    expect(mockFetch).toHaveBeenCalledWith("/api/locations");
+  });
+
+  it("defaults the storage location to Unassigned and lets you pick one from the list", async () => {
+    const user = await openCreate();
+    // label above the picker + the "Unassigned" list row itself both read "unassigned"
+    expect(screen.getAllByText("unassigned").length).toBe(2);
+
+    await user.click(await screen.findByText("Room A"));
+    // label now reads the picked location's breadcrumb; only the list row still says "unassigned"
+    expect(screen.getAllByText("unassigned").length).toBe(1);
+    expect(screen.getAllByText("Room A").length).toBeGreaterThan(0);
   });
 
   it("blocks submit and shows validation errors when required fields are empty", async () => {
@@ -80,6 +95,7 @@ describe("<StockItemFormDialog /> create", () => {
     mockFetch.mockImplementation((url: string) => {
       if (url === "/api/asset-types") return Promise.resolve(jsonResp([{ id: "at1", name: "Laptop" }]));
       if (url === "/api/manufacturers") return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
+      if (url === "/api/locations") return Promise.resolve(jsonResp([{ id: "loc1", name: "Room A", parentId: null }]));
       if (url.startsWith("/api/models?")) {
         return Promise.resolve(
           jsonResp([{ model: "Dell UltraSharp U2722D", typeId: "at1", manufacturerId: "m1" }])
@@ -116,6 +132,7 @@ describe("<StockItemFormDialog /> edit", () => {
     expect(screen.getByText("editItem")).toBeInTheDocument();
     expect(screen.getByDisplayValue("U2720Q")).toBeInTheDocument();
     expect(screen.getByDisplayValue("5")).toBeInTheDocument();
+    expect(screen.getAllByText("Room A").length).toBeGreaterThan(0);
   });
 
   it("PUTs to /api/stock/:id and refreshes on success", async () => {
@@ -132,6 +149,7 @@ describe("<StockItemFormDialog /> edit", () => {
     mockFetch.mockImplementation((url: string) => {
       if (url === "/api/asset-types") return Promise.resolve(jsonResp([{ id: "at1", name: "Laptop" }]));
       if (url === "/api/manufacturers") return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
+      if (url === "/api/locations") return Promise.resolve(jsonResp([{ id: "loc1", name: "Room A", parentId: null }]));
       return Promise.resolve({ ok: false, json: async () => ({ error: "Boom" }) });
     });
     const user = await openEdit();

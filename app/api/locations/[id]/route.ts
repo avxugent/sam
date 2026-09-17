@@ -226,6 +226,20 @@ export async function DELETE(
     );
   }
 
+  // Stock storage location is onDelete: Restrict — check up front (across the
+  // whole subtree when cascading) so this returns a friendly error instead of
+  // an unhandled FK constraint failure mid-transaction below.
+  const descendantIds = childCount > 0 ? await getAllDescendantLocationIds(id) : [];
+  const stockCount = await prisma.stockItem.count({
+    where: { locationId: { in: [id, ...descendantIds] } },
+  });
+  if (stockCount > 0) {
+    return NextResponse.json(
+      { error: "HAS_STOCK" },
+      { status: 400 }
+    );
+  }
+
   const loc = await prisma.location.findUnique({
     where: { id },
     select: { name: true, fiNumber: true, address: true, city: true, country: true },

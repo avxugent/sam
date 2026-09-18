@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.14] - 2026-09-18
+
+### Added
+
+- **Passkeys as a second factor** — alongside authenticator-app TOTP, users can now register and sign in with a passkey (Touch ID, Windows Hello, security keys). Registerable during mandatory 2FA enrollment or self-service in Settings → Two-Factor Authentication, and usable at login as an alternative to entering a 6-digit code.
+
+### Fixed
+
+- The login audit log always recorded second-factor logins as `"credentials+totp"` regardless of which method was used; it now reflects the actual method (TOTP or passkey).
+
+---
+
 ## [2.0.13] - 2026-09-18
 
 ### Added

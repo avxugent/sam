@@ -6,9 +6,9 @@
  * credentials authorize() flow and their MFA is enforced by Entra itself.
  */
 export function isTwoFactorSetupRequired(
-  user: { twoFactorRequired: boolean; totpEnabled: boolean },
+  user: { twoFactorRequired: boolean; totpEnabled: boolean; hasPasskey: boolean },
   globalRequireSetting: string | null | undefined
 ): boolean {
   const globallyRequired = globalRequireSetting === "true";
-  return (user.twoFactorRequired || globallyRequired) && !user.totpEnabled;
+  return (user.twoFactorRequired || globallyRequired) && !user.totpEnabled && !user.hasPasskey;
 }

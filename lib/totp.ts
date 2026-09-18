@@ -7,7 +7,7 @@
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
 
-const APP_NAME = "SAM – Asset Management";
+export const APP_NAME = "SAM – Asset Management";
 /** Window of ±1 step (30 s each) to tolerate minor clock skew */
 const WINDOW = 1;
 

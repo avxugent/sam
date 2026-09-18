@@ -1,0 +1,197 @@
+/**
+ * WebAuthn (passkey) helpers — an alternative second factor to TOTP.
+ * Thin wrapper around @simplewebauthn/server, same spirit as lib/totp.ts.
+ * No NextAuth Adapter/provider is involved anywhere in this app; these
+ * functions are called directly from the app/api/auth/passkey/* routes.
+ */
+import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} from "@simplewebauthn/server";
+import { isoBase64URL } from "@simplewebauthn/server/helpers";
+import type {
+  RegistrationResponseJSON,
+  AuthenticationResponseJSON,
+  PublicKeyCredentialDescriptorFuture,
+} from "@simplewebauthn/types";
+import { APP_NAME } from "@/lib/totp";
+import { SignJWT, jwtVerify } from "jose";
+import type { NextRequest, NextResponse } from "next/server";
+
+export function getRpConfig(): { rpName: string; rpID: string; origin: string } {
+  const url = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  return {
+    rpName: APP_NAME,
+    rpID: new URL(url).hostname,
+    origin: url,
+  };
+}
+
+type StoredPasskey = {
+  credentialId: string;
+  transports: string | null;
+};
+
+function parseTransports(transports: string | null): PublicKeyCredentialDescriptorFuture["transports"] {
+  if (!transports) return undefined;
+  try {
+    return JSON.parse(transports);
+  } catch {
+    return undefined;
+  }
+}
+
+function toCredentialDescriptor(passkey: StoredPasskey): PublicKeyCredentialDescriptorFuture {
+  return {
+    id: isoBase64URL.toBuffer(passkey.credentialId),
+    type: "public-key",
+    transports: parseTransports(passkey.transports),
+  };
+}
+
+export async function buildRegistrationOptions(
+  user: { id: string; email: string; name: string },
+  existingPasskeys: StoredPasskey[]
+) {
+  const { rpName, rpID } = getRpConfig();
+  return generateRegistrationOptions({
+    rpName,
+    rpID,
+    userID: user.id,
+    userName: user.email,
+    userDisplayName: user.name,
+    attestationType: "none",
+    excludeCredentials: existingPasskeys.map(toCredentialDescriptor),
+    authenticatorSelection: {
+      residentKey: "discouraged",
+      userVerification: "preferred",
+    },
+  });
+}
+
+export type VerifiedRegistration = {
+  credentialId: string;
+  publicKey: string;
+  counter: number;
+  transports: string | null;
+  deviceType: string;
+  backedUp: boolean;
+};
+
+/** Returns null when the response fails verification. */
+export async function verifyRegistration(
+  response: RegistrationResponseJSON,
+  expectedChallenge: string
+): Promise<VerifiedRegistration | null> {
+  const { rpID, origin } = getRpConfig();
+  const result = await verifyRegistrationResponse({
+    response,
+    expectedChallenge,
+    expectedOrigin: origin,
+    expectedRPID: rpID,
+  });
+  if (!result.verified || !result.registrationInfo) return null;
+
+  const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } =
+    result.registrationInfo;
+
+  return {
+    credentialId: isoBase64URL.fromBuffer(credentialID),
+    publicKey: isoBase64URL.fromBuffer(credentialPublicKey),
+    counter,
+    transports: response.response.transports ? JSON.stringify(response.response.transports) : null,
+    deviceType: credentialDeviceType,
+    backedUp: credentialBackedUp,
+  };
+}
+
+export async function buildAuthenticationOptions(existingPasskeys: StoredPasskey[]) {
+  const { rpID } = getRpConfig();
+  return generateAuthenticationOptions({
+    rpID,
+    allowCredentials: existingPasskeys.map(toCredentialDescriptor),
+    userVerification: "discouraged", // asserting as part of a 2FA flow, not standalone login
+  });
+}
+
+export type VerifiedAuthentication = { verified: boolean; newCounter: number };
+
+export async function verifyAuthentication(
+  response: AuthenticationResponseJSON,
+  expectedChallenge: string,
+  storedPasskey: { credentialId: string; publicKey: string; counter: number; transports: string | null }
+): Promise<VerifiedAuthentication> {
+  const { rpID, origin } = getRpConfig();
+  const result = await verifyAuthenticationResponse({
+    response,
+    expectedChallenge,
+    expectedOrigin: origin,
+    expectedRPID: rpID,
+    authenticator: {
+      credentialID: isoBase64URL.toBuffer(storedPasskey.credentialId),
+      credentialPublicKey: isoBase64URL.toBuffer(storedPasskey.publicKey),
+      counter: storedPasskey.counter,
+      transports: parseTransports(storedPasskey.transports),
+    },
+  });
+  return { verified: result.verified, newCounter: result.authenticationInfo.newCounter };
+}
+
+// ── Challenge cookie ────────────────────────────────────────────────────────
+// WebAuthn requires the exact challenge issued by "options" to round-trip to
+// "verify". This app has no server-side session/cache store beyond JWT +
+// cookies, so the challenge rides in a short-lived signed cookie — the same
+// pattern already used for the "remember this device" cookie
+// (lib/remember-device.ts). `purpose` binds the cookie to one call type so a
+// registration challenge can't be replayed against the authentication-verify
+// route or vice versa.
+
+const CHALLENGE_COOKIE = "sam_webauthn_challenge";
+const CHALLENGE_TTL_SECONDS = 5 * 60;
+
+export type ChallengePurpose = "registration" | "authentication";
+
+export async function setChallengeCookie(
+  response: NextResponse,
+  userId: string,
+  purpose: ChallengePurpose,
+  challenge: string
+): Promise<void> {
+  const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
+  const token = await new SignJWT({ challenge, userId, purpose })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${CHALLENGE_TTL_SECONDS}s`)
+    .sign(secret);
+  response.cookies.set(CHALLENGE_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: CHALLENGE_TTL_SECONDS,
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
+/** Single-use: call unconditionally in every verify route, success or failure. */
+export function clearChallengeCookie(response: NextResponse): void {
+  response.cookies.set(CHALLENGE_COOKIE, "", { maxAge: 0, path: "/" });
+}
+
+export async function readChallengeCookie(
+  req: NextRequest,
+  userId: string,
+  purpose: ChallengePurpose
+): Promise<string | null> {
+  const token = req.cookies.get(CHALLENGE_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
+    const { payload } = await jwtVerify(token, secret);
+    if (payload.userId !== userId || payload.purpose !== purpose) return null;
+    return typeof payload.challenge === "string" ? payload.challenge : null;
+  } catch {
+    return null;
+  }
+}

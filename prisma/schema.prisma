@@ -59,8 +59,31 @@ model User {
 
   attachments Attachment[]
   workLogs    WorkLog[]    @relation("WorkLogPerformer")
+  passkeys    Passkey[]
 
   @@map("users")
+}
+
+// WebAuthn passkey — an alternative second factor to TOTP. Hand-rolled with
+// @simplewebauthn/server (no NextAuth Adapter is used anywhere in this app).
+model Passkey {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  credentialId String    @unique // base64url, from response.id/rawId
+  publicKey    String    @db.Text // base64url-encoded COSE public key
+  counter      Int       @default(0) // WebAuthn signature counter
+  transports   String? // JSON-stringified string[] (e.g. ["internal","hybrid"])
+  deviceType   String // "singleDevice" | "multiDevice"
+  backedUp     Boolean   @default(false)
+
+  label        String // user-facing name, e.g. "Work laptop"
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  @@index([userId])
+  @@map("passkeys")
 }
 
 model Location {

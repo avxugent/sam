@@ -7,13 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Monitor, Loader2, ShieldCheck } from "lucide-react";
+import { Monitor, Loader2, ShieldCheck, Fingerprint } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { startRegistration } from "@simplewebauthn/browser";
 
-type Step = "intro" | "scanning" | "done";
+type Step = "intro" | "scanning" | "passkey-setup" | "done";
 
 export function Forced2FASetupClient() {
   const t = useTranslations("auth");
+  const tCommon = useTranslations("common");
   const { toast } = useToast();
 
   const [step, setStep] = useState<Step>("intro");
@@ -22,6 +24,7 @@ export function Forced2FASetupClient() {
   const [code, setCode] = useState("");
   const [showManualKey, setShowManualKey] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [passkeyError, setPasskeyError] = useState("");
 
   async function handleStartSetup() {
     setLoading(true);
@@ -62,6 +65,45 @@ export function Forced2FASetupClient() {
     // Session cookie re-issued by the enable route — full navigation picks it up.
     setStep("done");
     window.location.href = "/";
+  }
+
+  async function handlePasskeySetup() {
+    setPasskeyError("");
+    setLoading(true);
+    try {
+      const optionsRes = await fetch("/api/auth/passkey/registration-options", { method: "POST" });
+      const optionsData = await optionsRes.json();
+      if (!optionsRes.ok) {
+        setPasskeyError(optionsData.error || t("passkeyRegisterFailed"));
+        setLoading(false);
+        return;
+      }
+
+      const attestation = await startRegistration(optionsData.options);
+
+      const verifyRes = await fetch("/api/auth/passkey/registration-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response: attestation }),
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok) {
+        setPasskeyError(verifyData.error || t("passkeyRegisterFailed"));
+        setLoading(false);
+        return;
+      }
+
+      // Session cookie re-issued by the verify route — full navigation picks it up.
+      setStep("done");
+      window.location.href = "/";
+    } catch (err) {
+      setPasskeyError(
+        err instanceof Error && err.name === "NotAllowedError"
+          ? t("passkeyCancelled")
+          : t("passkeyRegisterFailed")
+      );
+      setLoading(false);
+    }
   }
 
   if (step === "done") {
@@ -165,6 +207,41 @@ export function Forced2FASetupClient() {
     );
   }
 
+  if (step === "passkey-setup") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
+        <div className="w-full max-w-sm">
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <Monitor className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold">SAM</span>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("passkeySetupTitle")}</CardTitle>
+              <CardDescription>{t("passkeySetupSubtitle")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col items-center gap-3 py-4 text-center">
+                <Fingerprint className="h-10 w-10 text-primary" />
+                <p className="text-sm text-muted-foreground">{t("passkeySetupPrompt")}</p>
+              </div>
+              {passkeyError && (
+                <p className="text-sm text-destructive text-center">{passkeyError}</p>
+              )}
+              <Button onClick={handlePasskeySetup} disabled={loading} className="w-full">
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t("passkeySetupTitle")}
+              </Button>
+              <Button variant="outline" onClick={() => setStep("intro")} className="w-full">
+                {tCommon("back")}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   // intro step
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
@@ -183,7 +260,7 @@ export function Forced2FASetupClient() {
               {t("twoFactorSetupSubtitle")}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <Button onClick={handleStartSetup} disabled={loading} className="w-full">
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -191,6 +268,15 @@ export function Forced2FASetupClient() {
                 <ShieldCheck className="mr-2 h-4 w-4" />
               )}
               {t("twoFactorSetupTitle")}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setStep("passkey-setup")}
+              disabled={loading}
+              className="w-full"
+            >
+              <Fingerprint className="mr-2 h-4 w-4" />
+              {t("passkeyUseInstead")}
             </Button>
           </CardContent>
         </Card>

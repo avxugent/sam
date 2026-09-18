@@ -63,6 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             totpEnabled: true,
             mustChangePassword: true,
             twoFactorRequired: true,
+            _count: { select: { passkeys: true } },
           },
         });
 
@@ -107,12 +108,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           };
         }
 
+        const hasPasskey = user._count.passkeys > 0;
+
         // Global requirement (AppSetting) ORs with the per-user flag
         const globalRequire2fa = await prisma.appSetting.findUnique({
           where: { key: "security.requireTwoFactor" },
           select: { value: true },
         });
-        if (isTwoFactorSetupRequired(user, globalRequire2fa?.value)) {
+        if (isTwoFactorSetupRequired({ ...user, hasPasskey }, globalRequire2fa?.value)) {
           return {
             id: user.id,
             name: user.name,
@@ -128,19 +131,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           role: user.role as string,
           // Signal that a 2FA step is still required before granting full access
-          needs2FA: user.totpEnabled ? true : undefined,
+          needs2FA: (user.totpEnabled || hasPasskey) ? true : undefined,
         };
       },
     }),
 
     // ── Second-factor upgrade provider ────────────────────────────────────
-    // Called internally by /api/auth/2fa/verify after TOTP is confirmed.
-    // Issues a clean session without the needs2FA flag.
+    // Called internally by /api/auth/2fa/verify (TOTP) and
+    // /api/auth/passkey/authentication-verify (passkey) once the second
+    // factor is confirmed. Issues a clean session without the needs2FA flag.
     Credentials({
       id: "credentials-2fa-verified",
       name: "credentials-2fa-verified",
       credentials: {
         userId: { label: "User ID", type: "text" },
+        // Which second factor was used — audit-log detail only, never
+        // affects authorization.
+        method: { label: "Method", type: "text" },
       },
       async authorize(credentials) {
         const userId =
@@ -163,6 +170,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           role: user.role as string,
           // No needs2FA — this is the verified session
+          method: typeof credentials?.method === "string" ? credentials.method : undefined,
         };
       },
     }),
@@ -273,10 +281,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         needs2FA?: boolean;
         needsPasswordChange?: boolean;
         needs2FASetup?: boolean;
+        method?: string;
       };
-      // A credentials login that still owes a TOTP challenge is only a
-      // partial login — the follow-up "credentials-2fa-verified" sign-in
-      // produces the single LOGIN_SUCCESS entry and lastLoginAt write.
+      // A credentials login that still owes a second-factor challenge is
+      // only a partial login — the follow-up "credentials-2fa-verified"
+      // sign-in produces the single LOGIN_SUCCESS entry and lastLoginAt write.
       if (account?.provider === "credentials" && u.needs2FA) return;
 
       void logAudit({
@@ -289,7 +298,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         detail: {
           provider:
             account?.provider === "credentials-2fa-verified"
-              ? "credentials+totp"
+              ? `credentials+${u.method || "totp"}`
               : account?.provider,
           ...(u.needsPasswordChange || u.needs2FASetup
             ? { pendingEnrollment: true }

@@ -6,15 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Monitor, Loader2, ShieldCheck, LogOut } from "lucide-react";
+import { Monitor, Loader2, ShieldCheck, LogOut, Fingerprint } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
+import { startAuthentication } from "@simplewebauthn/browser";
 
-export function TwoFactorChallenge() {
+export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolean }) {
   const t = useTranslations("auth");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -52,6 +54,44 @@ export function TwoFactorChallenge() {
     // the proxy checks the session on the next request.
     window.location.href = "/";
   }, [code, rememberMe, t]);
+
+  const handlePasskey = useCallback(async () => {
+    setPasskeyLoading(true);
+    setError("");
+
+    try {
+      const optionsRes = await fetch("/api/auth/passkey/authentication-options", { method: "POST" });
+      const optionsData = await optionsRes.json();
+      if (!optionsRes.ok) {
+        setError(optionsData.error || t("passkeyFailed"));
+        return;
+      }
+
+      const assertion = await startAuthentication(optionsData.options);
+
+      const verifyRes = await fetch("/api/auth/passkey/authentication-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response: assertion, rememberMe }),
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok) {
+        setError(verifyData.error || t("passkeyFailed"));
+        return;
+      }
+
+      // Same hard-navigation rationale as the TOTP path above.
+      window.location.href = "/";
+    } catch (err) {
+      setError(
+        err instanceof Error && err.name === "NotAllowedError"
+          ? t("passkeyCancelled")
+          : t("passkeyFailed")
+      );
+    } finally {
+      setPasskeyLoading(false);
+    }
+  }, [rememberMe, t]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
@@ -115,6 +155,23 @@ export function TwoFactorChallenge() {
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t("twoFactorVerify")}
               </Button>
+
+              {hasPasskey && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={passkeyLoading}
+                  onClick={handlePasskey}
+                >
+                  {passkeyLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Fingerprint className="mr-2 h-4 w-4" />
+                  )}
+                  {t("passkeyUseInstead")}
+                </Button>
+              )}
 
               <Button
                 type="button"

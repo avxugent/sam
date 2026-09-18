@@ -58,22 +58,39 @@ When SSO is configured, a "Sign in with Microsoft" button appears on the login p
 
 ## Two-Factor Authentication (2FA)
 
-TOTP-based (Time-based One-Time Password, compatible with Google Authenticator, Authy, etc.).
+Two second-factor methods are supported, either of which satisfies the same `needs2FA`/`needs2FASetup` gates: TOTP (Time-based One-Time Password, compatible with Google Authenticator, Authy, etc.) and WebAuthn passkeys (Touch ID, Windows Hello, security keys).
 
 ### User flow
 
-1. User enables 2FA in **Settings → Two-Factor Authentication**
-2. They scan a QR code with their authenticator app
-3. They verify by entering the first code
-4. On subsequent logins: credentials accepted → TOTP challenge page → session granted
+1. User enables a second factor in **Settings → Two-Factor Authentication** — either scan a QR code with an authenticator app and verify the first code, or register a passkey.
+2. On subsequent logins: credentials accepted → 2FA challenge page (`/login/2fa`) → TOTP code or "Use a passkey instead" → session granted.
+
+Both paths converge on the same internal NextAuth `credentials-2fa-verified` provider (`lib/auth.ts`), which re-issues a clean session without the `needs2FA` claim — `proxy.ts` and the `jwt`/`session` callbacks don't need to know which method was used.
 
 ### Admin enforcement
 
-Admins can set `twoFactorRequired = true` on any user. On their next login, they are redirected through the 2FA setup flow before accessing the app.
+Admins can set `twoFactorRequired = true` on any user. On their next login, `isTwoFactorSetupRequired()` (`lib/two-factor-policy.ts`) checks whether they already have TOTP enabled **or** at least one registered passkey; if neither, they're redirected through `/login/setup-2fa`, where they can set up either method.
 
 ### Remember device
 
-After a successful TOTP challenge, users can opt to "remember this device" for 30 days. This sets a signed JWT cookie — the proxy reads it and skips the TOTP challenge for that browser.
+After a successful TOTP or passkey challenge, users can opt to "remember this device" for 30 days. This sets a signed JWT cookie (`sam_2fa_rm`, `lib/remember-device.ts`) — the proxy reads it and skips the 2FA challenge for that browser.
+
+### Passkeys (WebAuthn)
+
+Hand-rolled with `@simplewebauthn/server`/`@simplewebauthn/browser` — **no NextAuth Adapter or WebAuthn provider is used** (this project's auth is JWT-strategy only, per the project conventions; NextAuth's built-in `Passkey`/`WebAuthn` provider requires a database Adapter, which is out of scope here). Credentials are stored in the `Passkey` model (`prisma/schema.prisma`), keyed by `userId`.
+
+Registration and authentication each need a server-generated challenge to round-trip between a browser prompt and its verification. Since this app has no server-side session/cache store beyond JWT + cookies, the challenge rides in a short-lived (5 minute), signed, single-use `sam_webauthn_challenge` cookie (`lib/webauthn.ts`), scoped to a `userId` and a `purpose` (`"registration"` or `"authentication"`) so one can't be replayed against the other endpoint.
+
+API routes, all under `app/api/auth/passkey/`:
+
+| Route | Purpose |
+|---|---|
+| `POST registration-options` | Generate WebAuthn registration options for the current user (self-service settings or forced setup) |
+| `POST registration-verify` | Verify the registration response, persist the `Passkey`; re-signs in via `credentials-2fa-verified` if this was a forced-setup session |
+| `POST authentication-options` | Login-time: generate authentication options scoped to the pending user's registered passkeys |
+| `POST authentication-verify` | Login-time: verify the assertion, bump the credential's counter, sign in via `credentials-2fa-verified` (same mechanism as TOTP) |
+| `GET list` | List the current user's passkeys (label, device type, timestamps — never the credential ID, public key, or counter) |
+| `DELETE [id]` | Remove one of the current user's passkeys |
 
 ---
 

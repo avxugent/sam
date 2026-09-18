@@ -50,6 +50,16 @@ From the next login you will be asked for a 6-digit code after entering your pas
 
 After a successful 2FA login you can check **Remember this device for 30 days**. SAM will skip the 2FA step on that browser for 30 days.
 
+### Passkeys
+
+Instead of typing a 6-digit code, you can use a passkey (Touch ID, Windows Hello, or a security key) as your second factor.
+
+1. Go to **Two-Factor Authentication** in the user menu.
+2. Under **Passkeys**, click **Add a passkey** and follow your browser's prompt.
+3. Optionally give it a name (e.g. "Work laptop") so you can recognise it later.
+
+From then on, the login 2FA screen offers **Use a passkey instead** alongside the authenticator-app code field. You can register more than one passkey (e.g. one per device) and remove any of them from the same settings page. A passkey satisfies admin-enforced 2FA the same way an authenticator app does — you only need one of the two set up.
+
 ---
 
 ## Forced password change

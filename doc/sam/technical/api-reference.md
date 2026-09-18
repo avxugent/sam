@@ -166,6 +166,12 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | `POST` | `/api/auth/2fa/disable` | session | Disable 2FA |
 | `GET` | `/api/auth/2fa/status` | session | Check 2FA status |
 | `POST` | `/api/auth/2fa/verify` | session | Verify TOTP code during login |
+| `POST` | `/api/auth/passkey/registration-options` | session | Generate WebAuthn registration options |
+| `POST` | `/api/auth/passkey/registration-verify` | session | Verify registration response, persist the passkey |
+| `POST` | `/api/auth/passkey/authentication-options` | session (pending 2FA) | Generate WebAuthn authentication options during login |
+| `POST` | `/api/auth/passkey/authentication-verify` | session (pending 2FA) | Verify passkey assertion during login |
+| `GET` | `/api/auth/passkey/list` | session | List the current user's passkeys |
+| `DELETE` | `/api/auth/passkey/[id]` | session | Remove one of the current user's passkeys |
 
 ---
 

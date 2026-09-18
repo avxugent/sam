@@ -83,6 +83,26 @@ SSO users have `passwordHash = null`. The Credentials provider rejects them. Pas
 
 ---
 
+### Passkey
+
+WebAuthn credential — an alternative second factor to TOTP. Hand-rolled with `@simplewebauthn/server`; not a NextAuth Adapter table.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string (cuid) | Primary key |
+| `userId` | string | FK to User (`onDelete: Cascade`) |
+| `credentialId` | string (unique) | base64url credential ID |
+| `publicKey` | string (`@db.Text`) | base64url-encoded COSE public key |
+| `counter` | int | WebAuthn signature counter, bumped on each use |
+| `transports` | string? | JSON-stringified `string[]` (e.g. `["internal","hybrid"]`) |
+| `deviceType` | string | `"singleDevice"` or `"multiDevice"` |
+| `backedUp` | bool | Whether the (multi-device) credential is synced/backed up |
+| `label` | string | User-facing name, e.g. "Work laptop" |
+| `createdAt` | DateTime | |
+| `lastUsedAt` | DateTime? | Updated on each successful authentication |
+
+---
+
 ### Location
 
 Hierarchical tree of physical spaces (campus, building, floor, room, …).

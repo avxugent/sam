@@ -17,25 +17,13 @@ import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/totp";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
-import { SignJWT } from "jose";
+import { setRememberMeCookie } from "@/lib/remember-device";
 import { z } from "zod";
 
 const schema = z.object({
   code: z.string().min(6).max(6),
   rememberMe: z.boolean().optional().default(false),
 });
-
-const REMEMBER_DAYS = 30;
-const COOKIE_NAME = "sam_2fa_rm";
-
-async function signRememberMeToken(userId: string): Promise<string> {
-  const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
-  return new SignJWT({ sub: userId })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${REMEMBER_DAYS}d`)
-    .sign(secret);
-}
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -114,6 +102,7 @@ export async function POST(req: NextRequest) {
   try {
     await signIn("credentials-2fa-verified", {
       userId: session.user.id,
+      method: "totp",
       redirect: false,
     });
   } catch {
@@ -124,14 +113,7 @@ export async function POST(req: NextRequest) {
   const response = NextResponse.json({ ok: true });
 
   if (parsed.data.rememberMe) {
-    const token = await signRememberMeToken(session.user.id);
-    response.cookies.set(COOKIE_NAME, token, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: REMEMBER_DAYS * 24 * 60 * 60,
-      secure: process.env.NODE_ENV === "production",
-    });
+    await setRememberMeCookie(response, session.user.id);
   }
 
   return response;

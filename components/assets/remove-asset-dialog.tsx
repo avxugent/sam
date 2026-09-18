@@ -18,7 +18,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Package, ArchiveX, Trash2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const DISPOSAL_METHODS = ["WIPED", "DESTROYED", "RETURNED", "RESOLD", "OTHER"] as const;
+export const DISPOSAL_METHODS = ["WIPED", "DESTROYED", "RETURNED", "RESOLD", "OTHER"] as const;
 
 type RemoveAction = "stock" | "decommission" | "delete";
 type Step = "choose" | RemoveAction;

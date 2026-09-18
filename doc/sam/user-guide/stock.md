@@ -50,6 +50,12 @@ SAM creates one asset per deployed unit at the target location. Any metadata sto
 
 > Requires Editor or Admin role.
 
+## Relocating multiple items at once
+
+Check the box on each row you want to move (or use the header checkbox to select every row currently matching your search), then click **Relocate selected** in the toolbar that appears. Pick a destination location — or leave it "Unassigned" — and confirm. Items that could no longer be found (e.g. deleted by someone else in the meantime) are skipped and listed; the rest are relocated normally.
+
+> Requires Editor or Admin role.
+
 ## Editing a stock item
 
 Click the **pencil icon** on the row to update any field.

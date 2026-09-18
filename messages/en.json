@@ -184,7 +184,15 @@
     "deletedUser": "(deleted user)",
     "unclassified": "Unclassified",
     "inheritedFromType": "inherited from type",
-    "endOfSupportPassed": "no longer supported"
+    "endOfSupportPassed": "no longer supported",
+    "itemsSelected": "{count, plural, =1 {# asset selected} other {# assets selected}}",
+    "clearSelection": "Clear selection",
+    "selectAllRows": "Select all rows",
+    "selectRow": "Select {name}",
+    "bulkReturnToStockConfirmTitle": "Return {count} assets to stock?",
+    "bulkReturnToStockConfirmDescription": "This will delete the selected assets and add them back to the stock inventory. Asset-specific data (hostname, MAC addresses, custom fields, attachments) will be permanently lost. Assets that can't be returned (already decommissioned, missing type/model) are skipped and listed.",
+    "bulkReturnToStockResultsTitle": "Return to stock results",
+    "bulkReturnToStockSuccessToast": "{count, plural, =1 {# asset returned to stock} other {# assets returned to stock}}"
   },
   "assetForm": {
     "createTitle": "Create asset",
@@ -363,7 +371,18 @@
     "selectLocation": "Select storage location…",
     "filterByLocation": "Filter by location",
     "allLocations": "All locations",
-    "showAllLocations": "Show all locations"
+    "showAllLocations": "Show all locations",
+    "itemsSelected": "{count, plural, =1 {# item selected} other {# items selected}}",
+    "clearSelection": "Clear selection",
+    "relocateSelected": "Relocate selected",
+    "selectAllRows": "Select all rows",
+    "selectRow": "Select {model}",
+    "bulkRelocateTitle": "Relocate {count} stock items",
+    "bulkRelocateDescription": "Choose a storage location for the selected items, or leave unassigned.",
+    "bulkRelocateConfirm": "Relocate",
+    "bulkRelocateResultsTitle": "Relocate results",
+    "bulkRelocateSkipped": "{count, plural, =1 {# item could not be relocated} other {# items could not be relocated}}",
+    "bulkRelocateSuccessToast": "{count, plural, =1 {# item relocated} other {# items relocated}}"
   },
   "decommissioned": {
     "title": "Decommissioned",
@@ -397,6 +416,16 @@
       "RETURNED": "Returned to supplier",
       "RESOLD": "Resold",
       "OTHER": "Other (see note)"
+    },
+    "bulkDecommissionTitle": "Decommission {count} assets",
+    "bulkDecommissionResultsTitle": "Decommission results",
+    "bulkDecommissionSuccessToast": "{count, plural, =1 {# asset decommissioned} other {# assets decommissioned}}",
+    "bulkSkippedSummary": "{count, plural, =1 {# skipped} other {# skipped}}",
+    "bulkSkipReason": {
+      "ALREADY_DECOMMISSIONED": "Already decommissioned",
+      "MISSING_TYPE": "Missing asset type",
+      "MISSING_MODEL": "Missing model",
+      "NOT_FOUND": "No longer found"
     }
   },
   "deploy": {

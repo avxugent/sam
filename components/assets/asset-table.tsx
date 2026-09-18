@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { RemoveAssetDialog } from "@/components/assets/remove-asset-dialog";
+import { BulkDecommissionDialog } from "@/components/assets/bulk-decommission-dialog";
+import { BulkReturnToStockDialog } from "@/components/assets/bulk-return-to-stock-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
 import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown, ExternalLink, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { renderHostnameUrl } from "@/lib/hostname-template";
@@ -110,21 +114,29 @@ export function AssetTable({
   macAddressUrlTemplate?: string | null;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const t = useTranslations("asset");
   const tField = useTranslations("field");
   const tCommon = useTranslations("common");
+  const tDecom = useTranslations("decommissioned");
   const [assets, setAssets] = useState(initialAssets);
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<SortCol | null>("type");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDecommissionOpen, setBulkDecommissionOpen] = useState(false);
+  const [bulkReturnToStockOpen, setBulkReturnToStockOpen] = useState(false);
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
 
   // Sync local state when the parent re-fetches (e.g. after router.refresh()
   // from AssetFormDialog). Without this, useState's initializer runs only
   // once and newly added assets don't appear until a manual page reload.
-  useEffect(() => { setAssets(initialAssets); }, [initialAssets]);
+  useEffect(() => {
+    setAssets(initialAssets);
+    setSelected((prev) => new Set([...prev].filter((id) => initialAssets.some((a) => a.id === id))));
+  }, [initialAssets]);
 
   function handleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -132,7 +144,7 @@ export function AssetTable({
     setPage(1);
   }
 
-  useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { setPage(1); setSelected(new Set()); }, [search]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -172,6 +184,46 @@ export function AssetTable({
     router.refresh();
   }
 
+  function toggleSelectAll() {
+    setSelected((prev) =>
+      filtered.length > 0 && filtered.every((a) => prev.has(a.id))
+        ? new Set()
+        : new Set(filtered.map((a) => a.id))
+    );
+  }
+
+  function toggleSelectRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((a) => selected.has(a.id));
+  const someFilteredSelected = !allFilteredSelected && filtered.some((a) => selected.has(a.id));
+
+  function handleBulkComplete(
+    action: "decommission" | "returnToStock",
+    result: { succeeded: string[]; failed: { id: string; reason: string }[] }
+  ) {
+    setSelected(new Set());
+    const title = action === "decommission"
+      ? tDecom("bulkDecommissionSuccessToast", { count: result.succeeded.length })
+      : t("bulkReturnToStockSuccessToast", { count: result.succeeded.length });
+    if (result.failed.length === 0) {
+      toast({ title });
+    } else {
+      toast({
+        title,
+        description: tDecom("bulkSkippedSummary", { count: result.failed.length }),
+        variant: "destructive",
+      });
+    }
+    router.refresh();
+  }
+
   if (assets.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground border border-[#e2e8f0] rounded-[10px] bg-white">
@@ -181,7 +233,7 @@ export function AssetTable({
     );
   }
 
-  const colSpan = showLocation ? 8 : 7;
+  const colSpan = (showLocation ? 8 : 7) + (canEdit ? 1 : 0);
 
   return (
     <div className="space-y-3">
@@ -209,11 +261,48 @@ export function AssetTable({
         </Button>
       </div>
 
+      {canEdit && selected.size > 0 && (
+        <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-[#e8f0fc] text-[12.5px] text-[#1e64c8]">
+          <span className="font-medium">{t("itemsSelected", { count: selected.size })}</span>
+          <Button
+            size="sm"
+            className="h-7 bg-[#ca8a04] hover:bg-[#a16207] text-white"
+            onClick={() => setBulkDecommissionOpen(true)}
+          >
+            {tDecom("decommissionAsset")}
+          </Button>
+          <Button
+            size="sm"
+            className="h-7 bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+            onClick={() => setBulkReturnToStockOpen(true)}
+          >
+            {t("returnToStock")}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-[#1e64c8] hover:bg-[#dbe9fb]"
+            onClick={() => setSelected(new Set())}
+          >
+            {t("clearSelection")}
+          </Button>
+        </div>
+      )}
+
       <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
         <table className="w-full text-[13px]">
           <caption className="sr-only">{t("assetCount", { count: sorted.length })}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
+              {canEdit && (
+                <th scope="col" className="w-[36px] px-4 py-[10px]">
+                  <Checkbox
+                    checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label={t("selectAllRows")}
+                  />
+                </th>
+              )}
               <Th col="type" label={tField("type")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <Th col="manufacturer" label={tField("manufacturer")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <Th col="model" label={tField("model")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
@@ -247,6 +336,15 @@ export function AssetTable({
                     if (e.key === "Enter") { e.preventDefault(); router.push(assetHref); }
                   }}
                 >
+                  {canEdit && (
+                    <td className="px-4 py-[11px]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected.has(asset.id)}
+                        onCheckedChange={() => toggleSelectRow(asset.id)}
+                        aria-label={t("selectRow", { name: asset.model || asset.hostname || asset.serialNumber || asset.id })}
+                      />
+                    </td>
+                  )}
                   <td className="px-4 py-[11px]">
                     {asset.type ? (
                       <span className="inline-flex items-center text-[11px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-2 py-0.5 rounded-[5px]">
@@ -422,6 +520,19 @@ export function AssetTable({
           </nav>
         </div>
       </div>
+
+      <BulkDecommissionDialog
+        open={bulkDecommissionOpen}
+        onOpenChange={setBulkDecommissionOpen}
+        assetIds={[...selected]}
+        onComplete={(result) => handleBulkComplete("decommission", result)}
+      />
+      <BulkReturnToStockDialog
+        open={bulkReturnToStockOpen}
+        onOpenChange={setBulkReturnToStockOpen}
+        assetIds={[...selected]}
+        onComplete={(result) => handleBulkComplete("returnToStock", result)}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { AssetLifecycleError, assertDecommissionable, buildDecommissionUpdateData } from "@/lib/asset-lifecycle";
 
 const schema = z.object({
   note: z.string().max(500).optional().nullable(),
@@ -28,8 +29,13 @@ export async function POST(
     },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (existing.status === "DECOMMISSIONED") {
-    return NextResponse.json({ error: "Asset is already decommissioned." }, { status: 400 });
+  try {
+    assertDecommissionable(existing);
+  } catch (err) {
+    if (err instanceof AssetLifecycleError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    throw err;
   }
 
   const body = await req.json().catch(() => ({}));
@@ -40,15 +46,12 @@ export async function POST(
 
   const asset = await prisma.asset.update({
     where: { id },
-    data: {
-      status: "DECOMMISSIONED",
-      decommissionedAt: new Date(),
-      decommissionNote: parsed.data.note ?? null,
+    data: buildDecommissionUpdateData({
+      note: parsed.data.note ?? null,
       disposalMethod: parsed.data.disposalMethod,
-      decommissionedById: session.user.id,
-      lastLocationName: existing.location.name,
-      lastLocationFiNumber: existing.location.fiNumber ?? null,
-    },
+      actorId: session.user.id,
+      location: existing.location,
+    }),
   });
 
   await logAudit({

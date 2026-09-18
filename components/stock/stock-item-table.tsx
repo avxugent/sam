@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { StockItemFormDialog, type StockItemInitialData } from "@/components/stock/stock-item-form-dialog";
 import { DeployStockDialog } from "@/components/stock/deploy-stock-dialog";
+import { BulkRelocateDialog } from "@/components/stock/bulk-relocate-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Search,
@@ -114,10 +116,15 @@ export function StockItemTable({
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
   const [page, setPage] = useState(1);
   const [deployItem, setDeployItem] = useState<StockItem | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkRelocateOpen, setBulkRelocateOpen] = useState(false);
 
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
 
-  useEffect(() => { setItems(initialItems); }, [initialItems]);
+  useEffect(() => {
+    setItems(initialItems);
+    setSelected((prev) => new Set([...prev].filter((id) => initialItems.some((i) => i.id === id))));
+  }, [initialItems]);
 
   function toggleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -152,6 +159,26 @@ export function StockItemTable({
   const safePage = Math.min(page, totalPages);
   const paginated = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
 
+  function toggleSelectAll() {
+    setSelected((prev) =>
+      filtered.length > 0 && filtered.every((i) => prev.has(i.id))
+        ? new Set()
+        : new Set(filtered.map((i) => i.id))
+    );
+  }
+
+  function toggleSelectRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((i) => selected.has(i.id));
+  const someFilteredSelected = !allFilteredSelected && filtered.some((i) => selected.has(i.id));
+
   async function handleDelete(id: string) {
     const res = await fetch(`/api/stock/${id}`, { method: "DELETE" });
     if (!res.ok) {
@@ -173,7 +200,7 @@ export function StockItemTable({
           <Input
             placeholder={t("searchStock")}
             value={query}
-            onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+            onChange={(e) => { setQuery(e.target.value); setPage(1); setSelected(new Set()); }}
             className="pl-8 h-8 text-[13px]"
           />
         </div>
@@ -182,11 +209,42 @@ export function StockItemTable({
         </span>
       </div>
 
+      {/* Bulk actions toolbar */}
+      {canEdit && selected.size > 0 && (
+        <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-[#e8f0fc] text-[12.5px] text-[#1e64c8]">
+          <span className="font-medium">{t("itemsSelected", { count: selected.size })}</span>
+          <Button
+            size="sm"
+            className="h-7 bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+            onClick={() => setBulkRelocateOpen(true)}
+          >
+            {t("relocateSelected")}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-[#1e64c8] hover:bg-[#dbe9fb]"
+            onClick={() => setSelected(new Set())}
+          >
+            {t("clearSelection")}
+          </Button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="border border-[#e2e8f0] rounded-[10px] overflow-hidden">
         <table className="w-full text-[13px]">
           <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
             <tr>
+              {canEdit && (
+                <th className="px-3 py-2.5 w-[36px]">
+                  <Checkbox
+                    checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label={t("selectAllRows")}
+                  />
+                </th>
+              )}
               <Th col="type" label={t("type")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
               <Th col="manufacturer" label={t("manufacturer")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
               <Th col="model" label={t("model")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
@@ -201,13 +259,22 @@ export function StockItemTable({
           <tbody className="divide-y divide-[#f1f5f9]">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={canEdit ? 7 : 6} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">
+                <td colSpan={canEdit ? 8 : 6} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">
                   {t("noStockItems")}
                 </td>
               </tr>
             ) : (
               paginated.map((item) => (
                 <tr key={item.id} className="hover:bg-[#f8fafc] transition-colors">
+                  {canEdit && (
+                    <td className="px-3 py-2.5">
+                      <Checkbox
+                        checked={selected.has(item.id)}
+                        onCheckedChange={() => toggleSelectRow(item.id)}
+                        aria-label={t("selectRow", { model: item.model })}
+                      />
+                    </td>
+                  )}
                   <td className="px-3 py-2.5">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#e8f0fc] text-[#1e64c8] text-[11px] font-medium">
                       {item.type.name}
@@ -344,6 +411,26 @@ export function StockItemTable({
           availableQuantity={deployItem.quantity}
         />
       )}
+
+      {/* Bulk relocate dialog */}
+      <BulkRelocateDialog
+        open={bulkRelocateOpen}
+        onOpenChange={setBulkRelocateOpen}
+        itemIds={[...selected]}
+        onComplete={(result) => {
+          setSelected(new Set());
+          if (result.failed.length === 0) {
+            toast({ title: t("bulkRelocateSuccessToast", { count: result.succeeded.length }) });
+          } else {
+            toast({
+              title: t("bulkRelocateSuccessToast", { count: result.succeeded.length }),
+              description: t("bulkRelocateSkipped", { count: result.failed.length }),
+              variant: "destructive",
+            });
+          }
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

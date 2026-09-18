@@ -84,6 +84,17 @@ If a device needs to go back to spare inventory without being decommissioned:
 
 > Requires Editor or Admin role.
 
+## Bulk actions
+
+On a location's **Assets tab**, check the box on each row you want to act on (or use the header checkbox to select every row currently matching your search), then use the toolbar that appears:
+
+- **Decommission** — choose a disposal method (and optional note) once; it's applied to every selected asset.
+- **Return to stock** — confirm once; every selected asset is converted to a stock item.
+
+Assets that can't be processed (e.g. already decommissioned, or missing a model for return-to-stock) are skipped and listed with a reason; the rest complete normally.
+
+> Requires Editor or Admin role.
+
 ## Deleting an asset
 
 Deletion is permanent and removes all history. Use decommissioning instead unless the asset was created in error.

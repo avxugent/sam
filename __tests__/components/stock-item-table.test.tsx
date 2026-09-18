@@ -25,7 +25,10 @@ const renderTable = (items = ITEMS, userRole = "ADMIN", locationBreadcrumbs = { 
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockFetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+  mockFetch.mockImplementation((url: string) => {
+    if (url === "/api/locations") return Promise.resolve({ ok: true, json: async () => [] });
+    return Promise.resolve({ ok: true, json: async () => ({}) });
+  });
 });
 
 describe("<StockItemTable />", () => {
@@ -97,5 +100,55 @@ describe("<StockItemTable />", () => {
     // table still renders both rows after sorting
     expect(screen.getByText("Laptop")).toBeInTheDocument();
     expect(screen.getByText("Monitor")).toBeInTheDocument();
+  });
+
+  it("shows a select-all checkbox and one per row for editors", () => {
+    renderTable();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(3); // header + 2 rows
+  });
+
+  it("renders no checkboxes for viewers", () => {
+    renderTable(ITEMS, "VIEWER");
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
+
+  it("selecting rows shows the bulk toolbar; Clear selection empties it", async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const [, row1Checkbox] = screen.getAllByRole("checkbox");
+    await user.click(row1Checkbox);
+    expect(screen.getByText("itemsSelected")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "clearSelection" }));
+    expect(screen.queryByText("itemsSelected")).not.toBeInTheDocument();
+  });
+
+  it("header checkbox selects only the currently filtered rows", async () => {
+    const user = userEvent.setup();
+    renderTable();
+    await user.type(screen.getByPlaceholderText("searchStock"), "monitor");
+    const [headerCheckbox] = screen.getAllByRole("checkbox");
+    await user.click(headerCheckbox);
+    // only the filtered Monitor row is selectable/selected now
+    expect(screen.getAllByRole("checkbox")).toHaveLength(2);
+    expect(screen.getByText("itemsSelected")).toBeInTheDocument();
+  });
+
+  it("selection clears when the search query changes", async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const [, row1Checkbox] = screen.getAllByRole("checkbox");
+    await user.click(row1Checkbox);
+    expect(screen.getByText("itemsSelected")).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText("searchStock"), "x");
+    expect(screen.queryByText("itemsSelected")).not.toBeInTheDocument();
+  });
+
+  it("Relocate opens the bulk relocate dialog for the selected items", async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const [, row1Checkbox] = screen.getAllByRole("checkbox");
+    await user.click(row1Checkbox);
+    await user.click(screen.getByRole("button", { name: "relocateSelected" }));
+    expect(await screen.findByText("bulkRelocateTitle")).toBeInTheDocument();
   });
 });

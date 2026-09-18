@@ -34,10 +34,13 @@ export function StockLocationFilter({ locations }: { locations: LocationOption[]
   return (
     <Select value={currentLocationId || ALL} onValueChange={handleChange}>
       <SelectTrigger className="h-8 w-56 text-[12.5px]">
-        <span className="flex items-center gap-1.5 truncate">
+        {/* div, not span — SelectTrigger's [&>span]:line-clamp-1 forces
+            display:-webkit-box on a direct child span, which stacks flex
+            children vertically instead of side by side */}
+        <div className="flex items-center gap-1.5 truncate">
           <MapPin className="h-3.5 w-3.5 text-[#94a3b8] flex-shrink-0" />
           <span className="truncate">{currentLabel}</span>
-        </span>
+        </div>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value={ALL}>{t("allLocations")}</SelectItem>

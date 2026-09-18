@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import type { Prisma } from "@/generated/prisma/client";
+import { AssetLifecycleError, assertReturnableToStock, buildReturnToStockStockItemData } from "@/lib/asset-lifecycle";
 
 export async function POST(
   req: NextRequest,
@@ -23,37 +24,17 @@ export async function POST(
     },
   });
   if (!asset) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (asset.status === "DECOMMISSIONED") {
-    return NextResponse.json({ error: "Decommissioned assets cannot be returned to stock." }, { status: 400 });
+  try {
+    assertReturnableToStock(asset);
+  } catch (err) {
+    if (err instanceof AssetLifecycleError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    throw err;
   }
-  if (!asset.typeId) {
-    return NextResponse.json({ error: "Asset must have a type to be returned to stock." }, { status: 400 });
-  }
-  if (!asset.model) {
-    return NextResponse.json({ error: "Asset must have a model to be returned to stock." }, { status: 400 });
-  }
-
-  const metadata: Record<string, unknown> = {};
-  if (asset.macAddresses.length > 0) metadata.macAddresses = asset.macAddresses;
-  if (asset.customFields.length > 0) metadata.customFields = asset.customFields;
-  if (asset.hostname) metadata.hostname = asset.hostname;
-  if (asset.warrantyMonths != null) metadata.warrantyMonths = asset.warrantyMonths;
-  if (asset.vaultPath) metadata.vaultPath = asset.vaultPath;
 
   const stockItem = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const item = await tx.stockItem.create({
-      data: {
-        typeId: asset.typeId!,
-        manufacturerId: asset.manufacturerId,
-        model: asset.model!,
-        serialNumber: asset.serialNumber,
-        invoiceNumber: asset.invoiceNumber,
-        invoiceDate: asset.invoiceDate,
-        notes: asset.notes,
-        quantity: 1,
-        metadata: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
-      },
-    });
+    const item = await tx.stockItem.create({ data: buildReturnToStockStockItemData(asset) });
     await tx.asset.delete({ where: { id } });
     return item;
   });
@@ -65,7 +46,7 @@ export async function POST(
       action: "DELETE",
       entityType: "Asset",
       entityId: id,
-      entityName: asset.model,
+      entityName: asset.model ?? undefined,
       detail: { snapshot: { "Returned to stock": asset.model, "From location": asset.location.name } },
     }),
     logAudit({

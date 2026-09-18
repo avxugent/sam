@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.13] - 2026-09-18
+
+### Added
+
+- **Stock — bulk relocate** — select multiple stock items in the stock list and relocate them all to one storage location (or unassign) in a single action.
+- **Assets — bulk decommission / bulk return-to-stock** — select multiple assets in a location's Assets tab and decommission or return them to stock as a batch. Assets that fail their own validation (already decommissioned, missing model, deleted mid-flight) are skipped and listed; the rest complete normally.
+
+---
+
 ## [2.0.12] - 2026-09-17
 
 ### Changed

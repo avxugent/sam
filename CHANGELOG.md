@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.15] - 2026-09-21
+
+### Fixed
+
+- **Passkey login could crash instead of failing gracefully** — an authenticator that skipped user verification (as the 2FA-appropriate `userVerification: "discouraged"`/`"preferred"` options invite it to) caused the verify step to throw uncaught, 500ing the route. Now handled the same as any other failed passkey attempt.
+
+---
+
 ## [2.0.14] - 2026-09-18
 
 ### Added

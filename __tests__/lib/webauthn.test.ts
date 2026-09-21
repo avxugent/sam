@@ -134,6 +134,20 @@ describe("verifyRegistration", () => {
     const result = await verifyRegistration({ response: {} } as never, "challenge");
     expect(result?.transports).toBeNull();
   });
+
+  it("does not require user verification (registration is a second factor, not standalone login)", async () => {
+    mockVerifyRegistrationResponse.mockResolvedValue({ verified: false });
+    await verifyRegistration({ response: {} } as never, "challenge");
+    expect(mockVerifyRegistrationResponse).toHaveBeenCalledWith(
+      expect.objectContaining({ requireUserVerification: false })
+    );
+  });
+
+  it("returns null instead of throwing when the library rejects a malformed response", async () => {
+    mockVerifyRegistrationResponse.mockRejectedValue(new Error("boom"));
+    const result = await verifyRegistration({ response: {} } as never, "challenge");
+    expect(result).toBeNull();
+  });
 });
 
 describe("buildAuthenticationOptions", () => {
@@ -174,6 +188,33 @@ describe("verifyAuthentication", () => {
     expect(isoBase64URL.fromBuffer(call.authenticator.credentialID)).toBe(credentialId);
     expect(isoBase64URL.fromBuffer(call.authenticator.credentialPublicKey)).toBe(publicKey);
     expect(call.authenticator.counter).toBe(4);
+  });
+
+  it("does not require user verification (this is a second factor, not standalone login)", async () => {
+    mockVerifyAuthenticationResponse.mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 1 },
+    });
+    await verifyAuthentication({} as never, "challenge", {
+      credentialId: isoBase64URL.fromBuffer(new Uint8Array([1])),
+      publicKey: isoBase64URL.fromBuffer(new Uint8Array([2])),
+      counter: 0,
+      transports: null,
+    });
+    expect(mockVerifyAuthenticationResponse).toHaveBeenCalledWith(
+      expect.objectContaining({ requireUserVerification: false })
+    );
+  });
+
+  it("returns verified: false and keeps the stored counter when the library throws", async () => {
+    mockVerifyAuthenticationResponse.mockRejectedValue(new Error("User verification required, but user could not be verified"));
+    const result = await verifyAuthentication({} as never, "challenge", {
+      credentialId: isoBase64URL.fromBuffer(new Uint8Array([1])),
+      publicKey: isoBase64URL.fromBuffer(new Uint8Array([2])),
+      counter: 7,
+      transports: null,
+    });
+    expect(result).toEqual({ verified: false, newCounter: 7 });
   });
 });
 

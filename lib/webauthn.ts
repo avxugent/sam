@@ -80,18 +80,31 @@ export type VerifiedRegistration = {
   backedUp: boolean;
 };
 
-/** Returns null when the response fails verification. */
+/** Returns null when the response fails or errors during verification. */
 export async function verifyRegistration(
   response: RegistrationResponseJSON,
   expectedChallenge: string
 ): Promise<VerifiedRegistration | null> {
   const { rpID, origin } = getRpConfig();
-  const result = await verifyRegistrationResponse({
-    response,
-    expectedChallenge,
-    expectedOrigin: origin,
-    expectedRPID: rpID,
-  });
+  let result;
+  try {
+    result = await verifyRegistrationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      // Registration options request userVerification: "preferred", not
+      // "required" — this is a second factor on top of a password, so the
+      // library's own default (requireUserVerification: true) would wrongly
+      // reject a registration where the authenticator legitimately skipped UV.
+      requireUserVerification: false,
+    });
+  } catch {
+    // @simplewebauthn/server throws (rather than returning verified: false)
+    // for malformed/unexpected responses — treat those the same as a failed
+    // verification instead of letting them crash the route.
+    return null;
+  }
   if (!result.verified || !result.registrationInfo) return null;
 
   const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } =
@@ -124,19 +137,32 @@ export async function verifyAuthentication(
   storedPasskey: { credentialId: string; publicKey: string; counter: number; transports: string | null }
 ): Promise<VerifiedAuthentication> {
   const { rpID, origin } = getRpConfig();
-  const result = await verifyAuthenticationResponse({
-    response,
-    expectedChallenge,
-    expectedOrigin: origin,
-    expectedRPID: rpID,
-    authenticator: {
-      credentialID: isoBase64URL.toBuffer(storedPasskey.credentialId),
-      credentialPublicKey: isoBase64URL.toBuffer(storedPasskey.publicKey),
-      counter: storedPasskey.counter,
-      transports: parseTransports(storedPasskey.transports),
-    },
-  });
-  return { verified: result.verified, newCounter: result.authenticationInfo.newCounter };
+  try {
+    const result = await verifyAuthenticationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      authenticator: {
+        credentialID: isoBase64URL.toBuffer(storedPasskey.credentialId),
+        credentialPublicKey: isoBase64URL.toBuffer(storedPasskey.publicKey),
+        counter: storedPasskey.counter,
+        transports: parseTransports(storedPasskey.transports),
+      },
+      // Authentication options request userVerification: "discouraged" — this
+      // is a second factor on top of a password, so the library's own default
+      // (requireUserVerification: true) would wrongly reject an assertion
+      // where the authenticator legitimately skipped UV.
+      requireUserVerification: false,
+    });
+    return { verified: result.verified, newCounter: result.authenticationInfo.newCounter };
+  } catch {
+    // @simplewebauthn/server throws (rather than returning verified: false)
+    // for malformed/unexpected responses — treat those the same as a failed
+    // verification instead of letting them crash the route. Keep the stored
+    // counter unchanged since nothing was actually verified.
+    return { verified: false, newCounter: storedPasskey.counter };
+  }
 }
 
 // ── Challenge cookie ────────────────────────────────────────────────────────

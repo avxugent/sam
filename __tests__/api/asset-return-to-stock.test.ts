@@ -6,6 +6,9 @@ vi.mock("@/lib/prisma", () => ({
     asset: {
       findUnique: vi.fn(),
     },
+    location: {
+      findUnique: vi.fn(),
+    },
     stockItem: {
       create: vi.fn(),
     },
@@ -22,15 +25,18 @@ import { POST } from "@/app/api/assets/[id]/return-to-stock/route";
 
 const mockAuth = vi.mocked(auth);
 const mockFindUnique = vi.mocked(prisma.asset.findUnique);
+const mockLocationFindUnique = vi.mocked(prisma.location.findUnique);
 const mockTransaction = vi.mocked(prisma.$transaction);
 
 function session(role: "ADMIN" | "EDITOR" | "VIEWER") {
   return { user: { id: "u1", role, name: "T", email: "t@test.com" } };
 }
 
-function makeReq() {
+function makeReq(body: object | undefined = { locationId: "loc-1" }) {
   return new NextRequest("http://localhost/api/assets/asset-1/return-to-stock", {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
   });
 }
 
@@ -54,7 +60,10 @@ const VALID_ASSET = {
   customFields: [],
 };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockLocationFindUnique.mockResolvedValue({ id: "loc-1" } as never);
+});
 
 describe("POST /api/assets/[id]/return-to-stock", () => {
   it("returns 401 when unauthenticated", async () => {
@@ -67,6 +76,21 @@ describe("POST /api/assets/[id]/return-to-stock", () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
     const res = await POST(makeReq(), { params: PARAMS });
     expect(res.status).toBe(403);
+  });
+
+  it("returns 400 when locationId is missing", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    const res = await POST(makeReq({}), { params: PARAMS });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when the location does not exist", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockLocationFindUnique.mockResolvedValue(null as never);
+    const res = await POST(makeReq(), { params: PARAMS });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/location/i);
   });
 
   it("returns 404 if asset not found", async () => {
@@ -103,17 +127,24 @@ describe("POST /api/assets/[id]/return-to-stock", () => {
     expect(body.error).toMatch(/model/i);
   });
 
-  it("returns stockItemId on success", async () => {
+  it("returns stockItemId on success and stores the chosen locationId", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockFindUnique.mockResolvedValue(VALID_ASSET as never);
+    let capturedData: Record<string, unknown> = {};
     mockTransaction.mockImplementation(async (fn) => fn({
-      stockItem: { create: vi.fn().mockResolvedValue({ id: "stock-1", model: "Dell Monitor" }) },
+      stockItem: {
+        create: vi.fn().mockImplementation(async ({ data }: { data: Record<string, unknown> }) => {
+          capturedData = data;
+          return { id: "stock-1", model: "Dell Monitor" };
+        }),
+      },
       asset: { delete: vi.fn().mockResolvedValue({}) },
     } as never));
     const res = await POST(makeReq(), { params: PARAMS });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.stockItemId).toBe("stock-1");
+    expect(capturedData.locationId).toBe("loc-1");
   });
 
   it("serializes mac addresses and custom fields into metadata", async () => {

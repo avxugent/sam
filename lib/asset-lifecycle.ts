@@ -60,7 +60,8 @@ type ReturnableAsset = {
 
 /** The exact `tx.stockItem.create({ data })` payload for a returned asset. */
 export function buildReturnToStockStockItemData(
-  asset: ReturnableAsset
+  asset: ReturnableAsset,
+  locationId: string
 ): Prisma.StockItemUncheckedCreateInput {
   const metadata: Record<string, unknown> = {};
   if (asset.macAddresses.length > 0) metadata.macAddresses = asset.macAddresses;
@@ -78,6 +79,7 @@ export function buildReturnToStockStockItemData(
     invoiceDate: asset.invoiceDate,
     notes: asset.notes,
     quantity: 1,
+    locationId,
     metadata: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
   };
 }

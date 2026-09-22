@@ -12,6 +12,9 @@ vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
+const mockFetch = vi.fn(() => Promise.resolve({ ok: true, json: async () => [] }));
+global.fetch = mockFetch as never;
+
 import { AssetTable } from "@/components/assets/asset-table";
 
 const ASSETS = [

@@ -8,6 +8,7 @@ import { AssetLifecycleError, assertReturnableToStock, buildReturnToStockStockIt
 
 const schema = z.object({
   ids: z.array(z.string().min(1)).min(1).max(200),
+  locationId: z.string().min(1),
 });
 
 export async function POST(req: NextRequest) {
@@ -20,7 +21,10 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
   }
-  const { ids } = parsed.data;
+  const { ids, locationId } = parsed.data;
+
+  const location = await prisma.location.findUnique({ where: { id: locationId }, select: { id: true } });
+  if (!location) return NextResponse.json({ error: "Location not found" }, { status: 400 });
 
   const succeeded: string[] = [];
   const failed: { id: string; reason: string }[] = [];
@@ -49,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     const stockItem = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const item = await tx.stockItem.create({ data: buildReturnToStockStockItemData(asset) });
+      const item = await tx.stockItem.create({ data: buildReturnToStockStockItemData(asset, locationId) });
       await tx.asset.delete({ where: { id } });
       return item;
     });

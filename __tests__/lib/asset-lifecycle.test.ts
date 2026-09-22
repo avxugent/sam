@@ -73,14 +73,15 @@ describe("buildReturnToStockStockItemData", () => {
     customFields: [],
   };
 
-  it("builds the create payload with quantity locked to 1 and no metadata when nothing extra is set", () => {
-    const data = buildReturnToStockStockItemData(BASE);
+  it("builds the create payload with quantity locked to 1, the given locationId, and no metadata when nothing extra is set", () => {
+    const data = buildReturnToStockStockItemData(BASE, "loc-1");
     expect(data).toMatchObject({
       typeId: "t1",
       manufacturerId: "m1",
       model: "Dell Monitor",
       serialNumber: "SN-1",
       quantity: 1,
+      locationId: "loc-1",
       metadata: null,
     });
   });
@@ -93,7 +94,7 @@ describe("buildReturnToStockStockItemData", () => {
       hostname: "host1",
       warrantyMonths: 24,
       vaultPath: "secret/host1",
-    });
+    }, "loc-1");
     expect(JSON.parse(data.metadata as string)).toEqual({
       macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }],
       customFields: [{ key: "asset tag", value: "1234" }],

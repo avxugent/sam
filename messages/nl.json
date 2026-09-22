@@ -181,6 +181,7 @@
     "returnToStockConfirmDescription": "Dit verwijdert het asset en plaatst het terug in de stockinventaris. Asset-specifieke gegevens (hostnaam, MAC-adressen, aangepaste velden, bijlagen) gaan permanent verloren.",
     "returnedToStock": "Asset teruggezet naar stock",
     "returningToStock": "Terugzetten naar stock…",
+    "returnToStockLocationLabel": "Opslaglocatie",
     "deletedUser": "(verwijderde gebruiker)",
     "unclassified": "Niet geclassificeerd",
     "inheritedFromType": "overgenomen van type",

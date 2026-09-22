@@ -15,7 +15,15 @@ function jsonResp(data: unknown, ok = true) {
   return { ok, json: async () => data };
 }
 
-beforeEach(() => vi.clearAllMocks());
+const LOCATION_TREE = [{ id: "loc-1", name: "Room 101", parentId: null }];
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockFetch.mockImplementation((url: string) => {
+    if (url === "/api/locations") return Promise.resolve(jsonResp(LOCATION_TREE));
+    return Promise.resolve(jsonResp({}));
+  });
+});
 
 function renderDialog(onComplete = vi.fn()) {
   render(
@@ -29,17 +37,34 @@ function renderDialog(onComplete = vi.fn()) {
   return onComplete;
 }
 
+async function pickLocation(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByText("Room 101"));
+}
+
 describe("<BulkReturnToStockDialog />", () => {
-  it("submits the selected ids with no extra fields", async () => {
+  it("confirm is disabled until a location is picked, then submits ids + locationId", async () => {
     const user = userEvent.setup();
     const onComplete = renderDialog();
-    mockFetch.mockResolvedValue(jsonResp({ succeeded: ["a1", "a2"], failed: [] }));
 
-    await user.click(screen.getByRole("button", { name: "returnToStock" }));
+    const confirmBtn = screen.getByRole("button", { name: "returnToStock" });
+    expect(confirmBtn).toBeDisabled();
+
+    await pickLocation(user);
+    expect(confirmBtn).not.toBeDisabled();
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url === "/api/locations") return Promise.resolve(jsonResp(LOCATION_TREE));
+      return Promise.resolve(jsonResp({ succeeded: ["a1", "a2"], failed: [] }));
+    });
+
+    await user.click(confirmBtn);
 
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/assets/bulk-return-to-stock",
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ ids: ["a1", "a2"] }) })
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ ids: ["a1", "a2"], locationId: "loc-1" }),
+      })
     );
     expect(onComplete).toHaveBeenCalledWith({ succeeded: ["a1", "a2"], failed: [] });
   });
@@ -47,9 +72,13 @@ describe("<BulkReturnToStockDialog />", () => {
   it("shows a results view listing skipped assets on partial failure", async () => {
     const user = userEvent.setup();
     renderDialog();
-    mockFetch.mockResolvedValue(
-      jsonResp({ succeeded: ["a1"], failed: [{ id: "a2", reason: "MISSING_MODEL" }] })
-    );
+    await pickLocation(user);
+    mockFetch.mockImplementation((url: string) => {
+      if (url === "/api/locations") return Promise.resolve(jsonResp(LOCATION_TREE));
+      return Promise.resolve(
+        jsonResp({ succeeded: ["a1"], failed: [{ id: "a2", reason: "MISSING_MODEL" }] })
+      );
+    });
 
     await user.click(screen.getByRole("button", { name: "returnToStock" }));
 
@@ -61,7 +90,11 @@ describe("<BulkReturnToStockDialog />", () => {
   it("shows a destructive toast when the request itself fails", async () => {
     const user = userEvent.setup();
     renderDialog();
-    mockFetch.mockResolvedValue(jsonResp({ error: "Boom" }, false));
+    await pickLocation(user);
+    mockFetch.mockImplementation((url: string) => {
+      if (url === "/api/locations") return Promise.resolve(jsonResp(LOCATION_TREE));
+      return Promise.resolve(jsonResp({ error: "Boom" }, false));
+    });
 
     await user.click(screen.getByRole("button", { name: "returnToStock" }));
 

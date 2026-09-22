@@ -30,7 +30,7 @@ All API routes return `NextResponse.json(...)`. Auth and role checks happen insi
 | `DELETE` | `/api/assets/[id]` | EDITOR | Delete asset |
 | `POST` | `/api/assets/[id]/decommission` | EDITOR | Mark asset decommissioned. Body: `{ disposalMethod: WIPED\|DESTROYED\|RETURNED\|RESOLD\|OTHER (required), note? }`. Also records who decommissioned it |
 | `POST` | `/api/assets/[id]/reinstate` | EDITOR | Restore decommissioned asset |
-| `POST` | `/api/assets/[id]/return-to-stock` | EDITOR | Move asset back to stock |
+| `POST` | `/api/assets/[id]/return-to-stock` | EDITOR | Move asset back to stock. Body: `{ locationId (required, must reference an existing location) }` |
 | `GET` | `/api/assets/by-hostname` | Bearer token | Grafana Infinity datasource lookup |
 
 ### Asset body (create/update)

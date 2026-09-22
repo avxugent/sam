@@ -181,6 +181,7 @@
     "returnToStockConfirmDescription": "This will delete the asset and add it back to the stock inventory. Asset-specific data (hostname, MAC addresses, custom fields, attachments) will be permanently lost.",
     "returnedToStock": "Asset returned to stock",
     "returningToStock": "Returning to stock…",
+    "returnToStockLocationLabel": "Storage location",
     "deletedUser": "(deleted user)",
     "unclassified": "Unclassified",
     "inheritedFromType": "inherited from type",

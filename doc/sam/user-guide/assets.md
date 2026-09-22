@@ -80,7 +80,8 @@ If a device needs to go back to spare inventory without being decommissioned:
 
 1. Open the asset detail page.
 2. Click **Return to stock**.
-3. The asset is moved to the Stock inventory and removed from its location.
+3. Pick the storage location the item is physically going to — this is required before the return can be confirmed.
+4. The asset is moved to the Stock inventory at that location and removed from its location.
 
 > Requires Editor or Admin role.
 
@@ -89,7 +90,7 @@ If a device needs to go back to spare inventory without being decommissioned:
 On a location's **Assets tab**, check the box on each row you want to act on (or use the header checkbox to select every row currently matching your search), then use the toolbar that appears:
 
 - **Decommission** — choose a disposal method (and optional note) once; it's applied to every selected asset.
-- **Return to stock** — confirm once; every selected asset is converted to a stock item.
+- **Return to stock** — pick a storage location (required), confirm once; every selected asset is converted to a stock item at that location.
 
 Assets that can't be processed (e.g. already decommissioned, or missing a model for return-to-stock) are skipped and listed with a reason; the rest complete normally.
 

@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import type { Prisma } from "@/generated/prisma/client";
 import { AssetLifecycleError, assertReturnableToStock, buildReturnToStockStockItemData } from "@/lib/asset-lifecycle";
+
+const schema = z.object({
+  locationId: z.string().min(1),
+});
 
 export async function POST(
   req: NextRequest,
@@ -12,6 +17,16 @@ export async function POST(
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const body = await req.json();
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+  }
+  const { locationId } = parsed.data;
+
+  const location = await prisma.location.findUnique({ where: { id: locationId }, select: { id: true } });
+  if (!location) return NextResponse.json({ error: "Location not found" }, { status: 400 });
 
   const { id } = await params;
 
@@ -34,7 +49,7 @@ export async function POST(
   }
 
   const stockItem = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const item = await tx.stockItem.create({ data: buildReturnToStockStockItemData(asset) });
+    const item = await tx.stockItem.create({ data: buildReturnToStockStockItemData(asset, locationId) });
     await tx.asset.delete({ where: { id } });
     return item;
   });

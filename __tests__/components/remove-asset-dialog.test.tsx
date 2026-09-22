@@ -10,6 +10,15 @@ global.fetch = mockFetch as never;
 
 import { RemoveAssetDialog } from "@/components/assets/remove-asset-dialog";
 
+const LOCATION_TREE = [{ id: "loc-1", name: "Room 101", parentId: null }];
+
+function mockFetchImpl(url: string) {
+  if (url === "/api/locations") {
+    return Promise.resolve({ ok: true, json: async () => LOCATION_TREE });
+  }
+  return Promise.resolve({ ok: true, json: async () => ({}) });
+}
+
 function renderDialog(onRemoved = vi.fn()) {
   render(
     <RemoveAssetDialog assetId="a1" assetName="Recorder 1" onRemoved={onRemoved}>
@@ -27,7 +36,7 @@ async function openDialog() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockFetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+  mockFetch.mockImplementation(mockFetchImpl);
 });
 
 describe("<RemoveAssetDialog />", () => {
@@ -39,15 +48,29 @@ describe("<RemoveAssetDialog />", () => {
     expect(screen.getByText("delete")).toBeInTheDocument();
   });
 
-  it("moves to stock: posts to return-to-stock and reports the action", async () => {
+  it("moves to stock: confirm is disabled until a location is picked, then posts to return-to-stock", async () => {
     const onRemoved = renderDialog();
     const user = await openDialog();
     await user.click(screen.getByText("returnToStock"));
-    await user.click(screen.getByRole("button", { name: "returnToStock" }));
+
+    const confirmBtn = screen.getByRole("button", { name: "returnToStock" });
+    expect(confirmBtn).toBeDisabled();
+
+    await user.click(await screen.findByText("Room 101"));
+    expect(confirmBtn).not.toBeDisabled();
+
+    await user.click(confirmBtn);
 
     await waitFor(() =>
-      expect(mockFetch).toHaveBeenCalledWith("/api/assets/a1/return-to-stock", { method: "POST" })
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/assets/a1/return-to-stock",
+        expect.objectContaining({ method: "POST" })
+      )
     );
+    const body = JSON.parse(
+      mockFetch.mock.calls.find((c) => c[0] === "/api/assets/a1/return-to-stock")![1].body
+    );
+    expect(body.locationId).toBe("loc-1");
     await waitFor(() => expect(onRemoved).toHaveBeenCalledWith("stock"));
   });
 

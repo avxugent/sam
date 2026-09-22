@@ -6,6 +6,9 @@ vi.mock("@/lib/prisma", () => ({
     asset: {
       findUnique: vi.fn(),
     },
+    location: {
+      findUnique: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
 }));
@@ -20,6 +23,7 @@ import { POST } from "@/app/api/assets/bulk-return-to-stock/route";
 
 const mockAuth = vi.mocked(auth);
 const mockFindUnique = vi.mocked(prisma.asset.findUnique);
+const mockLocationFindUnique = vi.mocked(prisma.location.findUnique);
 const mockTransaction = vi.mocked(prisma.$transaction);
 const mockLogAudit = vi.mocked(logAudit);
 
@@ -55,6 +59,7 @@ const VALID_ASSET = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockLocationFindUnique.mockResolvedValue({ id: "loc-1" } as never);
   mockTransaction.mockImplementation(async (fn) =>
     fn({
       stockItem: { create: vi.fn().mockResolvedValue({ id: "stock-1", model: "Dell Monitor" }) },
@@ -66,26 +71,41 @@ beforeEach(() => {
 describe("POST /api/assets/bulk-return-to-stock", () => {
   it("returns 401 when unauthenticated", async () => {
     mockAuth.mockResolvedValue(null as never);
-    const res = await POST(makeReq({ ids: ["a1"] }));
+    const res = await POST(makeReq({ ids: ["a1"], locationId: "loc-1" }));
     expect(res.status).toBe(401);
   });
 
   it("returns 403 for viewers", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
-    const res = await POST(makeReq({ ids: ["a1"] }));
+    const res = await POST(makeReq({ ids: ["a1"], locationId: "loc-1" }));
     expect(res.status).toBe(403);
   });
 
   it("returns 400 for an empty ids array", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
-    const res = await POST(makeReq({ ids: [] }));
+    const res = await POST(makeReq({ ids: [], locationId: "loc-1" }));
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when ids exceeds the 200-item cap", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
-    const res = await POST(makeReq({ ids: Array.from({ length: 201 }, (_, i) => `id-${i}`) }));
+    const res = await POST(makeReq({ ids: Array.from({ length: 201 }, (_, i) => `id-${i}`), locationId: "loc-1" }));
     expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when locationId is missing", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    const res = await POST(makeReq({ ids: ["a1"] }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when the location does not exist", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockLocationFindUnique.mockResolvedValue(null as never);
+    const res = await POST(makeReq({ ids: ["a1"], locationId: "bad-loc" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/location/i);
   });
 
   it("skip-and-reports not-found, missing-model, and already-decommissioned assets while succeeding on valid ones", async () => {
@@ -97,7 +117,7 @@ describe("POST /api/assets/bulk-return-to-stock", () => {
       return { ...VALID_ASSET, id };
     }) as never);
 
-    const res = await POST(makeReq({ ids: ["ok-1", "missing", "no-model", "already-done"] }));
+    const res = await POST(makeReq({ ids: ["ok-1", "missing", "no-model", "already-done"], locationId: "loc-1" }));
     expect(res.status).toBe(200);
     const body = await res.json();
 

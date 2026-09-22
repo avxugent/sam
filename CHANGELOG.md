@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.16] - 2026-09-22
+
+### Changed
+
+- **Return-to-stock now requires picking a storage location** — both the single-asset and bulk return-to-stock flows force a storage location choice before confirming. Previously the returned item's location was left unset in stock, so it couldn't be found in a location-based search.
+
+---
+
 ## [2.0.15] - 2026-09-21
 
 ### Fixed

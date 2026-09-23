@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.17] - 2026-09-23
+
+### Fixed
+
+- **Return-to-stock location picker listed every location instead of just stocked ones** — the picker introduced in 2.0.16 defaulted to the full location tree. It now defaults to locations that already hold stock, matching the picker used when adding a stock item directly, with a "show all locations" option to reach the rest.
+
+---
+
 ## [2.0.16] - 2026-09-22
 
 ### Changed

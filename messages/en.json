@@ -163,6 +163,7 @@
     "currentLocation": "Current location",
     "searchLocations": "Search locations…",
     "noLocationsFound": "No locations found",
+    "showAllLocations": "Show all locations",
     "moveToLocation": "Move asset",
     "moveAssetButton": "Move",
     "assetDetails": "Asset Details",

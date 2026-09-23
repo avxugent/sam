@@ -15,7 +15,10 @@ function jsonResp(data: unknown, ok = true) {
   return { ok, json: async () => data };
 }
 
-const LOCATION_TREE = [{ id: "loc-1", name: "Room 101", parentId: null }];
+const LOCATION_TREE = [
+  { id: "loc-1", name: "Room 101", parentId: null, _count: { stockItems: 1 } },
+  { id: "loc-2", name: "Room 202", parentId: null, _count: { stockItems: 0 } },
+];
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -67,6 +70,17 @@ describe("<BulkReturnToStockDialog />", () => {
       })
     );
     expect(onComplete).toHaveBeenCalledWith({ succeeded: ["a1", "a2"], failed: [] });
+  });
+
+  it("only locations already holding stock show by default; 'show all locations' reveals the rest", async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await screen.findByText("Room 101");
+    expect(screen.queryByText("Room 202")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "showAllLocations" }));
+    expect(screen.getByText("Room 202")).toBeInTheDocument();
   });
 
   it("shows a results view listing skipped assets on partial failure", async () => {

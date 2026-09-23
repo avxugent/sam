@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { Package, ArchiveX, Trash2, ChevronRight, MapPin, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,15 +29,21 @@ type LocationNode = {
   name: string;
   parentId: string | null;
   children?: LocationNode[];
+  _count?: { stockItems: number };
 };
 
-type FlatLocation = { id: string; name: string; breadcrumb: string };
+type FlatLocation = { id: string; name: string; breadcrumb: string; hasStock: boolean };
 
 function flattenLocations(nodes: LocationNode[], ancestors: string[] = []): FlatLocation[] {
   const result: FlatLocation[] = [];
   for (const node of nodes) {
     const path = [...ancestors, node.name];
-    result.push({ id: node.id, name: node.name, breadcrumb: path.join(" › ") });
+    result.push({
+      id: node.id,
+      name: node.name,
+      breadcrumb: path.join(" › "),
+      hasStock: (node._count?.stockItems ?? 0) > 0,
+    });
     if (node.children?.length) result.push(...flattenLocations(node.children, path));
   }
   return result;
@@ -103,6 +110,7 @@ export function RemoveAssetDialog({ assetId, assetName, children, onRemoved }: P
   const [locations, setLocations] = useState<FlatLocation[]>([]);
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [showAllLocations, setShowAllLocations] = useState(false);
 
   function reset() {
     setStep("choose");
@@ -111,6 +119,7 @@ export function RemoveAssetDialog({ assetId, assetName, children, onRemoved }: P
     setDecommissionNote("");
     setLocationQuery("");
     setSelectedLocationId("");
+    setShowAllLocations(false);
   }
 
   function handleOpenChange(next: boolean) {
@@ -180,6 +189,10 @@ export function RemoveAssetDialog({ assetId, assetName, children, onRemoved }: P
     finish("delete");
   }
 
+  const filteredLocations = locations
+    .filter((l) => showAllLocations || l.hasStock || l.id === selectedLocationId)
+    .filter((l) => l.breadcrumb.toLowerCase().includes(locationQuery.toLowerCase()));
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -239,41 +252,47 @@ export function RemoveAssetDialog({ assetId, assetName, children, onRemoved }: P
                   className="pl-8 h-9 text-[13px]"
                 />
               </div>
+              <label htmlFor="ra-show-all-locations" className="flex items-center gap-1.5 text-[12px] text-[#64748b] cursor-pointer">
+                <Checkbox
+                  id="ra-show-all-locations"
+                  checked={showAllLocations}
+                  onCheckedChange={(v) => setShowAllLocations(v === true)}
+                />
+                {t("showAllLocations")}
+              </label>
               <div className="border border-[#e2e8f0] rounded-[8px] overflow-y-auto max-h-40">
-                {locations.length === 0 ? (
+                {filteredLocations.length === 0 ? (
                   <div className="flex items-center justify-center h-16 text-[12.5px] text-[#94a3b8]">
                     {t("noLocationsFound")}
                   </div>
                 ) : (
                   <ul className="divide-y divide-[#f1f5f9]">
-                    {locations
-                      .filter((l) => l.breadcrumb.toLowerCase().includes(locationQuery.toLowerCase()))
-                      .map((loc) => {
-                        const parts = loc.breadcrumb.split(" › ");
-                        const isSelected = selectedLocationId === loc.id;
-                        return (
-                          <li key={loc.id}>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedLocationId(loc.id)}
-                              className={cn(
-                                "w-full text-left px-3 py-2 flex items-center gap-1.5 transition-colors",
-                                isSelected ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#0f172a]"
-                              )}
-                            >
-                              <MapPin className={cn("h-3 w-3 flex-shrink-0", isSelected ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
-                              <span className="flex items-center gap-1 text-[12.5px] flex-wrap">
-                                {parts.map((part, i) => (
-                                  <span key={i} className="flex items-center gap-1">
-                                    {i > 0 && <ChevronRight className="h-2.5 w-2.5 opacity-40" />}
-                                    <span className={i === parts.length - 1 ? "font-medium" : "text-[#64748b]"}>{part}</span>
-                                  </span>
-                                ))}
-                              </span>
-                            </button>
-                          </li>
-                        );
-                      })}
+                    {filteredLocations.map((loc) => {
+                      const parts = loc.breadcrumb.split(" › ");
+                      const isSelected = selectedLocationId === loc.id;
+                      return (
+                        <li key={loc.id}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedLocationId(loc.id)}
+                            className={cn(
+                              "w-full text-left px-3 py-2 flex items-center gap-1.5 transition-colors",
+                              isSelected ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#0f172a]"
+                            )}
+                          >
+                            <MapPin className={cn("h-3 w-3 flex-shrink-0", isSelected ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
+                            <span className="flex items-center gap-1 text-[12.5px] flex-wrap">
+                              {parts.map((part, i) => (
+                                <span key={i} className="flex items-center gap-1">
+                                  {i > 0 && <ChevronRight className="h-2.5 w-2.5 opacity-40" />}
+                                  <span className={i === parts.length - 1 ? "font-medium" : "text-[#64748b]"}>{part}</span>
+                                </span>
+                              ))}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>

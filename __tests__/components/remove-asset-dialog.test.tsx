@@ -10,7 +10,10 @@ global.fetch = mockFetch as never;
 
 import { RemoveAssetDialog } from "@/components/assets/remove-asset-dialog";
 
-const LOCATION_TREE = [{ id: "loc-1", name: "Room 101", parentId: null }];
+const LOCATION_TREE = [
+  { id: "loc-1", name: "Room 101", parentId: null, _count: { stockItems: 1 } },
+  { id: "loc-2", name: "Room 202", parentId: null, _count: { stockItems: 0 } },
+];
 
 function mockFetchImpl(url: string) {
   if (url === "/api/locations") {
@@ -72,6 +75,18 @@ describe("<RemoveAssetDialog />", () => {
     );
     expect(body.locationId).toBe("loc-1");
     await waitFor(() => expect(onRemoved).toHaveBeenCalledWith("stock"));
+  });
+
+  it("moves to stock: only locations already holding stock show by default; 'show all locations' reveals the rest", async () => {
+    renderDialog();
+    const user = await openDialog();
+    await user.click(screen.getByText("returnToStock"));
+
+    await screen.findByText("Room 101");
+    expect(screen.queryByText("Room 202")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "showAllLocations" }));
+    expect(screen.getByText("Room 202")).toBeInTheDocument();
   });
 
   it("decommission: confirm is disabled until a disposal method is picked", async () => {

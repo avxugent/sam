@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.18] - 2026-09-29
+
+### Added
+
+- **Send assets for repair** — mark an installed asset as In Repair (with an optional note) from the asset detail page. In-repair assets are tracked on a new "In Repair" sidebar page and can be returned to stock, decommissioned, or deleted once resolved.
+- **Full asset history** — an asset's detail page now shows a timeline reconstructing its complete lifecycle, including its hops through stock (deployed, returned, redeployed), decommission, and repair.
+
+### Fixed
+
+- **Warranty period wasn't shown on the asset detail page** — the field was tracked and carried through decommission and return-to-stock/deploy, but never rendered anywhere.
+
+---
+
 ## [2.0.17] - 2026-09-23
 
 ### Fixed

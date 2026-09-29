@@ -63,6 +63,7 @@ type Asset = {
   installationDate?: Date | string | null;
   invoiceNumber?: string | null;
   invoiceDate?: Date | string | null;
+  warrantyMonths?: number | null;
   notes?: string | null;
   vaultPath?: string | null;
   ownerId?: string | null;
@@ -362,6 +363,7 @@ export function AssetDetailClient({
               <div><FieldLabel>{tField("installationDate")}</FieldLabel><FieldValue value={formatDate(asset.installationDate)} /></div>
               <div><FieldLabel>{tField("invoiceNumber")}</FieldLabel><FieldValue value={asset.invoiceNumber} /></div>
               <div><FieldLabel>{tField("invoiceDate")}</FieldLabel><FieldValue value={formatDate(asset.invoiceDate)} /></div>
+              <div><FieldLabel>{tField("warrantyMonths")}</FieldLabel><FieldValue value={asset.warrantyMonths != null ? String(asset.warrantyMonths) : null} /></div>
               <div>
                 <FieldLabel>{tField("owner")}</FieldLabel>
                 <FieldValue value={ownerName ?? (asset.ownerId ? t("deletedUser") : null)} />

@@ -308,6 +308,7 @@ export async function PUT(
     entityId: id,
     entityName: asset.model ?? asset.serialNumber ?? undefined,
     detail: Object.keys(changes).length > 0 ? { changes } : undefined,
+    lineageId: asset.lineageId,
   });
 
   return NextResponse.json(asset);
@@ -350,6 +351,7 @@ export async function DELETE(
     entityId: id,
     entityName: asset?.model ?? asset?.serialNumber ?? undefined,
     detail: Object.keys(snapshot).length > 0 ? { snapshot } : undefined,
+    lineageId: asset?.lineageId,
   });
   return NextResponse.json({ ok: true });
 }

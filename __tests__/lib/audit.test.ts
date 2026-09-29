@@ -78,6 +78,20 @@ describe("logAudit()", () => {
     );
   });
 
+  it("passes lineageId through to the created row when given", async () => {
+    await logAudit({ session: SESSION, action: "UPDATE", entityType: "Asset", entityId: "a1", lineageId: "lin-1" });
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ lineageId: "lin-1" }) })
+    );
+  });
+
+  it("omits lineageId (null) when not given", async () => {
+    await logAudit({ session: SESSION, action: "UPDATE", entityType: "Location", entityId: "l1" });
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ lineageId: null }) })
+    );
+  });
+
   it("never throws when the DB write fails", async () => {
     mockCreate.mockRejectedValue(new Error("db down"));
     await expect(

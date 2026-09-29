@@ -73,9 +73,9 @@ export async function POST(
     try { meta = JSON.parse(stockItem.metadata) as StoredMetadata; } catch { /* ignore */ }
   }
 
-  let assetIds: string[];
+  let createdAssets: { id: string; lineageId: string }[];
   try {
-    assetIds = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    createdAssets = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Owner/supplier defaults apply to every copy (deploy = creation).
       const defaults = await resolveAssetCreationDefaults(tx, {});
       const newQuantity = stockItem.quantity - quantity;
@@ -86,11 +86,21 @@ export async function POST(
         await tx.stockItem.update({ where: { id }, data: { quantity: newQuantity } });
       }
 
+      // A fresh lineage is minted per row via the Prisma default in every
+      // case except one: this deploy consumes the stock item's entire
+      // remaining quantity as a single asset. That's the only case where the
+      // new Asset is genuinely "the same physical item" the StockItem row
+      // represented (e.g. the return-to-stock -> deploy round trip for a
+      // serialized item); a partial or multi-unit deploy splits a fungible
+      // batch into unrelated new units that shouldn't share one lineageId.
+      const isFullSingleUnitDeploy = newQuantity === 0 && quantity === 1;
+
       const assets = await Promise.all(
         Array.from({ length: quantity }, (_, i) =>
           tx.asset.create({
             data: {
               locationId,
+              ...(isFullSingleUnitDeploy && { lineageId: stockItem.lineageId }),
               typeId: stockItem.typeId,
               manufacturerId: stockItem.manufacturerId,
               model: stockItem.model,
@@ -114,12 +124,12 @@ export async function POST(
                 customFields: { create: meta.customFields.map((f) => ({ key: f.key, value: f.value })) },
               }),
             },
-            select: { id: true },
+            select: { id: true, lineageId: true },
           })
         )
       );
 
-      return assets.map((a) => a.id);
+      return assets;
     });
   } catch (err: unknown) {
     if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
@@ -133,15 +143,16 @@ export async function POST(
 
   // Audit each created asset + the stock item mutation
   await Promise.all(
-    assetIds.map((assetId) =>
+    createdAssets.map((created) =>
       logAudit({
         session,
         req,
         action: "CREATE",
         entityType: "Asset",
-        entityId: assetId,
+        entityId: created.id,
         entityName: stockItem.model,
         detail: { snapshot: { "Deployed from stock": stockItem.model, "Location": location.name } },
+        lineageId: created.lineageId,
       })
     )
   );
@@ -153,7 +164,8 @@ export async function POST(
     entityId: id,
     entityName: stockItem.model,
     detail: { snapshot: { "Deployed quantity": String(quantity), "To location": location.name } },
+    lineageId: stockItem.lineageId,
   });
 
-  return NextResponse.json({ assetIds, locationId });
+  return NextResponse.json({ assetIds: createdAssets.map((a) => a.id), locationId });
 }

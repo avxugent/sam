@@ -40,7 +40,7 @@ export default async function AssetPage({
 
   // Owner / decommissioned-by are soft refs (no FK) — resolve names here so
   // deleted users degrade to a "(deleted user)" label client-side.
-  const softRefIds = [asset.ownerId, asset.decommissionedById].filter(
+  const softRefIds = [asset.ownerId, asset.decommissionedById, asset.sentForRepairById].filter(
     (v): v is string => !!v
   );
   const softRefUsers = softRefIds.length
@@ -57,6 +57,7 @@ export default async function AssetPage({
       macAddressUrlTemplate={macAddressUrlTemplate}
       ownerName={asset.ownerId ? nameById.get(asset.ownerId) ?? null : null}
       decommissionedByName={asset.decommissionedById ? nameById.get(asset.decommissionedById) ?? null : null}
+      sentForRepairByName={asset.sentForRepairById ? nameById.get(asset.sentForRepairById) ?? null : null}
     />
   );
 }

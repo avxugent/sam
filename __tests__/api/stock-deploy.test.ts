@@ -46,6 +46,7 @@ const PARAMS = Promise.resolve({ id: "item-1" });
 
 const BULK_ITEM = {
   id: "item-1",
+  lineageId: "lin-batch",
   typeId: "type-1",
   manufacturerId: "mfr-1",
   model: "HDMI Cable",
@@ -57,6 +58,7 @@ const BULK_ITEM = {
 
 const SERIALIZED_ITEM = {
   ...BULK_ITEM,
+  lineageId: "lin-serialized",
   model: "Epson Projector",
   serialNumber: "SN-EPSON-001",
   quantity: 1,
@@ -198,5 +200,75 @@ describe("POST /api/stock/[id]/deploy", () => {
     const res = await POST(req({ locationId: "loc-1", quantity: 1 }), { params: PARAMS });
     expect(res.status).toBe(200);
     expect(txDelete).toHaveBeenCalled();
+  });
+
+  it("copies the stock item's lineageId forward when deploying its entire remaining quantity as a single asset", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockLocationFindUnique.mockResolvedValue({ id: "loc-1" } as never);
+    mockStockFindUnique.mockResolvedValue(SERIALIZED_ITEM as never);
+
+    const txAssetCreate = vi.fn().mockResolvedValue({ id: "asset-new", lineageId: "lin-serialized" });
+    mockTransaction.mockImplementation(async (fn) => {
+      const tx = {
+        stockItem: { update: vi.fn(), delete: vi.fn().mockResolvedValue({}) },
+        asset: { create: txAssetCreate },
+        appSetting: { findUnique: vi.fn().mockResolvedValue(null) },
+        supplier: { findMany: vi.fn().mockResolvedValue([]) },
+      };
+      return fn(tx as never);
+    });
+
+    const res = await POST(req({ locationId: "loc-1", quantity: 1 }), { params: PARAMS });
+    expect(res.status).toBe(200);
+    expect(txAssetCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ lineageId: "lin-serialized" }) })
+    );
+  });
+
+  it("does not copy lineageId forward for a multi-unit deploy (fresh lineage per split-off unit)", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockLocationFindUnique.mockResolvedValue({ id: "loc-1" } as never);
+    mockStockFindUnique.mockResolvedValue(BULK_ITEM as never);
+
+    const txAssetCreate = vi.fn().mockResolvedValue({ id: "asset-new" });
+    mockTransaction.mockImplementation(async (fn) => {
+      const tx = {
+        stockItem: { update: vi.fn().mockResolvedValue({}), delete: vi.fn().mockResolvedValue({}) },
+        asset: { create: txAssetCreate },
+        appSetting: { findUnique: vi.fn().mockResolvedValue(null) },
+        supplier: { findMany: vi.fn().mockResolvedValue([]) },
+      };
+      return fn(tx as never);
+    });
+
+    const res = await POST(req({ locationId: "loc-1", quantity: 3 }), { params: PARAMS });
+    expect(res.status).toBe(200);
+    for (const call of txAssetCreate.mock.calls) {
+      expect((call[0] as { data: Record<string, unknown> }).data).not.toHaveProperty("lineageId");
+    }
+  });
+
+  it("does not copy lineageId forward for a partial single-unit deploy out of a larger batch (batch survives with the same lineageId)", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockLocationFindUnique.mockResolvedValue({ id: "loc-1" } as never);
+    mockStockFindUnique.mockResolvedValue(BULK_ITEM as never); // quantity: 10
+
+    const txAssetCreate = vi.fn().mockResolvedValue({ id: "asset-new" });
+    mockTransaction.mockImplementation(async (fn) => {
+      const tx = {
+        stockItem: { update: vi.fn().mockResolvedValue({}), delete: vi.fn().mockResolvedValue({}) },
+        asset: { create: txAssetCreate },
+        appSetting: { findUnique: vi.fn().mockResolvedValue(null) },
+        supplier: { findMany: vi.fn().mockResolvedValue([]) },
+      };
+      return fn(tx as never);
+    });
+
+    // Deploy just 1 of the 10 available — the batch survives (newQuantity 9),
+    // so this single split-off unit must NOT inherit the batch's lineageId.
+    const res = await POST(req({ locationId: "loc-1", quantity: 1 }), { params: PARAMS });
+    expect(res.status).toBe(200);
+    const data = (txAssetCreate.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    expect(data).not.toHaveProperty("lineageId");
   });
 });

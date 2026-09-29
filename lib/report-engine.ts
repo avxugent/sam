@@ -83,10 +83,10 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
     }
 
     if (field === "status") {
-      // Only the two enum members are valid; ignore anything else so a bad
+      // Only the enum members are valid; ignore anything else so a bad
       // value can never widen the result set.
       const status =
-        value === "INSTALLED" || value === "DECOMMISSIONED" ? value : null;
+        value === "INSTALLED" || value === "IN_REPAIR" || value === "DECOMMISSIONED" ? value : null;
       if (status && op === "eq") conditions.push({ status });
       else if (status && op === "neq") conditions.push({ status: { not: status } });
       continue;

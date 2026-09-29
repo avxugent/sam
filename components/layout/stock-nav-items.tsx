@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ArchiveX } from "lucide-react";
+import { ArchiveX, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type StockTypeNode = { id: string; name: string };
@@ -12,10 +12,12 @@ export function StockNavItems({
   stockTypes,
   stockItemCount,
   decommissionedCount,
+  inRepairCount,
 }: {
   stockTypes: StockTypeNode[];
   stockItemCount: number;
   decommissionedCount: number;
+  inRepairCount: number;
 }) {
   const t = useTranslations("nav");
   const pathname = usePathname();
@@ -24,6 +26,7 @@ export function StockNavItems({
   const isStockPath = pathname === "/stock";
   const allActive = isStockPath && !currentTypeId;
   const isDecommissioned = pathname === "/decommissioned";
+  const isInRepair = pathname === "/in-repair";
 
   return (
     <div>
@@ -77,6 +80,23 @@ export function StockNavItems({
         {decommissionedCount > 0 && (
           <span className="text-[11px] text-[#94a3b8] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
             {decommissionedCount}
+          </span>
+        )}
+      </Link>
+      <Link
+        href="/in-repair"
+        className={cn(
+          "flex items-center gap-1.5 py-[5px] pl-[40px] pr-[10px] text-[12px] select-none",
+          isInRepair
+            ? "bg-[#f1f5f9] text-[#64748b] font-semibold border-r-[3px] border-[#94a3b8]"
+            : "text-[#64748b] hover:bg-[#f8fafc]"
+        )}
+      >
+        <Wrench className={cn("h-3 w-3 flex-shrink-0", isInRepair ? "text-[#64748b]" : "text-[#94a3b8]")} />
+        <span className="flex-1 truncate">{t("inRepair")}</span>
+        {inRepairCount > 0 && (
+          <span className="text-[11px] text-[#94a3b8] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
+            {inRepairCount}
           </span>
         )}
       </Link>

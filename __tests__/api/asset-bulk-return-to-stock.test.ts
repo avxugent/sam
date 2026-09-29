@@ -41,6 +41,7 @@ function makeReq(body?: object) {
 
 const VALID_ASSET = {
   id: "ok-1",
+  lineageId: "lin-1",
   model: "Dell Monitor",
   serialNumber: "SN-001",
   typeId: "type-1",
@@ -133,5 +134,8 @@ describe("POST /api/assets/bulk-return-to-stock", () => {
     expect(mockTransaction).toHaveBeenCalledTimes(1);
     // two logAudit calls (DELETE/Asset + CREATE/StockItem) for the one success
     expect(mockLogAudit).toHaveBeenCalledTimes(2);
+    expect(mockLogAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ entityType: "Asset", action: "DELETE", lineageId: "lin-1" })
+    );
   });
 });

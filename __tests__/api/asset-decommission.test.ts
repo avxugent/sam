@@ -39,8 +39,9 @@ function reinstateReq() {
 }
 
 const PARAMS = Promise.resolve({ id: "asset-1" });
-const INSTALLED_ASSET = { id: "asset-1", model: "Dell Monitor", status: "INSTALLED", location: { name: "Room 205", fiNumber: "14.10.100.205" } };
-const DECOMMISSIONED_ASSET = { id: "asset-1", model: "Dell Monitor", status: "DECOMMISSIONED", location: { name: "Room 205", fiNumber: null } };
+const INSTALLED_ASSET = { id: "asset-1", model: "Dell Monitor", status: "INSTALLED", lineageId: "lin-1", location: { name: "Room 205", fiNumber: "14.10.100.205" } };
+const DECOMMISSIONED_ASSET = { id: "asset-1", model: "Dell Monitor", status: "DECOMMISSIONED", lineageId: "lin-1", location: { name: "Room 205", fiNumber: null } };
+const IN_REPAIR_ASSET = { id: "asset-1", model: "Dell Monitor", status: "IN_REPAIR", lineageId: "lin-1", location: { name: "Room 205", fiNumber: null } };
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -154,6 +155,14 @@ describe("POST /api/assets/[id]/reinstate", () => {
     mockFindUnique.mockResolvedValue(INSTALLED_ASSET as never);
     const res = await reinstate(reinstateReq(), { params: PARAMS });
     expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for an asset that is IN_REPAIR (reinstate is not a valid exit from repair)", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    mockFindUnique.mockResolvedValue(IN_REPAIR_ASSET as never);
+    const res = await reinstate(reinstateReq(), { params: PARAMS });
+    expect(res.status).toBe(400);
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it("reinstates a decommissioned asset", async () => {

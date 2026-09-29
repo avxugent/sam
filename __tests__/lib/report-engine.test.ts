@@ -163,6 +163,11 @@ describe("translateFilters()", () => {
     expect(result).toEqual({ AND: [{ status: { not: "DECOMMISSIONED" } }] });
   });
 
+  it("translates status eq IN_REPAIR", () => {
+    const result = translateFilters([{ field: "status", op: "eq", value: "IN_REPAIR" }]);
+    expect(result).toEqual({ AND: [{ status: "IN_REPAIR" }] });
+  });
+
   it("ignores status filter with an unknown value", () => {
     const result = translateFilters([{ field: "status", op: "eq", value: "BOGUS" }]);
     expect(result).toEqual({});

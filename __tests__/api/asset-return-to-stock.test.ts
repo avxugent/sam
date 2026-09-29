@@ -44,6 +44,7 @@ const PARAMS = Promise.resolve({ id: "asset-1" });
 
 const VALID_ASSET = {
   id: "asset-1",
+  lineageId: "lin-1",
   model: "Dell Monitor",
   serialNumber: "SN-001",
   typeId: "type-1",
@@ -145,6 +146,7 @@ describe("POST /api/assets/[id]/return-to-stock", () => {
     const body = await res.json();
     expect(body.stockItemId).toBe("stock-1");
     expect(capturedData.locationId).toBe("loc-1");
+    expect(capturedData.lineageId).toBe("lin-1");
   });
 
   it("serializes mac addresses and custom fields into metadata", async () => {

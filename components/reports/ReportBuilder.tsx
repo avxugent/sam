@@ -135,6 +135,7 @@ export function ReportBuilder({
 
   const assetStatusOptions: AssetOption[] = [
     { id: "INSTALLED", name: tField("installed") },
+    { id: "IN_REPAIR", name: tField("inRepair") },
     { id: "DECOMMISSIONED", name: tField("decommissioned") },
   ];
 

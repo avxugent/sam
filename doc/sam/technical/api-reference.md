@@ -28,9 +28,11 @@ All API routes return `NextResponse.json(...)`. Auth and role checks happen insi
 | `GET` | `/api/assets/[id]` | VIEWER | Get asset detail |
 | `PUT` | `/api/assets/[id]` | EDITOR | Update asset |
 | `DELETE` | `/api/assets/[id]` | EDITOR | Delete asset |
-| `POST` | `/api/assets/[id]/decommission` | EDITOR | Mark asset decommissioned. Body: `{ disposalMethod: WIPED\|DESTROYED\|RETURNED\|RESOLD\|OTHER (required), note? }`. Also records who decommissioned it |
-| `POST` | `/api/assets/[id]/reinstate` | EDITOR | Restore decommissioned asset |
-| `POST` | `/api/assets/[id]/return-to-stock` | EDITOR | Move asset back to stock. Body: `{ locationId (required, must reference an existing location) }` |
+| `POST` | `/api/assets/[id]/decommission` | EDITOR | Mark asset decommissioned. Body: `{ disposalMethod: WIPED\|DESTROYED\|RETURNED\|RESOLD\|OTHER (required), note? }`. Also records who decommissioned it. Allowed from INSTALLED or IN_REPAIR; clears any repair fields |
+| `POST` | `/api/assets/[id]/reinstate` | ADMIN | Restore a decommissioned asset to INSTALLED |
+| `POST` | `/api/assets/[id]/return-to-stock` | EDITOR | Move asset back to stock. Body: `{ locationId (required, must reference an existing location) }`. Allowed from INSTALLED or IN_REPAIR |
+| `POST` | `/api/assets/[id]/send-for-repair` | EDITOR | Mark an INSTALLED asset IN_REPAIR. Body: `{ note? }`. Records who sent it and when (`repairStartedAt`). There is no "return from repair" endpoint — an IN_REPAIR asset exits via return-to-stock, decommission, or delete |
+| `GET` | `/api/assets/[id]/history` | VIEWER | Full audit trail for this asset's `lineageId`, across Asset ↔ StockItem conversions — see [Database → Asset history](database.md#asset-history) |
 | `GET` | `/api/assets/by-hostname` | Bearer token | Grafana Infinity datasource lookup |
 
 ### Asset body (create/update)

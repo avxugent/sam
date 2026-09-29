@@ -73,6 +73,7 @@ type Attachment = {
 
 type Asset = {
   id: string;
+  status: string;
   model?: string | null;
   serialNumber?: string | null;
   hostname?: string | null;

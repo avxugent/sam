@@ -16,12 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
-import { Package, ArchiveX, Trash2, ChevronRight, MapPin, Search } from "lucide-react";
+import { Package, ArchiveX, Trash2, ChevronRight, MapPin, Search, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const DISPOSAL_METHODS = ["WIPED", "DESTROYED", "RETURNED", "RESOLD", "OTHER"] as const;
 
-type RemoveAction = "stock" | "decommission" | "delete";
+type RemoveAction = "stock" | "decommission" | "delete" | "repair";
 type Step = "choose" | RemoveAction;
 
 type LocationNode = {
@@ -52,8 +52,11 @@ function flattenLocations(nodes: LocationNode[], ancestors: string[] = []): Flat
 type Props = {
   assetId: string;
   assetName: string;
+  /** Gates which options are offered: INSTALLED assets can be sent for
+   * repair; IN_REPAIR assets can only exit to stock, decommission, or delete. */
+  assetStatus: string;
   children: React.ReactNode;
-  /** Called after a successful move-to-stock, decommission, or delete. */
+  /** Called after a successful move-to-stock, decommission, send-for-repair, or delete. */
   onRemoved?: (action: RemoveAction) => void;
 };
 
@@ -96,17 +99,19 @@ function OptionRow({
   );
 }
 
-export function RemoveAssetDialog({ assetId, assetName, children, onRemoved }: Props) {
+export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, onRemoved }: Props) {
   const { toast } = useToast();
   const t = useTranslations("asset");
   const tCommon = useTranslations("common");
   const tDecom = useTranslations("decommissioned");
+  const tRepair = useTranslations("repair");
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("choose");
   const [submitting, setSubmitting] = useState(false);
   const [disposalMethod, setDisposalMethod] = useState("");
   const [decommissionNote, setDecommissionNote] = useState("");
+  const [repairNote, setRepairNote] = useState("");
   const [locations, setLocations] = useState<FlatLocation[]>([]);
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState("");
@@ -117,6 +122,7 @@ export function RemoveAssetDialog({ assetId, assetName, children, onRemoved }: P
     setSubmitting(false);
     setDisposalMethod("");
     setDecommissionNote("");
+    setRepairNote("");
     setLocationQuery("");
     setSelectedLocationId("");
     setShowAllLocations(false);
@@ -176,6 +182,23 @@ export function RemoveAssetDialog({ assetId, assetName, children, onRemoved }: P
     finish("decommission");
   }
 
+  async function handleSendForRepair() {
+    setSubmitting(true);
+    const res = await fetch(`/api/assets/${assetId}/send-for-repair`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note: repairNote || null }),
+    });
+    setSubmitting(false);
+    if (!res.ok) {
+      const err = await res.json();
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      return;
+    }
+    toast({ title: tRepair("assetSentForRepair") });
+    finish("repair");
+  }
+
   async function handleDelete() {
     setSubmitting(true);
     const res = await fetch(`/api/assets/${assetId}`, { method: "DELETE" });
@@ -204,6 +227,14 @@ export function RemoveAssetDialog({ assetId, assetName, children, onRemoved }: P
               <DialogDescription>{t("removeChooseDescription")}</DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
+              {assetStatus === "INSTALLED" && (
+                <OptionRow
+                  icon={<Wrench className="h-4 w-4 text-[#1e40af]" />}
+                  title={tRepair("sendForRepair")}
+                  description={tRepair("sendForRepairOptionDescription")}
+                  onClick={() => setStep("repair")}
+                />
+              )}
               <OptionRow
                 icon={<Package className="h-4 w-4 text-[#1e64c8]" />}
                 title={t("returnToStock")}
@@ -227,6 +258,37 @@ export function RemoveAssetDialog({ assetId, assetName, children, onRemoved }: P
             <DialogFooter>
               <Button variant="outline" onClick={() => handleOpenChange(false)}>
                 {tCommon("cancel")}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {step === "repair" && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{tRepair("sendForRepairConfirmTitle", { name: assetName })}</DialogTitle>
+              <DialogDescription>{tRepair("sendForRepairConfirmDescription")}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1">
+              <Label htmlFor="ra-repair-note" className="text-[13px]">{tRepair("repairNoteLabel")}</Label>
+              <Input
+                id="ra-repair-note"
+                value={repairNote}
+                onChange={(e) => setRepairNote(e.target.value)}
+                placeholder={tRepair("repairNotePlaceholder")}
+                maxLength={500}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStep("choose")}>
+                {tCommon("back")}
+              </Button>
+              <Button
+                onClick={handleSendForRepair}
+                disabled={submitting}
+                className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white"
+              >
+                {submitting ? tRepair("sendingForRepair") : tRepair("sendForRepair")}
               </Button>
             </DialogFooter>
           </>

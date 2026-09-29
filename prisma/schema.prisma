@@ -18,6 +18,7 @@ enum Role {
 
 enum AssetStatus {
   INSTALLED
+  IN_REPAIR
   DECOMMISSIONED
 }
 
@@ -235,6 +236,11 @@ model Supplier {
 
 model Asset {
   id                   String          @id @default(cuid())
+  // Stable identity that survives Asset <-> StockItem conversions
+  // (return-to-stock, deploy-from-stock). Fresh on brand-new creation;
+  // explicitly copied forward on every conversion route so AuditLog.lineageId
+  // can reconstruct full history across table hops. See lib/asset-lifecycle.ts.
+  lineageId            String          @default(cuid())
   locationId           String
   typeId               String?
   manufacturerId       String?
@@ -271,6 +277,10 @@ model Asset {
   decommissionedById   String?
   lastLocationName     String?         @db.VarChar(255)
   lastLocationFiNumber String?         @db.VarChar(20)
+  repairStartedAt      DateTime?
+  repairNote           String?         @db.VarChar(500)
+  // Soft ref to User (no FK), survives user deletion.
+  sentForRepairById    String?
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 
@@ -290,6 +300,7 @@ model Asset {
   @@index([supplierId])
   @@index([endOfSupportDate])
   @@index([ownerId])
+  @@index([lineageId])
   @@map("assets")
 }
 
@@ -353,6 +364,12 @@ model AuditLog {
   detail      String?   @db.Text // JSON
   ipAddress   String?
   userAgent   String?
+  // Populated on Asset/StockItem lifecycle events so a single physical
+  // item's full history can be reconstructed across delete/recreate hops
+  // (return-to-stock, deploy-from-stock) via
+  // `SELECT * FROM audit_logs WHERE lineageId = ? ORDER BY timestamp`.
+  // Null for all other entity types and for audit rows predating this field.
+  lineageId   String?
   // Set after the row is successfully forwarded to the configured syslog
   // server. NULL = not yet forwarded (eligible for the catch-up job).
   forwardedAt DateTime?
@@ -360,6 +377,7 @@ model AuditLog {
   @@index([timestamp])
   @@index([userId])
   @@index([entityType])
+  @@index([lineageId])
   @@index([forwardedAt])
   @@map("audit_logs")
 }
@@ -439,6 +457,10 @@ model MaintenancePreset {
 
 model StockItem {
   id                    String    @id @default(cuid())
+  // See Asset.lineageId — copied forward from the source Asset on
+  // return-to-stock; a fresh id is minted for genuinely new stock (manual
+  // create, CSV-imported bulk stock).
+  lineageId             String    @default(cuid())
   typeId                String
   manufacturerId        String?
   model                 String    @db.VarChar(255)
@@ -465,5 +487,6 @@ model StockItem {
   @@index([typeId])
   @@index([manufacturerId])
   @@index([locationId])
+  @@index([lineageId])
   @@map("stock_items")
 }

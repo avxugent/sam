@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
         entityId: id,
         entityName: asset.model ?? undefined,
         detail: { snapshot: { "Returned to stock": asset.model, "From location": asset.location.name } },
+        lineageId: asset.lineageId,
       }),
       logAudit({
         session,
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest) {
         entityId: stockItem.id,
         entityName: stockItem.model,
         detail: { snapshot: { "Returned from asset at": asset.location.name } },
+        lineageId: stockItem.lineageId,
       }),
     ]);
 

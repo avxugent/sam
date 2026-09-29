@@ -221,6 +221,7 @@ export async function POST(
         ...(asset.quantity !== 1 ? { "Quantity": asset.quantity } : {}),
       },
     },
+    lineageId: asset.lineageId,
   });
 
   return NextResponse.json(asset, { status: 201 });

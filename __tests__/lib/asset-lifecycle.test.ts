@@ -2,9 +2,11 @@ import { describe, it, expect } from "vitest";
 import {
   AssetLifecycleError,
   assertDecommissionable,
+  assertRepairable,
   assertReturnableToStock,
   buildReturnToStockStockItemData,
   buildDecommissionUpdateData,
+  buildSendForRepairUpdateData,
 } from "@/lib/asset-lifecycle";
 
 describe("assertDecommissionable", () => {
@@ -19,6 +21,34 @@ describe("assertDecommissionable", () => {
 
   it("does not throw for an installed asset", () => {
     expect(() => assertDecommissionable({ status: "INSTALLED" })).not.toThrow();
+  });
+
+  it("does not throw for an asset in repair", () => {
+    expect(() => assertDecommissionable({ status: "IN_REPAIR" })).not.toThrow();
+  });
+});
+
+describe("assertRepairable", () => {
+  it("throws ALREADY_DECOMMISSIONED when already decommissioned", () => {
+    try {
+      assertRepairable({ status: "DECOMMISSIONED" });
+      expect.unreachable();
+    } catch (err) {
+      expect((err as AssetLifecycleError).code).toBe("ALREADY_DECOMMISSIONED");
+    }
+  });
+
+  it("throws ALREADY_IN_REPAIR when already in repair", () => {
+    try {
+      assertRepairable({ status: "IN_REPAIR" });
+      expect.unreachable();
+    } catch (err) {
+      expect((err as AssetLifecycleError).code).toBe("ALREADY_IN_REPAIR");
+    }
+  });
+
+  it("does not throw for an installed asset", () => {
+    expect(() => assertRepairable({ status: "INSTALLED" })).not.toThrow();
   });
 });
 
@@ -55,10 +85,17 @@ describe("assertReturnableToStock", () => {
       assertReturnableToStock({ status: "INSTALLED", typeId: "t1", model: "Dell" })
     ).not.toThrow();
   });
+
+  it("does not throw for an asset in repair (repair -> stock is a valid exit)", () => {
+    expect(() =>
+      assertReturnableToStock({ status: "IN_REPAIR", typeId: "t1", model: "Dell" })
+    ).not.toThrow();
+  });
 });
 
 describe("buildReturnToStockStockItemData", () => {
   const BASE = {
+    lineageId: "lineage-1",
     typeId: "t1",
     manufacturerId: "m1",
     model: "Dell Monitor",
@@ -73,9 +110,10 @@ describe("buildReturnToStockStockItemData", () => {
     customFields: [],
   };
 
-  it("builds the create payload with quantity locked to 1, the given locationId, and no metadata when nothing extra is set", () => {
+  it("builds the create payload with quantity locked to 1, the given locationId, the source lineageId, and no metadata when nothing extra is set", () => {
     const data = buildReturnToStockStockItemData(BASE, "loc-1");
     expect(data).toMatchObject({
+      lineageId: "lineage-1",
       typeId: "t1",
       manufacturerId: "m1",
       model: "Dell Monitor",
@@ -132,5 +170,36 @@ describe("buildDecommissionUpdateData", () => {
       location: { name: "Room 101", fiNumber: null },
     });
     expect(data.lastLocationFiNumber).toBeNull();
+  });
+
+  it("clears any stale repair fields (harmless no-op from INSTALLED, required when decommissioning from IN_REPAIR)", () => {
+    const data = buildDecommissionUpdateData({
+      note: "Repair failed, written off",
+      disposalMethod: "DESTROYED",
+      actorId: "u1",
+      location: { name: "Room 101", fiNumber: null },
+    });
+    expect(data).toMatchObject({
+      repairStartedAt: null,
+      repairNote: null,
+      sentForRepairById: null,
+    });
+  });
+});
+
+describe("buildSendForRepairUpdateData", () => {
+  it("sets status, repairStartedAt, note, and actor", () => {
+    const data = buildSendForRepairUpdateData({ note: "Sent to vendor", actorId: "u1" });
+    expect(data).toMatchObject({
+      status: "IN_REPAIR",
+      repairNote: "Sent to vendor",
+      sentForRepairById: "u1",
+    });
+    expect(data.repairStartedAt).toBeInstanceOf(Date);
+  });
+
+  it("allows a null note", () => {
+    const data = buildSendForRepairUpdateData({ note: null, actorId: "u1" });
+    expect(data.repairNote).toBeNull();
   });
 });

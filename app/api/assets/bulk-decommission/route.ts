@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   for (const id of ids) {
     const existing = await prisma.asset.findUnique({
       where: { id },
-      select: { model: true, status: true, location: { select: { name: true, fiNumber: true } } },
+      select: { model: true, status: true, lineageId: true, location: { select: { name: true, fiNumber: true } } },
     });
     if (!existing) {
       failed.push({ id, reason: "NOT_FOUND" });
@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
         disposalMethod,
         lastLocation: existing.location.name,
       },
+      lineageId: existing.lineageId,
     });
 
     succeeded.push(id);

@@ -27,6 +27,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 type Asset = {
   id: string;
+  status: string;
   model?: string | null;
   serialNumber?: string | null;
   hostname?: string | null;
@@ -417,6 +418,7 @@ export function AssetTable({
                           <RemoveAssetDialog
                             assetId={asset.id}
                             assetName={asset.model || asset.hostname || asset.serialNumber || asset.id}
+                            assetStatus={asset.status}
                             onRemoved={() => handleRemoved(asset.id)}
                           >
                             <Button

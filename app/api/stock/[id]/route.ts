@@ -132,6 +132,7 @@ export async function PUT(
     entityId: id,
     entityName: item.model,
     detail: Object.keys(changes).length > 0 ? { changes } : undefined,
+    lineageId: item.lineageId,
   });
 
   return NextResponse.json(item);
@@ -146,7 +147,7 @@ export async function DELETE(
   if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const item = await prisma.stockItem.findUnique({ where: { id }, select: { model: true } });
+  const item = await prisma.stockItem.findUnique({ where: { id }, select: { model: true, lineageId: true } });
   if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.stockItem.delete({ where: { id } });
@@ -158,6 +159,7 @@ export async function DELETE(
     entityType: "StockItem",
     entityId: id,
     entityName: item.model,
+    lineageId: item.lineageId,
   });
 
   return NextResponse.json({ ok: true });

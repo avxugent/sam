@@ -25,6 +25,7 @@ export async function POST(
     select: {
       model: true,
       status: true,
+      lineageId: true,
       location: { select: { name: true, fiNumber: true } },
     },
   });
@@ -67,6 +68,7 @@ export async function POST(
       disposalMethod: parsed.data.disposalMethod,
       lastLocation: existing.location.name,
     },
+    lineageId: existing.lineageId,
   });
 
   return NextResponse.json(asset);

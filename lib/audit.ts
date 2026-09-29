@@ -21,6 +21,7 @@ export async function logAudit({
   entityId,
   entityName,
   detail,
+  lineageId,
 }: {
   session: Session | null;
   /** Attribution when no session exists yet (authorize()/auth events) */
@@ -31,6 +32,8 @@ export async function logAudit({
   entityId?: string;
   entityName?: string;
   detail?: Record<string, unknown>;
+  /** Asset/StockItem lineage grouping key — see Asset.lineageId. */
+  lineageId?: string;
 }): Promise<void> {
   try {
     const ip = req
@@ -49,6 +52,7 @@ export async function logAudit({
         entityId: entityId ?? null,
         entityName: entityName ?? null,
         detail: detail ? JSON.stringify(detail) : null,
+        lineageId: lineageId ?? null,
         ipAddress: ip,
         userAgent,
       },

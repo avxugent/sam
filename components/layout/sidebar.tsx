@@ -38,6 +38,7 @@ type SidebarProps = {
   stockItemCount?: number;
   stockTypes?: StockTypeNode[];
   decommissionedCount?: number;
+  inRepairCount?: number;
   appTitle?: string;
   logoUrl?: string | null;
 };
@@ -171,10 +172,10 @@ function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
 }
 
 
-export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount = 0, stockTypes = [], decommissionedCount = 0, appTitle = "SAM", logoUrl = null }: SidebarProps) {
+export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount = 0, stockTypes = [], decommissionedCount = 0, inRepairCount = 0, appTitle = "SAM", logoUrl = null }: SidebarProps) {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const isStockPath = pathname === "/stock" || pathname.startsWith("/stock") || pathname === "/decommissioned";
+  const isStockPath = pathname === "/stock" || pathname.startsWith("/stock") || pathname === "/decommissioned" || pathname === "/in-repair";
 
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
   const totalAssets = locationTree.reduce((sum, loc) => sum + (assetCountMap[loc.id] ?? 0), 0);
@@ -184,7 +185,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
   const [locationOpen, setLocationOpen] = useState(!isStockPath);
   const [stockOpen, setStockOpen] = useState(isStockPath);
 
-  const hasStockTypes = stockTypes.length > 0 || decommissionedCount > 0;
+  const hasStockTypes = stockTypes.length > 0 || decommissionedCount > 0 || inRepairCount > 0;
 
   function openLocations() {
     setLocationOpen(true);
@@ -349,6 +350,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
                 stockTypes={stockTypes}
                 stockItemCount={stockItemCount}
                 decommissionedCount={decommissionedCount}
+                inRepairCount={inRepairCount}
               />
             </Suspense>
           )}

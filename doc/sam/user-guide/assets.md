@@ -20,6 +20,7 @@ The asset detail page shows:
 - Vault credentials path (if configured)
 - Attachments
 - Work log
+- History — every lifecycle event for this physical item, including its hops through stock (deployed, returned, redeployed), decommission, and repair
 
 ## Creating an asset
 
@@ -60,7 +61,7 @@ When a device is retired, decommission it instead of deleting it. This preserves
 3. Optionally enter a reason or note.
 4. Click **Confirm**.
 
-Decommissioned assets move to the **Decommissioned** section (accessible from the sidebar). They keep their last location name for reference.
+Decommissioned assets move to the **Decommissioned** section (accessible from the sidebar). They keep their last location name for reference. An asset currently sent for repair can also be decommissioned directly.
 
 > Requires Editor or Admin role.
 
@@ -83,7 +84,23 @@ If a device needs to go back to spare inventory without being decommissioned:
 3. Pick the storage location the item is physically going to — this is required before the return can be confirmed.
 4. The asset is moved to the Stock inventory at that location and removed from its location.
 
+An asset currently sent for repair can also be returned to stock — it's not limited to installed assets.
+
 > Requires Editor or Admin role.
+
+## Sending an asset for repair
+
+When a device needs off-site or vendor repair but isn't being retired:
+
+1. Open the asset detail page.
+2. Click **Send for repair** and optionally enter a note (e.g. supplier, RMA number).
+3. Confirm.
+
+The asset is marked **In Repair** and removed from its location's active asset list; a banner on its detail page shows when it was sent and by whom. It does **not** automatically return to its location — once repaired, return it to stock (to redeploy later) or decommission it if it can't be fixed.
+
+All assets currently in repair are listed on the **In Repair** page in the sidebar.
+
+> Requires Editor or Admin role. Only available for installed assets — an asset already in repair or decommissioned can't be sent again.
 
 ## Bulk actions
 

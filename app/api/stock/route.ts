@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
         "Quantity": String(item.quantity),
       },
     },
+    lineageId: item.lineageId,
   });
 
   return NextResponse.json(item, { status: 201 });

@@ -73,9 +73,10 @@ export default async function DashboardLayout({
 
   const assetCountMap = await getRecursiveAssetCounts();
 
-  const [stockItemCount, decommissionedCount, stockTypes, brandingSettings] = await Promise.all([
+  const [stockItemCount, decommissionedCount, inRepairCount, stockTypes, brandingSettings] = await Promise.all([
     prisma.stockItem.count().catch(() => 0),
     prisma.asset.count({ where: { status: "DECOMMISSIONED" } }).catch(() => 0),
+    prisma.asset.count({ where: { status: "IN_REPAIR" } }).catch(() => 0),
     prisma.assetType.findMany({
       where: { stockItems: { some: {} } },
       select: { id: true, name: true },
@@ -125,6 +126,7 @@ export default async function DashboardLayout({
           stockItemCount={stockItemCount}
           stockTypes={stockTypes}
           decommissionedCount={decommissionedCount}
+          inRepairCount={inRepairCount}
           appTitle={appTitle}
           logoUrl={logoUrl}
         />

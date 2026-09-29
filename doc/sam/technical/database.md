@@ -23,6 +23,7 @@ VIEWER  → read-only access to all data
 
 ```
 INSTALLED       → active, in-place asset
+IN_REPAIR       → sent out for repair; not physically at its location
 DECOMMISSIONED  → retired asset (kept in DB for audit history)
 ```
 
@@ -216,6 +217,7 @@ The core entity — a physical device installed in a location.
 | Field | Type | Notes |
 |---|---|---|
 | `id` | string (cuid) | Primary key |
+| `lineageId` | string (cuid) | Stable identity that survives Asset ↔ StockItem conversions (return-to-stock, deploy-from-stock). Fresh on brand-new creation; copied forward on every conversion route so `AuditLog.lineageId` can reconstruct one physical item's full history across table hops. See [Asset history](#asset-history) |
 | `locationId` | string | FK to Location |
 | `typeId` | string? | FK to AssetType |
 | `manufacturerId` | string? | FK to Manufacturer |
@@ -232,12 +234,15 @@ The core entity — a physical device installed in a location.
 | `criticality` | Criticality? | Per-asset override; `null` = inherit `AssetType.defaultCriticality` |
 | `endOfSupportDate` | Date? | Vendor end-of-support; past dates flag the asset on the compliance dashboard |
 | `supplierId` | string? | FK to Supplier; auto-assigned from the active default window at creation when not provided |
-| `status` | AssetStatus | INSTALLED or DECOMMISSIONED |
+| `status` | AssetStatus | INSTALLED, IN_REPAIR, or DECOMMISSIONED |
 | `decommissionedAt` | DateTime? | Set on decommission |
 | `disposalMethod` | DisposalMethod? | Required at decommission (disposal evidence) |
 | `decommissionedById` | string? | Who decommissioned — soft ref to User (no FK) |
 | `lastLocationName` | string? | Snapshot of location name at decommission |
 | `lastLocationFiNumber` | string? | Snapshot of FI number at decommission |
+| `repairStartedAt` | DateTime? | Set when sent for repair; cleared on decommission |
+| `repairNote` | string? | Optional note entered when sent for repair |
+| `sentForRepairById` | string? | Who sent it for repair — soft ref to User (no FK) |
 
 Assets with `hostname` are included in Prometheus Service Discovery output.
 
@@ -246,6 +251,10 @@ A hostname implies a MAC address is required (enforced via `superRefine()` in bo
 `hostname` carries a unique constraint across **all** assets regardless of `status` — a decommissioned asset keeps its hostname permanently (it is never reassigned to another asset), preserving an audit trail. Hostnames are also validated against the asset's type's `hostnamePattern` when set, falling back to a generic FQDN check otherwise. Attempting to reuse a hostname already assigned to another asset returns `409`.
 
 "Total assets" figures shown for a location (sidebar tree, location list, location detail, search) sum `quantity` across matching rows rather than counting rows — a single row with `quantity=20` (a box of batteries) counts as 20 assets. This is enforced via `superRefine()` in both the form and the API: `quantity` must be `1` whenever the asset has a serial number, hostname, or MAC address.
+
+#### Asset history
+
+`Asset.lineageId` and `StockItem.lineageId` are copied forward on every conversion route (return-to-stock, deploy-from-stock), and stamped onto the corresponding `AuditLog.lineageId`. A single physical item's full history — across its hops between the `assets` and `stock_items` tables — is `SELECT * FROM audit_logs WHERE lineageId = ? ORDER BY timestamp`, exposed via `GET /api/assets/[id]/history`. A brand-new asset or stock item gets a fresh `lineageId`; a full single-unit deploy of a stock item (the only case where the new asset is genuinely "the same physical item") carries the stock item's `lineageId` forward instead. Rows predating this field, and audit rows for other entity types, have `lineageId = null` — run `scripts/backfill-lineage-ids.mjs` once after adding the column to assign existing rows a distinct id.
 
 ---
 
@@ -311,6 +320,7 @@ Immutable record of every create, update, delete, import, and export action.
 | `entityId` | string | ID of the affected record |
 | `entityName` | string | Human-readable name at time of action |
 | `detail` | JSON? | Before/after diff or import summary |
+| `lineageId` | string? | Populated on Asset/StockItem lifecycle events — see [Asset history](#asset-history). `null` for other entity types and for rows predating this field |
 | `ipAddress` | string? | Client IP |
 | `userAgent` | string? | Browser user-agent |
 | `forwardedAt` | DateTime? | When forwarded to syslog (null = pending) |
@@ -393,6 +403,7 @@ Pre-deployment inventory — hardware received but not yet installed.
 | Field | Type | Notes |
 |---|---|---|
 | `id` | string (cuid) | Primary key |
+| `lineageId` | string (cuid) | See `Asset.lineageId` — copied forward from the source Asset on return-to-stock; a fresh id is minted for genuinely new stock (manual create, CSV-imported bulk stock) |
 | `typeId` | string? | FK to AssetType |
 | `manufacturerId` | string? | FK to Manufacturer |
 | `model` | string? | Model name |
@@ -416,6 +427,8 @@ npm run db:studio      # Open Prisma Studio at http://localhost:5555
 ```
 
 After `db push`, Prisma regenerates the client automatically. If it does not, run `npm run db:generate`.
+
+`node scripts/backfill-lineage-ids.mjs [--dry-run]` assigns a distinct `lineageId` to any pre-existing Asset/StockItem row left with `null` after the column was added — a one-off step, safe to re-run (no-op once every row has one).
 
 ---
 

@@ -18,8 +18,8 @@ global.fetch = mockFetch as never;
 import { AssetTable } from "@/components/assets/asset-table";
 
 const ASSETS = [
-  { id: "a1", model: "Model-A", serialNumber: "S1", hostname: null, quantity: 1, installationDate: null, type: { id: "t1", name: "Camera" }, manufacturer: null, macAddresses: [], _count: { attachments: 0 }, location: null },
-  { id: "a2", model: "Model-B", serialNumber: "S2", hostname: null, quantity: 1, installationDate: null, type: { id: "t2", name: "Screen" }, manufacturer: null, macAddresses: [], _count: { attachments: 0 }, location: null },
+  { id: "a1", status: "INSTALLED", model: "Model-A", serialNumber: "S1", hostname: null, quantity: 1, installationDate: null, type: { id: "t1", name: "Camera" }, manufacturer: null, macAddresses: [], _count: { attachments: 0 }, location: null },
+  { id: "a2", status: "INSTALLED", model: "Model-B", serialNumber: "S2", hostname: null, quantity: 1, installationDate: null, type: { id: "t2", name: "Screen" }, manufacturer: null, macAddresses: [], _count: { attachments: 0 }, location: null },
 ];
 
 beforeEach(() => vi.clearAllMocks());

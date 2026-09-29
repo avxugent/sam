@@ -27,6 +27,7 @@ Every SAM user is assigned one of three roles. Your role is shown in the user me
 | Create / edit assets | — | ✓ | ✓ |
 | Move assets between locations | — | ✓ | ✓ |
 | Decommission assets | — | ✓ | ✓ |
+| Send assets for repair | — | ✓ | ✓ |
 | Upload attachments | — | ✓ | ✓ |
 | Create work logs | — | ✓ | ✓ |
 | Manage stock inventory | — | ✓ | ✓ |

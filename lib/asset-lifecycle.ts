@@ -6,6 +6,7 @@ import type { DisposalMethod, Prisma } from "@/generated/prisma/client";
  */
 export type AssetLifecycleErrorCode =
   | "ALREADY_DECOMMISSIONED"
+  | "ALREADY_IN_REPAIR"
   | "MISSING_TYPE"
   | "MISSING_MODEL";
 
@@ -21,6 +22,18 @@ export class AssetLifecycleError extends Error {
 export function assertDecommissionable(asset: { status: string }): void {
   if (asset.status === "DECOMMISSIONED") {
     throw new AssetLifecycleError("ALREADY_DECOMMISSIONED", "Asset is already decommissioned.");
+  }
+}
+
+export function assertRepairable(asset: { status: string }): void {
+  if (asset.status === "DECOMMISSIONED") {
+    throw new AssetLifecycleError(
+      "ALREADY_DECOMMISSIONED",
+      "Decommissioned assets cannot be sent for repair."
+    );
+  }
+  if (asset.status === "IN_REPAIR") {
+    throw new AssetLifecycleError("ALREADY_IN_REPAIR", "Asset is already sent for repair.");
   }
 }
 
@@ -44,6 +57,7 @@ export function assertReturnableToStock(asset: {
 }
 
 type ReturnableAsset = {
+  lineageId: string;
   typeId: string | null;
   manufacturerId: string | null;
   model: string | null;
@@ -71,6 +85,7 @@ export function buildReturnToStockStockItemData(
   if (asset.vaultPath) metadata.vaultPath = asset.vaultPath;
 
   return {
+    lineageId: asset.lineageId,
     typeId: asset.typeId!,
     manufacturerId: asset.manufacturerId,
     model: asset.model!,
@@ -99,5 +114,21 @@ export function buildDecommissionUpdateData(params: {
     decommissionedById: params.actorId,
     lastLocationName: params.location.name,
     lastLocationFiNumber: params.location.fiNumber ?? null,
+    repairStartedAt: null,
+    repairNote: null,
+    sentForRepairById: null,
+  };
+}
+
+/** The exact `prisma.asset.update({ data })` payload for sending an asset for repair. */
+export function buildSendForRepairUpdateData(params: {
+  note: string | null;
+  actorId: string;
+}): Prisma.AssetUpdateInput {
+  return {
+    status: "IN_REPAIR",
+    repairStartedAt: new Date(),
+    repairNote: params.note,
+    sentForRepairById: params.actorId,
   };
 }

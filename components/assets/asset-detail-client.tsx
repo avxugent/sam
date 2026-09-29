@@ -36,10 +36,12 @@ import {
   FolderInput,
   RotateCcw,
   TriangleAlert,
+  History,
 } from "lucide-react";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 import { getAssetTypeIcon } from "@/lib/asset-type-icon";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
+import { AssetHistoryTimeline } from "@/components/assets/asset-history-timeline";
 
 type Attachment = {
   id: string;
@@ -75,6 +77,9 @@ type Asset = {
   decommissionNote?: string | null;
   disposalMethod?: string | null;
   decommissionedById?: string | null;
+  repairStartedAt?: Date | string | null;
+  repairNote?: string | null;
+  sentForRepairById?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
   type?: { id: string; name: string; defaultCriticality?: string | null } | null;
@@ -132,6 +137,7 @@ export function AssetDetailClient({
   macAddressUrlTemplate,
   ownerName,
   decommissionedByName,
+  sentForRepairByName,
 }: {
   asset: Asset;
   breadcrumbs: Breadcrumb[];
@@ -140,6 +146,7 @@ export function AssetDetailClient({
   macAddressUrlTemplate?: string | null;
   ownerName?: string | null;
   decommissionedByName?: string | null;
+  sentForRepairByName?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -147,8 +154,11 @@ export function AssetDetailClient({
   const tField = useTranslations("field");
   const tCommon = useTranslations("common");
   const tDecom = useTranslations("decommissioned");
+  const tRepair = useTranslations("repair");
+  const tHistory = useTranslations("history");
   const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
   const isDecommissioned = asset.status === "DECOMMISSIONED";
+  const isInRepair = asset.status === "IN_REPAIR";
   const [attachments, setAttachments] = useState(asset.attachments);
   const [moveOpen, setMoveOpen] = useState(false);
   const [reinstating, setReinstating] = useState(false);
@@ -239,6 +249,31 @@ export function AssetDetailClient({
         </div>
       )}
 
+      {/* In-repair banner */}
+      {isInRepair && (
+        <div className="flex items-start gap-3 bg-[#eff6ff] border border-[#bfdbfe] rounded-[10px] px-4 py-3">
+          <Wrench className="h-4 w-4 text-[#1e40af] mt-0.5 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-[#1e3a8a]">
+              {tRepair("bannerLabel")}
+              {asset.repairStartedAt && (
+                <span className="font-normal ml-1.5 text-[#1e40af]">
+                  · {new Date(asset.repairStartedAt).toLocaleDateString("sv-SE")}
+                </span>
+              )}
+            </p>
+            {sentForRepairByName && (
+              <p className="text-[12px] text-[#1e40af] mt-0.5">
+                {tRepair("sentForRepairBy", { name: sentForRepairByName })}
+              </p>
+            )}
+            {asset.repairNote && (
+              <p className="text-[12px] text-[#1e40af] mt-0.5">{asset.repairNote}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Page header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3 min-w-0">
@@ -264,31 +299,36 @@ export function AssetDetailClient({
 
         {canEdit && !isDecommissioned && (
           <div className="flex gap-2 flex-wrap justify-end">
-            <AssetFormDialog
-              mode="edit"
-              assetId={asset.id}
-              locationId={asset.locationId}
-              onSuccess={() => router.refresh()}
-            >
-              <Button variant="outline" size="sm" className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5">
-                <Pencil className="h-3.5 w-3.5" />
-                {tCommon("edit")}
-              </Button>
-            </AssetFormDialog>
+            {!isInRepair && (
+              <>
+                <AssetFormDialog
+                  mode="edit"
+                  assetId={asset.id}
+                  locationId={asset.locationId}
+                  onSuccess={() => router.refresh()}
+                >
+                  <Button variant="outline" size="sm" className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5">
+                    <Pencil className="h-3.5 w-3.5" />
+                    {tCommon("edit")}
+                  </Button>
+                </AssetFormDialog>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setMoveOpen(true)}
-              className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5"
-            >
-              <FolderInput className="h-3.5 w-3.5" />
-              {t("moveAssetButton")}
-            </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMoveOpen(true)}
+                  className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5"
+                >
+                  <FolderInput className="h-3.5 w-3.5" />
+                  {t("moveAssetButton")}
+                </Button>
+              </>
+            )}
 
             <RemoveAssetDialog
               assetId={asset.id}
               assetName={displayName}
+              assetStatus={asset.status}
               onRemoved={(action) => {
                 if (action === "stock") {
                   router.push("/stock");
@@ -515,6 +555,10 @@ export function AssetDetailClient({
                 </div>
               )}
             </div>
+          </InfoCard>
+
+          <InfoCard icon={<History className="h-3.5 w-3.5" />} title={tHistory("title")}>
+            <AssetHistoryTimeline assetId={asset.id} />
           </InfoCard>
 
           {attachments.length > 0 && (

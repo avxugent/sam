@@ -22,9 +22,9 @@ function mockFetchImpl(url: string) {
   return Promise.resolve({ ok: true, json: async () => ({}) });
 }
 
-function renderDialog(onRemoved = vi.fn()) {
+function renderDialog(onRemoved = vi.fn(), assetStatus = "INSTALLED") {
   render(
-    <RemoveAssetDialog assetId="a1" assetName="Recorder 1" onRemoved={onRemoved}>
+    <RemoveAssetDialog assetId="a1" assetName="Recorder 1" assetStatus={assetStatus} onRemoved={onRemoved}>
       <button>Open</button>
     </RemoveAssetDialog>
   );
@@ -43,12 +43,43 @@ beforeEach(() => {
 });
 
 describe("<RemoveAssetDialog />", () => {
-  it("shows the three choices when opened", async () => {
+  it("shows all four choices for an INSTALLED asset", async () => {
     renderDialog();
     await openDialog();
+    expect(screen.getByText("sendForRepair")).toBeInTheDocument();
     expect(screen.getByText("returnToStock")).toBeInTheDocument();
     expect(screen.getByText("decommissionAsset")).toBeInTheDocument();
     expect(screen.getByText("delete")).toBeInTheDocument();
+  });
+
+  it("hides send-for-repair for an asset already IN_REPAIR", async () => {
+    renderDialog(vi.fn(), "IN_REPAIR");
+    await openDialog();
+    expect(screen.queryByText("sendForRepair")).not.toBeInTheDocument();
+    expect(screen.getByText("returnToStock")).toBeInTheDocument();
+    expect(screen.getByText("decommissionAsset")).toBeInTheDocument();
+    expect(screen.getByText("delete")).toBeInTheDocument();
+  });
+
+  it("send for repair: posts an optional note to send-for-repair", async () => {
+    const onRemoved = renderDialog();
+    const user = await openDialog();
+    await user.click(screen.getByText("sendForRepair"));
+
+    await user.type(screen.getByLabelText("repairNoteLabel"), "Sent to vendor for screen repair");
+    await user.click(screen.getByRole("button", { name: "sendForRepair" }));
+
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/assets/a1/send-for-repair",
+        expect.objectContaining({ method: "POST" })
+      )
+    );
+    const body = JSON.parse(
+      mockFetch.mock.calls.find((c) => c[0] === "/api/assets/a1/send-for-repair")![1].body
+    );
+    expect(body.note).toBe("Sent to vendor for screen repair");
+    await waitFor(() => expect(onRemoved).toHaveBeenCalledWith("repair"));
   });
 
   it("moves to stock: confirm is disabled until a location is picked, then posts to return-to-stock", async () => {

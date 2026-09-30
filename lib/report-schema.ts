@@ -28,6 +28,7 @@ const filterFieldSchema = z.enum([
   "invoiceDate",
   "lastChanged",
   "workLogItem",
+  "locationWorkLogItem",
   "supplierId",
   "criticality",
   "endOfSupportDate",

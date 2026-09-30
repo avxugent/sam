@@ -110,6 +110,16 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
       continue;
     }
 
+    if (field === "locationWorkLogItem") {
+      // Same as workLogItem, but checks work-log entries against the asset's
+      // *location* rather than the asset itself — e.g. "Recorders in a room
+      // where this fixed task hasn't been logged", regardless of whether the
+      // log entry names a specific asset or is location-wide.
+      if (op === "hasItem" && value) conditions.push({ location: { workLogs: { some: { itemId: value } } } });
+      else if (op === "notHasItem" && value) conditions.push({ location: { workLogs: { none: { itemId: value } } } });
+      continue;
+    }
+
     if (field === "lastChanged") {
       if (op === "newerThanDays" && value) {
         const n = parseFloat(value);

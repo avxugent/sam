@@ -104,6 +104,7 @@
     "invoiceDate": "Factuurdatum",
     "notes": "Notities",
     "workLogItem": "Werklog-item",
+    "locationWorkLogItem": "Werklog-item (op locatie)",
     "macAddresses": "MAC-adressen",
     "macAddress": "MAC-adres",
     "customFields": "Aangepaste velden",

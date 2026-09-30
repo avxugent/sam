@@ -25,6 +25,7 @@ export type ReportFilterField =
   | "invoiceDate"
   | "lastChanged"
   | "workLogItem"
+  | "locationWorkLogItem"
   | "supplierId"
   | "criticality"
   | "endOfSupportDate";

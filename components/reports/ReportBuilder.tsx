@@ -31,6 +31,7 @@ const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
   invoiceDate: ["before", "after", "isNull", "isNotNull"],
   lastChanged: ["newerThanDays", "olderThanDays", "before", "after"],
   workLogItem: ["hasItem", "notHasItem"],
+  locationWorkLogItem: ["hasItem", "notHasItem"],
   supplierId: ["eq", "neq", "isNull", "isNotNull"],
   criticality: ["eq", "neq", "isNull", "isNotNull"],
   endOfSupportDate: ["before", "after", "olderThanYears", "newerThanYears", "isNull", "isNotNull"],
@@ -87,6 +88,7 @@ export function ReportBuilder({
     invoiceDate: tField("invoiceDate"),
     lastChanged: tField("lastModified"),
     workLogItem: tField("workLogItem"),
+    locationWorkLogItem: tField("locationWorkLogItem"),
     supplierId: tField("supplier"),
     criticality: tField("criticality"),
     endOfSupportDate: tField("endOfSupport"),
@@ -237,7 +239,7 @@ export function ReportBuilder({
     if (field === "manufacturerId") return manufacturers;
     if (field === "locationId") return locations;
     if (field === "status") return assetStatusOptions;
-    if (field === "workLogItem") return workLogItems;
+    if (field === "workLogItem" || field === "locationWorkLogItem") return workLogItems;
     if (field === "supplierId") return suppliers;
     if (field === "criticality") return criticalityOptions;
     return null;

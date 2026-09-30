@@ -104,6 +104,7 @@
     "invoiceDate": "Invoice Date",
     "notes": "Notes",
     "workLogItem": "Work log item",
+    "locationWorkLogItem": "Work log item (at location)",
     "macAddresses": "MAC Addresses",
     "macAddress": "MAC address",
     "customFields": "Custom Fields",

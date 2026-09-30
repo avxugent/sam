@@ -153,6 +153,31 @@ describe("translateFilters()", () => {
     });
   });
 
+  it("translates locationWorkLogItem hasItem to a location-relation some filter", () => {
+    const result = translateFilters([{ field: "locationWorkLogItem", op: "hasItem", value: "item-1" }]);
+    expect(result).toEqual({ AND: [{ location: { workLogs: { some: { itemId: "item-1" } } } }] });
+  });
+
+  it("translates locationWorkLogItem notHasItem to a location-relation none filter", () => {
+    const result = translateFilters([{ field: "locationWorkLogItem", op: "notHasItem", value: "item-1" }]);
+    expect(result).toEqual({ AND: [{ location: { workLogs: { none: { itemId: "item-1" } } } }] });
+  });
+
+  it("ignores locationWorkLogItem filter with no value", () => {
+    const result = translateFilters([{ field: "locationWorkLogItem", op: "hasItem" }]);
+    expect(result).toEqual({});
+  });
+
+  it("combines a type filter with a locationWorkLogItem filter", () => {
+    const result = translateFilters([
+      { field: "typeId", op: "eq", value: "t1" },
+      { field: "locationWorkLogItem", op: "notHasItem", value: "item-1" },
+    ]);
+    expect(result).toEqual({
+      AND: [{ typeId: "t1" }, { location: { workLogs: { none: { itemId: "item-1" } } } }],
+    });
+  });
+
   it("translates status eq INSTALLED", () => {
     const result = translateFilters([{ field: "status", op: "eq", value: "INSTALLED" }]);
     expect(result).toEqual({ AND: [{ status: "INSTALLED" }] });

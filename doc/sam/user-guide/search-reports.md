@@ -64,6 +64,7 @@ When creating a report you choose a **report type**:
 | Serial number | Contains a text string |
 | Hostname | Contains a text string; "is empty" / "is not empty" options |
 | Work log item | Whether a [fixed work log item](work-logs.md#fixed-work-log-items) *is filled in* / *is not filled in* for the asset (any work log entry tagged with that item). Combine with an asset-type filter to track a recurring task across all assets of one type. |
+| Work log item (at location) | Same as above, but checks the asset's **location** instead of the asset itself — any work log entry tagged with that item at that location counts, whether it names a specific asset or is location-wide. Combine with an asset-type filter to answer e.g. "which Recorders sit in a room where this task hasn't been logged". |
 | Supplier | Filter by supplier; "is empty" / "is not empty" options |
 | Criticality | Filter by the **effective** criticality — a per-asset override or the type default. "Is empty" finds unclassified assets |
 | End of support | Before / after a date, older/newer than N years, or "is empty" for assets without a date |

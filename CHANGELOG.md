@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.2.0] - 2026-09-30
+
+### Added
+
+- **Location-scoped work log item report filter** — asset reports can now filter by whether the asset's *location* has a fixed work log item filled in / not filled in (in addition to the existing asset-level filter), e.g. "Recorders in a room where this task hasn't been logged".
+
+### Fixed
+
+- **Schema deploys now use Prisma Migrate instead of `db push`** — `db push` recomputed a live schema diff on every deploy and aborted the whole deploy the instant that diff included an unsafe step, with no partial apply. This broke production when `Asset.lineageId`/`StockItem.lineageId` couldn't be added as a required column to an already-populated table. Schema changes now ship as committed, reviewed migrations applied via `prisma migrate deploy`, with a baseline migration matching the schema already live in production and the pending lineage/repair-status change rewritten as a safe add-nullable → backfill → tighten migration.
+
+---
+
 ## [2.1.0] - 2026-09-30
 
 ### Added

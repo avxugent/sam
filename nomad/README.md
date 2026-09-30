@@ -105,17 +105,18 @@ nomad alloc logs <alloc-id>
 
 ## First-time database setup
 
-After the first deploy, run:
+The `migrate` prestart task in `sam.nomad` runs `prisma migrate deploy` automatically before every deploy, applying any pending committed migrations from `prisma/migrations/` — nothing to run manually.
+
+To run it by hand instead (e.g. troubleshooting):
 
 ```bash
 # Find the allocation ID
 nomad job status sam
 
-# Run db:push inside the running container
-nomad alloc exec <alloc-id> npx prisma db push
+nomad alloc exec <alloc-id> npx prisma migrate deploy
 ```
 
-Or use the `migrate` prestart task in `sam.nomad` — it runs `prisma db push` automatically before every deploy.
+See `doc/sam/technical/database.md#database-scripts` for how schema changes are shipped (committed migration files, not a live diff) and why — `db push`/an ad-hoc diff aborts the whole deploy the moment it hits an unsafe step, e.g. a required column added to a table that already has rows.
 
 ---
 

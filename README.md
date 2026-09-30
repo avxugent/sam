@@ -37,7 +37,7 @@ cp .env.example .env
 ### 3. Create tables
 
 ```bash
-npm run db:push
+npm run db:migrate:deploy
 ```
 
 ### 4. Start the dev server
@@ -83,7 +83,7 @@ docker compose up -d --build
 ### 3. Create tables (first time only)
 
 ```bash
-docker compose exec app npx prisma db push
+docker compose exec app npx prisma migrate deploy
 ```
 
 ### 4. Open the app
@@ -141,11 +141,14 @@ SSO users are **auto-provisioned** on first login with the **Viewer** role. An A
 ## Database Scripts
 
 ```bash
-npm run db:push        # Push schema to DB (no migration history — use for dev)
-npm run db:migrate     # Create a migration (recommended for production)
-npm run db:generate    # Regenerate Prisma client after schema changes
-npm run db:studio      # Open Prisma Studio (visual DB browser)
+npm run db:migrate         # Create a migration from schema.prisma edits + apply it locally (dev)
+npm run db:migrate:deploy  # Apply committed, pending migrations only (prod / first-time setup)
+npm run db:push            # Push schema straight to DB, no migration file (prototyping only)
+npm run db:generate        # Regenerate Prisma client after schema changes
+npm run db:studio          # Open Prisma Studio (visual DB browser)
 ```
+
+See `doc/sam/technical/database.md#database-scripts` for the full migration workflow, including how to safely add a required column to a table that already has rows.
 
 ---
 

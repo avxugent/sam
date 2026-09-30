@@ -95,8 +95,10 @@ prisma/
 
 ## Database — Prisma + MySQL 8
 
-- **Always** run `npx prisma db push` (dev) or `npx prisma migrate dev` (prod) after changing `schema.prisma`.
-- After `db push`, Prisma regenerates the client automatically. If it does not, run `npx prisma generate`.
+- Schema changes are tracked as committed migrations under `prisma/migrations/`, not `db push`. After changing `schema.prisma`, run `npm run db:migrate` (`prisma migrate dev`) to generate and apply a migration locally, and commit the resulting `prisma/migrations/<timestamp>_<name>/` folder with the schema change. `npm run db:migrate:deploy` (`prisma migrate deploy`) applies pending migrations in prod — the Nomad job runs it automatically before every deploy (`sam.nomad`, task `migrate`). Never use `db push` to ship a real change (see `doc/sam/technical/database.md#database-scripts`).
+- **Required column with a non-DB-level default** (`@default(cuid())`, `@default(uuid())`) on a table that may already have rows: the raw diff Prisma generates will be a plain `NOT NULL` column add, which fails against a populated table. Run `npx prisma migrate dev --create-only` instead of accepting the auto-applied migration, then hand-edit `migration.sql` into three steps — add nullable, `UPDATE ... SET col = UUID() WHERE col IS NULL` to backfill, then `ALTER TABLE ... MODIFY col ... NOT NULL`. Worked example: `prisma/migrations/20260930120000_add_asset_lineage_and_repair_status/migration.sql`.
+- After a migration, Prisma regenerates the client automatically. If it does not, run `npx prisma generate`.
+- Never edit or delete an already-committed migration file — it's a permanent, ordered record. Fix forward with a new migration instead.
 - Raw SQL is used in two places: recursive CTE for asset counts (`lib/`) and the `getAllDescendantIds` helper. Use `prisma.$queryRaw` with tagged template literals — never string concatenation.
 - MySQL returns `COUNT(...)` as `BigInt`. Always wrap with `Number(row.count)`.
 - `prisma.$transaction` callbacks receive a `Prisma.TransactionClient` — type it explicitly to avoid TypeScript errors.

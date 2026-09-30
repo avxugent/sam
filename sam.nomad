@@ -238,10 +238,10 @@ EOH
         args    = ["scripts/clear-import-data.mjs", "--force"]
       }
 
-      // ── Lifecycle: run db:push before the app starts ──────────────────────
-      // Uncomment this block to automatically apply Prisma schema migrations
-      // on every deploy. Safe for db push (idempotent); use with care for
-      // migrate deploy in long-running production environments.
+      // ── Lifecycle: run migrate deploy before the app starts ────────────────
+      // This is handled by the separate "migrate" task below instead (a
+      // prestart sidecar=false task blocks the app task until it exits 0,
+      // same effect as a lifecycle hook here would have).
       //
       // lifecycle {
       //   hook    = "prestart"
@@ -251,7 +251,17 @@ EOH
     }
 
     // ── Optional: schema migration task ──────────────────────────────────────
-    // Runs `prisma db push` once before the app container starts.
+    // Runs `prisma migrate deploy` once before the app container starts.
+    // Applies only pending migrations from prisma/migrations/, in the order
+    // they're committed, each exactly once (tracked in the _prisma_migrations
+    // table) — unlike `db push`, which recomputes an automatic schema diff on
+    // every run and refuses (aborting the whole deploy) the moment that diff
+    // includes an unsafe step, e.g. a required column added to a table that
+    // already has rows. With committed migrations, that kind of step is
+    // written as a safe expand/contract migration.sql up front (add nullable,
+    // backfill, tighten to NOT NULL) instead of failing at deploy time — see
+    // prisma/migrations/20260930120000_add_asset_lineage_and_repair_status/
+    // for a worked example, and doc/sam/technical/database.md for the workflow.
     // Remove if you prefer to run migrations manually.
     task "migrate" {
       driver = "docker"
@@ -264,11 +274,10 @@ EOH
       config {
         image   = "your-registry/sam:latest"
         command = "npx"
-        // Prisma 7 removed --skip-generate from `db push` (generation is now a
-        // separate step), so passing it makes the task exit non-zero and the
-        // allocation never starts. The production image already contains a
-        // generated client, so no generate step is needed here.
-        args    = ["prisma", "db", "push"]
+        // `migrate deploy` never generates a client (unlike `db push`/`migrate
+        // dev`) — the production image already contains one, built at image
+        // build time, so no separate generate step is needed here.
+        args    = ["prisma", "migrate", "deploy"]
       }
 
       // Needs the DB_* vars to connect

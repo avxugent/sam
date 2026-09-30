@@ -72,13 +72,13 @@ See [Configuration](configuration.md) for all available variables.
 
 ---
 
-## 4. Push database schema
+## 4. Apply database schema
 
 ```bash
-npm run db:push
+npm run db:migrate:deploy
 ```
 
-This runs `prisma db push` — applies the schema to the database without creating migration files. Use this for local dev. For production use `npm run db:migrate`.
+This runs `prisma migrate deploy` — applies every committed migration from `prisma/migrations/` in order, bringing a fresh database up to date. Once you're making your own schema changes, use `npm run db:migrate` instead (creates a new migration from your `schema.prisma` edits and applies it) — see [Database → Database Scripts](database.md#database-scripts) for the full workflow.
 
 ---
 
@@ -106,8 +106,9 @@ npm test                 # run test suite (must pass before committing)
 npm run test:watch       # watch mode for TDD
 npm run test:coverage    # run tests + enforce 80% coverage threshold
 npm run test:ui          # open Vitest browser UI
-npm run db:push          # sync schema to DB (dev)
-npm run db:migrate       # create migration file (production)
+npm run db:migrate       # create + apply a migration from schema.prisma edits (dev)
+npm run db:migrate:deploy # apply committed, pending migrations only (prod / fresh DB)
+npm run db:push          # push schema straight to DB, no migration file (prototyping only)
 npm run db:generate      # regenerate Prisma client after schema change
 npm run db:studio        # open Prisma Studio (visual DB browser at localhost:5555)
 npm run lint             # ESLint

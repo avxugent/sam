@@ -36,7 +36,7 @@ RUN --mount=type=cache,target=/root/.npm \
 #
 # Installs only the `prisma` package (+ its full transitive dep tree)
 # into a separate directory so that the runner stage can invoke
-# `prisma db push` without bundling the entire node_modules tree.
+# `prisma migrate deploy` without bundling the entire node_modules tree.
 # ─────────────────────────────────────────────────────────────
 FROM base AS prisma-cli
 RUN apk add --no-cache openssl

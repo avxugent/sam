@@ -420,15 +420,22 @@ Pre-deployment inventory — hardware received but not yet installed.
 ## Database Scripts
 
 ```bash
-npm run db:push        # Sync schema → DB without migration history (dev)
-npm run db:migrate     # Create migration file + apply (production)
-npm run db:generate    # Regenerate Prisma client after schema change
-npm run db:studio      # Open Prisma Studio at http://localhost:5555
+npm run db:migrate         # Create a migration from your schema.prisma edits + apply it locally (dev)
+npm run db:migrate:deploy  # Apply committed, pending migrations only — no diffing (prod; run by the Nomad prestart "migrate" task on every deploy)
+npm run db:push            # Push schema.prisma straight to the DB with no migration file (prototyping only — see below)
+npm run db:generate        # Regenerate Prisma client after a schema change
+npm run db:studio          # Open Prisma Studio at http://localhost:5555
 ```
 
-After `db push`, Prisma regenerates the client automatically. If it does not, run `npm run db:generate`.
+Schema changes are tracked as committed SQL files under `prisma/migrations/`, applied in order — not diffed freshly against the live database on every deploy. This is deliberate: `db push`/an ad-hoc diff will refuse (and abort the *entire* deploy) the moment it hits an unsafe step, e.g. adding a required column to a table that already has rows — exactly what happened shipping `Asset.lineageId` (`@default(cuid())` is a Prisma **client-side** default, not a MySQL one, so it can't be added as `NOT NULL` to a populated table in one step). With committed migrations, that step is written as a safe *expand/contract* migration up front instead of failing mid-deploy.
 
-`node scripts/backfill-lineage-ids.mjs [--dry-run]` assigns a distinct `lineageId` to any pre-existing Asset/StockItem row left with `null` after the column was added — a one-off step, safe to re-run (no-op once every row has one).
+**Workflow for a schema change:**
+1. Edit `prisma/schema.prisma`.
+2. `npm run db:migrate` — generates `prisma/migrations/<timestamp>_<name>/migration.sql` from the diff and applies it to your local dev DB. Prisma warns if a step is unsafe; for a **required column with a non-DB-level default** (`cuid()`, `uuid()`) on a table that may already have rows, don't accept that raw diff as-is — instead run `npx prisma migrate dev --create-only`, then hand-edit the generated `migration.sql` into three steps: add the column nullable, `UPDATE ... SET col = UUID() WHERE col IS NULL` to backfill, then `ALTER TABLE ... MODIFY col ... NOT NULL`. See `prisma/migrations/20260930120000_add_asset_lineage_and_repair_status/migration.sql` for a worked example (adds `Asset.lineageId` and `StockItem.lineageId` this way).
+3. Commit the new `prisma/migrations/<timestamp>_<name>/` folder along with the schema change — it's a permanent, ordered record; never edit or delete an already-committed migration file.
+4. `npm run db:generate` if the client doesn't auto-regenerate.
+
+`db:push` remains useful for quickly experimenting with a schema shape before you've committed to it, but never use it to ship a real change — it leaves no migration file, so the next `migrate deploy` (in CI/prod) won't know about it and other environments drift out of sync.
 
 ---
 

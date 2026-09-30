@@ -60,17 +60,13 @@ docker compose up -d --build
 
 This builds the app image (multi-stage, ~180 MB) and starts both containers.
 
-### 3. Push schema (first time only)
-
-```bash
-docker compose exec app npx prisma db push
-```
-
-For subsequent schema changes use:
+### 3. Apply the schema (first time and on every subsequent schema change)
 
 ```bash
 docker compose exec app npx prisma migrate deploy
 ```
+
+Applies every committed, pending migration from `prisma/migrations/` in order — safe to re-run (no-op once up to date). See [Database → Database Scripts](database.md#database-scripts) for how schema changes are authored and shipped.
 
 ### 4. Access the app
 

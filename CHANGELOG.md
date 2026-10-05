@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.4.0] - 2026-10-05
+
+### Added
+
+- **Multiple MAC addresses on stock items** — the stock item form now has the same add/remove MAC list as the asset form, replacing the single MAC field. Every address is carried over to the asset when a single unit is deployed.
+- **Stock models in the model autocomplete** — the model suggestions on both the asset and stock forms now include models from stock items, not just assets.
+
+### Changed
+
+- **Stock API MAC field renamed** — `POST /api/stock` and `PUT /api/stock/[id]` take `macAddresses` (an array, max 20) in place of `macAddress`. Requests still sending `macAddress` no longer store a MAC.
+
+---
+
 ## [2.3.0] - 2026-10-05
 
 ### Added

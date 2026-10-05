@@ -297,7 +297,7 @@ All endpoints use Bearer token authentication (`Authorization: Bearer <PROMETHEU
 |---|---|---|---|
 | `GET` | `/api/setup` | public | Check if setup is needed (returns `userCount`) |
 | `POST` | `/api/setup` | public | Create first admin (only when `userCount === 0`) |
-| `GET` | `/api/models` | VIEWER | List unique model strings (for the model combobox), deduplicated case-insensitively |
+| `GET` | `/api/models` | VIEWER | List unique model strings across assets and stock items (for the model combobox), deduplicated case-insensitively, sorted alphabetically, max 20. Accepts `q`, `typeId`, `manufacturerId` filters |
 | `GET` | `/api/models/similar` | VIEWER | Fuzzy-match a candidate model name (`q`) against existing ones; returns `{ match: { model, distance } \| null }`. Used to show a "did you mean an existing model?" warning while editing an asset |
 | `GET` | `/api/jira/issue/[key]` | VIEWER | Fetch JIRA issue summary and status |
 | `GET` | `/api/vault/test` | EDITOR | Test Vault connection for an asset's vault path |

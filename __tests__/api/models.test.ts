@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     asset: { findMany: vi.fn() },
+    stockItem: { findMany: vi.fn() },
   },
 }));
 
@@ -17,6 +18,7 @@ import { GET } from "@/app/api/models/route";
 
 const mockAuth = vi.mocked(auth);
 const mockFindMany = vi.mocked(prisma.asset.findMany);
+const mockStockFindMany = vi.mocked(prisma.stockItem.findMany);
 
 function session() {
   return { user: { id: "u1", role: "VIEWER", name: "U", email: "u@test.com" } };
@@ -28,7 +30,11 @@ function req(params: Record<string, string> = {}) {
   return new NextRequest(url);
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockFindMany.mockResolvedValue([] as never);
+  mockStockFindMany.mockResolvedValue([] as never);
+});
 
 describe("GET /api/models", () => {
   it("returns 401 when unauthenticated", async () => {
@@ -49,8 +55,48 @@ describe("GET /api/models", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toHaveLength(2);
-    expect(body[0]).toEqual({ model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" });
-    expect(body[1]).toEqual({ model: "Dell P2422H", typeId: "t2", manufacturerId: "m2" });
+    expect(body[0]).toEqual({ model: "Dell P2422H", typeId: "t2", manufacturerId: "m2" });
+    expect(body[1]).toEqual({ model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" });
+  });
+
+  it("includes models from stock items alongside asset models", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockFindMany.mockResolvedValue([
+      { model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" },
+    ] as never);
+    mockStockFindMany.mockResolvedValue([
+      { model: "Dell P2422H", typeId: "t2", manufacturerId: "m2" },
+    ] as never);
+
+    const res = await GET(req({ q: "" }));
+    const body = await res.json();
+    expect(body.map((s: { model: string }) => s.model)).toEqual(["Dell P2422H", "Epson EB-W06"]);
+  });
+
+  it("keeps the asset spelling when the same model exists in stock with different casing", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockFindMany.mockResolvedValue([
+      { model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" },
+    ] as never);
+    mockStockFindMany.mockResolvedValue([
+      { model: "epson eb-w06", typeId: "t1", manufacturerId: "m1" },
+    ] as never);
+
+    const res = await GET(req({ q: "epson" }));
+    const body = await res.json();
+    expect(body).toEqual([{ model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" }]);
+  });
+
+  it("applies the search term and typeId filter to the stock query", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+
+    await GET(req({ q: "Dell", typeId: "t2" }));
+
+    expect(mockStockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { model: { contains: "Dell" }, typeId: "t2" },
+      })
+    );
   });
 
   it("deduplicates case/punctuation variants of the same model, keeping the first-seen spelling", async () => {

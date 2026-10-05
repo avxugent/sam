@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.3.0] - 2026-10-05
+
+### Added
+
+- **MAC address validation in the stock item form** — the add/edit stock form now checks the MAC address with the same rule as the asset form. Any recognised format (colon, hyphen, dot-grouped, or no separators) is accepted, the field auto-inserts colons as you type, and an incomplete address is rejected on submit.
+
+### Changed
+
+- **Stock MAC addresses are stored normalized** — the stock create/update API now stores MAC addresses as `AA:BB:CC:DD:EE:FF`, matching asset handling. Values previously sent in another recognised format are saved in the normalized form.
+
+---
+
 ## [2.2.0] - 2026-09-30
 
 ### Added

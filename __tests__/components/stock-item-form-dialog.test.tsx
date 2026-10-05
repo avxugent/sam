@@ -48,7 +48,7 @@ const EDIT_DATA: StockItemInitialData = {
   locationBreadcrumb: "Room A",
   invoiceNumber: null,
   invoiceDate: null,
-  macAddress: null,
+  macAddresses: [],
 };
 
 async function openCreate() {
@@ -141,16 +141,18 @@ describe("<StockItemFormDialog /> create", () => {
 
   it("auto-punctuates the MAC address field as you type", async () => {
     const user = await openCreate();
-    const macInput = screen.getByPlaceholderText("AA:BB:CC:DD:EE:FF");
+    await user.click(screen.getByRole("button", { name: "addMacAddress" }));
+    const macInput = screen.getByLabelText("macAddress 1");
     await user.type(macInput, "aabbccddeeff");
     expect(macInput).toHaveValue("AA:BB:CC:DD:EE:FF");
   });
 
-  it("blocks submit when the MAC address is incomplete", async () => {
+  it("blocks submit when a MAC address is incomplete", async () => {
     const user = await openCreate();
-    await user.type(screen.getByPlaceholderText("AA:BB:CC:DD:EE:FF"), "AA:BB:CC");
+    await user.click(screen.getByRole("button", { name: "addMacAddress" }));
+    await user.type(screen.getByLabelText("macAddress 1"), "AA:BB:CC");
     await user.click(screen.getByRole("button", { name: "createSubmit" }));
-    expect(await screen.findByText("errMacInvalid")).toBeInTheDocument();
+    expect(await screen.findByText(/errMacInvalid/)).toBeInTheDocument();
     expect(mockFetch).not.toHaveBeenCalledWith("/api/stock", expect.anything());
   });
 });
@@ -173,6 +175,20 @@ describe("<StockItemFormDialog /> edit", () => {
     expect(screen.getByDisplayValue("U2720Q")).toBeInTheDocument();
     expect(screen.getByDisplayValue("5")).toBeInTheDocument();
     expect(screen.getAllByText("Room A").length).toBeGreaterThan(0);
+  });
+
+  it("submits every MAC address in the list", async () => {
+    const user = await openEdit();
+    await user.click(screen.getByRole("button", { name: "addMacAddress" }));
+    await user.type(screen.getByLabelText("macAddress 1"), "AA:BB:CC:DD:EE:FF");
+    await user.click(screen.getByRole("button", { name: "addMacAddress" }));
+    await user.type(screen.getByLabelText("macAddress 2"), "11-22-33-44-55-66");
+    await user.click(screen.getByRole("button", { name: "updateSubmit" }));
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith("/api/stock/s1", expect.objectContaining({ method: "PUT" }))
+    );
+    const [, init] = mockFetch.mock.calls.find(([url]) => url === "/api/stock/s1")!;
+    expect(JSON.parse(init.body).macAddresses).toEqual(["AA:BB:CC:DD:EE:FF", "11:22:33:44:55:66"]);
   });
 
   it("PUTs to /api/stock/:id and refreshes on success", async () => {

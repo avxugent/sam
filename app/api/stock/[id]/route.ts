@@ -5,6 +5,21 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { normalizeMacAddress } from "@/lib/mac-address";
 
+const MAX_MAC_ADDRESSES = 20;
+
+// Same normalization as the asset API and the create route.
+const macAddressField = z.string().transform((v, ctx) => {
+  const normalized = normalizeMacAddress(v);
+  if (normalized === null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
+    });
+    return z.NEVER;
+  }
+  return normalized;
+});
+
 const updateSchema = z
   .object({
     typeId: z.string().min(1).optional(),
@@ -17,12 +32,7 @@ const updateSchema = z
     reservedForLocationId: z.string().optional().nullable(),
     invoiceNumber: z.string().max(100).optional().nullable(),
     invoiceDate: z.string().optional().nullable(),
-    macAddress: z
-      .string()
-      .refine((v) => v === "" || normalizeMacAddress(v) !== null, "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)")
-      .optional()
-      .nullable()
-      .or(z.literal("")),
+    macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.serialNumber && data.quantity !== undefined && data.quantity > 1) {
@@ -81,18 +91,17 @@ export async function PUT(
     return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { invoiceDate, macAddress, ...rest } = parsed.data;
+  const { invoiceDate, macAddresses, ...rest } = parsed.data;
 
-  // Merge MAC into the metadata blob, preserving any other keys (hostname,
+  // Replace the MAC list in the metadata blob, preserving any other keys (hostname,
   // customFields, …) that may have been stored when the item came from an asset.
   let metadataUpdate: { metadata: string | null } | Record<string, never> = {};
-  if (macAddress !== undefined) {
+  if (macAddresses !== undefined) {
     let meta: Record<string, unknown> = {};
     if (existing.metadata) {
       try { meta = JSON.parse(existing.metadata) as Record<string, unknown>; } catch { /* ignore */ }
     }
-    const mac = macAddress ? normalizeMacAddress(macAddress) : null;
-    if (mac) meta.macAddresses = [{ address: mac }];
+    if (macAddresses.length) meta.macAddresses = macAddresses.map((address) => ({ address }));
     else delete meta.macAddresses;
     metadataUpdate = { metadata: Object.keys(meta).length > 0 ? JSON.stringify(meta) : null };
   }

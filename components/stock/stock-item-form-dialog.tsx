@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -28,7 +28,7 @@ import { ModelAutocomplete } from "@/components/model-autocomplete";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
-import { Loader2, MapPin, Search, ChevronRight } from "lucide-react";
+import { Loader2, MapPin, Search, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 type FormData = {
@@ -41,7 +41,7 @@ type FormData = {
   locationId?: string;
   invoiceNumber?: string;
   invoiceDate?: string;
-  macAddress?: string;
+  macAddresses: { address: string }[];
 };
 
 type AssetType = { id: string; name: string };
@@ -85,7 +85,7 @@ export type StockItemInitialData = {
   locationBreadcrumb: string | null;
   invoiceNumber: string | null;
   invoiceDate: string | null;
-  macAddress: string | null;
+  macAddresses: string[];
 };
 
 type Props = {
@@ -113,10 +113,12 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     locationId: z.string().optional(),
     invoiceNumber: z.string().max(100).optional(),
     invoiceDate: z.string().optional(),
-    macAddress: z
-      .string()
-      .refine((v) => v === "" || normalizeMacAddress(v) !== null, t("errMacInvalid"))
-      .optional(),
+    macAddresses: z.array(z.object({
+      address: z.string().min(1, t("errMacRequired")).refine(
+        (v) => normalizeMacAddress(v) !== null,
+        t("errMacInvalid")
+      ),
+    })),
   }).superRefine((data, ctx) => {
     if (data.serialNumber?.trim() && data.quantity > 1) {
       ctx.addIssue({
@@ -159,8 +161,13 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
       locationId: initialData?.locationId ?? "",
       invoiceNumber: initialData?.invoiceNumber ?? "",
       invoiceDate: initialData?.invoiceDate ?? "",
-      macAddress: initialData?.macAddress ?? "",
+      macAddresses: initialData?.macAddresses.map((address) => ({ address })) ?? [],
     },
+  });
+
+  const { fields: macFields, append: appendMac, remove: removeMac } = useFieldArray({
+    control,
+    name: "macAddresses",
   });
 
   const serialNumber = useWatch({ control, name: "serialNumber" });
@@ -192,7 +199,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   function handleClose() {
     setOpen(false);
     if (mode === "create") {
-      reset({ quantity: 1, typeId: "", manufacturerId: "", model: "", serialNumber: "", notes: "", locationId: "", invoiceNumber: "", invoiceDate: "", macAddress: "" });
+      reset({ quantity: 1, typeId: "", manufacturerId: "", model: "", serialNumber: "", notes: "", locationId: "", invoiceNumber: "", invoiceDate: "", macAddresses: [] });
       setSelectedTypeId("");
       setSelectedMfgId("");
       setSelectedLocationId("");
@@ -216,7 +223,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
         locationId: data.locationId || null,
         invoiceNumber: data.invoiceNumber || null,
         invoiceDate: data.invoiceDate || null,
-        macAddress: data.macAddress?.trim() || null,
+        macAddresses: data.macAddresses.map((m) => m.address.trim()).filter(Boolean),
       }),
     });
 
@@ -425,21 +432,60 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             </div>
           </div>
 
-          {/* MAC address */}
-          <div className="space-y-1">
-            <Label htmlFor="macAddress">{tField("macAddress")}</Label>
-            <Input
-              id="macAddress"
-              {...register("macAddress", {
-                onChange: (e) => {
-                  e.target.value = formatMacInputValue(e.target.value);
-                },
-              })}
-              placeholder="AA:BB:CC:DD:EE:FF"
-              className={cn("font-mono text-[12.5px]", errors.macAddress && "border-destructive")}
-              autoComplete="off"
-            />
-            {errors.macAddress && <p className="text-xs text-destructive">{errors.macAddress.message}</p>}
+          {/* MAC addresses */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>{tField("macAddresses")}</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendMac({ address: "" })}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                {t("addMacAddress")}
+              </Button>
+            </div>
+
+            {macFields.map((field, i) => (
+              <div key={field.id} className="flex gap-2">
+                <Input
+                  {...register(`macAddresses.${i}.address`, {
+                    onChange: (e) => {
+                      e.target.value = formatMacInputValue(e.target.value);
+                    },
+                  })}
+                  aria-label={`${tField("macAddress")} ${i + 1}`}
+                  aria-invalid={!!errors.macAddresses?.[i]?.address}
+                  aria-describedby={errors.macAddresses?.[i]?.address ? `mac-err-${i}` : undefined}
+                  placeholder={t("macPlaceholder")}
+                  autoComplete="off"
+                  className={cn(
+                    "font-mono text-[12.5px]",
+                    errors.macAddresses?.[i]?.address && "border-destructive"
+                  )}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t("removeMacAriaLabel", { n: i + 1 })}
+                  onClick={() => removeMac(i)}
+                  className="text-destructive hover:text-destructive flex-shrink-0"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+
+            {/* Per-entry MAC format errors */}
+            {macFields.map((field, i) =>
+              errors.macAddresses?.[i]?.address ? (
+                <p key={`mac-err-${field.id}`} id={`mac-err-${i}`} className="text-xs text-destructive -mt-1">
+                  {t("macLabel", { n: i + 1 })} {errors.macAddresses[i]?.address?.message}
+                </p>
+              ) : null
+            )}
           </div>
 
           {/* Invoice */}

@@ -57,14 +57,14 @@ export type StockItem = {
   location: { id: string; name: string } | null;
 };
 
-// The first MAC address stored in the item's metadata blob, if any.
-function macFromMetadata(metadata: string | null): string {
-  if (!metadata) return "";
+// The MAC addresses stored in the item's metadata blob, if any.
+function macsFromMetadata(metadata: string | null): string[] {
+  if (!metadata) return [];
   try {
     const meta = JSON.parse(metadata) as { macAddresses?: { address: string }[] };
-    return meta.macAddresses?.[0]?.address ?? "";
+    return meta.macAddresses?.map((m) => m.address) ?? [];
   } catch {
-    return "";
+    return [];
   }
 }
 
@@ -327,7 +327,7 @@ export function StockItemTable({
                             invoiceDate: item.invoiceDate
                               ? new Date(item.invoiceDate).toISOString().slice(0, 10)
                               : null,
-                            macAddress: macFromMetadata(item.metadata),
+                            macAddresses: macsFromMetadata(item.metadata),
                           } satisfies StockItemInitialData}
                           onSuccess={() => router.refresh()}
                         >

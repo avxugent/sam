@@ -5,6 +5,22 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { normalizeMacAddress } from "@/lib/mac-address";
 
+const MAX_MAC_ADDRESSES = 20;
+
+// Accepts any recoverable MAC shape and normalizes it to AA:BB:CC:DD:EE:FF,
+// mirroring the asset API so stock and asset MAC handling stay identical.
+const macAddressField = z.string().transform((v, ctx) => {
+  const normalized = normalizeMacAddress(v);
+  if (normalized === null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
+    });
+    return z.NEVER;
+  }
+  return normalized;
+});
+
 const createSchema = z
   .object({
     typeId: z.string().min(1, "Type is required"),
@@ -17,12 +33,7 @@ const createSchema = z
     reservedForLocationId: z.string().optional().nullable(),
     invoiceNumber: z.string().max(100).optional().nullable(),
     invoiceDate: z.string().optional().nullable(),
-    macAddress: z
-      .string()
-      .refine((v) => v === "" || normalizeMacAddress(v) !== null, "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)")
-      .optional()
-      .nullable()
-      .or(z.literal("")),
+    macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.serialNumber && data.quantity > 1) {
@@ -79,8 +90,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { invoiceDate, macAddress, ...rest } = parsed.data;
-  const mac = macAddress ? normalizeMacAddress(macAddress) : null;
+  const { invoiceDate, macAddresses, ...rest } = parsed.data;
   const item = await prisma.stockItem.create({
     data: {
       ...rest,
@@ -91,7 +101,9 @@ export async function POST(req: NextRequest) {
       reservedForLocationId: rest.reservedForLocationId ?? null,
       invoiceNumber: rest.invoiceNumber ?? null,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
-      metadata: mac ? JSON.stringify({ macAddresses: [{ address: mac }] }) : null,
+      metadata: macAddresses?.length
+        ? JSON.stringify({ macAddresses: macAddresses.map((address) => ({ address })) })
+        : null,
     },
     include: { type: true, manufacturer: true, location: { select: { id: true, name: true } } },
   });

@@ -147,7 +147,7 @@ describe("POST /api/stock", () => {
   it("returns 400 for an invalid MAC address", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     const res = await POST(req("POST", "http://localhost/api/stock", {
-      typeId: "t1", model: "X", quantity: 1, macAddress: "not-a-mac",
+      typeId: "t1", model: "X", quantity: 1, macAddresses: ["not-a-mac"],
     }));
     expect(res.status).toBe(400);
   });
@@ -156,7 +156,7 @@ describe("POST /api/stock", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
     const res = await POST(req("POST", "http://localhost/api/stock", {
-      typeId: "type-1", model: "Dell U2722D", quantity: 1, macAddress: "AA:BB:CC:DD:EE:FF",
+      typeId: "type-1", model: "Dell U2722D", quantity: 1, macAddresses: ["AA:BB:CC:DD:EE:FF"],
     }));
     expect(res.status).toBe(201);
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
@@ -166,11 +166,27 @@ describe("POST /api/stock", () => {
     }));
   });
 
+  it("stores every MAC address in metadata", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
+    await POST(req("POST", "http://localhost/api/stock", {
+      typeId: "type-1", model: "Dell U2722D", quantity: 1,
+      macAddresses: ["AA:BB:CC:DD:EE:FF", "11-22-33-44-55-66"],
+    }));
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        metadata: JSON.stringify({
+          macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }, { address: "11:22:33:44:55:66" }],
+        }),
+      }),
+    }));
+  });
+
   it("normalizes a MAC with no separators to colon form before storing", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
     await POST(req("POST", "http://localhost/api/stock", {
-      typeId: "type-1", model: "Dell U2722D", quantity: 1, macAddress: "aabbccddeeff",
+      typeId: "type-1", model: "Dell U2722D", quantity: 1, macAddresses: ["aabbccddeeff"],
     }));
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
@@ -245,7 +261,7 @@ describe("PUT /api/stock/[id]", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockFindUnique.mockResolvedValue(SAMPLE_ITEM as never);
     mockUpdate.mockResolvedValue(SAMPLE_ITEM as never);
-    await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddress: "AA:BB:CC:DD:EE:FF" }), { params: PARAMS });
+    await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddresses: ["AA:BB:CC:DD:EE:FF"] }), { params: PARAMS });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         metadata: JSON.stringify({ macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] }),
@@ -257,7 +273,7 @@ describe("PUT /api/stock/[id]", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockFindUnique.mockResolvedValue(SAMPLE_ITEM as never);
     mockUpdate.mockResolvedValue(SAMPLE_ITEM as never);
-    await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddress: "aabb.ccdd.eeff" }), { params: PARAMS });
+    await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddresses: ["aabb.ccdd.eeff"] }), { params: PARAMS });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         metadata: JSON.stringify({ macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] }),
@@ -272,7 +288,7 @@ describe("PUT /api/stock/[id]", () => {
       metadata: JSON.stringify({ hostname: "host1", macAddresses: [{ address: "00:00:00:00:00:00" }] }),
     } as never);
     mockUpdate.mockResolvedValue(SAMPLE_ITEM as never);
-    await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddress: "AA:BB:CC:DD:EE:FF" }), { params: PARAMS });
+    await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddresses: ["AA:BB:CC:DD:EE:FF"] }), { params: PARAMS });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         metadata: JSON.stringify({ hostname: "host1", macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] }),
@@ -287,7 +303,7 @@ describe("PUT /api/stock/[id]", () => {
       metadata: JSON.stringify({ macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] }),
     } as never);
     mockUpdate.mockResolvedValue(SAMPLE_ITEM as never);
-    await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddress: "" }), { params: PARAMS });
+    await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddresses: [] }), { params: PARAMS });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ metadata: null }),
     }));
@@ -296,7 +312,7 @@ describe("PUT /api/stock/[id]", () => {
   it("returns 400 for an invalid MAC address", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockFindUnique.mockResolvedValue(SAMPLE_ITEM as never);
-    const res = await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddress: "xyz" }), { params: PARAMS });
+    const res = await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddresses: ["xyz"] }), { params: PARAMS });
     expect(res.status).toBe(400);
   });
 

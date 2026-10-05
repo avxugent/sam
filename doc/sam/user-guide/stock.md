@@ -26,7 +26,7 @@ Use the **search box** to filter by type, model, serial number, or manufacturer,
    - **Storage location** — where this item is physically kept; the list only shows locations that already hold stock, so tick **Show all locations** to pick one that doesn't yet — the item you're adding becomes its first, and it appears in the restricted list from then on. Leave unset to keep the item "Unassigned"
    - **Serial number** — enter if the item has a fixed serial; leave blank for bulk items
    - **Quantity** — for bulk items without individual serials
-   - **MAC address** — optional; carried over to the asset when a single unit is deployed
+   - **MAC addresses** — optional; add as many as needed with **Add MAC address**. Each is checked and formatted the same way as on the asset form. All of them are carried over to the asset when a single unit is deployed
    - **Invoice number** — optional purchase reference
    - **Notes** — optional
    - **Reserved for location** — optionally link to the location this item is destined for

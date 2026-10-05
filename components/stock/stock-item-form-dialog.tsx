@@ -27,12 +27,9 @@ import {
 import { ModelAutocomplete } from "@/components/model-autocomplete";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
 import { Loader2, MapPin, Search, ChevronRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-
-// IEEE 802 MAC address — colon, hyphen, or dot-separated, upper or lower case.
-const MAC_REGEX =
-  /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$|^([0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$/;
 
 type FormData = {
   typeId: string;
@@ -118,9 +115,8 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     invoiceDate: z.string().optional(),
     macAddress: z
       .string()
-      .regex(MAC_REGEX, t("errMacInvalid"))
-      .optional()
-      .or(z.literal("")),
+      .refine((v) => v === "" || normalizeMacAddress(v) !== null, t("errMacInvalid"))
+      .optional(),
   }).superRefine((data, ctx) => {
     if (data.serialNumber?.trim() && data.quantity > 1) {
       ctx.addIssue({
@@ -434,7 +430,11 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             <Label htmlFor="macAddress">{tField("macAddress")}</Label>
             <Input
               id="macAddress"
-              {...register("macAddress")}
+              {...register("macAddress", {
+                onChange: (e) => {
+                  e.target.value = formatMacInputValue(e.target.value);
+                },
+              })}
               placeholder="AA:BB:CC:DD:EE:FF"
               className={cn("font-mono text-[12.5px]", errors.macAddress && "border-destructive")}
               autoComplete="off"

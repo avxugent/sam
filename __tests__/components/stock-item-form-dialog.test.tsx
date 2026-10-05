@@ -138,6 +138,21 @@ describe("<StockItemFormDialog /> create", () => {
 
     expect(modelInput).toHaveValue("Dell UltraSharp U2722D");
   });
+
+  it("auto-punctuates the MAC address field as you type", async () => {
+    const user = await openCreate();
+    const macInput = screen.getByPlaceholderText("AA:BB:CC:DD:EE:FF");
+    await user.type(macInput, "aabbccddeeff");
+    expect(macInput).toHaveValue("AA:BB:CC:DD:EE:FF");
+  });
+
+  it("blocks submit when the MAC address is incomplete", async () => {
+    const user = await openCreate();
+    await user.type(screen.getByPlaceholderText("AA:BB:CC:DD:EE:FF"), "AA:BB:CC");
+    await user.click(screen.getByRole("button", { name: "createSubmit" }));
+    expect(await screen.findByText("errMacInvalid")).toBeInTheDocument();
+    expect(mockFetch).not.toHaveBeenCalledWith("/api/stock", expect.anything());
+  });
 });
 
 describe("<StockItemFormDialog /> edit", () => {

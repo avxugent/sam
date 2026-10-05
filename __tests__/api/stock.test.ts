@@ -166,6 +166,19 @@ describe("POST /api/stock", () => {
     }));
   });
 
+  it("normalizes a MAC with no separators to colon form before storing", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
+    await POST(req("POST", "http://localhost/api/stock", {
+      typeId: "type-1", model: "Dell U2722D", quantity: 1, macAddress: "aabbccddeeff",
+    }));
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        metadata: JSON.stringify({ macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] }),
+      }),
+    }));
+  });
+
   it("leaves metadata null when no MAC is given", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
@@ -233,6 +246,18 @@ describe("PUT /api/stock/[id]", () => {
     mockFindUnique.mockResolvedValue(SAMPLE_ITEM as never);
     mockUpdate.mockResolvedValue(SAMPLE_ITEM as never);
     await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddress: "AA:BB:CC:DD:EE:FF" }), { params: PARAMS });
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        metadata: JSON.stringify({ macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] }),
+      }),
+    }));
+  });
+
+  it("normalizes a Cisco dot-grouped MAC to colon form on update", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockFindUnique.mockResolvedValue(SAMPLE_ITEM as never);
+    mockUpdate.mockResolvedValue(SAMPLE_ITEM as never);
+    await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddress: "aabb.ccdd.eeff" }), { params: PARAMS });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         metadata: JSON.stringify({ macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] }),

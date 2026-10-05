@@ -3,9 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-
-const MAC_REGEX =
-  /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$|^([0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$/;
+import { normalizeMacAddress } from "@/lib/mac-address";
 
 const updateSchema = z
   .object({
@@ -21,7 +19,7 @@ const updateSchema = z
     invoiceDate: z.string().optional().nullable(),
     macAddress: z
       .string()
-      .regex(MAC_REGEX, "Invalid MAC address")
+      .refine((v) => v === "" || normalizeMacAddress(v) !== null, "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)")
       .optional()
       .nullable()
       .or(z.literal("")),
@@ -93,7 +91,7 @@ export async function PUT(
     if (existing.metadata) {
       try { meta = JSON.parse(existing.metadata) as Record<string, unknown>; } catch { /* ignore */ }
     }
-    const mac = macAddress?.trim();
+    const mac = macAddress ? normalizeMacAddress(macAddress) : null;
     if (mac) meta.macAddresses = [{ address: mac }];
     else delete meta.macAddresses;
     metadataUpdate = { metadata: Object.keys(meta).length > 0 ? JSON.stringify(meta) : null };

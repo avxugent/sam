@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.0-beta.6] - 2026-10-07
+
+### Added
+
+- **Model documentation link** — each Model can now have a documentation URL, required for compliance but not enforced at creation/edit time (an admin can still add a model to unblock inventory entry before its documentation page exists). Models and assets without one are flagged with a warning indicator in the admin Models list and on the asset detail page; when present, the link also shows in the asset's Attachments section.
+
+---
+
 ## [3.0.0-beta.5] - 2026-10-07
 
 ### Fixed

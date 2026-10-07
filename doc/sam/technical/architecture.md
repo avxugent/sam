@@ -9,15 +9,15 @@ sync_to_confluence: true
 
 | Layer | Package | Version |
 |---|---|---|
-| Framework | Next.js | 16.2.4 |
+| Framework | Next.js | 16.4.0 |
 | Language | TypeScript | ~5.9 |
 | Runtime | Node.js | 24 LTS |
-| React | react | 19.2 |
-| ORM | Prisma | ~6.19 |
+| React | react | 19.3 |
+| ORM | Prisma | 7.8 |
 | Database | MySQL | 8.0 |
-| Auth | NextAuth | 5.0.0-beta.30 |
+| Auth | NextAuth | 5.0.0-beta.32 |
 | Styling | Tailwind CSS | v4 |
-| Validation | Zod | v3 |
+| Validation | Zod | v4 |
 | Forms | react-hook-form | v7 |
 | Icons | lucide-react | latest |
 | UI primitives | hand-written shadcn-style | — |

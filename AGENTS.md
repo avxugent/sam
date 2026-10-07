@@ -12,14 +12,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 | Layer | Package | Version |
 |---|---|---|
-| Framework | next | 16.2.4 |
+| Framework | next | 16.4 |
 | Language | typescript | ~5.9 |
 | Runtime | node | 24 LTS |
-| React | react | 19.2 |
+| React | react | 19.3 |
 | ORM | @prisma/client | 7.8 |
-| Auth | next-auth | 5.0.0-beta.30 |
+| Auth | next-auth | 5.0.0-beta.32 |
 | Styling | tailwindcss | v4 (via `@import "tailwindcss"`) |
-| Validation | zod | v3 |
+| Validation | zod | v4 |
 | Forms | react-hook-form | v7 |
 
 ---

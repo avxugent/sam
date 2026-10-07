@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.0-beta.3] - 2026-10-07
+
+### Fixed
+
+- **Critical: Next.js proxy/middleware bypass** — `next` 16.2.6 → 16.4.0 (GHSA-6gpp-xcg3-4w24), directly affecting `proxy.ts`, plus 4 other advisories fixed by the same bump (DoS, SSRF, cache confusion). Already within the existing dependency range.
+
+### Changed
+
+- Routine dependency maintenance: React 19.3, Radix UI, zod, react-hook-form, tailwindcss, jsdom, lucide-react, next-intl, testing-library, `@aws-sdk/client-s3`, eslint, vitest — all within their current major version. `@types/node` retargeted from the 20.x line to 24.x to match the pinned Node runtime. Remaining auto-fixable security advisories cleared via `npm audit fix`.
+- Test files are excluded from the TypeScript project checked during `next build` — a Next 16.4 behavior change started enforcing the full project on every build, which would otherwise fail on pre-existing, unrelated type gaps in test fixtures.
+
+---
+
 ## [3.0.0-beta.2] - 2026-10-07
 
 ### Changed

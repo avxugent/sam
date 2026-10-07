@@ -16,6 +16,218 @@
          },
          "id": 1,
          "panels": [ ],
+         "title": "Overview",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "Devices with a reported firmware version, matching the current filters.",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "fixed"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "text",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 8,
+            "x": 0,
+            "y": 1
+         },
+         "id": 2,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "count(sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) (max by (sam_hostname, version) (extron_firmware_info or pearl_system_info))) or vector(0)",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Total assets",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "Installed version matches the baseline for that model.",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "text",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 8,
+            "x": 8,
+            "y": 1
+         },
+         "id": 3,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "count(((sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) (max by (sam_hostname, version) (extron_firmware_info or pearl_system_info))) and on (sam_model) (label_replace(label_replace(vector(1), \"sam_model\", \"DTP3 IN2004 DO\", \"\", \"\"), \"latest_version\", \"1.02.0003-b005\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.6\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 1025T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\"))) unless on (sam_hostname) ((sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) (max by (sam_hostname, version) (extron_firmware_info or pearl_system_info)) unless on (sam_model, version) label_replace(label_replace(label_replace(vector(1), \"sam_model\", \"DTP3 IN2004 DO\", \"\", \"\"), \"latest_version\", \"1.02.0003-b005\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.6\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 1025T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\"), \"version\", \"$1\", \"latest_version\", \"(.*)\"))\nand on (sam_model) (label_replace(label_replace(vector(1), \"sam_model\", \"DTP3 IN2004 DO\", \"\", \"\"), \"latest_version\", \"1.02.0003-b005\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.6\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 1025T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\"))\n)) or vector(0)",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Up to date",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+         },
+         "description": "Installed version does not match the baseline for that model.",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "decimals": 0,
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     },
+                     {
+                        "color": "orange",
+                        "value": 1
+                     }
+                  ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 8,
+            "x": 16,
+            "y": 1
+         },
+         "id": 4,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+               },
+               "editorMode": "code",
+               "expr": "count((sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) (max by (sam_hostname, version) (extron_firmware_info or pearl_system_info)) unless on (sam_model, version) label_replace(label_replace(label_replace(vector(1), \"sam_model\", \"DTP3 IN2004 DO\", \"\", \"\"), \"latest_version\", \"1.02.0003-b005\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.6\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 1025T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\"), \"version\", \"$1\", \"latest_version\", \"(.*)\"))\nand on (sam_model) (label_replace(label_replace(vector(1), \"sam_model\", \"DTP3 IN2004 DO\", \"\", \"\"), \"latest_version\", \"1.02.0003-b005\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.6\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 1025T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\"))\n) or vector(0)",
+               "instant": true,
+               "legendFormat": "",
+               "range": false,
+               "refId": "A"
+            }
+         ],
+         "title": "Needs update",
+         "type": "stat"
+      },
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 5
+         },
+         "id": 5,
+         "panels": [ ],
          "title": "Firmware breakdown",
          "type": "row"
       },
@@ -41,9 +253,9 @@
             "h": 12,
             "w": 24,
             "x": 0,
-            "y": 1
+            "y": 6
          },
-         "id": 2,
+         "id": 6,
          "options": {
             "cellHeight": "sm",
             "footer": {
@@ -118,9 +330,9 @@
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 13
+            "y": 18
          },
-         "id": 3,
+         "id": 7,
          "panels": [ ],
          "title": "Needs update",
          "type": "row"
@@ -184,9 +396,9 @@
             "h": 12,
             "w": 24,
             "x": 0,
-            "y": 14
+            "y": 19
          },
-         "id": 4,
+         "id": 8,
          "options": {
             "cellHeight": "sm",
             "footer": {
@@ -212,7 +424,7 @@
                   "uid": "${datasource}"
                },
                "editorMode": "code",
-               "expr": "((sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) (max by (sam_hostname, version) (extron_firmware_info or pearl_system_info)) unless on (sam_model, version) label_replace(label_replace(label_replace(vector(1), \"sam_model\", \"DTP3 IN2004 DO\", \"\", \"\"), \"latest_version\", \"1.02.0003-b005\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.13.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.5\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.13.0002-b001\", \"\", \"\"), \"version\", \"$1\", \"latest_version\", \"(.*)\"))\nand on (sam_model) (label_replace(label_replace(vector(1), \"sam_model\", \"DTP3 IN2004 DO\", \"\", \"\"), \"latest_version\", \"1.02.0003-b005\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.13.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.5\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.13.0002-b001\", \"\", \"\"))\n) * on (sam_model) group_left(latest_version) (label_replace(label_replace(vector(1), \"sam_model\", \"DTP3 IN2004 DO\", \"\", \"\"), \"latest_version\", \"1.02.0003-b005\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.09.0010-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.13.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.5\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.13.0002-b001\", \"\", \"\"))",
+               "expr": "((sam_asset_info{sam_campus=~\"$campus\", sam_building=~\"$building\", sam_asset_type=~\"$asset_type\"} * on (sam_hostname) group_left(version) (max by (sam_hostname, version) (extron_firmware_info or pearl_system_info)) unless on (sam_model, version) label_replace(label_replace(label_replace(vector(1), \"sam_model\", \"DTP3 IN2004 DO\", \"\", \"\"), \"latest_version\", \"1.02.0003-b005\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.6\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 1025T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\"), \"version\", \"$1\", \"latest_version\", \"(.*)\"))\nand on (sam_model) (label_replace(label_replace(vector(1), \"sam_model\", \"DTP3 IN2004 DO\", \"\", \"\"), \"latest_version\", \"1.02.0003-b005\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.6\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 1025T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\"))\n) * on (sam_model) group_left(latest_version) (label_replace(label_replace(vector(1), \"sam_model\", \"DTP3 IN2004 DO\", \"\", \"\"), \"latest_version\", \"1.02.0003-b005\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 DO\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IN1804 HD\", \"\", \"\"), \"latest_version\", \"1.10.0001-b001\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 250\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255\", \"\", \"\"), \"latest_version\", \"3.18.0001-b002\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 255Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"IPCP Pro 360Q xi\", \"\", \"\"), \"latest_version\", \"1.14.0000-b010\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"Pearl Mini\", \"\", \"\"), \"latest_version\", \"4.24.6\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 1025T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\")\nor\nlabel_replace(label_replace(vector(1), \"sam_model\", \"TLP Pro 725T\", \"\", \"\"), \"latest_version\", \"3.14.0000-b003\", \"\", \"\"))",
                "format": "table",
                "instant": true,
                "legendFormat": "",

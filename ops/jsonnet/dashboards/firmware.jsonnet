@@ -92,6 +92,16 @@ local outdated = |||
 local outdatedWithLatest =
   '(%s) * on (sam_model) group_left(latest_version) (%s)' % [outdated, baselineVector];
 
+// Top-row summary counts. "Total" is every device with a reported firmware
+// version (the same universe the two tables below draw from) — devices with
+// no firmware API are excluded here too, per the dashboard description.
+// "Up to date" only counts models with a baseline entry, matching "outdated"
+// below: an unmaintained model is neither up to date nor needing an update.
+local withBaseline = '(%s) and on (sam_model) (%s)' % [reportedFirmware, baselineVector];
+local totalCount = 'count(%s) or vector(0)' % reportedFirmware;
+local upToDateCount = 'count((%s) unless on (sam_hostname) (%s)) or vector(0)' % [withBaseline, outdated];
+local needsUpdateCount = 'count(%s) or vector(0)' % outdated;
+
 sam.dashboard(
   uid='sam-firmware',
   title='SAM — Firmware',
@@ -112,6 +122,30 @@ sam.dashboard(
     sam.labelVar('asset_type', 'Asset type', 'sam_asset_info', 'sam_asset_type'),
   ],
   groups=[
+    sam.row('Overview'),
+    [
+      sam.stat(
+        'Total assets',
+        totalCount,
+        w=8,
+        description='Devices with a reported firmware version, matching the current filters.',
+      ),
+      sam.stat(
+        'Up to date',
+        upToDateCount,
+        w=8,
+        thresholds=sam.thresholdsNeutral,
+        description='Installed version matches the baseline for that model.',
+      ),
+      sam.stat(
+        'Needs update',
+        needsUpdateCount,
+        w=8,
+        thresholds=sam.thresholdsAnyIsWarn,
+        description='Installed version does not match the baseline for that model.',
+      ),
+    ],
+
     sam.row('Firmware breakdown'),
     [
       sam.table(

@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.0-beta.2] - 2026-10-07
+
+### Changed
+
+- **Manufacturer narrowed by asset type** — on the asset and stock forms, once a type is picked the Manufacturer dropdown only lists manufacturers that have at least one model under that type. `GET /api/manufacturers` accepts an optional `typeId` filter for this. Changing the type after a manufacturer/model was already picked clears them if they're no longer valid for the new type.
+
+---
+
 ## [3.0.0-beta.1] - 2026-10-07
 
 ### Added

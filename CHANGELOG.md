@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.0-beta.4] - 2026-10-07
+
+### Changed
+
+- **Passkey/WebAuthn**: `@simplewebauthn/server` and `@simplewebauthn/browser` v9 → v14. The deprecated `@simplewebauthn/types` package is dropped — its types now come from `@simplewebauthn/server` directly. No user-facing behavior change; this is an internal library upgrade covering several major-version breaking changes (credential IDs as base64url strings instead of raw bytes, `verifyRegistrationResponse()`'s result shape, `startRegistration`/`startAuthentication`'s call signature). Clears the last remaining `@simplewebauthn/server` v9 security advisory.
+
+---
+
 ## [3.0.0-beta.3] - 2026-10-07
 
 ### Fixed

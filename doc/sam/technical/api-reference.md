@@ -107,8 +107,8 @@ Fixed lookup table for the Asset/StockItem "model" field, scoped by `(typeId, ma
 | Method | Path | Min role | Description |
 |---|---|---|---|
 | `GET` | `/api/models` | VIEWER | List models. Accepts `q` (name contains), `typeId`, `manufacturerId` filters |
-| `POST` | `/api/models` | ADMIN | Create |
-| `PUT` | `/api/models/[id]` | ADMIN | Update (type/manufacturer/name); `409` with `{existingId, existingName, existingAssetCount, existingStockCount}` on a name collision within the same type/manufacturer |
+| `POST` | `/api/models` | ADMIN | Create. Body accepts an optional `documentationUrl` (must be a valid URL if present) — required for compliance, but not enforced here so a model can be added to unblock inventory entry before its documentation page exists |
+| `PUT` | `/api/models/[id]` | ADMIN | Update (type/manufacturer/name/documentationUrl); `409` with `{existingId, existingName, existingAssetCount, existingStockCount}` on a name collision within the same type/manufacturer |
 | `DELETE` | `/api/models/[id]` | ADMIN | Delete; `400` if any asset or stock item still references it |
 | `GET` | `/api/models/[id]/usage` | VIEWER | Assets and stock items referencing this model |
 | `POST` | `/api/models/[id]/merge` | ADMIN | Merge into another model — reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source |

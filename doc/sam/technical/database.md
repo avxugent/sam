@@ -170,6 +170,7 @@ Fixed lookup table for the Asset/StockItem "model" field — replaces the former
 | `typeId` | string | FK to AssetType |
 | `manufacturerId` | string? | FK to Manufacturer — nullable because `StockItem.manufacturerId` is itself optional |
 | `name` | string | Model name |
+| `documentationUrl` | string? | Link to the model's documentation page. Required for compliance, but **not** enforced at creation/edit time — an admin can add a model to unblock inventory entry and fill this in later. Models and assets with no `documentationUrl` are flagged with a warning indicator in the admin Models list and on the asset detail page. |
 
 `(typeId, manufacturerId, name)` has a `@@unique` constraint, scoped rather than a bare unique on `name` — the same model name can legitimately recur under different type/manufacturer combinations. Known limitation: MySQL unique indexes treat multiple `NULL`s as distinct, so two manufacturer-less models with the same `(typeId, name)` don't collide at the DB level — the API pre-checks this explicitly, and the admin merge feature cleans up any residual duplicates (including punctuation/spacing variants, which a straight uniqueness check can't catch).
 

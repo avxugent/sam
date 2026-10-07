@@ -8,6 +8,9 @@ const createSchema = z.object({
   typeId: z.string().min(1),
   manufacturerId: z.string().min(1).optional().nullable(),
   name: z.string().min(1).max(255),
+  // Required for compliance, but intentionally not enforced here — see the
+  // comment on Model.documentationUrl in schema.prisma.
+  documentationUrl: z.string().url().max(2048).nullable().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -60,6 +63,7 @@ export async function POST(req: NextRequest) {
 
   const { typeId, name } = parsed.data;
   const manufacturerId = parsed.data.manufacturerId || null;
+  const documentationUrl = parsed.data.documentationUrl || null;
 
   const type = await prisma.assetType.findUnique({ where: { id: typeId }, select: { name: true } });
   if (!type) return NextResponse.json({ error: "Asset type not found." }, { status: 404 });
@@ -87,7 +91,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const model = await prisma.model.create({ data: { typeId, manufacturerId, name } });
+    const model = await prisma.model.create({ data: { typeId, manufacturerId, name, documentationUrl } });
     await logAudit({
       session,
       req,

@@ -86,13 +86,41 @@ describe("PUT /api/models/[id]", () => {
 
   it("updates the model and audits on success", async () => {
     mockAuth.mockResolvedValue(session() as never);
-    mockFindUnique.mockResolvedValue({ typeId: "t1", manufacturerId: "m1", name: "Old" } as never);
+    mockFindUnique.mockResolvedValue({ typeId: "t1", manufacturerId: "m1", name: "Old", documentationUrl: null } as never);
     mockFindFirst.mockResolvedValue(null as never);
-    mockUpdate.mockResolvedValue({ id: "mo1", typeId: "t1", manufacturerId: "m1", name: "New" } as never);
+    mockUpdate.mockResolvedValue({ id: "mo1", typeId: "t1", manufacturerId: "m1", name: "New", documentationUrl: null } as never);
 
     const res = await PUT(put({ typeId: "t1", manufacturerId: "m1", name: "New" }), { params: params() });
     expect(res.status).toBe(200);
-    expect(mockUpdate).toHaveBeenCalledWith({ where: { id: "mo1" }, data: { typeId: "t1", manufacturerId: "m1", name: "New" } });
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: "mo1" },
+      data: { typeId: "t1", manufacturerId: "m1", name: "New", documentationUrl: null },
+    });
+  });
+
+  it("updates documentationUrl and records it in the audit diff", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockFindUnique.mockResolvedValue({ typeId: "t1", manufacturerId: "m1", name: "Old", documentationUrl: null } as never);
+    mockFindFirst.mockResolvedValue(null as never);
+    mockUpdate.mockResolvedValue({
+      id: "mo1", typeId: "t1", manufacturerId: "m1", name: "Old", documentationUrl: "https://docs.example.com/old",
+    } as never);
+
+    const res = await PUT(
+      put({ typeId: "t1", manufacturerId: "m1", name: "Old", documentationUrl: "https://docs.example.com/old" }),
+      { params: params() }
+    );
+    expect(res.status).toBe(200);
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: "mo1" },
+      data: { typeId: "t1", manufacturerId: "m1", name: "Old", documentationUrl: "https://docs.example.com/old" },
+    });
+  });
+
+  it("returns 400 when documentationUrl is not a valid URL", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    const res = await PUT(put({ typeId: "t1", name: "X", documentationUrl: "not-a-url" }), { params: params() });
+    expect(res.status).toBe(400);
   });
 });
 

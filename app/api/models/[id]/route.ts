@@ -8,6 +8,7 @@ const updateSchema = z.object({
   typeId: z.string().min(1),
   manufacturerId: z.string().min(1).optional().nullable(),
   name: z.string().min(1).max(255),
+  documentationUrl: z.string().url().max(2048).nullable().optional(),
 });
 
 export async function PUT(
@@ -25,9 +26,10 @@ export async function PUT(
 
   const { typeId, name } = parsed.data;
   const manufacturerId = parsed.data.manufacturerId || null;
+  const documentationUrl = parsed.data.documentationUrl || null;
 
   const [current, existing] = await Promise.all([
-    prisma.model.findUnique({ where: { id }, select: { typeId: true, manufacturerId: true, name: true } }),
+    prisma.model.findUnique({ where: { id }, select: { typeId: true, manufacturerId: true, name: true, documentationUrl: true } }),
     prisma.model.findFirst({
       where: { typeId, manufacturerId, name, NOT: { id } },
       include: { _count: { select: { assets: true, stockItems: true } } },
@@ -47,12 +49,13 @@ export async function PUT(
     );
   }
 
-  const model = await prisma.model.update({ where: { id }, data: { typeId, manufacturerId, name } });
+  const model = await prisma.model.update({ where: { id }, data: { typeId, manufacturerId, name, documentationUrl } });
 
   const changes: Record<string, { from: unknown; to: unknown }> = {};
   if (current.typeId !== typeId) changes["Asset type"] = { from: current.typeId, to: typeId };
   if (current.manufacturerId !== manufacturerId) changes["Manufacturer"] = { from: current.manufacturerId, to: manufacturerId };
   if (current.name !== name) changes["Name"] = { from: current.name, to: name };
+  if (current.documentationUrl !== documentationUrl) changes["Documentation URL"] = { from: current.documentationUrl, to: documentationUrl };
 
   await logAudit({
     session,

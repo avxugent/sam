@@ -116,15 +116,34 @@ describe("POST /api/models", () => {
     expect(res.status).toBe(409);
   });
 
-  it("creates the model and audits on success", async () => {
+  it("creates the model without documentation and audits on success", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     mockTypeFindUnique.mockResolvedValue({ name: "Monitor" } as never);
     mockMfrFindUnique.mockResolvedValue({ name: "Dell" } as never);
     mockFindFirst.mockResolvedValue(null as never);
-    mockCreate.mockResolvedValue({ id: "mo1", typeId: "t1", manufacturerId: "m1", name: "UltraSharp U2722D" } as never);
+    mockCreate.mockResolvedValue({ id: "mo1", typeId: "t1", manufacturerId: "m1", name: "UltraSharp U2722D", documentationUrl: null } as never);
 
     const res = await POST(postReq({ typeId: "t1", manufacturerId: "m1", name: "UltraSharp U2722D" }));
     expect(res.status).toBe(201);
-    expect(mockCreate).toHaveBeenCalledWith({ data: { typeId: "t1", manufacturerId: "m1", name: "UltraSharp U2722D" } });
+    expect(mockCreate).toHaveBeenCalledWith({ data: { typeId: "t1", manufacturerId: "m1", name: "UltraSharp U2722D", documentationUrl: null } });
+  });
+
+  it("passes documentationUrl through when provided", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    mockTypeFindUnique.mockResolvedValue({ name: "Monitor" } as never);
+    mockFindFirst.mockResolvedValue(null as never);
+    mockCreate.mockResolvedValue({ id: "mo1", typeId: "t1", manufacturerId: null, name: "UltraSharp U2722D", documentationUrl: "https://docs.example.com/u2722d" } as never);
+
+    const res = await POST(postReq({ typeId: "t1", name: "UltraSharp U2722D", documentationUrl: "https://docs.example.com/u2722d" }));
+    expect(res.status).toBe(201);
+    expect(mockCreate).toHaveBeenCalledWith({
+      data: { typeId: "t1", manufacturerId: null, name: "UltraSharp U2722D", documentationUrl: "https://docs.example.com/u2722d" },
+    });
+  });
+
+  it("returns 400 when documentationUrl is not a valid URL", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    const res = await POST(postReq({ typeId: "t1", name: "UltraSharp U2722D", documentationUrl: "not-a-url" }));
+    expect(res.status).toBe(400);
   });
 });

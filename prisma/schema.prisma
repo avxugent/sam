@@ -187,11 +187,15 @@ model Manufacturer {
 // Asset/StockItem forms; new hardware blocks the form until an admin adds
 // the Model here first.
 model Model {
-  id             String       @id @default(cuid())
-  typeId         String
-  manufacturerId String?
-  name           String       @db.VarChar(255)
-  createdAt      DateTime     @default(now())
+  id               String       @id @default(cuid())
+  typeId           String
+  manufacturerId   String?
+  name             String       @db.VarChar(255)
+  // External link to the model's documentation page. Required for
+  // compliance, but intentionally not enforced at creation time — an admin
+  // can add the model to unblock inventory entry and fill this in later.
+  documentationUrl String?      @db.Text
+  createdAt        DateTime     @default(now())
 
   type         AssetType     @relation(fields: [typeId], references: [id])
   manufacturer Manufacturer? @relation(fields: [manufacturerId], references: [id])

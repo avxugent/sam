@@ -32,7 +32,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Pencil, Trash2, Plus, Merge } from "lucide-react";
+import { Loader2, Pencil, Trash2, Plus, Merge, TriangleAlert } from "lucide-react";
 
 type NameOption = { id: string; name: string };
 
@@ -41,6 +41,7 @@ type Model = {
   name: string;
   typeId: string;
   manufacturerId: string | null;
+  documentationUrl: string | null;
   type: NameOption;
   manufacturer: NameOption | null;
   _count: { assets: number; stockItems: number };
@@ -104,6 +105,7 @@ export function ModelsClient({
   const [formTypeId, setFormTypeId] = useState("");
   const [formManufacturerId, setFormManufacturerId] = useState("");
   const [formName, setFormName] = useState("");
+  const [formDocumentationUrl, setFormDocumentationUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Usage drilldown
@@ -125,6 +127,7 @@ export function ModelsClient({
     setFormTypeId(currentTypeId || "");
     setFormManufacturerId(currentManufacturerId || "");
     setFormName("");
+    setFormDocumentationUrl("");
     setDialogOpen(true);
   }
 
@@ -133,6 +136,7 @@ export function ModelsClient({
     setFormTypeId(item.typeId);
     setFormManufacturerId(item.manufacturerId ?? "");
     setFormName(item.name);
+    setFormDocumentationUrl(item.documentationUrl ?? "");
     setDialogOpen(true);
   }
 
@@ -157,6 +161,7 @@ export function ModelsClient({
       typeId: formTypeId,
       manufacturerId: formManufacturerId || null,
       name: formName.trim(),
+      documentationUrl: formDocumentationUrl.trim() || null,
     };
     const res = editingId
       ? await fetch(`/api/models/${editingId}`, {
@@ -300,14 +305,24 @@ export function ModelsClient({
             return (
               <div key={item.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
-                  <button
-                    type="button"
-                    onClick={() => usageCount > 0 && openDrilldown(item)}
-                    className="text-left text-sm font-medium truncate hover:text-primary transition-colors disabled:cursor-default"
-                    disabled={usageCount === 0}
-                  >
-                    {item.name}
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => usageCount > 0 && openDrilldown(item)}
+                      className="text-left text-sm font-medium truncate hover:text-primary transition-colors disabled:cursor-default"
+                      disabled={usageCount === 0}
+                    >
+                      {item.name}
+                    </button>
+                    {!item.documentationUrl && (
+                      <TriangleAlert
+                        className="h-3.5 w-3.5 text-amber-600 flex-shrink-0"
+                        aria-label={t("noDocumentationTooltip")}
+                      >
+                        <title>{t("noDocumentationTooltip")}</title>
+                      </TriangleAlert>
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground truncate">
                     {item.type.name}
                     {item.manufacturer && ` · ${item.manufacturer.name}`}
@@ -430,6 +445,15 @@ export function ModelsClient({
               onChange={(e) => setFormName(e.target.value)}
               placeholder={t("namePlaceholder")}
             />
+            <div className="space-y-1">
+              <Input
+                type="url"
+                value={formDocumentationUrl}
+                onChange={(e) => setFormDocumentationUrl(e.target.value)}
+                placeholder={t("documentationUrlPlaceholder")}
+              />
+              <p className="text-xs text-muted-foreground">{t("documentationRequiredHint")}</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>{tCommon("cancel")}</Button>

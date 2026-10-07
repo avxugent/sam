@@ -37,6 +37,7 @@ import {
   RotateCcw,
   TriangleAlert,
   History,
+  FileText,
 } from "lucide-react";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template";
 import { getAssetTypeIcon } from "@/lib/asset-type-icon";
@@ -58,7 +59,7 @@ type Attachment = {
 type Asset = {
   id: string;
   locationId: string;
-  model?: { id: string; name: string } | null;
+  model?: { id: string; name: string; documentationUrl: string | null } | null;
   serialNumber?: string | null;
   hostname?: string | null;
   quantity: number;
@@ -368,7 +369,24 @@ export function AssetDetailClient({
             <dl className="grid grid-cols-2 gap-x-6 gap-y-[14px]">
               <div><FieldLabel>{tField("type")}</FieldLabel><FieldValue value={asset.type?.name} /></div>
               <div><FieldLabel>{tField("manufacturer")}</FieldLabel><FieldValue value={asset.manufacturer?.name} /></div>
-              <div><FieldLabel>{tField("model")}</FieldLabel><FieldValue value={asset.model?.name} /></div>
+              <div>
+                <FieldLabel>{tField("model")}</FieldLabel>
+                <FieldValue>
+                  {asset.model ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      {asset.model.name}
+                      {!asset.model.documentationUrl && (
+                        <TriangleAlert
+                          className="h-3.5 w-3.5 text-[#ca8a04] flex-shrink-0"
+                          aria-label={t("modelNoDocumentation")}
+                        >
+                          <title>{t("modelNoDocumentation")}</title>
+                        </TriangleAlert>
+                      )}
+                    </span>
+                  ) : undefined}
+                </FieldValue>
+              </div>
               <div><FieldLabel>{tField("serialNumber")}</FieldLabel><FieldValue value={asset.serialNumber} mono /></div>
               {asset.quantity !== 1 && (
                 <div><FieldLabel>{tField("quantity")}</FieldLabel><FieldValue value={String(asset.quantity)} /></div>
@@ -517,6 +535,35 @@ export function AssetDetailClient({
           </InfoCard>
 
           <InfoCard icon={<KeyRound className="h-3.5 w-3.5" />} title={t("attachments")}>
+            {asset.model && (
+              <div
+                className={`flex items-center gap-2 px-3 py-2 mb-3 rounded-[8px] border text-[12.5px] ${
+                  asset.model.documentationUrl
+                    ? "border-[#e2e8f0] bg-white"
+                    : "border-[#fde047] bg-[#fefce8] text-[#713f12]"
+                }`}
+              >
+                {asset.model.documentationUrl ? (
+                  <>
+                    <FileText className="h-3.5 w-3.5 text-[#64748b] flex-shrink-0" />
+                    <a
+                      href={asset.model.documentationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#1e64c8] hover:underline inline-flex items-center gap-1"
+                    >
+                      {t("modelDocumentation")}
+                      <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-60" />
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <TriangleAlert className="h-3.5 w-3.5 text-[#ca8a04] flex-shrink-0" />
+                    <span>{t("modelNoDocumentation")}</span>
+                  </>
+                )}
+              </div>
+            )}
             <AttachmentGallery
               attachments={attachments}
               assetId={asset.id}

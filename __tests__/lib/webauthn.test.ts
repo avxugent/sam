@@ -17,7 +17,7 @@ vi.mock("@simplewebauthn/server", () => ({
   verifyAuthenticationResponse: (...args: unknown[]) => mockVerifyAuthenticationResponse(...args),
 }));
 
-import { isoBase64URL } from "@simplewebauthn/server/helpers";
+import { isoBase64URL, isoUint8Array } from "@simplewebauthn/server/helpers";
 import {
   getRpConfig,
   buildRegistrationOptions,
@@ -67,7 +67,7 @@ describe("buildRegistrationOptions", () => {
       expect.objectContaining({
         rpName: "SAM – Asset Management",
         rpID: "sam.example.com",
-        userID: "u1",
+        userID: isoUint8Array.fromUTF8String("u1"),
         userName: "a@b.com",
         userDisplayName: "Alice",
         attestationType: "none",
@@ -77,7 +77,7 @@ describe("buildRegistrationOptions", () => {
     const call = mockGenerateRegistrationOptions.mock.calls[0][0];
     expect(call.excludeCredentials).toHaveLength(1);
     expect(call.excludeCredentials[0].transports).toEqual(["internal"]);
-    expect(isoBase64URL.fromBuffer(call.excludeCredentials[0].id)).toBe(credentialId);
+    expect(call.excludeCredentials[0].id).toBe(credentialId);
   });
 });
 
@@ -91,15 +91,13 @@ describe("verifyRegistration", () => {
     expect(result).toBeNull();
   });
 
-  it("normalizes credentialID/publicKey to base64url and captures transports from the response", async () => {
-    const credentialID = new Uint8Array([1, 2, 3]);
+  it("normalizes publicKey to base64url, passes the already-encoded credential id through, and captures transports from the response", async () => {
+    const credentialId = isoBase64URL.fromBuffer(new Uint8Array([1, 2, 3]));
     const credentialPublicKey = new Uint8Array([4, 5, 6]);
     mockVerifyRegistrationResponse.mockResolvedValue({
       verified: true,
       registrationInfo: {
-        credentialID,
-        credentialPublicKey,
-        counter: 0,
+        credential: { id: credentialId, publicKey: credentialPublicKey, counter: 0 },
         credentialDeviceType: "singleDevice",
         credentialBackedUp: false,
       },
@@ -111,7 +109,7 @@ describe("verifyRegistration", () => {
     );
 
     expect(result).toEqual({
-      credentialId: isoBase64URL.fromBuffer(credentialID),
+      credentialId,
       publicKey: isoBase64URL.fromBuffer(credentialPublicKey),
       counter: 0,
       transports: JSON.stringify(["internal", "hybrid"]),
@@ -124,9 +122,7 @@ describe("verifyRegistration", () => {
     mockVerifyRegistrationResponse.mockResolvedValue({
       verified: true,
       registrationInfo: {
-        credentialID: new Uint8Array([1]),
-        credentialPublicKey: new Uint8Array([2]),
-        counter: 0,
+        credential: { id: isoBase64URL.fromBuffer(new Uint8Array([1])), publicKey: new Uint8Array([2]), counter: 0 },
         credentialDeviceType: "singleDevice",
         credentialBackedUp: false,
       },
@@ -162,7 +158,7 @@ describe("buildAuthenticationOptions", () => {
     );
     const call = mockGenerateAuthenticationOptions.mock.calls[0][0];
     expect(call.allowCredentials).toHaveLength(1);
-    expect(isoBase64URL.fromBuffer(call.allowCredentials[0].id)).toBe(credentialId);
+    expect(call.allowCredentials[0].id).toBe(credentialId);
   });
 });
 
@@ -185,9 +181,9 @@ describe("verifyAuthentication", () => {
 
     expect(result).toEqual({ verified: true, newCounter: 5 });
     const call = mockVerifyAuthenticationResponse.mock.calls[0][0];
-    expect(isoBase64URL.fromBuffer(call.authenticator.credentialID)).toBe(credentialId);
-    expect(isoBase64URL.fromBuffer(call.authenticator.credentialPublicKey)).toBe(publicKey);
-    expect(call.authenticator.counter).toBe(4);
+    expect(call.credential.id).toBe(credentialId);
+    expect(isoBase64URL.fromBuffer(call.credential.publicKey)).toBe(publicKey);
+    expect(call.credential.counter).toBe(4);
   });
 
   it("does not require user verification (this is a second factor, not standalone login)", async () => {

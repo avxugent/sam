@@ -10,12 +10,8 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
-import { isoBase64URL } from "@simplewebauthn/server/helpers";
-import type {
-  RegistrationResponseJSON,
-  AuthenticationResponseJSON,
-  PublicKeyCredentialDescriptorFuture,
-} from "@simplewebauthn/types";
+import { isoBase64URL, isoUint8Array } from "@simplewebauthn/server/helpers";
+import type { RegistrationResponseJSON, AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { APP_NAME } from "@/lib/totp";
 import { SignJWT, jwtVerify } from "jose";
 import type { NextRequest, NextResponse } from "next/server";
@@ -34,7 +30,7 @@ type StoredPasskey = {
   transports: string | null;
 };
 
-function parseTransports(transports: string | null): PublicKeyCredentialDescriptorFuture["transports"] {
+function parseTransports(transports: string | null): string[] | undefined {
   if (!transports) return undefined;
   try {
     return JSON.parse(transports);
@@ -43,10 +39,12 @@ function parseTransports(transports: string | null): PublicKeyCredentialDescript
   }
 }
 
-function toCredentialDescriptor(passkey: StoredPasskey): PublicKeyCredentialDescriptorFuture {
+// `id` is a base64url string, matching how credentialId is already stored —
+// v10+ dropped the Uint8Array id / explicit `type: "public-key"` requirement
+// that earlier versions needed here.
+function toCredentialDescriptor(passkey: StoredPasskey): { id: string; transports?: string[] } {
   return {
-    id: isoBase64URL.toBuffer(passkey.credentialId),
-    type: "public-key",
+    id: passkey.credentialId,
     transports: parseTransports(passkey.transports),
   };
 }
@@ -59,7 +57,8 @@ export async function buildRegistrationOptions(
   return generateRegistrationOptions({
     rpName,
     rpID,
-    userID: user.id,
+    // v10+ requires userID as bytes rather than a plain string.
+    userID: isoUint8Array.fromUTF8String(user.id),
     userName: user.email,
     userDisplayName: user.name,
     attestationType: "none",
@@ -107,13 +106,16 @@ export async function verifyRegistration(
   }
   if (!result.verified || !result.registrationInfo) return null;
 
-  const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } =
-    result.registrationInfo;
+  // v11+ nests the credential id/publicKey/counter under `credential`;
+  // deviceType/backedUp stay top-level on registrationInfo. `credential.id`
+  // is already a base64url string — only publicKey (raw COSE key bytes)
+  // needs encoding.
+  const { credential, credentialDeviceType, credentialBackedUp } = result.registrationInfo;
 
   return {
-    credentialId: isoBase64URL.fromBuffer(credentialID),
-    publicKey: isoBase64URL.fromBuffer(credentialPublicKey),
-    counter,
+    credentialId: credential.id,
+    publicKey: isoBase64URL.fromBuffer(credential.publicKey),
+    counter: credential.counter,
     transports: response.response.transports ? JSON.stringify(response.response.transports) : null,
     deviceType: credentialDeviceType,
     backedUp: credentialBackedUp,
@@ -143,9 +145,11 @@ export async function verifyAuthentication(
       expectedChallenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
-      authenticator: {
-        credentialID: isoBase64URL.toBuffer(storedPasskey.credentialId),
-        credentialPublicKey: isoBase64URL.toBuffer(storedPasskey.publicKey),
+      // v11+ renamed the `authenticator` option to `credential`, and its id
+      // field to a base64url string (publicKey stays raw bytes).
+      credential: {
+        id: storedPasskey.credentialId,
+        publicKey: isoBase64URL.toBuffer(storedPasskey.publicKey),
         counter: storedPasskey.counter,
         transports: parseTransports(storedPasskey.transports),
       },

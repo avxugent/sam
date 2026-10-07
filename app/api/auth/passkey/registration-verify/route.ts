@@ -15,7 +15,7 @@ import { auth, signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { verifyRegistration, readChallengeCookie, clearChallengeCookie } from "@/lib/webauthn";
-import type { RegistrationResponseJSON } from "@simplewebauthn/types";
+import type { RegistrationResponseJSON } from "@simplewebauthn/server";
 import { z } from "zod";
 
 const schema = z.object({

@@ -62,7 +62,7 @@ export function PasskeySettings({ provider, passkeys: initialPasskeys }: Props) 
         return;
       }
 
-      const attestation = await startRegistration(optionsData.options);
+      const attestation = await startRegistration({ optionsJSON: optionsData.options });
 
       const verifyRes = await fetch("/api/auth/passkey/registration-verify", {
         method: "POST",

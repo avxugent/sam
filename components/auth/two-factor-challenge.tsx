@@ -67,7 +67,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
         return;
       }
 
-      const assertion = await startAuthentication(optionsData.options);
+      const assertion = await startAuthentication({ optionsJSON: optionsData.options });
 
       const verifyRes = await fetch("/api/auth/passkey/authentication-verify", {
         method: "POST",

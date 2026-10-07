@@ -16,7 +16,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
 import { setRememberMeCookie } from "@/lib/remember-device";
 import { verifyAuthentication, readChallengeCookie, clearChallengeCookie } from "@/lib/webauthn";
-import type { AuthenticationResponseJSON } from "@simplewebauthn/types";
+import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { z } from "zod";
 
 const schema = z.object({

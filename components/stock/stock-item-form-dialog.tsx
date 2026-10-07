@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
@@ -140,6 +140,8 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const [selectedTypeId, setSelectedTypeId] = useState(initialData?.typeId ?? "");
   const [selectedMfgId, setSelectedMfgId] = useState(initialData?.manufacturerId ?? "");
   const [selectedLocationId, setSelectedLocationId] = useState(initialData?.locationId ?? "");
+  // See the manufacturer-scoping effect below for what this guards against.
+  const isInitialManufacturerLoadRef = useRef(true);
 
   const {
     register,
@@ -185,16 +187,43 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   // Fetch dropdown options when dialog opens
   useEffect(() => {
     if (!open) return;
+    isInitialManufacturerLoadRef.current = true;
     Promise.all([
       fetch("/api/asset-types").then((r) => r.json()),
-      fetch("/api/manufacturers").then((r) => r.json()),
       fetch("/api/locations").then((r) => r.json()),
-    ]).then(([types, mfrs, locTree]) => {
+    ]).then(([types, locTree]) => {
       setAssetTypes(types as AssetType[]);
-      setManufacturers(mfrs as Manufacturer[]);
       setLocations(flattenLocations(locTree as LocationNode[]));
     });
   }, [open]);
+
+  // Manufacturer options are scoped to the selected asset type (only
+  // manufacturers with at least one Model under that type) — refetched
+  // whenever the type changes. The very first fetch after opening the dialog
+  // never clears the current selection, even if that manufacturer happens to
+  // have no Model yet for this type; only a genuine later type change by the
+  // user clears a selection that's no longer valid.
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const params = new URLSearchParams();
+      if (selectedTypeId) params.set("typeId", selectedTypeId);
+      const res = await fetch(`/api/manufacturers?${params}`);
+      if (!res.ok) return;
+      const list: Manufacturer[] = await res.json();
+      setManufacturers(list);
+      if (
+        !isInitialManufacturerLoadRef.current &&
+        selectedMfgId &&
+        !list.some((m) => m.id === selectedMfgId)
+      ) {
+        setSelectedMfgId("");
+        setValue("manufacturerId", "", { shouldValidate: false });
+        setValue("modelId", "", { shouldValidate: false });
+      }
+      isInitialManufacturerLoadRef.current = false;
+    })();
+  }, [selectedTypeId, open, selectedMfgId, setValue]);
 
   function handleClose() {
     setOpen(false);

@@ -28,7 +28,7 @@ The asset detail page shows:
 2. On the **Assets tab**, click **Add Asset**.
 3. Fill in the required fields:
    - **Type** — select from the list or type to create a new one
-   - **Manufacturer** — select or create
+   - **Manufacturer** — select or create. Once a type is picked, only manufacturers with at least one model under that type are listed
    - **Model** — start typing to search the list of models for the selected type/manufacturer and pick one. Models are a fixed, admin-managed list ([Administration → Models](administration.md)) — if the hardware isn't listed yet, ask an admin to add it first
 4. Fill in optional fields as needed.
 5. If you enter a **hostname**, at least one **MAC address** is required. The hostname must match the format configured for the asset's type (see [Administration → Asset Types](administration.md)), or a generic domain-name format if the type has no format configured. Hostnames must be unique — no two assets, including decommissioned ones, can share a hostname.

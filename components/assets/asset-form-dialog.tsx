@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -141,6 +141,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const [showManufacturerDropdown, setShowManufacturerDropdown] = useState(false);
   const [vaultTestResult, setVaultTestResult] = useState<VaultTestResult | null>(null);
   const [vaultTesting, setVaultTesting] = useState(false);
+  // See the manufacturer-scoping effect below for what this guards against.
+  const isInitialManufacturerLoadRef = useRef(true);
 
   const validationSchema = useMemo(() => {
     const macSchema = z.object({
@@ -263,14 +265,12 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   }, [hasIdentityValue, setValue]);
 
   const fetchDropdowns = useCallback(async () => {
-    const [typesRes, mfrsRes, suppliersRes, usersRes] = await Promise.all([
+    const [typesRes, suppliersRes, usersRes] = await Promise.all([
       fetch("/api/asset-types"),
-      fetch("/api/manufacturers"),
       fetch("/api/suppliers"),
       fetch("/api/users/lite"),
     ]);
     if (typesRes.ok) setAssetTypes(await typesRes.json());
-    if (mfrsRes.ok) setManufacturers(await mfrsRes.json());
     let fetchedSuppliers: Supplier[] = [];
     if (suppliersRes.ok) {
       fetchedSuppliers = await suppliersRes.json();
@@ -318,6 +318,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
   useEffect(() => {
     if (open) {
+      isInitialManufacturerLoadRef.current = true;
       const dropdowns = fetchDropdowns();
       if (mode === "edit") {
         fetchAsset();
@@ -336,6 +337,34 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       setVaultTestResult(null);
     }
   }, [open, fetchDropdowns, fetchAsset, mode, reset, setValue]);
+
+  // Manufacturer options are scoped to the selected asset type (only
+  // manufacturers with at least one Model under that type) — refetched
+  // whenever typeId changes. The very first fetch after opening the dialog
+  // (including the one triggered once edit-mode's fetchAsset() applies the
+  // asset's own typeId) never clears the current selection, even if that
+  // manufacturer happens to have no Model yet for this type; only a genuine
+  // later type change by the user clears a selection that's no longer valid.
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const params = new URLSearchParams();
+      if (typeIdValue) params.set("typeId", typeIdValue);
+      const res = await fetch(`/api/manufacturers?${params}`);
+      if (!res.ok) return;
+      const list: Manufacturer[] = await res.json();
+      setManufacturers(list);
+      if (
+        !isInitialManufacturerLoadRef.current &&
+        manufacturerIdValue &&
+        !list.some((m) => m.id === manufacturerIdValue)
+      ) {
+        setValue("manufacturerId", "", { shouldValidate: false });
+        setValue("modelId", "", { shouldValidate: false });
+      }
+      isInitialManufacturerLoadRef.current = false;
+    })();
+  }, [typeIdValue, open, manufacturerIdValue, setValue]);
 
   // Sync manufacturer display name when manufacturerId or manufacturers list changes (handles edit mode)
   useEffect(() => {

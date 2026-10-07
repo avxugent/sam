@@ -6,11 +6,15 @@ import { logAudit } from "@/lib/audit";
 
 const schema = z.object({ name: z.string().min(1) });
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { searchParams } = new URL(req.url);
+  const typeId = searchParams.get("typeId") || undefined;
+
   const manufacturers = await prisma.manufacturer.findMany({
+    where: typeId ? { models: { some: { typeId } } } : undefined,
     orderBy: { name: "asc" },
     include: { _count: { select: { assets: true } } },
   });

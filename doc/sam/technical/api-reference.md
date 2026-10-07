@@ -90,7 +90,7 @@ Key validated fields:
 
 | Method | Path | Min role | Description |
 |---|---|---|---|
-| `GET` | `/api/manufacturers` | VIEWER | List all |
+| `GET` | `/api/manufacturers` | VIEWER | List all. Accepts an optional `typeId` filter — when given, only manufacturers with at least one Model under that asset type are returned |
 | `POST` | `/api/manufacturers` | ADMIN | Create |
 | `GET` | `/api/manufacturers/[id]` | VIEWER | Get detail |
 | `PUT` | `/api/manufacturers/[id]` | ADMIN | Update |

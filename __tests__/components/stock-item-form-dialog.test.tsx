@@ -25,7 +25,7 @@ beforeEach(() => {
   // dropdown fetches on open + submit fetch
   mockFetch.mockImplementation((url: string) => {
     if (url === "/api/asset-types") return Promise.resolve(jsonResp([{ id: "at1", name: "Laptop" }]));
-    if (url === "/api/manufacturers") return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
+    if (url.startsWith("/api/manufacturers")) return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
     if (url === "/api/locations") {
       return Promise.resolve(jsonResp([
         { id: "loc1", name: "Room A", parentId: null, _count: { stockItems: 1 } },
@@ -74,7 +74,9 @@ describe("<StockItemFormDialog /> create", () => {
   it("loads dropdown options from the API when opened", async () => {
     await openCreate();
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith("/api/asset-types"));
-    expect(mockFetch).toHaveBeenCalledWith("/api/manufacturers");
+    await waitFor(() =>
+      expect(mockFetch.mock.calls.some(([url]) => (url as string).startsWith("/api/manufacturers"))).toBe(true)
+    );
     expect(mockFetch).toHaveBeenCalledWith("/api/locations");
   });
 
@@ -92,7 +94,7 @@ describe("<StockItemFormDialog /> create", () => {
   it("hides locations with no stock by default, revealed via the show-all toggle", async () => {
     mockFetch.mockImplementation((url: string) => {
       if (url === "/api/asset-types") return Promise.resolve(jsonResp([{ id: "at1", name: "Laptop" }]));
-      if (url === "/api/manufacturers") return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
+      if (url.startsWith("/api/manufacturers")) return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
       if (url === "/api/locations") {
         return Promise.resolve(jsonResp([
           { id: "loc1", name: "Room A", parentId: null, _count: { stockItems: 1 } },
@@ -122,7 +124,7 @@ describe("<StockItemFormDialog /> create", () => {
   it("shows model suggestions scoped from /api/models and fills the exact stored spelling on pick", async () => {
     mockFetch.mockImplementation((url: string) => {
       if (url === "/api/asset-types") return Promise.resolve(jsonResp([{ id: "at1", name: "Laptop" }]));
-      if (url === "/api/manufacturers") return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
+      if (url.startsWith("/api/manufacturers")) return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
       if (url === "/api/locations") return Promise.resolve(jsonResp([{ id: "loc1", name: "Room A", parentId: null }]));
       if (url.startsWith("/api/models")) {
         return Promise.resolve(
@@ -207,7 +209,7 @@ describe("<StockItemFormDialog /> edit", () => {
   it("shows a destructive toast when the API rejects the update", async () => {
     mockFetch.mockImplementation((url: string) => {
       if (url === "/api/asset-types") return Promise.resolve(jsonResp([{ id: "at1", name: "Laptop" }]));
-      if (url === "/api/manufacturers") return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
+      if (url.startsWith("/api/manufacturers")) return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
       if (url === "/api/locations") return Promise.resolve(jsonResp([{ id: "loc1", name: "Room A", parentId: null }]));
       return Promise.resolve({ ok: false, json: async () => ({ error: "Boom" }) });
     });

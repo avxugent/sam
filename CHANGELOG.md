@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.0-beta.5] - 2026-10-07
+
+### Fixed
+
+- `mariadb` (direct dependency) `3.5.2` → `3.5.4`, closing GHSA-cqhc-2h57-wpxf/GHSA-42r5-vhpq-m858/GHSA-g5xc-5w98-jfvm (cleartext password leak to a MitM despite `ssl: true`, plus a SQL injection edge case under certain client charsets) on our own direct copy. Note: the live MySQL connection in `lib/prisma.ts` goes through `@prisma/adapter-mariadb`, which bundles its own nested `mariadb@3.4.5` (also affected) and is unrelated to this direct dependency — Prisma has not yet shipped a fix for that nested copy (confirmed still present in `@prisma/adapter-mariadb@7.10.0`, their latest stable 7.x release), so this is a partial fix tracked for a follow-up once upstream patches it.
+
+### Changed
+
+- Routine patch bumps: `@prisma/adapter-mariadb` 7.8.0 → 7.10.0, `msw` 2.13.4 → 2.15.0 (dev-only test tooling).
+
+---
+
 ## [3.0.0-beta.4] - 2026-10-07
 
 ### Changed

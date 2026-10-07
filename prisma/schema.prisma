@@ -157,6 +157,7 @@ model AssetType {
   presets               MaintenancePreset[]
   manufacturerTemplates AssetTypeManufacturerTemplate[]
   modelTemplates        AssetTypeModelTemplate[]
+  models                Model[]
 
   @@map("asset_types")
 }
@@ -170,8 +171,37 @@ model Manufacturer {
   stockItems     StockItem[]
   typeTemplates  AssetTypeManufacturerTemplate[]
   modelTemplates AssetTypeModelTemplate[]
+  models         Model[]
 
   @@map("manufacturers")
+}
+
+// Fixed lookup table for the Asset/StockItem "model" field — replaces the
+// former free-text Asset.model / StockItem.model string columns. Scoped by
+// (typeId, manufacturerId, name) rather than name alone, since the same
+// model name can legitimately recur under different type/manufacturer
+// combinations. manufacturerId is nullable because StockItem.manufacturerId
+// is itself optional (stock can be received with a model but no known
+// manufacturer) — a manufacturer-less Model is its own bucket per typeId.
+// Admin-only creation: there is no inline "create new model" from the
+// Asset/StockItem forms; new hardware blocks the form until an admin adds
+// the Model here first.
+model Model {
+  id             String       @id @default(cuid())
+  typeId         String
+  manufacturerId String?
+  name           String       @db.VarChar(255)
+  createdAt      DateTime     @default(now())
+
+  type         AssetType     @relation(fields: [typeId], references: [id])
+  manufacturer Manufacturer? @relation(fields: [manufacturerId], references: [id])
+  assets       Asset[]
+  stockItems   StockItem[]
+
+  @@unique([typeId, manufacturerId, name])
+  @@index([typeId])
+  @@index([manufacturerId])
+  @@map("models")
 }
 
 // Per-(AssetType, Manufacturer) override of AssetType.scrapeTargetTemplate.
@@ -195,8 +225,10 @@ model AssetTypeManufacturerTemplate {
 }
 
 // Per-(AssetType, Manufacturer, Model) override — the most specific tier.
-// `model` is matched against Asset.model case-insensitively (trimmed), since
-// model is a free-text field rather than a lookup table. Lets a single brand
+// `model` is matched against the asset's resolved Model.name case-
+// insensitively (trimmed) — this table's own `model` column is intentionally
+// still free text rather than an FK to Model, since the string-equality
+// match is unaffected by where the compared string comes from. Lets a single brand
 // under one asset type expose different models through different
 // exporters/endpoints. Resolution order in the SD endpoint: this override
 // (matched on the asset's manufacturerId + model) →
@@ -244,7 +276,7 @@ model Asset {
   locationId           String
   typeId               String?
   manufacturerId       String?
-  model                String?
+  modelId              String?
   serialNumber         String?
   // Globally unique across all assets regardless of status, so a
   // decommissioned asset's hostname is never reassigned (audit trail).
@@ -287,6 +319,7 @@ model Asset {
   location     Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
   type         AssetType?    @relation(fields: [typeId], references: [id])
   manufacturer Manufacturer? @relation(fields: [manufacturerId], references: [id])
+  model        Model?        @relation(fields: [modelId], references: [id])
   supplier     Supplier?     @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   macAddresses MacAddress[]
   customFields CustomField[]
@@ -296,6 +329,7 @@ model Asset {
   @@index([locationId])
   @@index([typeId])
   @@index([manufacturerId])
+  @@index([modelId])
   @@index([installationDate])
   @@index([supplierId])
   @@index([endOfSupportDate])
@@ -463,7 +497,12 @@ model StockItem {
   lineageId             String    @default(cuid())
   typeId                String
   manufacturerId        String?
-  model                 String    @db.VarChar(255)
+  // Nullable for now even though every row is expected to have one — a
+  // follow-up migration tightens this to NOT NULL once the modelId backfill
+  // (prisma/migrations/*_add_models_table_and_backfill) is verified clean in
+  // production. The Zod schema in app/api/stock/route.ts already enforces
+  // "required" at the API boundary regardless of this column's nullability.
+  modelId               String?
   serialNumber          String?   @db.VarChar(100)
   quantity              Int       @default(1)
   notes                 String?   @db.Text
@@ -482,10 +521,12 @@ model StockItem {
 
   type         AssetType     @relation(fields: [typeId], references: [id])
   manufacturer Manufacturer? @relation(fields: [manufacturerId], references: [id])
+  model        Model?        @relation(fields: [modelId], references: [id])
   location     Location?     @relation(fields: [locationId], references: [id], onDelete: Restrict)
 
   @@index([typeId])
   @@index([manufacturerId])
+  @@index([modelId])
   @@index([locationId])
   @@index([lineageId])
   @@map("stock_items")

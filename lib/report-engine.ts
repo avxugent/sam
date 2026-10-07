@@ -92,12 +92,21 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
       continue;
     }
 
-    if (field === "model" || field === "serialNumber" || field === "hostname") {
+    if (field === "serialNumber" || field === "hostname") {
       if (op === "eq" && value) conditions.push({ [field]: value });
       else if (op === "neq" && value) conditions.push({ [field]: { not: value } });
       else if (op === "contains" && value) conditions.push({ [field]: { contains: value } });
       else if (op === "isNull") conditions.push({ [field]: null });
       else if (op === "isNotNull") conditions.push({ [field]: { not: null } });
+      continue;
+    }
+
+    if (field === "model") {
+      if (op === "eq" && value) conditions.push({ model: { name: value } });
+      else if (op === "neq" && value) conditions.push({ model: { isNot: { name: value } } });
+      else if (op === "contains" && value) conditions.push({ model: { name: { contains: value } } });
+      else if (op === "isNull") conditions.push({ modelId: null });
+      else if (op === "isNotNull") conditions.push({ modelId: { not: null } });
       continue;
     }
 
@@ -173,6 +182,7 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
     include: {
       type: { select: { name: true, defaultCriticality: true } },
       manufacturer: { select: { name: true } },
+      model: { select: { name: true } },
       supplier: { select: { name: true } },
       location: { select: { id: true, name: true } },
     },
@@ -187,7 +197,7 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
 
   const rows: ReportRow[] = assets.map((a) => ({
     id: a.id,
-    model: a.model,
+    model: a.model?.name ?? null,
     serialNumber: a.serialNumber,
     hostname: a.hostname,
     type: a.type?.name ?? null,

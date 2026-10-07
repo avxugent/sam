@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   const assetWhere = {
     status: "INSTALLED",
     OR: [
-      { model: { contains: q } },
+      { model: { name: { contains: q } } },
       { serialNumber: { contains: q } },
       { hostname: { contains: q } },
       { invoiceNumber: { contains: q } },
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
       where: assetWhere,
       select: {
         id: true,
-        model: true,
+        model: { select: { id: true, name: true } },
         serialNumber: true,
         hostname: true,
         invoiceNumber: true,
@@ -124,7 +124,7 @@ export async function GET(req: NextRequest) {
 
   function scoreAsset(a: typeof assets[number]): number {
     let score = 0;
-    if (a.model?.toLowerCase().includes(ql)) score += 10;
+    if (a.model?.name.toLowerCase().includes(ql)) score += 10;
     if (a.hostname?.toLowerCase().includes(ql)) score += 10;
     if (a.serialNumber?.toLowerCase().includes(ql)) score += 10;
     if (a.type?.name.toLowerCase().includes(ql)) score += 8;
@@ -146,7 +146,7 @@ export async function GET(req: NextRequest) {
   // Build a highlight snippet showing which fields matched
   function buildSnippet(a: typeof assets[number]): string {
     const parts: string[] = [];
-    if (a.model?.toLowerCase().includes(ql)) parts.push(`Model: ${a.model}`);
+    if (a.model?.name.toLowerCase().includes(ql)) parts.push(`Model: ${a.model.name}`);
     if (a.serialNumber?.toLowerCase().includes(ql)) parts.push(`S/N: ${a.serialNumber}`);
     if (a.hostname?.toLowerCase().includes(ql)) parts.push(`Host: ${a.hostname}`);
     if (a.invoiceNumber?.toLowerCase().includes(ql)) parts.push(`Invoice: ${a.invoiceNumber}`);

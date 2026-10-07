@@ -126,6 +126,13 @@ export async function DELETE(
       { status: 400 }
     );
   }
+  const modelCount = await prisma.model.count({ where: { typeId: id } });
+  if (modelCount > 0) {
+    return NextResponse.json(
+      { error: `This type has ${modelCount} model(s) defined. Delete or reassign them first.` },
+      { status: 400 }
+    );
+  }
 
   const assetType = await prisma.assetType.findUnique({ where: { id }, select: { name: true } });
   await prisma.assetType.delete({ where: { id } });

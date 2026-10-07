@@ -34,7 +34,7 @@ describe("GET /api/stock/[id]", () => {
   });
   it("returns the item", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
-    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1", model: "X" } as never);
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1", model: { name: "X" } } as never);
     expect((await GET(new NextRequest("http://x"), { params: params() })).status).toBe(200);
   });
 });
@@ -42,12 +42,12 @@ describe("GET /api/stock/[id]", () => {
 describe("PUT /api/stock/[id]", () => {
   it("403 for viewers", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
-    expect((await PUT(put({ model: "X" }), { params: params() })).status).toBe(403);
+    expect((await PUT(put({ modelId: "mo1" }), { params: params() })).status).toBe(403);
   });
   it("404 when the item does not exist", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     vi.mocked(prisma.stockItem.findUnique).mockResolvedValue(null as never);
-    expect((await PUT(put({ model: "X" }), { params: params() })).status).toBe(404);
+    expect((await PUT(put({ modelId: "mo1" }), { params: params() })).status).toBe(404);
   });
   it("400 when serial is set but quantity > 1 (superRefine)", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
@@ -56,9 +56,9 @@ describe("PUT /api/stock/[id]", () => {
   });
   it("updates fields, parses invoiceDate, and audits the changes", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
-    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1", model: "Old", serialNumber: null, quantity: 1, notes: null, invoiceNumber: null } as never);
-    vi.mocked(prisma.stockItem.update).mockResolvedValue({ id: "s1", model: "New" } as never);
-    const res = await PUT(put({ model: "New", quantity: 3, invoiceDate: "2024-01-01" }), { params: params() });
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1", modelId: "mo-old", model: { name: "Old" }, serialNumber: null, quantity: 1, notes: null, invoiceNumber: null } as never);
+    vi.mocked(prisma.stockItem.update).mockResolvedValue({ id: "s1", modelId: "mo-new", model: { name: "New" } } as never);
+    const res = await PUT(put({ modelId: "mo-new", quantity: 3, invoiceDate: "2024-01-01" }), { params: params() });
     expect(res.status).toBe(200);
     const updateArg = vi.mocked(prisma.stockItem.update).mock.calls[0][0];
     expect(updateArg.data.invoiceDate).toBeInstanceOf(Date);
@@ -72,8 +72,8 @@ describe("PUT /api/stock/[id]", () => {
   });
   it("nulls invoiceDate when passed null", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
-    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1", model: "M", serialNumber: null, quantity: 1, notes: null, invoiceNumber: null } as never);
-    vi.mocked(prisma.stockItem.update).mockResolvedValue({ id: "s1", model: "M" } as never);
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1", modelId: "mo-m", model: { name: "M" }, serialNumber: null, quantity: 1, notes: null, invoiceNumber: null } as never);
+    vi.mocked(prisma.stockItem.update).mockResolvedValue({ id: "s1", modelId: "mo-m", model: { name: "M" } } as never);
     await PUT(put({ invoiceDate: null }), { params: params() });
     expect(vi.mocked(prisma.stockItem.update).mock.calls[0][0].data.invoiceDate).toBeNull();
   });
@@ -91,7 +91,7 @@ describe("DELETE /api/stock/[id]", () => {
   });
   it("deletes and audits", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
-    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ model: "X" } as never);
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ model: { name: "X" } } as never);
     vi.mocked(prisma.stockItem.delete).mockResolvedValue({} as never);
     const res = await DELETE(del(), { params: params() });
     expect(res.status).toBe(200);

@@ -43,7 +43,7 @@ function Th({ col, label, sortCol, sortDir, onSort }: {
 export type InRepairAsset = {
   id: string;
   locationId: string;
-  model: string | null;
+  model: { name: string } | null;
   serialNumber: string | null;
   repairStartedAt: Date | string | null;
   repairNote: string | null;
@@ -69,7 +69,7 @@ export function InRepairTable({ assets }: { assets: InRepairAsset[] }) {
     if (!query) return true;
     const q = query.toLowerCase();
     return (
-      a.model?.toLowerCase().includes(q) ||
+      a.model?.name.toLowerCase().includes(q) ||
       a.serialNumber?.toLowerCase().includes(q) ||
       a.type?.name.toLowerCase().includes(q) ||
       a.manufacturer?.name.toLowerCase().includes(q) ||
@@ -83,7 +83,7 @@ export function InRepairTable({ assets }: { assets: InRepairAsset[] }) {
     return [...filtered].sort((a, b) => {
       let av = "", bv = "";
       if (sortCol === "type") { av = a.type?.name ?? ""; bv = b.type?.name ?? ""; }
-      else if (sortCol === "model") { av = a.model ?? ""; bv = b.model ?? ""; }
+      else if (sortCol === "model") { av = a.model?.name ?? ""; bv = b.model?.name ?? ""; }
       else if (sortCol === "serialNumber") { av = a.serialNumber ?? ""; bv = b.serialNumber ?? ""; }
       else if (sortCol === "location") { av = a.location?.name ?? ""; bv = b.location?.name ?? ""; }
       else if (sortCol === "repairStartedAt") { av = String(a.repairStartedAt ?? ""); bv = String(b.repairStartedAt ?? ""); }
@@ -137,7 +137,7 @@ export function InRepairTable({ assets }: { assets: InRepairAsset[] }) {
                       href={`/locations/${asset.locationId}/assets/${asset.id}`}
                       className="font-medium text-[#0f172a] hover:text-[#1e64c8] hover:underline"
                     >
-                      {asset.model || asset.serialNumber || tAsset("unnamedAsset")}
+                      {asset.model?.name || asset.serialNumber || tAsset("unnamedAsset")}
                     </Link>
                     {asset.manufacturer && (
                       <span className="text-[11.5px] text-[#94a3b8] ml-1.5">{asset.manufacturer.name}</span>

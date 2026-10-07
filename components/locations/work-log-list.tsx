@@ -31,7 +31,7 @@ export type WorkLogEntry = {
   item: { id: string; name: string } | null;
   asset: {
     id: string;
-    model: string | null;
+    model: { name: string } | null;
     serialNumber: string | null;
     hostname: string | null;
     type: { id: string; name: string } | null;
@@ -60,7 +60,7 @@ function getInitials(name: string | null | undefined, email: string): string {
 
 function assetLabel(asset: WorkLogEntry["asset"]): string {
   if (!asset) return "";
-  return asset.model || asset.hostname || asset.serialNumber || "Asset";
+  return asset.model?.name || asset.hostname || asset.serialNumber || "Asset";
 }
 
 export function WorkLogList({

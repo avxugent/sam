@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
     select: {
       id: true,
       hostname: true,
-      model: true,
+      model: { select: { name: true } },
       serialNumber: true,
       vaultPath: true,
       locationId: true,
@@ -161,12 +161,12 @@ export async function GET(req: NextRequest) {
     if (asset.type?.name) labels.sam_asset_type = safeLabel(asset.type.name);
     if (asset.manufacturer?.name)
       labels.sam_manufacturer = safeLabel(asset.manufacturer.name);
-    if (asset.model) labels.sam_model = safeLabel(asset.model);
+    if (asset.model?.name) labels.sam_model = safeLabel(asset.model.name);
 
     // ── Scrape target template ───────────────────────────────────────────────
     // Most specific override wins: model+manufacturer → manufacturer → type default.
     const template = asset.type
-      ? resolveScrapeTemplate(asset.type, asset.manufacturerId, asset.model)
+      ? resolveScrapeTemplate(asset.type, asset.manufacturerId, asset.model?.name ?? null)
       : null;
 
     if (template?.trim()) {
@@ -175,7 +175,7 @@ export async function GET(req: NextRequest) {
       const vars: TemplateVars = {
         hostname_fqdn: asset.hostname,
         serial: asset.serialNumber ?? "",
-        model: asset.model ?? "",
+        model: asset.model?.name ?? "",
         manufacturer: asset.manufacturer?.name ?? "",
         fi_number: fiNumber ?? "",
         vault_path: asset.vaultPath ?? "",

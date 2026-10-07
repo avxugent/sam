@@ -34,7 +34,7 @@ export default async function StockPage({
         ...(typeId ? { typeId } : {}),
         ...(locationId ? { locationId } : {}),
       },
-      include: { type: true, manufacturer: true, location: { select: { id: true, name: true } } },
+      include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     }),
     typeId

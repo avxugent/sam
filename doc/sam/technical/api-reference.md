@@ -100,6 +100,22 @@ Key validated fields:
 
 ---
 
+## Models
+
+Fixed lookup table for the Asset/StockItem "model" field, scoped by `(typeId, manufacturerId, name)`. Admin-managed — no inline creation from the asset/stock forms.
+
+| Method | Path | Min role | Description |
+|---|---|---|---|
+| `GET` | `/api/models` | VIEWER | List models. Accepts `q` (name contains), `typeId`, `manufacturerId` filters |
+| `POST` | `/api/models` | ADMIN | Create |
+| `PUT` | `/api/models/[id]` | ADMIN | Update (type/manufacturer/name); `409` with `{existingId, existingName, existingAssetCount, existingStockCount}` on a name collision within the same type/manufacturer |
+| `DELETE` | `/api/models/[id]` | ADMIN | Delete; `400` if any asset or stock item still references it |
+| `GET` | `/api/models/[id]/usage` | VIEWER | Assets and stock items referencing this model |
+| `POST` | `/api/models/[id]/merge` | ADMIN | Merge into another model — reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source |
+| `GET` | `/api/models/clusters` | ADMIN | List clusters of 2+ similar-but-not-identical model names (fuzzy edit-distance matching), for the admin page's "possible duplicates" panel |
+
+---
+
 ## Suppliers
 
 | Method | Path | Min role | Description |
@@ -297,16 +313,5 @@ All endpoints use Bearer token authentication (`Authorization: Bearer <PROMETHEU
 |---|---|---|---|
 | `GET` | `/api/setup` | public | Check if setup is needed (returns `userCount`) |
 | `POST` | `/api/setup` | public | Create first admin (only when `userCount === 0`) |
-| `GET` | `/api/models` | VIEWER | List unique model strings across assets and stock items (for the model combobox), deduplicated case-insensitively, sorted alphabetically, max 20. Accepts `q`, `typeId`, `manufacturerId` filters |
-| `GET` | `/api/models/similar` | VIEWER | Fuzzy-match a candidate model name (`q`) against existing ones; returns `{ match: { model, distance } \| null }`. Used to show a "did you mean an existing model?" warning while editing an asset |
 | `GET` | `/api/jira/issue/[key]` | VIEWER | Fetch JIRA issue summary and status |
 | `GET` | `/api/vault/test` | EDITOR | Test Vault connection for an asset's vault path |
-
----
-
-## Model Cleanup
-
-| Method | Path | Min role | Description |
-|---|---|---|---|
-| `GET` | `/api/models/clusters` | ADMIN | List clusters of 2+ similar-but-not-identical model spellings, grouped by fuzzy edit-distance matching |
-| `POST` | `/api/models/merge` | ADMIN | Rewrite all assets using any of `variants` to `canonical` (bulk rename, no entity to delete since `model` is a plain string field) |

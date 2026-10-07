@@ -26,8 +26,6 @@
     "assets:fix-serial-numbers:dry-run": "node --import tsx/esm scripts/fix-scientific-notation-serials.mjs --dry-run",
     "assets:fix-mac-format": "node --import tsx/esm scripts/fix-mac-address-format.mjs",
     "assets:fix-mac-format:dry-run": "node --import tsx/esm scripts/fix-mac-address-format.mjs --dry-run",
-    "assets:normalize-models": "node --import tsx/esm scripts/normalize-models.mjs",
-    "assets:normalize-models:dry-run": "node --import tsx/esm scripts/normalize-models.mjs --dry-run",
     "assets:migrate-quantity": "node --import tsx/esm scripts/migrate-quantity-custom-field.mjs",
     "assets:migrate-quantity:dry-run": "node --import tsx/esm scripts/migrate-quantity-custom-field.mjs --dry-run",
     "export:backup": "node --import tsx/esm scripts/export-backup.mjs",

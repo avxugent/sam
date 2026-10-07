@@ -44,7 +44,7 @@ function req(url: string, body: object, method = "POST") {
   });
 }
 
-const BASE_BODY = { typeId: "t1", manufacturerId: "m1", model: "Recorder" };
+const BASE_BODY = { typeId: "t1", manufacturerId: "m1", modelId: "mo1" };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -58,7 +58,7 @@ describe("POST /api/locations/[id]/assets — MAC address normalization", () => 
 
   it("normalizes a hyphen-separated MAC to AA:BB:CC:DD:EE:FF on create", async () => {
     mockAuth.mockResolvedValue(session() as never);
-    mockAssetCreate.mockResolvedValue({ id: "a1", model: "Recorder" } as never);
+    mockAssetCreate.mockResolvedValue({ id: "a1", modelId: "mo1" } as never);
     await createAsset(req("http://x", { ...BASE_BODY, macAddresses: ["aa-bb-cc-dd-ee-ff"] }), { params });
     expect(mockAssetCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -71,7 +71,7 @@ describe("POST /api/locations/[id]/assets — MAC address normalization", () => 
 
   it("normalizes a MAC with no separators", async () => {
     mockAuth.mockResolvedValue(session() as never);
-    mockAssetCreate.mockResolvedValue({ id: "a1", model: "Recorder" } as never);
+    mockAssetCreate.mockResolvedValue({ id: "a1", modelId: "mo1" } as never);
     await createAsset(req("http://x", { ...BASE_BODY, macAddresses: ["aabbccddeeff"] }), { params });
     expect(mockAssetCreate).toHaveBeenCalledWith(
       expect.objectContaining({

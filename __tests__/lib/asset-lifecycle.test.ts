@@ -55,7 +55,7 @@ describe("assertRepairable", () => {
 describe("assertReturnableToStock", () => {
   it("throws ALREADY_DECOMMISSIONED first, even if type/model are also missing", () => {
     try {
-      assertReturnableToStock({ status: "DECOMMISSIONED", typeId: null, model: null });
+      assertReturnableToStock({ status: "DECOMMISSIONED", typeId: null, modelId: null });
       expect.unreachable();
     } catch (err) {
       expect((err as AssetLifecycleError).code).toBe("ALREADY_DECOMMISSIONED");
@@ -64,7 +64,7 @@ describe("assertReturnableToStock", () => {
 
   it("throws MISSING_TYPE when typeId is null", () => {
     try {
-      assertReturnableToStock({ status: "INSTALLED", typeId: null, model: "Dell" });
+      assertReturnableToStock({ status: "INSTALLED", typeId: null, modelId: "model-1" });
       expect.unreachable();
     } catch (err) {
       expect((err as AssetLifecycleError).code).toBe("MISSING_TYPE");
@@ -73,7 +73,7 @@ describe("assertReturnableToStock", () => {
 
   it("throws MISSING_MODEL when model is null", () => {
     try {
-      assertReturnableToStock({ status: "INSTALLED", typeId: "t1", model: null });
+      assertReturnableToStock({ status: "INSTALLED", typeId: "t1", modelId: null });
       expect.unreachable();
     } catch (err) {
       expect((err as AssetLifecycleError).code).toBe("MISSING_MODEL");
@@ -82,13 +82,13 @@ describe("assertReturnableToStock", () => {
 
   it("does not throw when status/type/model are all valid", () => {
     expect(() =>
-      assertReturnableToStock({ status: "INSTALLED", typeId: "t1", model: "Dell" })
+      assertReturnableToStock({ status: "INSTALLED", typeId: "t1", modelId: "model-1" })
     ).not.toThrow();
   });
 
   it("does not throw for an asset in repair (repair -> stock is a valid exit)", () => {
     expect(() =>
-      assertReturnableToStock({ status: "IN_REPAIR", typeId: "t1", model: "Dell" })
+      assertReturnableToStock({ status: "IN_REPAIR", typeId: "t1", modelId: "model-1" })
     ).not.toThrow();
   });
 });
@@ -98,7 +98,7 @@ describe("buildReturnToStockStockItemData", () => {
     lineageId: "lineage-1",
     typeId: "t1",
     manufacturerId: "m1",
-    model: "Dell Monitor",
+    modelId: "model-1",
     serialNumber: "SN-1",
     invoiceNumber: null,
     invoiceDate: null,
@@ -116,7 +116,7 @@ describe("buildReturnToStockStockItemData", () => {
       lineageId: "lineage-1",
       typeId: "t1",
       manufacturerId: "m1",
-      model: "Dell Monitor",
+      modelId: "model-1",
       serialNumber: "SN-1",
       quantity: 1,
       locationId: "loc-1",

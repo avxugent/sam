@@ -40,7 +40,7 @@ const updateSchema = z
     locationId: z.string().optional(),
     typeId: z.string().min(1, "Type is required").optional(),
     manufacturerId: z.string().min(1, "Manufacturer is required").optional(),
-    model: z.string().min(1, "Model is required").max(255).optional(),
+    modelId: z.string().min(1, "Model is required").optional(),
     serialNumber: z.string().max(100).optional().nullable(),
     hostname: z.string().max(255).optional().nullable(),
     quantity: z.number().int().min(1).max(9999).optional(),
@@ -81,6 +81,7 @@ export async function GET(
     include: {
       type: true,
       manufacturer: true,
+      model: true,
       supplier: true,
       macAddresses: true,
       customFields: true,
@@ -125,6 +126,7 @@ export async function PUT(
     include: {
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },
+      model: { select: { name: true } },
       supplier: { select: { name: true } },
       location: { select: { name: true } },
       macAddresses: { select: { address: true } },
@@ -221,6 +223,7 @@ export async function PUT(
         include: {
           type: true,
           manufacturer: true,
+          model: true,
           supplier: true,
           macAddresses: true,
           customFields: true,
@@ -241,8 +244,8 @@ export async function PUT(
   const changes: Record<string, { from: unknown; to: unknown }> = {};
   if (before) {
     const d = parsed.data;
-    if (d.model !== undefined && d.model !== before.model)
-      changes["Model"] = { from: before.model ?? null, to: d.model };
+    if (d.modelId !== undefined && d.modelId !== before.modelId)
+      changes["Model"] = { from: before.model?.name ?? null, to: asset.model?.name ?? null };
     if (d.quantity !== undefined && d.quantity !== before.quantity)
       changes["Quantity"] = { from: before.quantity, to: d.quantity };
     if (d.serialNumber !== undefined && d.serialNumber !== before.serialNumber)
@@ -306,7 +309,7 @@ export async function PUT(
     action: "UPDATE",
     entityType: "Asset",
     entityId: id,
-    entityName: asset.model ?? asset.serialNumber ?? undefined,
+    entityName: asset.model?.name ?? asset.serialNumber ?? undefined,
     detail: Object.keys(changes).length > 0 ? { changes } : undefined,
     lineageId: asset.lineageId,
   });
@@ -328,6 +331,7 @@ export async function DELETE(
     include: {
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },
+      model: { select: { name: true } },
       location: { select: { name: true } },
     },
   });
@@ -335,7 +339,7 @@ export async function DELETE(
 
   const snapshot: Record<string, string> = {};
   if (asset) {
-    if (asset.model) snapshot["Model"] = asset.model;
+    if (asset.model?.name) snapshot["Model"] = asset.model.name;
     if (asset.serialNumber) snapshot["Serial number"] = asset.serialNumber;
     if (asset.type?.name) snapshot["Type"] = asset.type.name;
     if (asset.manufacturer?.name) snapshot["Manufacturer"] = asset.manufacturer.name;
@@ -349,7 +353,7 @@ export async function DELETE(
     action: "DELETE",
     entityType: "Asset",
     entityId: id,
-    entityName: asset?.model ?? asset?.serialNumber ?? undefined,
+    entityName: asset?.model?.name ?? asset?.serialNumber ?? undefined,
     detail: Object.keys(snapshot).length > 0 ? { snapshot } : undefined,
     lineageId: asset?.lineageId,
   });

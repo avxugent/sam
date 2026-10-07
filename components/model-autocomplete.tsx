@@ -1,122 +1,119 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { UseFormRegisterReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { Command, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { normalizeModelName } from "@/lib/model-similarity";
 import { cn } from "@/lib/utils";
 
-export type ModelSuggestion = {
-  model: string;
-  typeId: string | null;
+export type ModelOption = {
+  id: string;
+  name: string;
+  typeId: string;
   manufacturerId: string | null;
 };
 
 type Props = {
   id?: string;
-  registered: UseFormRegisterReturn;
   value: string | undefined;
   typeId?: string;
   manufacturerId?: string;
   placeholder?: string;
   error?: boolean;
   className?: string;
-  createLabel: (value: string) => string;
-  noResultsLabel: (value: string) => string;
-  onSelect?: (suggestion: ModelSuggestion) => void;
-  onBlur?: () => void;
+  emptyLabel: string;
+  noMatchLabel: (value: string) => string;
+  onChange: (modelId: string, option: ModelOption | null) => void;
 } & Pick<React.InputHTMLAttributes<HTMLInputElement>, "aria-required" | "aria-invalid" | "aria-describedby">;
 
 /**
- * Combobox for the free-text Asset/StockItem "model" field: typing shows
- * existing spellings (scoped by type/manufacturer when given) fetched from
- * /api/models, picking one locks in the exact stored spelling, and an
- * explicit "Create ..." option is offered when nothing matches — so
- * creating a new spelling is a deliberate action rather than a typo.
+ * Strict picker over the fixed Model list, scoped by type/manufacturer when
+ * given. Unlike the old free-text version, there is no "create new" option —
+ * models are admin-managed (see /admin/models); an asset/stock item with
+ * unlisted hardware blocks here until an admin adds the model first.
  */
 export function ModelAutocomplete({
   id,
-  registered,
   value,
   typeId,
   manufacturerId,
   placeholder,
   error,
   className,
-  createLabel,
-  noResultsLabel,
-  onSelect,
-  onBlur,
+  emptyLabel,
+  noMatchLabel,
+  onChange,
   ...aria
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<ModelSuggestion[]>([]);
+  const [search, setSearch] = useState("");
+  const [models, setModels] = useState<ModelOption[]>([]);
 
-  const trimmed = (value ?? "").trim();
-
+  // Scoped option list, fetched independently of the search text so typing
+  // never re-triggers a request — fetched fresh whenever the scope changes.
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      const params = new URLSearchParams({ q: trimmed });
+    let cancelled = false;
+    (async () => {
+      const params = new URLSearchParams();
       if (typeId) params.set("typeId", typeId);
       if (manufacturerId) params.set("manufacturerId", manufacturerId);
       const res = await fetch(`/api/models?${params}`);
-      if (res.ok) setSuggestions(await res.json());
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [trimmed, typeId, manufacturerId]);
+      if (cancelled || !res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data)) setModels(data);
+    })();
+    return () => { cancelled = true; };
+  }, [typeId, manufacturerId]);
 
-  const norm = normalizeModelName(trimmed);
-  const showCreateOption =
-    trimmed.length > 0 && norm.length > 0 && !suggestions.some((s) => normalizeModelName(s.model) === norm);
+  // Keep the visible search text in sync with the selected model's name
+  // (handles edit mode, where `value` arrives before the user has typed
+  // anything) — same pattern as the manufacturer combobox on this form.
+  useEffect(() => {
+    const m = models.find((x) => x.id === value);
+    setSearch(m ? m.name : "");
+  }, [value, models]);
 
-  function pick(s: ModelSuggestion) {
-    onSelect?.(s);
-    setOpen(false);
-  }
+  const filtered = models.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <Popover open={open}>
-      <PopoverAnchor asChild>
-        <Input
-          id={id}
-          {...registered}
-          value={value ?? ""}
-          placeholder={placeholder}
-          autoComplete="off"
-          className={cn(className, error && "border-destructive")}
-          onFocus={() => setOpen(true)}
-          onBlur={() => {
-            setTimeout(() => setOpen(false), 200);
-            onBlur?.();
-          }}
-          {...aria}
-        />
-      </PopoverAnchor>
-      <PopoverContent
-        align="start"
-        className="w-[var(--radix-popover-trigger-width)] p-0"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <Command shouldFilter={false}>
-          <CommandList>
-            <CommandEmpty>{noResultsLabel(trimmed)}</CommandEmpty>
-            <CommandGroup>
-              {suggestions.map((s) => (
-                <CommandItem key={s.model} value={s.model} onSelect={() => pick(s)}>
-                  {s.model}
-                </CommandItem>
-              ))}
-              {showCreateOption && (
-                <CommandItem value={`__create__${trimmed}`} onSelect={() => setOpen(false)}>
-                  {createLabel(trimmed)}
-                </CommandItem>
-              )}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div className="relative">
+      <Input
+        id={id}
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setOpen(true);
+          onChange("", null);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
+        placeholder={placeholder}
+        autoComplete="off"
+        className={cn(className, error && "border-destructive")}
+        {...aria}
+      />
+      {open && (
+        <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md overflow-hidden max-h-48 overflow-y-auto">
+          {models.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-muted-foreground">{emptyLabel}</div>
+          ) : filtered.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-muted-foreground">{noMatchLabel(search)}</div>
+          ) : (
+            filtered.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
+                onMouseDown={() => {
+                  onChange(m.id, m);
+                  setSearch(m.name);
+                  setOpen(false);
+                }}
+              >
+                {m.name}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
   );
 }

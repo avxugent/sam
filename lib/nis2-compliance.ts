@@ -54,16 +54,17 @@ const UNCLASSIFIED_WHERE: Prisma.AssetWhereInput = {
 const ASSET_SAMPLE_SELECT = {
   id: true,
   locationId: true,
-  model: true,
+  model: { select: { name: true } },
   serialNumber: true,
   hostname: true,
 } as const;
 
 async function assetStat(where: Prisma.AssetWhereInput): Promise<{ count: number; sample: AssetSample[] }> {
-  const [count, sample] = await Promise.all([
+  const [count, rows] = await Promise.all([
     prisma.asset.count({ where }),
     prisma.asset.findMany({ where, select: ASSET_SAMPLE_SELECT, take: SAMPLE_SIZE, orderBy: { createdAt: "desc" } }),
   ]);
+  const sample = rows.map((r) => ({ ...r, model: r.model?.name ?? null }));
   return { count, sample };
 }
 

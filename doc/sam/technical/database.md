@@ -160,6 +160,21 @@ Hardware manufacturers.
 
 ---
 
+### Model
+
+Fixed lookup table for the Asset/StockItem "model" field — replaces the former free-text `Asset.model`/`StockItem.model` string columns. Admin-managed (`/admin/models`); there is no inline "create new model" from the asset/stock forms.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string (cuid) | Primary key |
+| `typeId` | string | FK to AssetType |
+| `manufacturerId` | string? | FK to Manufacturer — nullable because `StockItem.manufacturerId` is itself optional |
+| `name` | string | Model name |
+
+`(typeId, manufacturerId, name)` has a `@@unique` constraint, scoped rather than a bare unique on `name` — the same model name can legitimately recur under different type/manufacturer combinations. Known limitation: MySQL unique indexes treat multiple `NULL`s as distinct, so two manufacturer-less models with the same `(typeId, name)` don't collide at the DB level — the API pre-checks this explicitly, and the admin merge feature cleans up any residual duplicates (including punctuation/spacing variants, which a straight uniqueness check can't catch).
+
+Merging two Models (`POST /api/models/[id]/merge`) reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source — this fixes a gap the equivalent `Manufacturer` merge route still has, where only `Asset` rows are reassigned.
+
 ### AssetTypeManufacturerTemplate
 
 Per-brand override of an `AssetType`'s default `scrapeTargetTemplate`, for manufacturers under that type whose devices need a different exporter/endpoint.
@@ -184,7 +199,7 @@ Per-model override, more specific than `AssetTypeManufacturerTemplate`, for a ma
 | `id` | string (cuid) | Primary key |
 | `typeId` | string | FK to AssetType, `onDelete: Cascade` |
 | `manufacturerId` | string | FK to Manufacturer, `onDelete: Cascade` |
-| `model` | string | Matched against `Asset.model` case-insensitively (trimmed) — `model` is free text, not a lookup table |
+| `model` | string | Matched against the asset's resolved `Model.name` case-insensitively (trimmed) — this table's own `model` column is intentionally still free text, since the string-equality match is unaffected by where the compared string comes from |
 | `scrapeTargetTemplate` | string | Same format as `AssetType.scrapeTargetTemplate` |
 
 `(typeId, manufacturerId, model)` has a `@@unique` constraint — one override per model per brand per type. Duplicate inserts return Prisma error `P2002` → API returns 409. See [Integrations](integrations.md) for the resolution order against the manufacturer and type-default templates.
@@ -221,7 +236,7 @@ The core entity — a physical device installed in a location.
 | `locationId` | string | FK to Location |
 | `typeId` | string? | FK to AssetType |
 | `manufacturerId` | string? | FK to Manufacturer |
-| `model` | string? | Model name (free text + autocomplete) |
+| `modelId` | string? | FK to Model — stays nullable, mirroring `typeId`/`manufacturerId` (legacy/imported rows may have no model) |
 | `serialNumber` | string? | Serial number |
 | `hostname` | string? | Network hostname (globally unique) |
 | `quantity` | int | Number of physical units this row represents (default `1`). Only meaningful for bulk items with no individual identity (e.g. speakers, batteries) — locked to `1` whenever `serialNumber`, `hostname`, or a MAC address is set |
@@ -406,7 +421,7 @@ Pre-deployment inventory — hardware received but not yet installed.
 | `lineageId` | string (cuid) | See `Asset.lineageId` — copied forward from the source Asset on return-to-stock; a fresh id is minted for genuinely new stock (manual create, CSV-imported bulk stock) |
 | `typeId` | string? | FK to AssetType |
 | `manufacturerId` | string? | FK to Manufacturer |
-| `model` | string? | Model name |
+| `modelId` | string? | FK to Model. Nullable for now even though every row is expected to have one — a follow-up migration tightens this to `NOT NULL` once the backfill is verified clean in production; the API's Zod schema already enforces "required" regardless of this column's current nullability |
 | `serialNumber` | string? | Serial number |
 | `quantity` | int | Number of identical units |
 | `notes` | string? | Free-text notes |

@@ -25,7 +25,7 @@ const mockSupplierFindUnique = vi.mocked(prisma.supplier.findUnique);
 const mockSupplierFindMany = vi.mocked(prisma.supplier.findMany);
 
 const PARAMS = { params: Promise.resolve({ id: "loc-1" }) };
-const BASE = { typeId: "t1", manufacturerId: "m1", model: "Recorder" };
+const BASE = { typeId: "t1", manufacturerId: "m1", modelId: "mo1" };
 
 function session() {
   return { user: { id: "u1", role: "EDITOR", name: "T", email: "t@test.com" } } as never;
@@ -42,7 +42,7 @@ function req(body: object) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockAuth.mockResolvedValue(session());
-  mockCreate.mockResolvedValue({ id: "a1", model: "Recorder" } as never);
+  mockCreate.mockResolvedValue({ id: "a1", modelId: "mo1" } as never);
   mockSetting.mockResolvedValue(null as never);
   mockSupplierFindMany.mockResolvedValue([] as never);
 });

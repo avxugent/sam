@@ -1,54 +1,106 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { normalizeModelName } from "@/lib/model-similarity";
+import { z } from "zod";
+import { logAudit } from "@/lib/audit";
+
+const createSchema = z.object({
+  typeId: z.string().min(1),
+  manufacturerId: z.string().min(1).optional().nullable(),
+  name: z.string().min(1).max(255),
+});
 
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q") || "";
+  const q = searchParams.get("q") || undefined;
   const typeId = searchParams.get("typeId") || undefined;
   const manufacturerId = searchParams.get("manufacturerId") || undefined;
 
-  const [assets, stockItems] = await Promise.all([
-    prisma.asset.findMany({
-      where: {
-        model: q ? { contains: q } : { not: null },
-        ...(typeId ? { typeId } : {}),
-        ...(manufacturerId ? { manufacturerId } : {}),
-      },
-      select: { model: true, typeId: true, manufacturerId: true },
-      orderBy: { model: "asc" },
-      take: 200,
-    }),
-    prisma.stockItem.findMany({
-      where: {
-        model: q ? { contains: q } : undefined,
-        ...(typeId ? { typeId } : {}),
-        ...(manufacturerId ? { manufacturerId } : {}),
-      },
-      select: { model: true, typeId: true, manufacturerId: true },
-      orderBy: { model: "asc" },
-      take: 200,
-    }),
-  ]);
+  const models = await prisma.model.findMany({
+    where: {
+      ...(q ? { name: { contains: q } } : {}),
+      ...(typeId ? { typeId } : {}),
+      ...(manufacturerId ? { manufacturerId } : {}),
+    },
+    select: {
+      id: true,
+      name: true,
+      typeId: true,
+      manufacturerId: true,
+      type: { select: { name: true } },
+      manufacturer: { select: { name: true } },
+    },
+    orderBy: { name: "asc" },
+    take: 200,
+  });
 
-  // Deduplicate by normalized model name (case/punctuation-insensitive) across
-  // assets and stock. Assets are listed first, so their spelling wins on a clash.
-  const seen = new Set<string>();
-  const unique: { model: string; typeId: string | null; manufacturerId: string | null }[] = [];
-  for (const row of [...assets, ...stockItems]) {
-    if (!row.model) continue;
-    const key = normalizeModelName(row.model);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    unique.push({ model: row.model, typeId: row.typeId, manufacturerId: row.manufacturerId });
+  return NextResponse.json(
+    models.map((m) => ({
+      id: m.id,
+      name: m.name,
+      typeId: m.typeId,
+      manufacturerId: m.manufacturerId,
+      typeName: m.type.name,
+      manufacturerName: m.manufacturer?.name ?? null,
+    }))
+  );
+}
+
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const body = await req.json().catch(() => null);
+  const parsed = createSchema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+
+  const { typeId, name } = parsed.data;
+  const manufacturerId = parsed.data.manufacturerId || null;
+
+  const type = await prisma.assetType.findUnique({ where: { id: typeId }, select: { name: true } });
+  if (!type) return NextResponse.json({ error: "Asset type not found." }, { status: 404 });
+  let manufacturer: { name: string } | null = null;
+  if (manufacturerId) {
+    manufacturer = await prisma.manufacturer.findUnique({ where: { id: manufacturerId }, select: { name: true } });
+    if (!manufacturer) return NextResponse.json({ error: "Manufacturer not found." }, { status: 404 });
   }
 
-  // Merged from two alphabetically sorted sources, so re-sort before capping.
-  unique.sort((a, b) => a.model.localeCompare(b.model));
+  // Explicit pre-check rather than relying solely on the
+  // @@unique([typeId, manufacturerId, name]) constraint: MySQL unique indexes
+  // treat multiple NULLs as distinct, so two manufacturer-less models with
+  // the same (typeId, name) would NOT collide at the DB level. (Plain
+  // `equals` is already case-insensitive here — the column's default MySQL
+  // collation folds case, same as every other lookup-table name check in
+  // this codebase.)
+  const existing = await prisma.model.findFirst({
+    where: { typeId, manufacturerId, name },
+  });
+  if (existing) {
+    return NextResponse.json(
+      { error: `"${existing.name}" already exists for this type/manufacturer.`, existingId: existing.id, existingName: existing.name },
+      { status: 409 }
+    );
+  }
 
-  return NextResponse.json(unique.slice(0, 20));
+  try {
+    const model = await prisma.model.create({ data: { typeId, manufacturerId, name } });
+    await logAudit({
+      session,
+      req,
+      action: "CREATE",
+      entityType: "Model",
+      entityId: model.id,
+      entityName: `${type.name} / ${manufacturer?.name ?? "—"} / ${model.name}`,
+    });
+    return NextResponse.json(model, { status: 201 });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+      return NextResponse.json({ error: `"${name}" already exists for this type/manufacturer.` }, { status: 409 });
+    }
+    throw err;
+  }
 }

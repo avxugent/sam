@@ -10,6 +10,7 @@ vi.mock("@/lib/prisma", () => ({
     supplier: { findMany: vi.fn(), upsert: vi.fn() },
     user: { findMany: vi.fn(), findUnique: vi.fn() },
     location: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
+    model: { findMany: vi.fn() },
     asset: { create: vi.fn() },
     appSetting: { findUnique: vi.fn() },
   },
@@ -50,6 +51,7 @@ beforeEach(() => {
   vi.mocked(prisma.manufacturer.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.supplier.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.user.findMany).mockResolvedValue([] as never);
+  vi.mocked(prisma.model.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.location.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.location.findUnique).mockResolvedValue(null as never);
   vi.mocked(prisma.location.create).mockImplementation(

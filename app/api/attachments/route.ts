@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
 
     const parentName = locationId
       ? ((await prisma.location.findUnique({ where: { id: locationId }, select: { name: true } }))?.name ?? locationId)
-      : ((await prisma.asset.findUnique({ where: { id: assetId! }, select: { model: true } }))?.model ?? assetId!);
+      : ((await prisma.asset.findUnique({ where: { id: assetId! }, select: { model: { select: { name: true } } } }))?.model?.name ?? assetId!);
 
     const attachment = await prisma.attachment.create({
       data: {
@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
 
   const fileParentName = locationId
     ? ((await prisma.location.findUnique({ where: { id: locationId }, select: { name: true } }))?.name ?? locationId)
-    : ((await prisma.asset.findUnique({ where: { id: assetId! }, select: { model: true } }))?.model ?? assetId!);
+    : ((await prisma.asset.findUnique({ where: { id: assetId! }, select: { model: { select: { name: true } } } }))?.model?.name ?? assetId!);
 
   await logAudit({
     session,

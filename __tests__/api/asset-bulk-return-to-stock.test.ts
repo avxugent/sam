@@ -42,7 +42,8 @@ function makeReq(body?: object) {
 const VALID_ASSET = {
   id: "ok-1",
   lineageId: "lin-1",
-  model: "Dell Monitor",
+  modelId: "mo1",
+  model: { name: "Dell Monitor" },
   serialNumber: "SN-001",
   typeId: "type-1",
   manufacturerId: "mfr-1",
@@ -113,7 +114,7 @@ describe("POST /api/assets/bulk-return-to-stock", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockFindUnique.mockImplementation((async ({ where: { id } }: { where: { id: string } }) => {
       if (id === "missing") return null;
-      if (id === "no-model") return { ...VALID_ASSET, id, model: null };
+      if (id === "no-model") return { ...VALID_ASSET, id, modelId: null, model: null };
       if (id === "already-done") return { ...VALID_ASSET, id, status: "DECOMMISSIONED" };
       return { ...VALID_ASSET, id };
     }) as never);

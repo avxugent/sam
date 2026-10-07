@@ -54,6 +54,7 @@ export async function buildInventorySnapshot(): Promise<InventorySnapshot> {
       include: {
         type: { select: { name: true, defaultCriticality: true } },
         manufacturer: { select: { name: true } },
+        model: { select: { name: true } },
         macAddresses: { select: { address: true } },
       },
       orderBy: { createdAt: "asc" },
@@ -77,7 +78,7 @@ export async function buildInventorySnapshot(): Promise<InventorySnapshot> {
       status: a.status,
       typeName: a.type?.name ?? null,
       manufacturerName: a.manufacturer?.name ?? null,
-      model: a.model,
+      model: a.model?.name ?? null,
       serialNumber: a.serialNumber,
       hostname: a.hostname,
       macAddresses: a.macAddresses.map((m) => m.address),

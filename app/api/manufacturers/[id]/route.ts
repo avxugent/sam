@@ -68,6 +68,13 @@ export async function DELETE(
       { status: 400 }
     );
   }
+  const modelCount = await prisma.model.count({ where: { manufacturerId: id } });
+  if (modelCount > 0) {
+    return NextResponse.json(
+      { error: `This manufacturer has ${modelCount} model(s) defined. Delete or reassign them first.` },
+      { status: 400 }
+    );
+  }
 
   const manufacturer = await prisma.manufacturer.findUnique({ where: { id }, select: { name: true } });
   await prisma.manufacturer.delete({ where: { id } });

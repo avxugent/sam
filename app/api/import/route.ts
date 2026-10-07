@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
   const locationCache = new Map<string, string>(); // "campus|building|room" -> id
   const typeCache = new Map<string, string>();      // name -> id
   const mfrCache = new Map<string, string>();       // name -> id
+  const modelCache = new Map<string, string>();     // "typeId|manufacturerId|name" -> id
 
   // Pre-load existing types and manufacturers
   const existingTypes = await prisma.assetType.findMany({ select: { id: true, name: true } });
@@ -56,6 +57,19 @@ export async function POST(req: NextRequest) {
 
   const existingMfrs = await prisma.manufacturer.findMany({ select: { id: true, name: true } });
   existingMfrs.forEach((m) => mfrCache.set(m.name.toLowerCase(), m.id));
+
+  // Models are admin-only to create (no fixed-list autocreate here, unlike
+  // type/manufacturer above) — import only resolves a MODEL cell against an
+  // existing Model scoped to the row's type/manufacturer; an unmatched value
+  // leaves modelId unset and surfaces a row warning instead of guessing.
+  const existingModels = await prisma.model.findMany({ select: { id: true, typeId: true, manufacturerId: true, name: true } });
+  existingModels.forEach((m) =>
+    modelCache.set(`${m.typeId}|${m.manufacturerId ?? ""}|${m.name.toLowerCase()}`, m.id)
+  );
+  function lookupModel(typeId: string | null, manufacturerId: string | null, name: string): string | null {
+    if (!typeId) return null;
+    return modelCache.get(`${typeId}|${manufacturerId ?? ""}|${name.toLowerCase()}`) ?? null;
+  }
 
   const supplierCache = new Map<string, string>(); // name -> id
   const existingSuppliers = await prisma.supplier.findMany({ select: { id: true, name: true } });
@@ -190,6 +204,15 @@ export async function POST(req: NextRequest) {
       const typeId = typeName ? await getOrCreateType(typeName) : null;
       const manufacturerId = brandName ? await getOrCreateManufacturer(brandName) : null;
 
+      const modelRaw = v(row, "MODEL");
+      let modelId: string | null = null;
+      if (modelRaw) {
+        modelId = lookupModel(typeId, manufacturerId, modelRaw);
+        if (!modelId) {
+          stats.errors.push(`Row ${rowNum}: MODEL "${modelRaw}" does not match any existing model for this type/manufacturer, left unset.`);
+        }
+      }
+
       // Dates
       const installationDate = parseDate(v(row, "INSTALL_DATE"));
       const invoiceDate = parseDate(v(row, "Factuurdatum"));
@@ -289,7 +312,7 @@ export async function POST(req: NextRequest) {
           locationId,
           typeId,
           manufacturerId,
-          model: v(row, "MODEL") || null,
+          modelId,
           serialNumber: serialValue,
           hostname: hostnameValue,
           quantity,

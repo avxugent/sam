@@ -1,73 +1,42 @@
 import { prisma } from "@/lib/prisma";
 import { computeModelClusters, type ModelCountRow } from "@/lib/model-similarity";
 
-export type ModelClusterItem = ModelCountRow & { types: string[]; manufacturers: string[] };
-
-type ModelGroupRow = {
-  model: string;
-  typeId: string | null;
-  manufacturerId: string | null;
-  count: bigint;
+export type ModelClusterItem = ModelCountRow & {
+  id: string;
+  typeName: string;
+  manufacturerName: string | null;
 };
 
 /**
- * Every distinct Asset.model spelling, annotated with the distinct asset
- * type and manufacturer names seen for it — context to tell apart
- * genuinely different products that happen to have a small edit distance
- * (e.g. "DTP HDMI 4K 230 RX" vs "...TX") from real formatting variants.
- *
- * Grouped with `BINARY model` (raw SQL, not Prisma's groupBy): the assets
- * table's default collation (utf8mb4_unicode_ci) is case-insensitive, so a
- * plain `GROUP BY model` would silently merge spellings that differ only in
- * case (e.g. "PowerEdge R740" / "poweredge r740") before they ever reach the
- * clustering step below — hiding exactly the duplicates this page exists to
- * surface.
+ * Every Model row, annotated with its own asset/stock usage count and
+ * type/manufacturer names — feeds the admin "possible duplicates" panel on
+ * /admin/models. Unlike the old free-text version of this helper, no raw SQL
+ * is needed: `model` is a real lookup table now, so there's no collation
+ * concern to work around.
  */
 export async function getModelItems(): Promise<ModelClusterItem[]> {
-  const [rows, types, manufacturers] = await Promise.all([
-    prisma.$queryRaw<ModelGroupRow[]>`
-      SELECT ANY_VALUE(model) AS model, typeId, manufacturerId, COUNT(*) AS count
-      FROM assets
-      WHERE model IS NOT NULL
-      GROUP BY BINARY model, typeId, manufacturerId
-    `,
-    prisma.assetType.findMany({ select: { id: true, name: true } }),
-    prisma.manufacturer.findMany({ select: { id: true, name: true } }),
-  ]);
+  const models = await prisma.model.findMany({
+    select: {
+      id: true,
+      name: true,
+      type: { select: { name: true } },
+      manufacturer: { select: { name: true } },
+      _count: { select: { assets: true, stockItems: true } },
+    },
+  });
 
-  const typeNameById = new Map(types.map((t) => [t.id, t.name]));
-  const manufacturerNameById = new Map(manufacturers.map((m) => [m.id, m.name]));
-
-  const byModel = new Map<string, { count: number; types: Set<string>; manufacturers: Set<string> }>();
-  for (const row of rows) {
-    const model = row.model;
-    if (!byModel.has(model)) {
-      byModel.set(model, { count: 0, types: new Set(), manufacturers: new Set() });
-    }
-    const entry = byModel.get(model)!;
-    entry.count += Number(row.count);
-    if (row.typeId) {
-      const name = typeNameById.get(row.typeId);
-      if (name) entry.types.add(name);
-    }
-    if (row.manufacturerId) {
-      const name = manufacturerNameById.get(row.manufacturerId);
-      if (name) entry.manufacturers.add(name);
-    }
-  }
-
-  return [...byModel.entries()].map(([model, v]) => ({
-    model,
-    count: v.count,
-    types: [...v.types].sort(),
-    manufacturers: [...v.manufacturers].sort(),
+  return models.map((m) => ({
+    id: m.id,
+    model: m.name,
+    count: m._count.assets + m._count.stockItems,
+    typeName: m.type.name,
+    manufacturerName: m.manufacturer?.name ?? null,
   }));
 }
 
 /**
- * Fuzzy-similarity clusters of Asset.model spellings, for the admin "Model
- * Cleanup" page's duplicate-detection view. See getModelItems() for the
- * flat, unclustered list (used for direct search-and-rename).
+ * Fuzzy-similarity clusters of Model names, for the admin page's "possible
+ * duplicates" panel. See getModelItems() for the flat, unclustered list.
  */
 export async function getModelClusters(): Promise<ModelClusterItem[][]> {
   return computeModelClusters(await getModelItems());

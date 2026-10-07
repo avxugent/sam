@@ -13,16 +13,6 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,7 +58,7 @@ const schema = z
   .object({
     typeId: z.string().min(1, "Type is required"),
     manufacturerId: z.string().min(1, "Manufacturer is required"),
-    model: z.string().min(1, "Model is required").max(255),
+    modelId: z.string().min(1, "Model is required"),
     serialNumber: z.string().max(100).optional(),
     hostname: z
       .string()
@@ -147,8 +137,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [usersLite, setUsersLite] = useState<UserLite[]>([]);
-  const [modelSimilarMatch, setModelSimilarMatch] = useState<{ model: string } | null>(null);
-  const [dismissedModelValue, setDismissedModelValue] = useState<string | null>(null);
   const [manufacturerSearch, setManufacturerSearch] = useState("");
   const [showManufacturerDropdown, setShowManufacturerDropdown] = useState(false);
   const [vaultTestResult, setVaultTestResult] = useState<VaultTestResult | null>(null);
@@ -164,7 +152,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     return z.object({
       typeId: z.string().min(1, t("errTypeRequired")),
       manufacturerId: z.string().min(1, t("errManufacturerRequired")),
-      model: z.string().min(1, t("errModelRequired")).max(255),
+      modelId: z.string().min(1, t("errModelRequired")),
       serialNumber: z.string().max(100).optional(),
       hostname: z.string().max(255).optional(),
       quantity: z.number().int().min(1, t("errQuantityMin")),
@@ -232,7 +220,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     defaultValues: {
       typeId: "",
       manufacturerId: "",
-      model: "",
+      modelId: "",
       quantity: 1,
       macAddresses: [],
       customFields: [],
@@ -249,7 +237,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     name: "customFields",
   });
 
-  const modelValue = useWatch({ control, name: "model" });
+  const modelIdValue = useWatch({ control, name: "modelId" });
   const serialNumberValue = useWatch({ control, name: "serialNumber" });
   const hostnameValue = useWatch({ control, name: "hostname" });
   const vaultPathValue = useWatch({ control, name: "vaultPath" });
@@ -300,7 +288,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     reset({
       typeId: asset.typeId || "",
       manufacturerId: asset.manufacturerId || "",
-      model: asset.model || "",
+      modelId: asset.modelId || "",
       serialNumber: asset.serialNumber || "",
       hostname: asset.hostname || "",
       quantity: asset.quantity ?? 1,
@@ -337,7 +325,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         // Clear any values left over from a previous (e.g. cancelled) entry —
         // the form component stays mounted across open/close, so create mode
         // must reset explicitly rather than relying on defaultValues.
-        reset({ typeId: "", manufacturerId: "", model: "", quantity: 1, macAddresses: [], customFields: [], vaultPath: "" });
+        reset({ typeId: "", manufacturerId: "", modelId: "", quantity: 1, macAddresses: [], customFields: [], vaultPath: "" });
         // Pre-select the supplier whose default window covers today (the API
         // would apply the same default; showing it keeps the form honest).
         dropdowns.then((fetched) => {
@@ -346,8 +334,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         });
       }
       setVaultTestResult(null);
-      setModelSimilarMatch(null);
-      setDismissedModelValue(null);
     }
   }, [open, fetchDropdowns, fetchAsset, mode, reset, setValue]);
 
@@ -356,17 +342,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     const m = manufacturers.find((m) => m.id === manufacturerIdValue);
     setManufacturerSearch(m ? m.name : "");
   }, [manufacturerIdValue, manufacturers]);
-
-  async function checkModelSimilarity() {
-    const trimmed = modelValue?.trim();
-    if (!trimmed || trimmed === dismissedModelValue) return;
-    const params = new URLSearchParams({ q: trimmed });
-    if (mode === "edit" && assetId) params.set("excludeAssetId", assetId);
-    const res = await fetch(`/api/models/similar?${params}`);
-    if (!res.ok) return;
-    const { match } = await res.json();
-    if (match) setModelSimilarMatch({ model: match.model });
-  }
 
   async function handleTestVault() {
     const path = vaultPathValue?.trim();
@@ -432,9 +407,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
     toast({ title: mode === "create" ? tAsset("assetCreated") : tAsset("assetUpdated") });
     setOpen(false);
-    reset({ typeId: "", manufacturerId: "", model: "", quantity: 1, macAddresses: [], customFields: [], vaultPath: "" });
-    setModelSimilarMatch(null);
-    setDismissedModelValue(null);
+    reset({ typeId: "", manufacturerId: "", modelId: "", quantity: 1, macAddresses: [], customFields: [], vaultPath: "" });
     router.refresh();
     onSuccess?.();
   }
@@ -453,7 +426,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     ?? (errors.macAddresses as { message?: string } | undefined)?.message;
 
   return (
-    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -569,29 +541,27 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               <ModelAutocomplete
                 id="model"
                 aria-required="true"
-                aria-invalid={!!errors.model}
-                aria-describedby={errors.model ? "model-err" : undefined}
-                registered={register("model")}
-                value={modelValue}
+                aria-invalid={!!errors.modelId}
+                aria-describedby={errors.modelId ? "model-err" : undefined}
+                value={modelIdValue}
                 typeId={typeIdValue}
                 manufacturerId={manufacturerIdValue}
                 placeholder={t("modelPlaceholder")}
-                error={!!errors.model}
-                createLabel={(v) => t("createModelOption", { value: v })}
-                noResultsLabel={(v) => t("modelNoResults", { value: v })}
-                onBlur={() => void checkModelSimilarity()}
-                onSelect={(s) => {
-                  setValue("model", s.model, { shouldValidate: true });
-                  if (!typeIdValue && s.typeId) {
-                    setValue("typeId", s.typeId, { shouldValidate: true });
-                  }
-                  if (!manufacturerIdValue && s.manufacturerId) {
-                    setValue("manufacturerId", s.manufacturerId, { shouldValidate: true });
+                error={!!errors.modelId}
+                emptyLabel={t("modelNoneForScope")}
+                noMatchLabel={(v) => t("modelNoResults", { value: v })}
+                onChange={(modelId, option) => {
+                  setValue("modelId", modelId, { shouldValidate: true });
+                  if (option) {
+                    if (!typeIdValue) setValue("typeId", option.typeId, { shouldValidate: true });
+                    if (!manufacturerIdValue && option.manufacturerId) {
+                      setValue("manufacturerId", option.manufacturerId, { shouldValidate: true });
+                    }
                   }
                 }}
               />
-              {errors.model && (
-                <p id="model-err" className="text-xs text-destructive">{errors.model.message}</p>
+              {errors.modelId && (
+                <p id="model-err" className="text-xs text-destructive">{errors.modelId.message}</p>
               )}
             </div>
 
@@ -962,39 +932,5 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         </form>
       </DialogContent>
     </Dialog>
-
-    <AlertDialog
-      open={!!modelSimilarMatch}
-      onOpenChange={(v) => {
-        if (!v) {
-          setDismissedModelValue(modelValue?.trim() ?? null);
-          setModelSimilarMatch(null);
-        }
-      }}
-    >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t("modelSimilarTitle")}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {t("modelSimilarDescription", { existing: modelSimilarMatch?.model ?? "" })}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setDismissedModelValue(modelValue?.trim() ?? null)}>
-            {t("modelSimilarKeepMine")}
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => {
-              setValue("model", modelSimilarMatch!.model, { shouldValidate: true });
-              setDismissedModelValue(modelSimilarMatch!.model);
-              setModelSimilarMatch(null);
-            }}
-          >
-            {t("modelSimilarUseExisting")}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-    </>
   );
 }

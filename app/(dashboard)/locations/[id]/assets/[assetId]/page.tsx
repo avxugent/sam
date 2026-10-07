@@ -23,6 +23,7 @@ export default async function AssetPage({
     include: {
       type: true,
       manufacturer: true,
+      model: true,
       supplier: true,
       macAddresses: true,
       customFields: true,
@@ -77,8 +78,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { assetId } = await params;
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },
-    select: { model: true, serialNumber: true },
+    select: { model: { select: { name: true } }, serialNumber: true },
   });
-  const title = asset?.model || asset?.serialNumber || "Asset";
+  const title = asset?.model?.name || asset?.serialNumber || "Asset";
   return { title: `${title} – SAM` };
 }

@@ -20,7 +20,7 @@ export async function GET(
       asset: {
         select: {
           id: true,
-          model: true,
+          model: { select: { name: true } },
           serialNumber: true,
           hostname: true,
           type: { select: { id: true, name: true } },
@@ -72,7 +72,7 @@ export async function POST(
       asset: {
         select: {
           id: true,
-          model: true,
+          model: { select: { name: true } },
           serialNumber: true,
           hostname: true,
           type: { select: { id: true, name: true } },
@@ -82,7 +82,7 @@ export async function POST(
   });
 
   const assetName = created.asset
-    ? (created.asset.model ?? created.asset.serialNumber ?? created.asset.hostname ?? null)
+    ? (created.asset.model?.name ?? created.asset.serialNumber ?? created.asset.hostname ?? null)
     : null;
 
   await logAudit({

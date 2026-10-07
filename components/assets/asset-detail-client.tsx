@@ -58,7 +58,7 @@ type Attachment = {
 type Asset = {
   id: string;
   locationId: string;
-  model?: string | null;
+  model?: { id: string; name: string } | null;
   serialNumber?: string | null;
   hostname?: string | null;
   quantity: number;
@@ -176,7 +176,7 @@ export function AssetDetailClient({
     router.refresh();
   }
 
-  const displayName = asset.model || asset.serialNumber || t("unnamedAsset");
+  const displayName = asset.model?.name || asset.serialNumber || t("unnamedAsset");
   const AssetTypeIcon = getAssetTypeIcon(asset.type?.name);
 
   return (
@@ -368,7 +368,7 @@ export function AssetDetailClient({
             <dl className="grid grid-cols-2 gap-x-6 gap-y-[14px]">
               <div><FieldLabel>{tField("type")}</FieldLabel><FieldValue value={asset.type?.name} /></div>
               <div><FieldLabel>{tField("manufacturer")}</FieldLabel><FieldValue value={asset.manufacturer?.name} /></div>
-              <div><FieldLabel>{tField("model")}</FieldLabel><FieldValue value={asset.model} /></div>
+              <div><FieldLabel>{tField("model")}</FieldLabel><FieldValue value={asset.model?.name} /></div>
               <div><FieldLabel>{tField("serialNumber")}</FieldLabel><FieldValue value={asset.serialNumber} mono /></div>
               {asset.quantity !== 1 && (
                 <div><FieldLabel>{tField("quantity")}</FieldLabel><FieldValue value={String(asset.quantity)} /></div>

@@ -48,7 +48,7 @@ function p2002() {
   return Object.assign(new Error("Duplicate"), { code: "P2002" });
 }
 
-const BASE_BODY = { typeId: "t1", manufacturerId: "m1", model: "Recorder" };
+const BASE_BODY = { typeId: "t1", manufacturerId: "m1", modelId: "mo1" };
 const MAC = ["AA:BB:CC:DD:EE:FF"];
 
 beforeEach(() => {
@@ -82,7 +82,7 @@ describe("POST /api/locations/[id]/assets — hostname format & uniqueness", () 
   it("accepts a non-FQDN hostname that matches the type's custom pattern", async () => {
     mockAuth.mockResolvedValue(session() as never);
     mockAssetTypeFindUnique.mockResolvedValue({ hostnamePattern: "^rec-\\d{3}$" } as never);
-    mockAssetCreate.mockResolvedValue({ id: "a1", model: "Recorder", hostname: "rec-001" } as never);
+    mockAssetCreate.mockResolvedValue({ id: "a1", modelId: "mo1", hostname: "rec-001" } as never);
     const res = await createAsset(req("http://x", { ...BASE_BODY, hostname: "rec-001", macAddresses: MAC }), { params });
     expect(res.status).toBe(201);
   });
@@ -90,14 +90,14 @@ describe("POST /api/locations/[id]/assets — hostname format & uniqueness", () 
   it("falls back to the FQDN check when the type has no pattern", async () => {
     mockAuth.mockResolvedValue(session() as never);
     mockAssetTypeFindUnique.mockResolvedValue({ hostnamePattern: null } as never);
-    mockAssetCreate.mockResolvedValue({ id: "a1", model: "Recorder", hostname: "device.example.com" } as never);
+    mockAssetCreate.mockResolvedValue({ id: "a1", modelId: "mo1", hostname: "device.example.com" } as never);
     const res = await createAsset(req("http://x", { ...BASE_BODY, hostname: "device.example.com", macAddresses: MAC }), { params });
     expect(res.status).toBe(201);
   });
 
   it("skips hostname validation entirely when hostname is not set", async () => {
     mockAuth.mockResolvedValue(session() as never);
-    mockAssetCreate.mockResolvedValue({ id: "a1", model: "Recorder" } as never);
+    mockAssetCreate.mockResolvedValue({ id: "a1", modelId: "mo1" } as never);
     const res = await createAsset(req("http://x", BASE_BODY), { params });
     expect(res.status).toBe(201);
     expect(mockAssetTypeFindUnique).not.toHaveBeenCalled();

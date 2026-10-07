@@ -42,7 +42,7 @@ describe("translateFilters()", () => {
 
   it("translates model contains", () => {
     const result = translateFilters([{ field: "model", op: "contains", value: "Dell" }]);
-    expect(result).toEqual({ AND: [{ model: { contains: "Dell" } }] });
+    expect(result).toEqual({ AND: [{ model: { name: { contains: "Dell" } } }] });
   });
 
   it("translates installationDate olderThanYears", () => {
@@ -215,7 +215,7 @@ describe("runReport()", () => {
     mockFindMany.mockResolvedValue([
       {
         id: "a1",
-        model: "Dell XPS",
+        model: { name: "Dell XPS" },
         serialNumber: "SN1",
         hostname: "host1",
         locationId: "loc1",

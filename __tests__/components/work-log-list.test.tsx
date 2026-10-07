@@ -23,7 +23,7 @@ function entry(over: Partial<WorkLogEntry> = {}): WorkLogEntry {
     jiraIssueKey: null,
     performedBy: { id: "u1", name: "Alice Smith", email: "alice@x.com" },
     item: null,
-    asset: { id: "a1", model: "XPS", serialNumber: "SN1", hostname: null, type: { id: "t1", name: "Laptop" } },
+    asset: { id: "a1", model: { name: "XPS" }, serialNumber: "SN1", hostname: null, type: { id: "t1", name: "Laptop" } },
     ...over,
   };
 }

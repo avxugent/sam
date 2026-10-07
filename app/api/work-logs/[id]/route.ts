@@ -20,7 +20,7 @@ export async function GET(
       asset: {
         select: {
           id: true,
-          model: true,
+          model: { select: { name: true } },
           serialNumber: true,
           hostname: true,
           type: { select: { id: true, name: true } },
@@ -74,7 +74,7 @@ export async function PUT(
       asset: {
         select: {
           id: true,
-          model: true,
+          model: { select: { name: true } },
           serialNumber: true,
           hostname: true,
           type: { select: { id: true, name: true } },

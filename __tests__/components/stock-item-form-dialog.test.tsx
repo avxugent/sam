@@ -31,6 +31,9 @@ beforeEach(() => {
         { id: "loc1", name: "Room A", parentId: null, _count: { stockItems: 1 } },
       ]));
     }
+    if (url.startsWith("/api/models")) {
+      return Promise.resolve(jsonResp([{ id: "mo1", name: "U2720Q", typeId: "at1", manufacturerId: "m1" }]));
+    }
     return Promise.resolve(jsonResp({}));
   });
 });
@@ -40,7 +43,7 @@ const EDIT_DATA: StockItemInitialData = {
   typeName: "Laptop",
   manufacturerId: "m1",
   manufacturerName: "Dell",
-  model: "U2720Q",
+  modelId: "mo1",
   serialNumber: null,
   quantity: 5,
   notes: "spare",
@@ -116,14 +119,14 @@ describe("<StockItemFormDialog /> create", () => {
     expect(mockFetch).not.toHaveBeenCalledWith("/api/stock", expect.anything());
   });
 
-  it("shows model suggestions from /api/models and fills the exact stored spelling on pick", async () => {
+  it("shows model suggestions scoped from /api/models and fills the exact stored spelling on pick", async () => {
     mockFetch.mockImplementation((url: string) => {
       if (url === "/api/asset-types") return Promise.resolve(jsonResp([{ id: "at1", name: "Laptop" }]));
       if (url === "/api/manufacturers") return Promise.resolve(jsonResp([{ id: "m1", name: "Dell" }]));
       if (url === "/api/locations") return Promise.resolve(jsonResp([{ id: "loc1", name: "Room A", parentId: null }]));
-      if (url.startsWith("/api/models?")) {
+      if (url.startsWith("/api/models")) {
         return Promise.resolve(
-          jsonResp([{ model: "Dell UltraSharp U2722D", typeId: "at1", manufacturerId: "m1" }])
+          jsonResp([{ id: "mo1", name: "Dell UltraSharp U2722D", typeId: "at1", manufacturerId: "m1" }])
         );
       }
       return Promise.resolve(jsonResp({}));
@@ -131,7 +134,7 @@ describe("<StockItemFormDialog /> create", () => {
 
     const user = await openCreate();
     const modelInput = screen.getByPlaceholderText("modelPlaceholder");
-    await user.type(modelInput, "Dell Ultra");
+    await user.click(modelInput);
 
     const suggestion = await screen.findByText("Dell UltraSharp U2722D");
     await user.click(suggestion);

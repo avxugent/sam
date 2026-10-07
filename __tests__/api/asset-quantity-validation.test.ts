@@ -44,7 +44,7 @@ function req(url: string, body: object, method = "POST") {
   });
 }
 
-const BASE_BODY = { typeId: "t1", manufacturerId: "m1", model: "Battery pack" };
+const BASE_BODY = { typeId: "t1", manufacturerId: "m1", modelId: "mo1" };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -84,7 +84,7 @@ describe("POST /api/locations/[id]/assets — quantity", () => {
 
   it("creates a bulk item with quantity > 1 when it has no identity fields", async () => {
     mockAuth.mockResolvedValue(session() as never);
-    mockAssetCreate.mockResolvedValue({ id: "a1", model: "Battery pack", quantity: 12 } as never);
+    mockAssetCreate.mockResolvedValue({ id: "a1", modelId: "mo1", quantity: 12 } as never);
     const res = await createAsset(req("http://x", { ...BASE_BODY, quantity: 12 }), { params });
     expect(res.status).toBe(201);
     expect(mockAssetCreate).toHaveBeenCalledWith(
@@ -94,7 +94,7 @@ describe("POST /api/locations/[id]/assets — quantity", () => {
 
   it("defaults quantity to 1 when omitted", async () => {
     mockAuth.mockResolvedValue(session() as never);
-    mockAssetCreate.mockResolvedValue({ id: "a1", model: "Battery pack", quantity: 1 } as never);
+    mockAssetCreate.mockResolvedValue({ id: "a1", modelId: "mo1", quantity: 1 } as never);
     const res = await createAsset(req("http://x", BASE_BODY), { params });
     expect(res.status).toBe(201);
     expect(mockAssetCreate).toHaveBeenCalledWith(

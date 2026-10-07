@@ -63,7 +63,7 @@ const CRITICALITY_OPTIONS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 
 type DrilldownAsset = {
   id: string;
-  model?: string | null;
+  model?: { id: string; name: string } | null;
   serialNumber?: string | null;
   hostname?: string | null;
   installationDate?: string | null;
@@ -685,7 +685,7 @@ export function AssetTypesClient({
                           ) : "—"}
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">{asset.manufacturer?.name || "—"}</td>
-                        <td className="px-3 py-2 font-medium">{asset.model || "—"}</td>
+                        <td className="px-3 py-2 font-medium">{asset.model?.name || "—"}</td>
                         <td className="px-3 py-2 text-muted-foreground font-mono text-xs">{asset.serialNumber || "—"}</td>
                         <td className="px-3 py-2 text-muted-foreground">{asset.hostname || "—"}</td>
                         <td className="px-3 py-2 text-muted-foreground text-xs">{formatDate(asset.installationDate)}</td>

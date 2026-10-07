@@ -24,7 +24,7 @@ const updateSchema = z
   .object({
     typeId: z.string().min(1).optional(),
     manufacturerId: z.string().min(1).optional().nullable(),
-    model: z.string().min(1).max(255).optional(),
+    modelId: z.string().min(1).optional(),
     serialNumber: z.string().max(100).optional().nullable(),
     quantity: z.number().int().min(1).optional(),
     notes: z.string().max(5000).optional().nullable(),
@@ -58,7 +58,8 @@ export async function GET(
       id: true,
       typeId: true,
       manufacturerId: true,
-      model: true,
+      modelId: true,
+      model: { select: { name: true } },
       serialNumber: true,
       quantity: true,
       notes: true,
@@ -82,7 +83,7 @@ export async function PUT(
   if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const existing = await prisma.stockItem.findUnique({ where: { id } });
+  const existing = await prisma.stockItem.findUnique({ where: { id }, include: { model: { select: { name: true } } } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
@@ -115,13 +116,13 @@ export async function PUT(
         : {}),
       ...metadataUpdate,
     },
-    include: { type: true, manufacturer: true, location: { select: { id: true, name: true } } },
+    include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
   });
 
   const changes: Record<string, { from: unknown; to: unknown }> = {};
   const d = parsed.data;
-  if (d.model !== undefined && d.model !== existing.model)
-    changes["Model"] = { from: existing.model, to: d.model };
+  if (d.modelId !== undefined && d.modelId !== existing.modelId)
+    changes["Model"] = { from: existing.model?.name ?? null, to: item.model?.name ?? null };
   if (d.serialNumber !== undefined && d.serialNumber !== existing.serialNumber)
     changes["Serial number"] = { from: existing.serialNumber ?? null, to: d.serialNumber ?? null };
   if (d.quantity !== undefined && d.quantity !== existing.quantity)
@@ -137,7 +138,7 @@ export async function PUT(
     action: "UPDATE",
     entityType: "StockItem",
     entityId: id,
-    entityName: item.model,
+    entityName: item.model?.name,
     detail: Object.keys(changes).length > 0 ? { changes } : undefined,
     lineageId: item.lineageId,
   });
@@ -154,7 +155,10 @@ export async function DELETE(
   if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const item = await prisma.stockItem.findUnique({ where: { id }, select: { model: true, lineageId: true } });
+  const item = await prisma.stockItem.findUnique({
+    where: { id },
+    select: { model: { select: { name: true } }, lineageId: true },
+  });
   if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.stockItem.delete({ where: { id } });
@@ -165,7 +169,7 @@ export async function DELETE(
     action: "DELETE",
     entityType: "StockItem",
     entityId: id,
-    entityName: item.model,
+    entityName: item.model?.name,
     lineageId: item.lineageId,
   });
 

@@ -6,7 +6,7 @@ describe("renderHostnameUrl()", () => {
     const url = renderHostnameUrl("https://x/{hostname}/{serial}/{model}/{manufacturer}", {
       hostname: "pc-01",
       serialNumber: "SN1",
-      model: "OptiPlex",
+      model: { name: "OptiPlex" },
       manufacturer: { name: "Dell" },
     });
     expect(url).toBe("https://x/pc-01/SN1/OptiPlex/Dell");

@@ -22,7 +22,7 @@ Use the **search box** to filter by type, model, serial number, or manufacturer,
 1. Click **Add stock item**.
 2. Fill in:
    - **Type** and **Manufacturer** — required
-   - **Model** — required
+   - **Model** — required; pick from the fixed list scoped to the selected type/manufacturer (see [Administration → Models](administration.md))
    - **Storage location** — where this item is physically kept; the list only shows locations that already hold stock, so tick **Show all locations** to pick one that doesn't yet — the item you're adding becomes its first, and it appears in the restricted list from then on. Leave unset to keep the item "Unassigned"
    - **Serial number** — enter if the item has a fixed serial; leave blank for bulk items
    - **Quantity** — for bulk items without individual serials

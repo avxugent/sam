@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   const existing = await prisma.stockItem.findMany({
     where: { id: { in: ids } },
-    select: { id: true, model: true, locationId: true },
+    select: { id: true, model: { select: { name: true } }, locationId: true },
   });
   const existingIds = new Set(existing.map((e) => e.id));
   const failed = ids
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
           action: "UPDATE",
           entityType: "StockItem",
           entityId: item.id,
-          entityName: item.model,
+          entityName: item.model?.name,
           detail: { changes: { Location: { from: item.locationId, to: locationId } } },
         })
       )

@@ -40,7 +40,7 @@ export function assertRepairable(asset: { status: string }): void {
 export function assertReturnableToStock(asset: {
   status: string;
   typeId: string | null;
-  model: string | null;
+  modelId: string | null;
 }): void {
   if (asset.status === "DECOMMISSIONED") {
     throw new AssetLifecycleError(
@@ -51,7 +51,7 @@ export function assertReturnableToStock(asset: {
   if (!asset.typeId) {
     throw new AssetLifecycleError("MISSING_TYPE", "Asset must have a type to be returned to stock.");
   }
-  if (!asset.model) {
+  if (!asset.modelId) {
     throw new AssetLifecycleError("MISSING_MODEL", "Asset must have a model to be returned to stock.");
   }
 }
@@ -60,7 +60,7 @@ type ReturnableAsset = {
   lineageId: string;
   typeId: string | null;
   manufacturerId: string | null;
-  model: string | null;
+  modelId: string | null;
   serialNumber: string | null;
   invoiceNumber: string | null;
   invoiceDate: Date | null;
@@ -88,7 +88,7 @@ export function buildReturnToStockStockItemData(
     lineageId: asset.lineageId,
     typeId: asset.typeId!,
     manufacturerId: asset.manufacturerId,
-    model: asset.model!,
+    modelId: asset.modelId,
     serialNumber: asset.serialNumber,
     invoiceNumber: asset.invoiceNumber,
     invoiceDate: asset.invoiceDate,

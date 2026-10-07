@@ -29,7 +29,7 @@ The asset detail page shows:
 3. Fill in the required fields:
    - **Type** — select from the list or type to create a new one
    - **Manufacturer** — select or create
-   - **Model** — start typing to see matching spellings already in use (scoped to the selected type/manufacturer); pick one to reuse its exact spelling, or choose **Create "..."** to add a new one. If what you type is close to but not exactly an existing model name, you'll also be asked whether you meant the existing spelling when you leave the field
+   - **Model** — start typing to search the list of models for the selected type/manufacturer and pick one. Models are a fixed, admin-managed list ([Administration → Models](administration.md)) — if the hardware isn't listed yet, ask an admin to add it first
 4. Fill in optional fields as needed.
 5. If you enter a **hostname**, at least one **MAC address** is required. The hostname must match the format configured for the asset's type (see [Administration → Asset Types](administration.md)), or a generic domain-name format if the type has no format configured. Hostnames must be unique — no two assets, including decommissioned ones, can share a hostname.
 6. Click **Save**.

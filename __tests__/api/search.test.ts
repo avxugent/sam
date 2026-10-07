@@ -48,12 +48,12 @@ function makeReq(q: string, page?: number) {
 }
 
 function fakeAsset(overrides: Partial<{
-  id: string; model: string | null; serialNumber: string | null;
+  id: string; model: { name: string } | null; serialNumber: string | null;
   hostname: string | null; notes: string | null;
 }> = {}) {
   return {
     id: overrides.id ?? "a1",
-    model: overrides.model ?? "ThinkPad",
+    model: overrides.model ?? { name: "ThinkPad" },
     serialNumber: overrides.serialNumber ?? "SN001",
     hostname: overrides.hostname ?? null,
     invoiceNumber: null,
@@ -236,8 +236,8 @@ describe("GET /api/search — asset scoring", () => {
     mockLocationCount.mockResolvedValue(0 as never);
     mockLocationFindMany.mockResolvedValue([] as never);
 
-    const notesMatch = fakeAsset({ id: "a-notes", model: "OtherModel", notes: "contains thinkpad keyword" });
-    const modelMatch = fakeAsset({ id: "a-model", model: "ThinkPad X1", notes: null });
+    const notesMatch = fakeAsset({ id: "a-notes", model: { name: "OtherModel" }, notes: "contains thinkpad keyword" });
+    const modelMatch = fakeAsset({ id: "a-model", model: { name: "ThinkPad X1" }, notes: null });
     // DB returns notes-match first (e.g. more recent updatedAt)
     mockAssetFindMany.mockResolvedValue([notesMatch, modelMatch] as never);
 

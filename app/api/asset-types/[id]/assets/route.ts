@@ -26,7 +26,7 @@ export async function GET(
     where: { typeId: id, ...statusFilter },
     select: {
       id: true,
-      model: true,
+      model: { select: { name: true } },
       serialNumber: true,
       hostname: true,
       installationDate: true,

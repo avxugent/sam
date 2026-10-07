@@ -7,7 +7,7 @@ vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 import { InRepairTable, type InRepairAsset } from "@/components/stock/in-repair-table";
 
 const ASSETS: InRepairAsset[] = [
-  { id: "a1", locationId: "l1", model: "XPS", serialNumber: "SN1", repairStartedAt: "2024-01-15T00:00:00Z", repairNote: "Screen cracked", type: { id: "t1", name: "Laptop" }, manufacturer: { id: "m1", name: "Dell" }, location: { id: "l1", name: "Room 1" } },
+  { id: "a1", locationId: "l1", model: { name: "XPS" }, serialNumber: "SN1", repairStartedAt: "2024-01-15T00:00:00Z", repairNote: "Screen cracked", type: { id: "t1", name: "Laptop" }, manufacturer: { id: "m1", name: "Dell" }, location: { id: "l1", name: "Room 1" } },
   { id: "a2", locationId: "l2", model: null, serialNumber: null, repairStartedAt: null, repairNote: null, type: { id: "t2", name: "Monitor" }, manufacturer: null, location: null },
 ];
 

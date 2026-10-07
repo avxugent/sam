@@ -28,7 +28,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 type Asset = {
   id: string;
   status: string;
-  model?: string | null;
+  model?: { id: string; name: string } | null;
   serialNumber?: string | null;
   hostname?: string | null;
   quantity: number;
@@ -51,7 +51,7 @@ function exportToCsv(assets: Asset[], filename: string, headers: string[]) {
   const rows = assets.map((a) => [
     a.type?.name,
     a.manufacturer?.name,
-    a.model,
+    a.model?.name,
     a.serialNumber,
     a.hostname,
     a.macAddresses.map((m) => m.address).join("; "),
@@ -151,7 +151,7 @@ export function AssetTable({
     const q = search.toLowerCase();
     return assets.filter((a) =>
       !q ||
-      a.model?.toLowerCase().includes(q) ||
+      a.model?.name.toLowerCase().includes(q) ||
       a.serialNumber?.toLowerCase().includes(q) ||
       a.hostname?.toLowerCase().includes(q) ||
       a.type?.name.toLowerCase().includes(q) ||
@@ -167,7 +167,7 @@ export function AssetTable({
       let bv = "";
       if (sortCol === "type") { av = a.type?.name ?? ""; bv = b.type?.name ?? ""; }
       else if (sortCol === "manufacturer") { av = a.manufacturer?.name ?? ""; bv = b.manufacturer?.name ?? ""; }
-      else if (sortCol === "model") { av = a.model ?? ""; bv = b.model ?? ""; }
+      else if (sortCol === "model") { av = a.model?.name ?? ""; bv = b.model?.name ?? ""; }
       else if (sortCol === "serialNumber") { av = a.serialNumber ?? ""; bv = b.serialNumber ?? ""; }
       else if (sortCol === "hostname") { av = a.hostname ?? ""; bv = b.hostname ?? ""; }
       else if (sortCol === "installationDate") { av = String(a.installationDate ?? ""); bv = String(b.installationDate ?? ""); }
@@ -330,7 +330,7 @@ export function AssetTable({
                   key={asset.id}
                   role="link"
                   tabIndex={0}
-                  aria-label={`Open asset ${asset.model || asset.hostname || asset.serialNumber || "details"}`}
+                  aria-label={`Open asset ${asset.model?.name || asset.hostname || asset.serialNumber || "details"}`}
                   className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors duration-75 cursor-pointer focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
                   onClick={() => router.push(assetHref)}
                   onKeyDown={(e) => {
@@ -342,7 +342,7 @@ export function AssetTable({
                       <Checkbox
                         checked={selected.has(asset.id)}
                         onCheckedChange={() => toggleSelectRow(asset.id)}
-                        aria-label={t("selectRow", { name: asset.model || asset.hostname || asset.serialNumber || asset.id })}
+                        aria-label={t("selectRow", { name: asset.model?.name || asset.hostname || asset.serialNumber || asset.id })}
                       />
                     </td>
                   )}
@@ -359,7 +359,7 @@ export function AssetTable({
                     {asset.manufacturer?.name || "—"}
                   </td>
                   <td className="px-4 py-[11px] font-medium text-[#0f172a]">
-                    {asset.model || <span className="text-[#64748b] font-normal italic">{t("noModel")}</span>}
+                    {asset.model?.name || <span className="text-[#64748b] font-normal italic">{t("noModel")}</span>}
                     {asset.quantity > 1 && (
                       <span className="ml-1.5 text-[11px] font-normal text-[#64748b]">×{asset.quantity}</span>
                     )}
@@ -408,7 +408,7 @@ export function AssetTable({
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label={`Edit asset ${asset.model || asset.hostname || asset.serialNumber || asset.id}`}
+                              aria-label={`Edit asset ${asset.model?.name || asset.hostname || asset.serialNumber || asset.id}`}
                               className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
                             >
                               <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
@@ -417,14 +417,14 @@ export function AssetTable({
 
                           <RemoveAssetDialog
                             assetId={asset.id}
-                            assetName={asset.model || asset.hostname || asset.serialNumber || asset.id}
+                            assetName={asset.model?.name || asset.hostname || asset.serialNumber || asset.id}
                             assetStatus={asset.status}
                             onRemoved={() => handleRemoved(asset.id)}
                           >
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label={`Remove asset ${asset.model || asset.hostname || asset.serialNumber || asset.id}`}
+                              aria-label={`Remove asset ${asset.model?.name || asset.hostname || asset.serialNumber || asset.id}`}
                               className="h-[30px] w-[30px] text-destructive hover:text-destructive hover:bg-red-50"
                             >
                               <Trash2 className="h-3.5 w-3.5" />

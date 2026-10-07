@@ -18,7 +18,7 @@ export default async function InRepairPage() {
     select: {
       id: true,
       locationId: true,
-      model: true,
+      model: { select: { name: true } },
       serialNumber: true,
       repairStartedAt: true,
       repairNote: true,

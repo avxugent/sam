@@ -74,7 +74,7 @@ type Attachment = {
 type Asset = {
   id: string;
   status: string;
-  model?: string | null;
+  model?: { id: string; name: string } | null;
   serialNumber?: string | null;
   hostname?: string | null;
   quantity: number;
@@ -634,7 +634,7 @@ export function LocationDetailClient({
             entries={workLogs}
             assets={assets.map<WorkLogAssetOption>((a) => ({
               id: a.id,
-              label: [a.type?.name, a.model || a.hostname || a.serialNumber, a.location?.name]
+              label: [a.type?.name, a.model?.name || a.hostname || a.serialNumber, a.location?.name]
                 .filter(Boolean)
                 .join(" · "),
               typeId: a.type?.id ?? null,

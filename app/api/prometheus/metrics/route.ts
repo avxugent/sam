@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
       },
       select: {
         hostname: true,
-        model: true,
+        model: { select: { name: true } },
         criticality: true,
         endOfSupportDate: true,
         locationId: true,
@@ -366,7 +366,7 @@ export async function GET(req: NextRequest) {
         sam_location_name: asset.location?.name ?? "",
         sam_asset_type: asset.type?.name ?? "",
         sam_manufacturer: asset.manufacturer?.name ?? "",
-        sam_model: asset.model ?? "",
+        sam_model: asset.model?.name ?? "",
         // Effective criticality: per-asset override wins over the type default
         sam_criticality:
           asset.criticality ?? asset.type?.defaultCriticality ?? "",

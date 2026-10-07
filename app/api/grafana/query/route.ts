@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
           include: {
             type: { select: { name: true } },
             manufacturer: { select: { name: true } },
+            model: { select: { name: true } },
             location: { select: { name: true } },
           },
           orderBy: { createdAt: "desc" },
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
             { text: "InstallDate", type: "string" },
           ],
           assets.map((a) => [
-            a.model,
+            a.model?.name ?? null,
             a.serialNumber,
             a.hostname,
             a.type?.name ?? null,

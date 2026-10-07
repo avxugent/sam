@@ -25,7 +25,7 @@ const createSchema = z
   .object({
     typeId: z.string().min(1, "Type is required"),
     manufacturerId: z.string().min(1).optional().nullable(),
-    model: z.string().min(1, "Model is required").max(255),
+    modelId: z.string().min(1, "Model is required"),
     serialNumber: z.string().max(100).optional().nullable(),
     quantity: z.number().int().min(1).default(1),
     notes: z.string().max(5000).optional().nullable(),
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
       ...(q
         ? {
             OR: [
-              { model: { contains: q } },
+              { model: { name: { contains: q } } },
               { serialNumber: { contains: q } },
               { notes: { contains: q } },
             ],
@@ -71,6 +71,7 @@ export async function GET(req: NextRequest) {
     include: {
       type: true,
       manufacturer: true,
+      model: true,
       location: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
         ? JSON.stringify({ macAddresses: macAddresses.map((address) => ({ address })) })
         : null,
     },
-    include: { type: true, manufacturer: true, location: { select: { id: true, name: true } } },
+    include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
   });
 
   await logAudit({
@@ -114,12 +115,12 @@ export async function POST(req: NextRequest) {
     action: "CREATE",
     entityType: "StockItem",
     entityId: item.id,
-    entityName: item.model,
+    entityName: item.model?.name,
     detail: {
       snapshot: {
         "Type": item.type.name,
         ...(item.manufacturer ? { "Manufacturer": item.manufacturer.name } : {}),
-        "Model": item.model,
+        "Model": item.model?.name ?? null,
         "Quantity": String(item.quantity),
       },
     },

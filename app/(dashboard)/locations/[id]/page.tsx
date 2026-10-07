@@ -69,6 +69,7 @@ export default async function LocationPage({
     include: {
       type: true,
       manufacturer: true,
+      model: true,
       macAddresses: true,
       location: { select: { id: true, name: true } },
       _count: { select: { attachments: true } },
@@ -109,7 +110,7 @@ export default async function LocationPage({
       asset: {
         select: {
           id: true,
-          model: true,
+          model: { select: { name: true } },
           serialNumber: true,
           hostname: true,
           type: { select: { id: true, name: true } },

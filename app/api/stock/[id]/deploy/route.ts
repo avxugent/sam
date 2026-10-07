@@ -42,7 +42,10 @@ export async function POST(
   const location = await prisma.location.findUnique({ where: { id: locationId } });
   if (!location) return NextResponse.json({ error: "Location not found" }, { status: 404 });
 
-  const stockItem = await prisma.stockItem.findUnique({ where: { id } });
+  const stockItem = await prisma.stockItem.findUnique({
+    where: { id },
+    include: { model: { select: { name: true } } },
+  });
   if (!stockItem) return NextResponse.json({ error: "Stock item not found" }, { status: 404 });
 
   if (quantity > stockItem.quantity) {
@@ -103,7 +106,7 @@ export async function POST(
               ...(isFullSingleUnitDeploy && { lineageId: stockItem.lineageId }),
               typeId: stockItem.typeId,
               manufacturerId: stockItem.manufacturerId,
-              model: stockItem.model,
+              modelId: stockItem.modelId,
               serialNumber:
                 stockItem.serialNumber ??
                 (serialNumbers ? serialNumbers[i] : null) ??
@@ -150,8 +153,8 @@ export async function POST(
         action: "CREATE",
         entityType: "Asset",
         entityId: created.id,
-        entityName: stockItem.model,
-        detail: { snapshot: { "Deployed from stock": stockItem.model, "Location": location.name } },
+        entityName: stockItem.model?.name,
+        detail: { snapshot: { "Deployed from stock": stockItem.model?.name ?? null, "Location": location.name } },
         lineageId: created.lineageId,
       })
     )
@@ -162,7 +165,7 @@ export async function POST(
     action: stockItem.quantity - quantity === 0 ? "DELETE" : "UPDATE",
     entityType: "StockItem",
     entityId: id,
-    entityName: stockItem.model,
+    entityName: stockItem.model?.name,
     detail: { snapshot: { "Deployed quantity": String(quantity), "To location": location.name } },
     lineageId: stockItem.lineageId,
   });

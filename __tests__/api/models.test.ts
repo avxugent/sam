@@ -3,139 +3,128 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    asset: { findMany: vi.fn() },
-    stockItem: { findMany: vi.fn() },
+    model: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
+    assetType: { findUnique: vi.fn() },
+    manufacturer: { findUnique: vi.fn() },
   },
 }));
-
-vi.mock("@/lib/auth", () => ({
-  auth: vi.fn(),
-}));
+vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { GET } from "@/app/api/models/route";
+import { GET, POST } from "@/app/api/models/route";
 
 const mockAuth = vi.mocked(auth);
-const mockFindMany = vi.mocked(prisma.asset.findMany);
-const mockStockFindMany = vi.mocked(prisma.stockItem.findMany);
+const mockFindMany = vi.mocked(prisma.model.findMany);
+const mockFindFirst = vi.mocked(prisma.model.findFirst);
+const mockCreate = vi.mocked(prisma.model.create);
+const mockTypeFindUnique = vi.mocked(prisma.assetType.findUnique);
+const mockMfrFindUnique = vi.mocked(prisma.manufacturer.findUnique);
 
-function session() {
-  return { user: { id: "u1", role: "VIEWER", name: "U", email: "u@test.com" } };
-}
+const session = (role = "VIEWER") => ({ user: { id: "u1", role, email: "u@test.com" } });
 
-function req(params: Record<string, string> = {}) {
+function getReq(params: Record<string, string> = {}) {
   const url = new URL("http://localhost/api/models");
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   return new NextRequest(url);
 }
+function postReq(body: object) {
+  return new NextRequest("http://localhost/api/models", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockFindMany.mockResolvedValue([] as never);
-  mockStockFindMany.mockResolvedValue([] as never);
+  mockFindMany.mockResolvedValue([]);
 });
 
 describe("GET /api/models", () => {
   it("returns 401 when unauthenticated", async () => {
     mockAuth.mockResolvedValue(null as never);
-    const res = await GET(req());
+    const res = await GET(getReq());
     expect(res.status).toBe(401);
   });
 
-  it("returns deduplicated model suggestions", async () => {
+  it("returns models scoped by type/manufacturer, flattened with type/manufacturer names", async () => {
     mockAuth.mockResolvedValue(session() as never);
     mockFindMany.mockResolvedValue([
-      { model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" },
-      { model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" },
-      { model: "Dell P2422H", typeId: "t2", manufacturerId: "m2" },
+      {
+        id: "mo1",
+        name: "UltraSharp U2722D",
+        typeId: "t1",
+        manufacturerId: "m1",
+        type: { name: "Monitor" },
+        manufacturer: { name: "Dell" },
+      },
     ] as never);
 
-    const res = await GET(req({ q: "E" }));
+    const res = await GET(getReq({ typeId: "t1", manufacturerId: "m1" }));
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toHaveLength(2);
-    expect(body[0]).toEqual({ model: "Dell P2422H", typeId: "t2", manufacturerId: "m2" });
-    expect(body[1]).toEqual({ model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" });
-  });
-
-  it("includes models from stock items alongside asset models", async () => {
-    mockAuth.mockResolvedValue(session() as never);
-    mockFindMany.mockResolvedValue([
-      { model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" },
-    ] as never);
-    mockStockFindMany.mockResolvedValue([
-      { model: "Dell P2422H", typeId: "t2", manufacturerId: "m2" },
-    ] as never);
-
-    const res = await GET(req({ q: "" }));
-    const body = await res.json();
-    expect(body.map((s: { model: string }) => s.model)).toEqual(["Dell P2422H", "Epson EB-W06"]);
-  });
-
-  it("keeps the asset spelling when the same model exists in stock with different casing", async () => {
-    mockAuth.mockResolvedValue(session() as never);
-    mockFindMany.mockResolvedValue([
-      { model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" },
-    ] as never);
-    mockStockFindMany.mockResolvedValue([
-      { model: "epson eb-w06", typeId: "t1", manufacturerId: "m1" },
-    ] as never);
-
-    const res = await GET(req({ q: "epson" }));
-    const body = await res.json();
-    expect(body).toEqual([{ model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" }]);
-  });
-
-  it("applies the search term and typeId filter to the stock query", async () => {
-    mockAuth.mockResolvedValue(session() as never);
-
-    await GET(req({ q: "Dell", typeId: "t2" }));
-
-    expect(mockStockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { model: { contains: "Dell" }, typeId: "t2" },
-      })
-    );
-  });
-
-  it("deduplicates case/punctuation variants of the same model, keeping the first-seen spelling", async () => {
-    mockAuth.mockResolvedValue(session() as never);
-    mockFindMany.mockResolvedValue([
-      { model: "Dell PowerEdge R740", typeId: "t1", manufacturerId: "m1" },
-      { model: "dell poweredge r740", typeId: "t1", manufacturerId: "m1" },
-      { model: "Dell PowerEdge  R740", typeId: "t1", manufacturerId: "m1" },
-    ] as never);
-
-    const res = await GET(req({ q: "Dell" }));
-    const body = await res.json();
-    expect(body).toHaveLength(1);
-    expect(body[0]).toEqual({ model: "Dell PowerEdge R740", typeId: "t1", manufacturerId: "m1" });
-  });
-
-  it("passes typeId and manufacturerId filters to prisma", async () => {
-    mockAuth.mockResolvedValue(session() as never);
-    mockFindMany.mockResolvedValue([
-      { model: "Epson EB-W06", typeId: "t1", manufacturerId: "m1" },
-    ] as never);
-
-    await GET(req({ q: "Epson", typeId: "t1", manufacturerId: "m1" }));
-
+    expect(await res.json()).toEqual([
+      { id: "mo1", name: "UltraSharp U2722D", typeId: "t1", manufacturerId: "m1", typeName: "Monitor", manufacturerName: "Dell" },
+    ]);
     expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ typeId: "t1", manufacturerId: "m1" }),
-      })
+      expect.objectContaining({ where: { typeId: "t1", manufacturerId: "m1" } })
     );
   });
 
-  it("omits typeId/manufacturerId filter when not provided", async () => {
+  it("applies the search term as a name filter", async () => {
     mockAuth.mockResolvedValue(session() as never);
-    mockFindMany.mockResolvedValue([] as never);
+    await GET(getReq({ q: "Dell" }));
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ name: { contains: "Dell" } }) })
+    );
+  });
+});
 
-    await GET(req({ q: "Dell" }));
+describe("POST /api/models", () => {
+  it("returns 401 when unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null as never);
+    const res = await POST(postReq({ typeId: "t1", name: "UltraSharp U2722D" }));
+    expect(res.status).toBe(401);
+  });
 
-    const where = mockFindMany.mock.calls[0][0].where;
-    expect(where).not.toHaveProperty("typeId");
-    expect(where).not.toHaveProperty("manufacturerId");
+  it("returns 403 for non-admin roles", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    const res = await POST(postReq({ typeId: "t1", name: "UltraSharp U2722D" }));
+    expect(res.status).toBe(403);
+  });
+
+  it("returns 400 on invalid input", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    const res = await POST(postReq({ typeId: "" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 when the asset type doesn't exist", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    mockTypeFindUnique.mockResolvedValue(null as never);
+    const res = await POST(postReq({ typeId: "missing", name: "X" }));
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 409 when a model with the same type/manufacturer/name already exists", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    mockTypeFindUnique.mockResolvedValue({ name: "Monitor" } as never);
+    mockFindFirst.mockResolvedValue({ id: "existing1", name: "UltraSharp U2722D" } as never);
+
+    const res = await POST(postReq({ typeId: "t1", name: "UltraSharp U2722D" }));
+    expect(res.status).toBe(409);
+  });
+
+  it("creates the model and audits on success", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    mockTypeFindUnique.mockResolvedValue({ name: "Monitor" } as never);
+    mockMfrFindUnique.mockResolvedValue({ name: "Dell" } as never);
+    mockFindFirst.mockResolvedValue(null as never);
+    mockCreate.mockResolvedValue({ id: "mo1", typeId: "t1", manufacturerId: "m1", name: "UltraSharp U2722D" } as never);
+
+    const res = await POST(postReq({ typeId: "t1", manufacturerId: "m1", name: "UltraSharp U2722D" }));
+    expect(res.status).toBe(201);
+    expect(mockCreate).toHaveBeenCalledWith({ data: { typeId: "t1", manufacturerId: "m1", name: "UltraSharp U2722D" } });
   });
 });

@@ -45,7 +45,8 @@ const PARAMS = Promise.resolve({ id: "asset-1" });
 const VALID_ASSET = {
   id: "asset-1",
   lineageId: "lin-1",
-  model: "Dell Monitor",
+  modelId: "mo1",
+  model: { name: "Dell Monitor" },
   serialNumber: "SN-001",
   typeId: "type-1",
   manufacturerId: "mfr-1",
@@ -121,7 +122,7 @@ describe("POST /api/assets/[id]/return-to-stock", () => {
 
   it("returns 400 if asset has no model", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
-    mockFindUnique.mockResolvedValue({ ...VALID_ASSET, model: null } as never);
+    mockFindUnique.mockResolvedValue({ ...VALID_ASSET, modelId: null, model: null } as never);
     const res = await POST(makeReq(), { params: PARAMS });
     expect(res.status).toBe(400);
     const body = await res.json();

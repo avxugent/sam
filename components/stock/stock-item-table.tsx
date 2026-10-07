@@ -43,7 +43,8 @@ export type StockItem = {
   id: string;
   typeId: string;
   manufacturerId: string | null;
-  model: string;
+  modelId: string | null;
+  model: { id: string; name: string } | null;
   serialNumber: string | null;
   quantity: number;
   invoiceNumber: string | null;
@@ -136,7 +137,7 @@ export function StockItemTable({
     const ql = query.toLowerCase();
     return items.filter((i) =>
       !ql ||
-      i.model.toLowerCase().includes(ql) ||
+      i.model?.name.toLowerCase().includes(ql) ||
       i.serialNumber?.toLowerCase().includes(ql) ||
       i.type.name.toLowerCase().includes(ql) ||
       i.manufacturer?.name.toLowerCase().includes(ql)
@@ -148,7 +149,7 @@ export function StockItemTable({
       let va = "", vb = "";
       if (sortCol === "type") { va = a.type.name; vb = b.type.name; }
       else if (sortCol === "manufacturer") { va = a.manufacturer?.name ?? ""; vb = b.manufacturer?.name ?? ""; }
-      else if (sortCol === "model") { va = a.model; vb = b.model; }
+      else if (sortCol === "model") { va = a.model?.name ?? ""; vb = b.model?.name ?? ""; }
       else if (sortCol === "serialNumber") { va = a.serialNumber ?? ""; vb = b.serialNumber ?? ""; }
       else if (sortCol === "quantity") return sortDir === "asc" ? a.quantity - b.quantity : b.quantity - a.quantity;
       return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
@@ -271,7 +272,7 @@ export function StockItemTable({
                       <Checkbox
                         checked={selected.has(item.id)}
                         onCheckedChange={() => toggleSelectRow(item.id)}
-                        aria-label={t("selectRow", { model: item.model })}
+                        aria-label={t("selectRow", { model: item.model?.name ?? "" })}
                       />
                     </td>
                   )}
@@ -281,7 +282,7 @@ export function StockItemTable({
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-[#64748b]">{item.manufacturer?.name ?? "—"}</td>
-                  <td className="px-3 py-2.5 font-medium text-[#0f172a]">{item.model}</td>
+                  <td className="px-3 py-2.5 font-medium text-[#0f172a]">{item.model?.name ?? "—"}</td>
                   <td className="px-3 py-2.5">
                     {item.serialNumber
                       ? <span className="font-mono text-[11.5px] text-[#64748b]">{item.serialNumber}</span>
@@ -315,7 +316,7 @@ export function StockItemTable({
                             typeName: item.type.name,
                             manufacturerId: item.manufacturerId ?? null,
                             manufacturerName: item.manufacturer?.name ?? null,
-                            model: item.model,
+                            modelId: item.modelId ?? "",
                             serialNumber: item.serialNumber ?? null,
                             quantity: item.quantity,
                             notes: item.notes ?? null,
@@ -345,7 +346,7 @@ export function StockItemTable({
                             <AlertDialogHeader>
                               <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
                               <AlertDialogDescription>
-                                {t("deleteConfirmDescription", { model: item.model })}
+                                {t("deleteConfirmDescription", { model: item.model?.name ?? "" })}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -406,7 +407,7 @@ export function StockItemTable({
           open={!!deployItem}
           onOpenChange={(v) => { if (!v) setDeployItem(null); }}
           itemId={deployItem.id}
-          itemModel={deployItem.model}
+          itemModel={deployItem.model?.name ?? ""}
           itemSerial={deployItem.serialNumber}
           availableQuantity={deployItem.quantity}
         />

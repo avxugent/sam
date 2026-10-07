@@ -75,17 +75,16 @@ Suppliers (resellers/vendors you purchase from — distinct from manufacturers) 
 
 ---
 
-## Model Cleanup
+## Models
 
-**Administration → Model Cleanup**
+**Administration → Models**
 
-Review clusters of similar-but-not-identical asset model spellings (typos, abbreviations) and merge them into a single canonical spelling. Only clusters that couldn't be safely auto-merged (see the `assets:normalize-models` maintenance script) are shown here. Each entry shows its asset count, asset type(s), and manufacturer(s) as context, since spelling similarity alone can't tell apart genuinely different products (e.g. "...RX" vs "...TX" variants).
+Models are a fixed list, scoped by asset type and manufacturer — assets and stock items pick from this list rather than typing a free-text name. Only admins can add new models here; if hardware isn't listed yet, add it first before it can be selected on an asset or stock item.
 
-- **Choose the correct spelling** — pick one of the listed spellings, or select **Use a custom spelling** to type a corrected name if none of them are exactly right.
-- **Exclude items** — uncheck any entry that doesn't actually belong with the rest of the cluster before merging; unchecked entries are left untouched.
-- Click **Merge** to rewrite every checked entry to the chosen spelling.
-
-**Rename a model** — below the cluster list, search for any model (even one with no detected duplicates — e.g. a single consistently-misspelled entry) and rename it directly. All assets using that spelling are batch-updated to the new name.
+- **Filter** — narrow the list by asset type and/or manufacturer using the two dropdowns above the list.
+- **Create / Edit / Delete** — click **Add model**, or the pencil icon on a row, to set its asset type, manufacturer, and name. Deletion is blocked while any asset or stock item still references the model.
+- **Merge** — renaming a model to a name that already exists under the same type/manufacturer offers to merge the two instead of blocking the rename; every asset and stock item from the source model is reassigned to the target, then the source is deleted.
+- **Possible duplicates** — below the list, spellings that look similar (typos, abbreviations) are surfaced for review, with a one-click merge if they're really the same model. Each entry shows its asset type and manufacturer as context, since spelling similarity alone can't tell apart genuinely different products (e.g. "...RX" vs "...TX" variants).
 
 ---
 

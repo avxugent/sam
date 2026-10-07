@@ -34,7 +34,7 @@ import { useToast } from "@/components/ui/use-toast";
 type FormData = {
   typeId: string;
   manufacturerId?: string;
-  model: string;
+  modelId: string;
   serialNumber?: string;
   quantity: number;
   notes?: string;
@@ -77,7 +77,7 @@ export type StockItemInitialData = {
   typeName: string;
   manufacturerId: string | null;
   manufacturerName: string | null;
-  model: string;
+  modelId: string;
   serialNumber: string | null;
   quantity: number;
   notes: string | null;
@@ -106,7 +106,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const validationSchema = useMemo(() => z.object({
     typeId: z.string().min(1, t("errTypeRequired")),
     manufacturerId: z.string().optional(),
-    model: z.string().min(1, t("errModelRequired")).max(255),
+    modelId: z.string().min(1, t("errModelRequired")),
     serialNumber: z.string().max(100).optional(),
     quantity: z.number().int().min(1, t("errQuantityMin")),
     notes: z.string().max(5000).optional(),
@@ -155,7 +155,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
       quantity: initialData?.quantity ?? 1,
       typeId: initialData?.typeId ?? "",
       manufacturerId: initialData?.manufacturerId ?? "",
-      model: initialData?.model ?? "",
+      modelId: initialData?.modelId ?? "",
       serialNumber: initialData?.serialNumber ?? "",
       notes: initialData?.notes ?? "",
       locationId: initialData?.locationId ?? "",
@@ -171,7 +171,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   });
 
   const serialNumber = useWatch({ control, name: "serialNumber" });
-  const modelValue = useWatch({ control, name: "model" });
+  const modelIdValue = useWatch({ control, name: "modelId" });
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -199,7 +199,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   function handleClose() {
     setOpen(false);
     if (mode === "create") {
-      reset({ quantity: 1, typeId: "", manufacturerId: "", model: "", serialNumber: "", notes: "", locationId: "", invoiceNumber: "", invoiceDate: "", macAddresses: [] });
+      reset({ quantity: 1, typeId: "", manufacturerId: "", modelId: "", serialNumber: "", notes: "", locationId: "", invoiceNumber: "", invoiceDate: "", macAddresses: [] });
       setSelectedTypeId("");
       setSelectedMfgId("");
       setSelectedLocationId("");
@@ -317,17 +317,16 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             <Label htmlFor="model">{tField("model")} <span className="text-destructive">*</span></Label>
             <ModelAutocomplete
               id="model"
-              registered={register("model")}
-              value={modelValue}
+              value={modelIdValue}
               typeId={selectedTypeId}
               manufacturerId={selectedMfgId}
               placeholder={t("modelPlaceholder")}
-              error={!!errors.model}
-              createLabel={(v) => t("createModelOption", { value: v })}
-              noResultsLabel={(v) => t("modelNoResults", { value: v })}
-              onSelect={(s) => setValue("model", s.model, { shouldValidate: true })}
+              error={!!errors.modelId}
+              emptyLabel={t("modelNoneForScope")}
+              noMatchLabel={(v) => t("modelNoResults", { value: v })}
+              onChange={(modelId) => setValue("modelId", modelId, { shouldValidate: true })}
             />
-            {errors.model && <p className="text-xs text-destructive">{errors.model.message}</p>}
+            {errors.modelId && <p className="text-xs text-destructive">{errors.modelId.message}</p>}
           </div>
 
           {/* Storage location */}

@@ -14,7 +14,7 @@ export async function POST(
   const { id } = await params;
   const existing = await prisma.asset.findUnique({
     where: { id },
-    select: { model: true, status: true, lineageId: true },
+    select: { model: { select: { name: true } }, status: true, lineageId: true },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (existing.status !== "DECOMMISSIONED") {
@@ -38,7 +38,7 @@ export async function POST(
     action: "UPDATE",
     entityType: "Asset",
     entityId: id,
-    entityName: existing.model ?? undefined,
+    entityName: existing.model?.name ?? undefined,
     detail: { status: "INSTALLED" },
     lineageId: existing.lineageId,
   });

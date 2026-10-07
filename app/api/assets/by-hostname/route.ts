@@ -80,6 +80,7 @@ export async function GET(req: NextRequest) {
     include: {
       type: { select: { id: true, name: true } },
       manufacturer: { select: { id: true, name: true } },
+      model: { select: { name: true } },
       macAddresses: { select: { id: true, address: true } },
       customFields: { select: { id: true, key: true, value: true } },
       location: {
@@ -107,7 +108,7 @@ export async function GET(req: NextRequest) {
       return {
         id: asset.id,
         hostname: asset.hostname,
-        model: asset.model,
+        model: asset.model?.name ?? null,
         serialNumber: asset.serialNumber,
         installationDate: asset.installationDate
           ? asset.installationDate.toISOString().split("T")[0]

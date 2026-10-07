@@ -29,7 +29,7 @@ const LOCATIONS = [
 function asset(overrides: Record<string, unknown> = {}) {
   return {
     id: "a1",
-    model: "OptiPlex 7090",
+    model: { name: "OptiPlex 7090" },
     serialNumber: "SN123",
     quantity: 1,
     hostname: "pc-01",
@@ -102,7 +102,7 @@ describe("generateExportCsv()", () => {
 
   it("escapes cells containing the delimiter, quotes, or newlines", async () => {
     mockAssetFind.mockResolvedValue([
-      asset({ model: 'has;semi', serialNumber: 'a"b', hostname: "line\nbreak" }),
+      asset({ model: { name: 'has;semi' }, serialNumber: 'a"b', hostname: "line\nbreak" }),
     ] as never);
     const csv = await generateExportCsv();
     const row = csv.split("\r\n")[1];
@@ -230,7 +230,7 @@ describe("generateStockCsv()", () => {
   function stockItem(overrides: Record<string, unknown> = {}) {
     return {
       id: "s1",
-      model: "Latitude 5540",
+      model: { name: "Latitude 5540" },
       serialNumber: "SN-STK",
       quantity: 3,
       locationId: "bldg",

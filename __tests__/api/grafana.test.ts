@@ -102,7 +102,7 @@ describe("POST /api/grafana/query", () => {
     vi.mocked(prisma.asset.findMany).mockResolvedValue([
       {
         id: "a1",
-        model: "Dell XPS",
+        model: { name: "Dell XPS" },
         serialNumber: "SN1",
         hostname: "host1",
         installationDate: new Date("2020-01-01"),

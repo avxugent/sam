@@ -3,14 +3,14 @@ export function renderHostnameUrl(
   asset: {
     hostname?: string | null;
     serialNumber?: string | null;
-    model?: string | null;
+    model?: { name: string } | null;
     manufacturer?: { name: string } | null;
   }
 ): string {
   return template
     .replaceAll("{hostname}", asset.hostname ?? "")
     .replaceAll("{serial}", asset.serialNumber ?? "")
-    .replaceAll("{model}", asset.model ?? "")
+    .replaceAll("{model}", asset.model?.name ?? "")
     .replaceAll("{manufacturer}", asset.manufacturer?.name ?? "");
 }
 

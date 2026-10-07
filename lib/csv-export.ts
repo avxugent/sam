@@ -81,6 +81,7 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
     include: {
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },
+      model: { select: { name: true } },
       supplier: { select: { name: true } },
       macAddresses: { select: { address: true } },
       customFields: { select: { key: true, value: true } },
@@ -119,7 +120,7 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
       fiNumber,
       asset.type?.name ?? "",
       asset.manufacturer?.name ?? "",
-      asset.model ?? "",
+      asset.model?.name ?? "",
       asset.serialNumber ?? "",
       String(asset.quantity),
       macs,
@@ -183,6 +184,7 @@ export async function generateDecommissionedCsv(): Promise<string> {
     include: {
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },
+      model: { select: { name: true } },
       supplier: { select: { name: true } },
       macAddresses: { select: { address: true } },
       customFields: { select: { key: true, value: true } },
@@ -221,7 +223,7 @@ export async function generateDecommissionedCsv(): Promise<string> {
       loc.fiNumber ?? "",
       asset.type?.name ?? "",
       asset.manufacturer?.name ?? "",
-      asset.model ?? "",
+      asset.model?.name ?? "",
       asset.serialNumber ?? "",
       String(asset.quantity),
       macs,
@@ -274,6 +276,7 @@ export async function generateStockCsv(): Promise<string> {
     include: {
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },
+      model: { select: { name: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -309,7 +312,7 @@ export async function generateStockCsv(): Promise<string> {
     const cells = [
       item.type?.name ?? "",
       item.manufacturer?.name ?? "",
-      item.model ?? "",
+      item.model?.name ?? "",
       item.serialNumber ?? "",
       String(item.quantity),
       storageLocation,

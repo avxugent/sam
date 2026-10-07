@@ -15,7 +15,7 @@ import {
 
 type AssetResult = {
   id: string;
-  model: string | null;
+  model: { id: string; name: string } | null;
   serialNumber: string | null;
   hostname: string | null;
   type: { id: string; name: string } | null;
@@ -200,7 +200,7 @@ export function SearchResults() {
               </h2>
               <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden mb-[4px]">
                 {results.assets.map((asset) => {
-                  const displayName = asset.model || asset.hostname || asset.serialNumber || "Unnamed asset";
+                  const displayName = asset.model?.name || asset.hostname || asset.serialNumber || "Unnamed asset";
                   return (
                     <Link
                       key={asset.id}

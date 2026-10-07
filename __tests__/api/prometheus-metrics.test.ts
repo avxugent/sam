@@ -101,7 +101,7 @@ describe("GET /api/prometheus/metrics — per-asset info series", () => {
   function asset(overrides: Record<string, unknown> = {}) {
     return {
       hostname: "rectest001",
-      model: "Pearl-2",
+      model: { name: "Pearl-2" },
       criticality: "HIGH",
       endOfSupportDate: null,
       locationId: "room",

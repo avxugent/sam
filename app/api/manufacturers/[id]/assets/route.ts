@@ -15,7 +15,7 @@ export async function GET(
     where: { manufacturerId: id },
     select: {
       id: true,
-      model: true,
+      model: { select: { name: true } },
       serialNumber: true,
       hostname: true,
       installationDate: true,

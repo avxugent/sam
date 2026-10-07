@@ -34,6 +34,7 @@ export async function POST(
     where: { id },
     include: {
       location: { select: { name: true } },
+      model: { select: { name: true } },
       macAddresses: { select: { address: true } },
       customFields: { select: { key: true, value: true } },
     },
@@ -61,8 +62,8 @@ export async function POST(
       action: "DELETE",
       entityType: "Asset",
       entityId: id,
-      entityName: asset.model ?? undefined,
-      detail: { snapshot: { "Returned to stock": asset.model, "From location": asset.location.name } },
+      entityName: asset.model?.name ?? undefined,
+      detail: { snapshot: { "Returned to stock": asset.model?.name ?? null, "From location": asset.location.name } },
       lineageId: asset.lineageId,
     }),
     logAudit({
@@ -71,7 +72,7 @@ export async function POST(
       action: "CREATE",
       entityType: "StockItem",
       entityId: stockItem.id,
-      entityName: stockItem.model,
+      entityName: asset.model?.name,
       detail: { snapshot: { "Returned from asset at": asset.location.name } },
       lineageId: stockItem.lineageId,
     }),

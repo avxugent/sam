@@ -57,7 +57,7 @@ function Th({ col, label, sortCol, sortDir, onSort }: {
 export type DecommissionedAsset = {
   id: string;
   locationId: string;
-  model: string | null;
+  model: { name: string } | null;
   serialNumber: string | null;
   decommissionedAt: Date | string | null;
   decommissionNote: string | null;
@@ -95,7 +95,7 @@ export function DecommissionedTable({
     if (!query) return true;
     const q = query.toLowerCase();
     return (
-      a.model?.toLowerCase().includes(q) ||
+      a.model?.name.toLowerCase().includes(q) ||
       a.serialNumber?.toLowerCase().includes(q) ||
       a.type?.name.toLowerCase().includes(q) ||
       a.manufacturer?.name.toLowerCase().includes(q) ||
@@ -109,7 +109,7 @@ export function DecommissionedTable({
     return [...filtered].sort((a, b) => {
       let av = "", bv = "";
       if (sortCol === "type") { av = a.type?.name ?? ""; bv = b.type?.name ?? ""; }
-      else if (sortCol === "model") { av = a.model ?? ""; bv = b.model ?? ""; }
+      else if (sortCol === "model") { av = a.model?.name ?? ""; bv = b.model?.name ?? ""; }
       else if (sortCol === "serialNumber") { av = a.serialNumber ?? ""; bv = b.serialNumber ?? ""; }
       else if (sortCol === "lastLocation") { av = a.lastLocationName ?? ""; bv = b.lastLocationName ?? ""; }
       else if (sortCol === "decommissionedAt") { av = String(a.decommissionedAt ?? ""); bv = String(b.decommissionedAt ?? ""); }
@@ -176,7 +176,7 @@ export function DecommissionedTable({
                       href={`/locations/${asset.locationId}/assets/${asset.id}`}
                       className="font-medium text-[#0f172a] hover:text-[#1e64c8] hover:underline"
                     >
-                      {asset.model || asset.serialNumber || tAsset("unnamedAsset")}
+                      {asset.model?.name || asset.serialNumber || tAsset("unnamedAsset")}
                     </Link>
                     {asset.manufacturer && (
                       <span className="text-[11.5px] text-[#94a3b8] ml-1.5">{asset.manufacturer.name}</span>
@@ -210,7 +210,7 @@ export function DecommissionedTable({
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              {t("reinstateConfirmTitle", { name: asset.model || asset.serialNumber || tStock("item") })}
+                              {t("reinstateConfirmTitle", { name: asset.model?.name || asset.serialNumber || tStock("item") })}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                               {t("reinstateConfirmDescription", { location: asset.lastLocationName ?? t("itsLocation") })}

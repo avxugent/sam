@@ -35,7 +35,7 @@ const asset = {
   id: "asset-1",
   typeId: "t1",
   manufacturerId: "m1",
-  model: "EB-W06",
+  modelId: "mo1",
   serialNumber: "SN123",
   hostname: "",
   installationDate: null,
@@ -88,6 +88,12 @@ function setupFetchMock() {
           { id: "u1", name: "Alice" },
           { id: "u2", name: "Bob" },
         ],
+      } as Response);
+    }
+    if (url.startsWith("/api/models")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => [{ id: "mo1", name: "EB-W06", typeId: "t1", manufacturerId: "m1" }],
       } as Response);
     }
     if (url === "/api/assets/asset-1" && (!opts || opts.method === undefined)) {

@@ -21,7 +21,7 @@ export default async function DecommissionedPage() {
     select: {
       id: true,
       locationId: true,
-      model: true,
+      model: { select: { name: true } },
       serialNumber: true,
       decommissionedAt: true,
       decommissionNote: true,

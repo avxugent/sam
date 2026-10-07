@@ -46,7 +46,7 @@ export async function computeHostnameCompliance(): Promise<HostnameComplianceRes
         id: true,
         typeId: true,
         hostname: true,
-        model: true,
+        model: { select: { name: true } },
         serialNumber: true,
         locationId: true,
         location: { select: { fiNumber: true } },
@@ -98,7 +98,7 @@ export async function computeHostnameCompliance(): Promise<HostnameComplianceRes
       bucket.nonCompliantAssets.push({
         id: a.id,
         hostname,
-        model: a.model,
+        model: a.model?.name ?? null,
         serialNumber: a.serialNumber,
         locationPath: a.locationId ? pathMap.get(a.locationId) ?? null : null,
         fiNumber: a.location?.fiNumber ?? null,

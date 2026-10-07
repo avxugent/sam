@@ -34,7 +34,7 @@ function adminSession() {
 type AssetRow = {
   id: string;
   hostname: string | null;
-  model: string | null;
+  model: { name: string } | null;
   serialNumber: string | null;
   vaultPath: string | null;
   locationId: string;
@@ -54,7 +54,7 @@ function asset(overrides: Partial<AssetRow> = {}): AssetRow {
   return {
     id: "a1",
     hostname: "rectest001.ugent.be",
-    model: "Pearl",
+    model: { name: "Pearl" },
     serialNumber: "SN1",
     vaultPath: "secret/av/rectest001",
     locationId: "loc1",
@@ -135,7 +135,7 @@ describe("GET /api/prometheus/sd", () => {
     mockAuth.mockResolvedValue(adminSession() as never);
     mockFindMany.mockResolvedValue([
       asset({
-        type: { name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: false },
+        type: { name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: false, manufacturerTemplates: [], modelTemplates: [] },
       }),
     ] as never);
 
@@ -206,7 +206,7 @@ describe("GET /api/prometheus/sd", () => {
     mockFindMany.mockResolvedValue([
       asset({
         manufacturerId: "m1",
-        model: "Pearl-2",
+        model: { name: "Pearl-2" },
         type: {
           name: "Recorder",
           prometheusExposed: true,
@@ -231,7 +231,7 @@ describe("GET /api/prometheus/sd", () => {
     mockFindMany.mockResolvedValue([
       asset({
         manufacturerId: "m1",
-        model: "Pearl-1",
+        model: { name: "Pearl-1" },
         type: {
           name: "Recorder",
           prometheusExposed: true,

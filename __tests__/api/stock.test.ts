@@ -46,7 +46,8 @@ const SAMPLE_ITEM = {
   id: "item-1",
   typeId: "type-1",
   manufacturerId: "mfr-1",
-  model: "Dell U2722D",
+  modelId: "mo1",
+  model: { id: "mo1", name: "Dell U2722D" },
   serialNumber: null,
   quantity: 5,
   notes: null,
@@ -77,7 +78,7 @@ describe("GET /api/stock", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toHaveLength(1);
-    expect(body[0].model).toBe("Dell U2722D");
+    expect(body[0].model.name).toBe("Dell U2722D");
   });
 
   it("passes typeId filter to query", async () => {
@@ -104,33 +105,33 @@ describe("GET /api/stock", () => {
 describe("POST /api/stock", () => {
   it("returns 401 when unauthenticated", async () => {
     mockAuth.mockResolvedValue(null as never);
-    const res = await POST(req("POST", "http://localhost/api/stock", { typeId: "t1", model: "M1", quantity: 1 }));
+    const res = await POST(req("POST", "http://localhost/api/stock", { typeId: "t1", modelId: "mo1", quantity: 1 }));
     expect(res.status).toBe(401);
   });
 
   it("returns 403 for viewers", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
-    const res = await POST(req("POST", "http://localhost/api/stock", { typeId: "t1", model: "M1", quantity: 1 }));
+    const res = await POST(req("POST", "http://localhost/api/stock", { typeId: "t1", modelId: "mo1", quantity: 1 }));
     expect(res.status).toBe(403);
   });
 
   it("creates a bulk stock item", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
-    const res = await POST(req("POST", "http://localhost/api/stock", { typeId: "type-1", model: "Dell U2722D", quantity: 5 }));
+    const res = await POST(req("POST", "http://localhost/api/stock", { typeId: "type-1", modelId: "mo1", quantity: 5 }));
     expect(res.status).toBe(201);
   });
 
   it("returns 400 if typeId missing", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
-    const res = await POST(req("POST", "http://localhost/api/stock", { model: "X", quantity: 1 }));
+    const res = await POST(req("POST", "http://localhost/api/stock", { modelId: "mo1", quantity: 1 }));
     expect(res.status).toBe(400);
   });
 
   it("returns 400 if quantity > 1 with serial number set", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     const res = await POST(req("POST", "http://localhost/api/stock", {
-      typeId: "t1", model: "X", serialNumber: "SN123", quantity: 3,
+      typeId: "t1", modelId: "mo1", serialNumber: "SN123", quantity: 3,
     }));
     expect(res.status).toBe(400);
   });
@@ -139,7 +140,7 @@ describe("POST /api/stock", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockCreate.mockResolvedValue({ ...SAMPLE_ITEM, serialNumber: "SN123", quantity: 1 } as never);
     const res = await POST(req("POST", "http://localhost/api/stock", {
-      typeId: "t1", model: "Projector X", serialNumber: "SN123", quantity: 1,
+      typeId: "t1", modelId: "mo1", serialNumber: "SN123", quantity: 1,
     }));
     expect(res.status).toBe(201);
   });
@@ -147,7 +148,7 @@ describe("POST /api/stock", () => {
   it("returns 400 for an invalid MAC address", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     const res = await POST(req("POST", "http://localhost/api/stock", {
-      typeId: "t1", model: "X", quantity: 1, macAddresses: ["not-a-mac"],
+      typeId: "t1", modelId: "mo1", quantity: 1, macAddresses: ["not-a-mac"],
     }));
     expect(res.status).toBe(400);
   });
@@ -156,7 +157,7 @@ describe("POST /api/stock", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
     const res = await POST(req("POST", "http://localhost/api/stock", {
-      typeId: "type-1", model: "Dell U2722D", quantity: 1, macAddresses: ["AA:BB:CC:DD:EE:FF"],
+      typeId: "type-1", modelId: "mo1", quantity: 1, macAddresses: ["AA:BB:CC:DD:EE:FF"],
     }));
     expect(res.status).toBe(201);
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
@@ -170,7 +171,7 @@ describe("POST /api/stock", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
     await POST(req("POST", "http://localhost/api/stock", {
-      typeId: "type-1", model: "Dell U2722D", quantity: 1,
+      typeId: "type-1", modelId: "mo1", quantity: 1,
       macAddresses: ["AA:BB:CC:DD:EE:FF", "11-22-33-44-55-66"],
     }));
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
@@ -186,7 +187,7 @@ describe("POST /api/stock", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
     await POST(req("POST", "http://localhost/api/stock", {
-      typeId: "type-1", model: "Dell U2722D", quantity: 1, macAddresses: ["aabbccddeeff"],
+      typeId: "type-1", modelId: "mo1", quantity: 1, macAddresses: ["aabbccddeeff"],
     }));
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
@@ -198,7 +199,7 @@ describe("POST /api/stock", () => {
   it("leaves metadata null when no MAC is given", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
-    await POST(req("POST", "http://localhost/api/stock", { typeId: "type-1", model: "M", quantity: 1 }));
+    await POST(req("POST", "http://localhost/api/stock", { typeId: "type-1", modelId: "mo1", quantity: 1 }));
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ metadata: null }),
     }));
@@ -208,7 +209,7 @@ describe("POST /api/stock", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockCreate.mockResolvedValue({ ...SAMPLE_ITEM, locationId: "loc-1" } as never);
     await POST(req("POST", "http://localhost/api/stock", {
-      typeId: "type-1", model: "M", quantity: 1, locationId: "loc-1",
+      typeId: "type-1", modelId: "mo1", quantity: 1, locationId: "loc-1",
     }));
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ locationId: "loc-1" }),
@@ -218,7 +219,7 @@ describe("POST /api/stock", () => {
   it("defaults locationId to null when not given", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockCreate.mockResolvedValue(SAMPLE_ITEM as never);
-    await POST(req("POST", "http://localhost/api/stock", { typeId: "type-1", model: "M", quantity: 1 }));
+    await POST(req("POST", "http://localhost/api/stock", { typeId: "type-1", modelId: "mo1", quantity: 1 }));
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ locationId: null }),
     }));
@@ -230,31 +231,31 @@ describe("POST /api/stock", () => {
 describe("PUT /api/stock/[id]", () => {
   it("returns 401 when unauthenticated", async () => {
     mockAuth.mockResolvedValue(null as never);
-    const res = await PUT(req("PUT", "http://localhost/api/stock/item-1", { model: "Updated" }), { params: PARAMS });
+    const res = await PUT(req("PUT", "http://localhost/api/stock/item-1", { modelId: "mo1" }), { params: PARAMS });
     expect(res.status).toBe(401);
   });
 
   it("returns 403 for viewers", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
-    const res = await PUT(req("PUT", "http://localhost/api/stock/item-1", { model: "Updated" }), { params: PARAMS });
+    const res = await PUT(req("PUT", "http://localhost/api/stock/item-1", { modelId: "mo1" }), { params: PARAMS });
     expect(res.status).toBe(403);
   });
 
   it("returns 404 if item not found", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     mockFindUnique.mockResolvedValue(null as never);
-    const res = await PUT(req("PUT", "http://localhost/api/stock/item-1", { model: "Updated" }), { params: PARAMS });
+    const res = await PUT(req("PUT", "http://localhost/api/stock/item-1", { modelId: "mo1" }), { params: PARAMS });
     expect(res.status).toBe(404);
   });
 
   it("updates item successfully", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockFindUnique.mockResolvedValue(SAMPLE_ITEM as never);
-    mockUpdate.mockResolvedValue({ ...SAMPLE_ITEM, model: "Updated" } as never);
-    const res = await PUT(req("PUT", "http://localhost/api/stock/item-1", { model: "Updated" }), { params: PARAMS });
+    mockUpdate.mockResolvedValue({ ...SAMPLE_ITEM, modelId: "mo2", model: { id: "mo2", name: "Updated" } } as never);
+    const res = await PUT(req("PUT", "http://localhost/api/stock/item-1", { modelId: "mo2" }), { params: PARAMS });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.model).toBe("Updated");
+    expect(body.model.name).toBe("Updated");
   });
 
   it("writes a MAC address into metadata", async () => {

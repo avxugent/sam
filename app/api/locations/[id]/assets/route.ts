@@ -39,7 +39,7 @@ const createAssetSchema = z
   .object({
     typeId: z.string().min(1, "Type is required"),
     manufacturerId: z.string().min(1, "Manufacturer is required"),
-    model: z.string().min(1, "Model is required").max(255),
+    modelId: z.string().min(1, "Model is required"),
     serialNumber: z.string().max(100).optional().nullable(),
     hostname: z.string().max(255).optional().nullable(),
     quantity: z.number().int().min(1).max(9999).default(1),
@@ -100,6 +100,7 @@ export async function GET(
       include: {
         type: true,
         manufacturer: true,
+        model: true,
         macAddresses: true,
         customFields: true,
         location: { select: { id: true, name: true } },
@@ -116,6 +117,7 @@ export async function GET(
     include: {
       type: true,
       manufacturer: true,
+      model: true,
       macAddresses: true,
       customFields: true,
       _count: { select: { attachments: true } },
@@ -191,6 +193,7 @@ export async function POST(
       include: {
         type: true,
         manufacturer: true,
+        model: true,
         macAddresses: true,
         customFields: true,
       },
@@ -211,12 +214,12 @@ export async function POST(
     action: "CREATE",
     entityType: "Asset",
     entityId: asset.id,
-    entityName: asset.model ?? asset.serialNumber ?? undefined,
+    entityName: asset.model?.name ?? asset.serialNumber ?? undefined,
     detail: {
       snapshot: {
         ...(asset.type ? { "Type": asset.type.name } : {}),
         ...(asset.manufacturer ? { "Manufacturer": asset.manufacturer.name } : {}),
-        "Model": asset.model,
+        "Model": asset.model?.name ?? null,
         ...(asset.serialNumber ? { "Serial number": asset.serialNumber } : {}),
         ...(asset.quantity !== 1 ? { "Quantity": asset.quantity } : {}),
       },

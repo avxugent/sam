@@ -5,6 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.0-beta.1] - 2026-10-07
+
+### Added
+
+- **Fixed, admin-managed Model list** — Asset and StockItem models are now picked from a fixed list, scoped by asset type + manufacturer, instead of free text. New **Administration → Models** page: filter by type/manufacturer, create/edit/delete, and merge duplicate spellings (reassigning both assets and stock items — the equivalent manufacturer merge only ever reassigned assets). A "possible duplicates" panel surfaces similar-looking spellings for review.
+
+### Changed
+
+- **Model is now admin-only to create** — the asset and stock item forms are strict pickers over the existing Model list; unlisted hardware blocks the form until an admin adds it first. There is no more inline "Create ..." option, and no "did you mean an existing model?" prompt (both unnecessary once entry is picker-only).
+- **API**: `POST`/`PUT` on `/api/locations/[id]/assets`, `/api/assets/[id]`, `/api/stock`, and `/api/stock/[id]` take `modelId` in place of `model`.
+- **CSV import**: the `MODEL` column is matched against the existing list for the row's type/manufacturer instead of being stored verbatim; an unmatched spelling is flagged in the import results and left unset, rather than silently creating a new free-text value.
+- Existing `Asset`/`StockItem` rows are migrated automatically (expand/contract migration). `StockItem.modelId` stays nullable for now — a follow-up migration tightens it to `NOT NULL` and drops the legacy `model` columns once the backfill is verified clean in production.
+
+### Removed
+
+- The free-text "Model Cleanup" admin page and its `/api/models/merge` and `/api/models/similar` endpoints, superseded by the new Models admin page.
+- `scripts/normalize-models.mjs` maintenance script, superseded by the Model entity and its merge tool.
+
+---
+
 ## [2.4.0] - 2026-10-05
 
 ### Added

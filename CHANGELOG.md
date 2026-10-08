@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.0] - 2026-10-08
+
+First stable 3.0 release, consolidating `3.0.0-beta.1` through `3.0.0-beta.6` below — the fixed Model lookup table, manufacturer-by-type scoping, dependency/security maintenance, and the Model documentation-link field.
+
+### Upgrading
+
+1. This release includes the Model lookup migration's **expand** phase (`20261007092710_add_models_table_and_backfill`) — applied automatically via `prisma migrate deploy`. The legacy free-text `assets.model`/`stock_items.model` columns are deliberately left in place as a safety net.
+2. After deploying, verify the backfill against production data before the follow-up **contract** release (which tightens `StockItem.modelId` to `NOT NULL` and drops the legacy columns):
+   ```sql
+   SELECT COUNT(*) FROM stock_items WHERE modelId IS NULL;
+   SELECT COUNT(*) FROM assets WHERE modelId IS NULL AND typeId IS NOT NULL AND model IS NOT NULL AND TRIM(model) <> '';
+   ```
+   Both should be ~0. Any remainder is a backfill miss (typically a punctuation/spacing variant) — resolve via the admin Models merge tool before cutting the contract release.
+
+---
+
 ## [3.0.0-beta.6] - 2026-10-07
 
 ### Added

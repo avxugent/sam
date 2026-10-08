@@ -501,12 +501,7 @@ model StockItem {
   lineageId             String    @default(cuid())
   typeId                String
   manufacturerId        String?
-  // Nullable for now even though every row is expected to have one — a
-  // follow-up migration tightens this to NOT NULL once the modelId backfill
-  // (prisma/migrations/*_add_models_table_and_backfill) is verified clean in
-  // production. The Zod schema in app/api/stock/route.ts already enforces
-  // "required" at the API boundary regardless of this column's nullability.
-  modelId               String?
+  modelId               String
   serialNumber          String?   @db.VarChar(100)
   quantity              Int       @default(1)
   notes                 String?   @db.Text
@@ -525,7 +520,7 @@ model StockItem {
 
   type         AssetType     @relation(fields: [typeId], references: [id])
   manufacturer Manufacturer? @relation(fields: [manufacturerId], references: [id])
-  model        Model?        @relation(fields: [modelId], references: [id])
+  model        Model         @relation(fields: [modelId], references: [id], onDelete: Restrict)
   location     Location?     @relation(fields: [locationId], references: [id], onDelete: Restrict)
 
   @@index([typeId])

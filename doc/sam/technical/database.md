@@ -422,7 +422,7 @@ Pre-deployment inventory — hardware received but not yet installed.
 | `lineageId` | string (cuid) | See `Asset.lineageId` — copied forward from the source Asset on return-to-stock; a fresh id is minted for genuinely new stock (manual create, CSV-imported bulk stock) |
 | `typeId` | string? | FK to AssetType |
 | `manufacturerId` | string? | FK to Manufacturer |
-| `modelId` | string? | FK to Model. Nullable for now even though every row is expected to have one — a follow-up migration tightens this to `NOT NULL` once the backfill is verified clean in production; the API's Zod schema already enforces "required" regardless of this column's current nullability |
+| `modelId` | string | FK to Model, `onDelete: Restrict` |
 | `serialNumber` | string? | Serial number |
 | `quantity` | int | Number of identical units |
 | `notes` | string? | Free-text notes |

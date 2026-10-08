@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.1] - 2026-10-08
+
+### Changed
+
+- **Model lookup migration, contract phase** — `StockItem.modelId` is now required (`NOT NULL`), and the legacy free-text `assets.model`/`stock_items.model` columns (kept since 3.0.0 as a rollback safety net) are dropped. Gated on the production backfill verification from 3.0.0's Upgrading notes, which came back clean (0 rows on both checks). No application behavior change — every route/form has used `modelId` exclusively since `3.0.0-beta.1`.
+
+---
+
 ## [3.0.0] - 2026-10-08
 
 First stable 3.0 release, consolidating `3.0.0-beta.1` through `3.0.0-beta.6` below — the fixed Model lookup table, manufacturer-by-type scoping, dependency/security maintenance, and the Model documentation-link field.

@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.2] - 2026-10-08
+
+### Fixed
+
+- **Docker build failed its type-check step** — `3.0.1`'s `StockItem.modelId` tighten (`String?` → `String`) broke `buildReturnToStockStockItemData()` in `lib/asset-lifecycle.ts`, which assigned `Asset.modelId` (still nullable by design) straight through. Every caller already guarantees it's non-null via `assertReturnableToStock()` first — same situation as `typeId` on the line above, same fix. **3.0.1 never actually built** — don't deploy it; go straight to this version.
+
+---
+
 ## [3.0.1] - 2026-10-08
 
 ### Changed

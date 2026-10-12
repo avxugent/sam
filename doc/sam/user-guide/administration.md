@@ -84,7 +84,7 @@ Models are a fixed list, scoped by asset type and manufacturer — assets and st
 - **Filter** — narrow the list by asset type and/or manufacturer using the two dropdowns above the list.
 - **Create / Edit / Delete** — click **Add model**, or the pencil icon on a row, to set its asset type, manufacturer, and name. Deletion is blocked while any asset or stock item still references the model.
 - **Merge** — renaming a model to a name that already exists under the same type/manufacturer offers to merge the two instead of blocking the rename; every asset and stock item from the source model is reassigned to the target, then the source is deleted.
-- **Possible duplicates** — below the list, spellings that look similar (typos, abbreviations) are surfaced for review, with a one-click merge if they're really the same model. Each entry shows its asset type and manufacturer as context, since spelling similarity alone can't tell apart genuinely different products (e.g. "...RX" vs "...TX" variants).
+- **Possible duplicates** — below the list, spellings that look similar (typos, abbreviations) are surfaced for review, with a one-click merge if they're really the same model. Only models under the same asset type are ever compared — the same name under two different types is a legitimate distinct catalog entry, never a suggested merge. Each entry shows its manufacturer as context, since spelling similarity alone can't tell apart genuinely different products (e.g. "...RX" vs "...TX" variants).
 
 ---
 

@@ -66,11 +66,22 @@ describe("POST /api/models/[id]/merge", () => {
     expect((await POST(post({ targetId: "mo2" }), { params: params() })).status).toBe(404);
   });
 
+  it("returns 400 when source and target belong to different asset types", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    vi.mocked(prisma.model.findUnique)
+      .mockResolvedValueOnce({ id: "mo1", name: "Brio 4K", typeId: "type-camera" } as never)
+      .mockResolvedValueOnce({ id: "mo2", name: "Brio 4K", typeId: "type-webcam" } as never);
+
+    const res = await POST(post({ targetId: "mo2" }), { params: params() });
+    expect(res.status).toBe(400);
+    expect(tx.model.delete).not.toHaveBeenCalled();
+  });
+
   it("reassigns BOTH assets and stock items, deletes the source, and audits", async () => {
     mockAuth.mockResolvedValue(session() as never);
     vi.mocked(prisma.model.findUnique)
-      .mockResolvedValueOnce({ id: "mo1", name: "PowerEdge R740" } as never)
-      .mockResolvedValueOnce({ id: "mo2", name: "poweredge r740" } as never);
+      .mockResolvedValueOnce({ id: "mo1", name: "PowerEdge R740", typeId: "type-server" } as never)
+      .mockResolvedValueOnce({ id: "mo2", name: "poweredge r740", typeId: "type-server" } as never);
 
     const res = await POST(post({ targetId: "mo2" }), { params: params() });
     expect(res.status).toBe(200);

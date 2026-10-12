@@ -3,6 +3,7 @@ import { computeModelClusters, type ModelCountRow } from "@/lib/model-similarity
 
 export type ModelClusterItem = ModelCountRow & {
   id: string;
+  typeId: string;
   typeName: string;
   manufacturerName: string | null;
 };
@@ -19,6 +20,7 @@ export async function getModelItems(): Promise<ModelClusterItem[]> {
     select: {
       id: true,
       name: true,
+      typeId: true,
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },
       _count: { select: { assets: true, stockItems: true } },
@@ -29,6 +31,7 @@ export async function getModelItems(): Promise<ModelClusterItem[]> {
     id: m.id,
     model: m.name,
     count: m._count.assets + m._count.stockItems,
+    typeId: m.typeId,
     typeName: m.type.name,
     manufacturerName: m.manufacturer?.name ?? null,
   }));
@@ -37,7 +40,17 @@ export async function getModelItems(): Promise<ModelClusterItem[]> {
 /**
  * Fuzzy-similarity clusters of Model names, for the admin page's "possible
  * duplicates" panel. See getModelItems() for the flat, unclustered list.
+ * Clustered per asset type — a Model is scoped to exactly one type, so the
+ * same (or similar) name under a different type is a legitimate distinct
+ * catalog entry, never a duplicate to merge.
  */
 export async function getModelClusters(): Promise<ModelClusterItem[][]> {
-  return computeModelClusters(await getModelItems());
+  const items = await getModelItems();
+  const byType = new Map<string, ModelClusterItem[]>();
+  for (const item of items) {
+    const bucket = byType.get(item.typeId);
+    if (bucket) bucket.push(item);
+    else byType.set(item.typeId, [item]);
+  }
+  return [...byType.values()].flatMap((bucket) => computeModelClusters(bucket));
 }

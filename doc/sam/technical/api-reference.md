@@ -111,8 +111,8 @@ Fixed lookup table for the Asset/StockItem "model" field, scoped by `(typeId, ma
 | `PUT` | `/api/models/[id]` | ADMIN | Update (type/manufacturer/name/documentationUrl); `409` with `{existingId, existingName, existingAssetCount, existingStockCount}` on a name collision within the same type/manufacturer |
 | `DELETE` | `/api/models/[id]` | ADMIN | Delete; `400` if any asset or stock item still references it |
 | `GET` | `/api/models/[id]/usage` | VIEWER | Assets and stock items referencing this model |
-| `POST` | `/api/models/[id]/merge` | ADMIN | Merge into another model — reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source |
-| `GET` | `/api/models/clusters` | ADMIN | List clusters of 2+ similar-but-not-identical model names (fuzzy edit-distance matching), for the admin page's "possible duplicates" panel |
+| `POST` | `/api/models/[id]/merge` | ADMIN | Merge into another model — reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source. `400` if the two models don't share the same `typeId` |
+| `GET` | `/api/models/clusters` | ADMIN | List clusters of 2+ similar-but-not-identical model names (fuzzy edit-distance matching), for the admin page's "possible duplicates" panel. Clustered per `typeId` — a shared name across different asset types is never offered as a merge candidate |
 
 ---
 

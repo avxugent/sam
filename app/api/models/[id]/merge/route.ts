@@ -34,6 +34,13 @@ export async function POST(
   if (!source) return NextResponse.json({ error: "Source model not found." }, { status: 404 });
   if (!target) return NextResponse.json({ error: "Target model not found." }, { status: 404 });
 
+  if (source.typeId !== target.typeId) {
+    return NextResponse.json(
+      { error: "Cannot merge models that belong to different asset types." },
+      { status: 400 }
+    );
+  }
+
   const { assetsMoved, stockItemsMoved } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const assetResult = await tx.asset.updateMany({
       where: { modelId: id },

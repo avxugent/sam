@@ -36,8 +36,8 @@ describe("GET /api/models/clusters", () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     mockGetModelClusters.mockResolvedValue([
       [
-        { id: "mo1", model: "PowerEdge R740", count: 5, typeName: "Server", manufacturerName: "Dell" },
-        { id: "mo2", model: "poweredge r740", count: 2, typeName: "Server", manufacturerName: "Dell" },
+        { id: "mo1", model: "PowerEdge R740", count: 5, typeId: "type-server", typeName: "Server", manufacturerName: "Dell" },
+        { id: "mo2", model: "poweredge r740", count: 2, typeId: "type-server", typeName: "Server", manufacturerName: "Dell" },
       ],
     ]);
 
@@ -46,8 +46,8 @@ describe("GET /api/models/clusters", () => {
     const body = await res.json();
     expect(body.clusters).toEqual([
       [
-        { id: "mo1", model: "PowerEdge R740", count: 5, typeName: "Server", manufacturerName: "Dell" },
-        { id: "mo2", model: "poweredge r740", count: 2, typeName: "Server", manufacturerName: "Dell" },
+        { id: "mo1", model: "PowerEdge R740", count: 5, typeId: "type-server", typeName: "Server", manufacturerName: "Dell" },
+        { id: "mo2", model: "poweredge r740", count: 2, typeId: "type-server", typeName: "Server", manufacturerName: "Dell" },
       ],
     ]);
   });

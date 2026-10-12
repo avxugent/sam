@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.3] - 2026-10-12
+
+### Fixed
+
+- **Model merge could silently corrupt asset/stock Model references** — `POST /api/models/[id]/merge` reassigned `Asset.modelId`/`StockItem.modelId` from source to target with no check that the two models shared the same `typeId`, and the admin "possible duplicates" panel (`lib/model-clusters.ts`) clustered purely by name similarity, so it could suggest merging two same-named models that belonged to different asset types. After such a merge, affected assets kept their own `typeId` but pointed at a model from a *different* type — invisible to the type-scoped `/api/models` and `/api/manufacturers` lookups the asset edit form uses, so the Model and Manufacturer fields rendered blank there even though the underlying data (and the read-only asset detail page) were intact. The merge route now rejects a cross-type merge with `400`, and clusters are computed per `typeId` so a cross-type pair is never offered as a merge candidate. Assets merged incorrectly before this fix are not auto-repaired — find them via `SELECT ... FROM assets a JOIN models m ON m.id = a.modelId WHERE a.typeId <> m.typeId` and reassign manually.
+
+---
+
 ## [3.0.2] - 2026-10-08
 
 ### Fixed

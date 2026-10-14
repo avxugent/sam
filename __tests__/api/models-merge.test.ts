@@ -66,15 +66,36 @@ describe("POST /api/models/[id]/merge", () => {
     expect((await POST(post({ targetId: "mo2" }), { params: params() })).status).toBe(404);
   });
 
-  it("returns 400 when source and target belong to different asset types", async () => {
+  it("cascades the target's typeId onto moved assets/stock items when source and target belong to different asset types", async () => {
     mockAuth.mockResolvedValue(session() as never);
     vi.mocked(prisma.model.findUnique)
       .mockResolvedValueOnce({ id: "mo1", name: "Brio 4K", typeId: "type-camera" } as never)
       .mockResolvedValueOnce({ id: "mo2", name: "Brio 4K", typeId: "type-webcam" } as never);
 
     const res = await POST(post({ targetId: "mo2" }), { params: params() });
-    expect(res.status).toBe(400);
-    expect(tx.model.delete).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, assetsMoved: 3, stockItemsMoved: 2 });
+
+    expect(tx.asset.updateMany).toHaveBeenCalledWith({
+      where: { modelId: "mo1" },
+      data: { modelId: "mo2", typeId: "type-webcam" },
+    });
+    expect(tx.stockItem.updateMany).toHaveBeenCalledWith({
+      where: { modelId: "mo1" },
+      data: { modelId: "mo2", typeId: "type-webcam" },
+    });
+    expect(tx.model.delete).toHaveBeenCalledWith({ where: { id: "mo1" } });
+
+    expect(mockLogAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: {
+          mergedInto: { id: "mo2", name: "Brio 4K" },
+          assetsMoved: 3,
+          stockItemsMoved: 2,
+          retypedTo: "type-webcam",
+        },
+      })
+    );
   });
 
   it("reassigns BOTH assets and stock items, deletes the source, and audits", async () => {

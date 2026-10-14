@@ -34,21 +34,23 @@ export async function POST(
   if (!source) return NextResponse.json({ error: "Source model not found." }, { status: 404 });
   if (!target) return NextResponse.json({ error: "Target model not found." }, { status: 404 });
 
-  if (source.typeId !== target.typeId) {
-    return NextResponse.json(
-      { error: "Cannot merge models that belong to different asset types." },
-      { status: 400 }
-    );
-  }
+  // A Model is scoped to exactly one asset type, so every asset/stock item
+  // that follows it must stay in sync with that type. A cross-type merge
+  // (only reachable by an admin deliberately retyping a model into a
+  // collision — the "possible duplicates" suggestions are same-type only)
+  // carries that retype onto the rows being moved, rather than leaving them
+  // pointed at a model whose type no longer matches their own.
+  const retyped = source.typeId !== target.typeId;
+  const data = retyped ? { modelId: targetId, typeId: target.typeId } : { modelId: targetId };
 
   const { assetsMoved, stockItemsMoved } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const assetResult = await tx.asset.updateMany({
       where: { modelId: id },
-      data: { modelId: targetId },
+      data,
     });
     const stockResult = await tx.stockItem.updateMany({
       where: { modelId: id },
-      data: { modelId: targetId },
+      data,
     });
     await tx.model.delete({ where: { id } });
     return { assetsMoved: assetResult.count, stockItemsMoved: stockResult.count };
@@ -65,6 +67,7 @@ export async function POST(
       mergedInto: { id: targetId, name: target.name },
       assetsMoved,
       stockItemsMoved,
+      ...(retyped ? { retypedTo: target.typeId } : {}),
     },
   });
 

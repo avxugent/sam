@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.1.0] - 2026-10-14
+
+### Added
+
+- **MAINTAINER role** — a new role ranked between EDITOR and ADMIN. It inherits every EDITOR permission and can additionally create/edit/delete/merge Manufacturers, Suppliers, and Models, so catalog upkeep no longer requires giving someone full admin rights (user management, audit log, compliance, settings, asset types, import, export stay ADMIN-only).
+
+### Changed
+
+- **CSV import tightened to ADMIN-only** — `/api/import` and `/admin/import` previously allowed EDITOR (only VIEWER was excluded); it's now ADMIN-only, consistent with import having always been intended as an admin-reserved tool alongside export and settings.
+
+---
+
 ## [3.0.4] - 2026-10-14
 
 ### Fixed

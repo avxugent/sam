@@ -601,6 +601,7 @@
     "resetSent": "Password reset link sent",
     "passwordPlaceholder": "Generate a strong password",
     "rolesAdmin": "Admin",
+    "rolesMaintainer": "Maintainer",
     "rolesEditor": "Editor",
     "rolesViewer": "Viewer",
     "providerCredentials": "Email & password",

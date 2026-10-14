@@ -601,6 +601,7 @@
     "resetSent": "Resetlink verstuurd",
     "passwordPlaceholder": "Genereer een sterk wachtwoord",
     "rolesAdmin": "Admin",
+    "rolesMaintainer": "Maintainer",
     "rolesEditor": "Editor",
     "rolesViewer": "Viewer",
     "providerCredentials": "E-mail & wachtwoord",

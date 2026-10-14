@@ -24,7 +24,7 @@ const v = csvValue;
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;

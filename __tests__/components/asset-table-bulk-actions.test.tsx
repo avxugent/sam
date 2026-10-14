@@ -35,6 +35,11 @@ describe("<AssetTable /> bulk actions", () => {
     expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
   });
 
+  it("renders checkboxes for maintainers", () => {
+    render(<AssetTable assets={ASSETS} locationId="loc-1" userRole="MAINTAINER" />);
+    expect(screen.getAllByRole("checkbox")).toHaveLength(3); // header + 2 rows
+  });
+
   it("checking a row does not navigate to the asset detail page", async () => {
     const user = userEvent.setup();
     render(<AssetTable assets={ASSETS} locationId="loc-1" userRole="ADMIN" />);

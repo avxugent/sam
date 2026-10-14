@@ -22,6 +22,10 @@ describe("canEdit()", () => {
     expect(canEdit("EDITOR")).toBe(true);
   });
 
+  it("returns true for MAINTAINER", () => {
+    expect(canEdit("MAINTAINER")).toBe(true);
+  });
+
   it("returns false for VIEWER", () => {
     expect(canEdit("VIEWER")).toBe(false);
   });

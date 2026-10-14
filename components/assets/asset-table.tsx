@@ -129,7 +129,7 @@ export function AssetTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDecommissionOpen, setBulkDecommissionOpen] = useState(false);
   const [bulkReturnToStockOpen, setBulkReturnToStockOpen] = useState(false);
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
+  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
 
   // Sync local state when the parent re-fetches (e.g. after router.refresh()
   // from AssetFormDialog). Without this, useState's initializer runs only

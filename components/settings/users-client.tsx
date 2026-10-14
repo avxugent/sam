@@ -43,7 +43,7 @@ const createSchema = z.object({
   name: z.string().min(1).max(128),
   email: z.string().email().max(255),
   password: z.string().min(8).max(128),
-  role: z.enum(["ADMIN", "EDITOR", "VIEWER"]),
+  role: z.enum(["ADMIN", "MAINTAINER", "EDITOR", "VIEWER"]),
   mustChangePassword: z.boolean().default(true),
   twoFactorRequired: z.boolean().default(false),
 });
@@ -52,7 +52,7 @@ const editSchema = z.object({
   name: z.string().min(1).max(128),
   email: z.string().email().max(255),
   password: z.string().max(128).optional(),
-  role: z.enum(["ADMIN", "EDITOR", "VIEWER"]),
+  role: z.enum(["ADMIN", "MAINTAINER", "EDITOR", "VIEWER"]),
   twoFactorRequired: z.boolean().optional(),
 });
 
@@ -115,6 +115,13 @@ function RolePill({ role }: { role: string }) {
     return (
       <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#fef3c7] text-[#92400e]">
         ADMIN
+      </span>
+    );
+  }
+  if (role === "MAINTAINER") {
+    return (
+      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#f3e8ff] text-[#7e22ce]">
+        MAINTAINER
       </span>
     );
   }
@@ -294,12 +301,13 @@ export function UsersClient({
                 <Label htmlFor="user-create-role">{tField("role")}</Label>
                 <Select
                   value={createRole}
-                  onValueChange={(v) => createForm.setValue("role", v as "ADMIN" | "EDITOR" | "VIEWER")}
+                  onValueChange={(v) => createForm.setValue("role", v as "ADMIN" | "MAINTAINER" | "EDITOR" | "VIEWER")}
                 >
                   <SelectTrigger id="user-create-role"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="VIEWER">{t("rolesViewer")}</SelectItem>
                     <SelectItem value="EDITOR">{t("rolesEditor")}</SelectItem>
+                    <SelectItem value="MAINTAINER">{t("rolesMaintainer")}</SelectItem>
                     <SelectItem value="ADMIN">{t("rolesAdmin")}</SelectItem>
                   </SelectContent>
                 </Select>
@@ -412,7 +420,7 @@ export function UsersClient({
                             editForm.reset({
                               name: user.name,
                               email: user.email,
-                              role: user.role as "ADMIN" | "EDITOR" | "VIEWER",
+                              role: user.role as "ADMIN" | "MAINTAINER" | "EDITOR" | "VIEWER",
                               password: "",
                               twoFactorRequired: user.twoFactorRequired,
                             });
@@ -455,12 +463,13 @@ export function UsersClient({
                             <Label htmlFor={`user-edit-role-${user.id}`}>{tField("role")}</Label>
                             <Select
                               value={editRole}
-                              onValueChange={(v) => editForm.setValue("role", v as "ADMIN" | "EDITOR" | "VIEWER")}
+                              onValueChange={(v) => editForm.setValue("role", v as "ADMIN" | "MAINTAINER" | "EDITOR" | "VIEWER")}
                             >
                               <SelectTrigger id={`user-edit-role-${user.id}`}><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="VIEWER">{t("rolesViewer")}</SelectItem>
                                 <SelectItem value="EDITOR">{t("rolesEditor")}</SelectItem>
+                                <SelectItem value="MAINTAINER">{t("rolesMaintainer")}</SelectItem>
                                 <SelectItem value="ADMIN">{t("rolesAdmin")}</SelectItem>
                               </SelectContent>
                             </Select>

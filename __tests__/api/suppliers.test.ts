@@ -70,6 +70,12 @@ describe("POST /api/suppliers", () => {
     expect((await POST(jsonReq("POST", { name: "X" }))).status).toBe(403);
   });
 
+  it("allows MAINTAINER", async () => {
+    mockAuth.mockResolvedValue(session("MAINTAINER"));
+    mockCreate.mockResolvedValue({ id: "s1", name: "X" } as never);
+    expect((await POST(jsonReq("POST", { name: "X" }))).status).not.toBe(403);
+  });
+
   it("400 on invalid input (empty name, bad date, until before from, until without from)", async () => {
     mockAuth.mockResolvedValue(session("ADMIN"));
     expect((await POST(jsonReq("POST", { name: "" }))).status).toBe(400);
@@ -123,6 +129,11 @@ describe("PUT /api/suppliers/[id]", () => {
     expect((await PUT(jsonReq("PUT", { name: "X" }), params("s1"))).status).toBe(401);
     mockAuth.mockResolvedValue(session("EDITOR"));
     expect((await PUT(jsonReq("PUT", { name: "X" }), params("s1"))).status).toBe(403);
+  });
+
+  it("allows MAINTAINER", async () => {
+    mockAuth.mockResolvedValue(session("MAINTAINER"));
+    expect((await PUT(jsonReq("PUT", { name: "X" }), params("s1"))).status).not.toBe(403);
   });
 
   it("404 when supplier does not exist", async () => {

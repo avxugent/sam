@@ -24,8 +24,8 @@ const mockAuth = vi.mocked(auth);
 const mockAssetCreate = vi.mocked(prisma.asset.create);
 const mockLocationCreate = vi.mocked(prisma.location.create);
 
-function session() {
-  return { user: { id: "u1", role: "ADMIN", name: "T", email: "t@test.com" } } as never;
+function session(role = "ADMIN") {
+  return { user: { id: "u1", role, name: "T", email: "t@test.com" } } as never;
 }
 
 function importReq(csv: string): NextRequest {
@@ -60,6 +60,20 @@ beforeEach(() => {
   vi.mocked(prisma.supplier.upsert).mockResolvedValue({ id: "sup-1" } as never);
   vi.mocked(prisma.appSetting.findUnique).mockResolvedValue(null as never);
   mockAssetCreate.mockResolvedValue({ id: "a1" } as never);
+});
+
+describe("POST /api/import — authorization", () => {
+  it("returns 401 when unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null as never);
+    const res = await POST(importReq(`${HEADER}\n`));
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for non-admin roles (EDITOR)", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR"));
+    const res = await POST(importReq(`${HEADER}\n`));
+    expect(res.status).toBe(403);
+  });
 });
 
 describe("POST /api/import — FI NUMMER-based location match", () => {

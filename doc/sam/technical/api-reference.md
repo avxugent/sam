@@ -91,12 +91,12 @@ Key validated fields:
 | Method | Path | Min role | Description |
 |---|---|---|---|
 | `GET` | `/api/manufacturers` | VIEWER | List all. Accepts an optional `typeId` filter — when given, only manufacturers with at least one Model under that asset type are returned |
-| `POST` | `/api/manufacturers` | ADMIN | Create |
+| `POST` | `/api/manufacturers` | MAINTAINER | Create |
 | `GET` | `/api/manufacturers/[id]` | VIEWER | Get detail |
-| `PUT` | `/api/manufacturers/[id]` | ADMIN | Update |
-| `DELETE` | `/api/manufacturers/[id]` | ADMIN | Delete |
+| `PUT` | `/api/manufacturers/[id]` | MAINTAINER | Update |
+| `DELETE` | `/api/manufacturers/[id]` | MAINTAINER | Delete |
 | `GET` | `/api/manufacturers/[id]/assets` | VIEWER | Assets by manufacturer |
-| `POST` | `/api/manufacturers/[id]/merge` | ADMIN | Merge into another manufacturer |
+| `POST` | `/api/manufacturers/[id]/merge` | MAINTAINER | Merge into another manufacturer |
 
 ---
 
@@ -107,12 +107,12 @@ Fixed lookup table for the Asset/StockItem "model" field, scoped by `(typeId, ma
 | Method | Path | Min role | Description |
 |---|---|---|---|
 | `GET` | `/api/models` | VIEWER | List models. Accepts `q` (name contains), `typeId`, `manufacturerId` filters |
-| `POST` | `/api/models` | ADMIN | Create. Body accepts an optional `documentationUrl` (must be a valid URL if present) — required for compliance, but not enforced here so a model can be added to unblock inventory entry before its documentation page exists |
-| `PUT` | `/api/models/[id]` | ADMIN | Update (type/manufacturer/name/documentationUrl); `409` with `{existingId, existingName, existingAssetCount, existingStockCount}` on a name collision within the same type/manufacturer |
-| `DELETE` | `/api/models/[id]` | ADMIN | Delete; `400` if any asset or stock item still references it |
+| `POST` | `/api/models` | MAINTAINER | Create. Body accepts an optional `documentationUrl` (must be a valid URL if present) — required for compliance, but not enforced here so a model can be added to unblock inventory entry before its documentation page exists |
+| `PUT` | `/api/models/[id]` | MAINTAINER | Update (type/manufacturer/name/documentationUrl); `409` with `{existingId, existingName, existingAssetCount, existingStockCount}` on a name collision within the same type/manufacturer |
+| `DELETE` | `/api/models/[id]` | MAINTAINER | Delete; `400` if any asset or stock item still references it |
 | `GET` | `/api/models/[id]/usage` | VIEWER | Assets and stock items referencing this model |
-| `POST` | `/api/models/[id]/merge` | ADMIN | Merge into another model — reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source. If the two models don't share the same `typeId`, every moved asset/stock item's own `typeId` is cascaded to the target's as part of the merge, so it never ends up pointing at a model from a different type than itself |
-| `GET` | `/api/models/clusters` | ADMIN | List clusters of 2+ similar-but-not-identical model names (fuzzy edit-distance matching), for the admin page's "possible duplicates" panel. Clustered per `typeId` — a shared name across different asset types is never offered as a merge candidate |
+| `POST` | `/api/models/[id]/merge` | MAINTAINER | Merge into another model — reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source. If the two models don't share the same `typeId`, every moved asset/stock item's own `typeId` is cascaded to the target's as part of the merge, so it never ends up pointing at a model from a different type than itself |
+| `GET` | `/api/models/clusters` | MAINTAINER | List clusters of 2+ similar-but-not-identical model names (fuzzy edit-distance matching), for the admin page's "possible duplicates" panel. Clustered per `typeId` — a shared name across different asset types is never offered as a merge candidate |
 
 ---
 
@@ -121,9 +121,9 @@ Fixed lookup table for the Asset/StockItem "model" field, scoped by `(typeId, ma
 | Method | Path | Min role | Description |
 |---|---|---|---|
 | `GET` | `/api/suppliers` | VIEWER | List all (with asset counts) |
-| `POST` | `/api/suppliers` | ADMIN | Create. Body: `{ name, contractReference?, contactInfo?, defaultFrom?, defaultUntil? }`. Overlapping default windows across suppliers return `400 supplierWindowOverlap`; duplicate name returns `409` |
-| `PUT` | `/api/suppliers/[id]` | ADMIN | Update (same body/validation as create) |
-| `DELETE` | `/api/suppliers/[id]` | ADMIN | Delete — blocked with `400` while assets reference the supplier |
+| `POST` | `/api/suppliers` | MAINTAINER | Create. Body: `{ name, contractReference?, contactInfo?, defaultFrom?, defaultUntil? }`. Overlapping default windows across suppliers return `400 supplierWindowOverlap`; duplicate name returns `409` |
+| `PUT` | `/api/suppliers/[id]` | MAINTAINER | Update (same body/validation as create) |
+| `DELETE` | `/api/suppliers/[id]` | MAINTAINER | Delete — blocked with `400` while assets reference the supplier |
 
 The **default window** (`defaultFrom` → `defaultUntil`, `defaultUntil` empty = open-ended) auto-assigns the supplier to assets created within the window without an explicit supplier (manual create, CSV import, stock deploy).
 
@@ -218,7 +218,7 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 
 | Method | Path | Min role | Description |
 |---|---|---|---|
-| `POST` | `/api/import` | EDITOR | Bulk CSV import (creates assets, validates per row) |
+| `POST` | `/api/import` | ADMIN | Bulk CSV import (creates assets, validates per row) |
 | `GET` | `/api/export/csv` | ADMIN or Bearer `EXPORT_TOKEN` | Download active-asset CSV export (status `INSTALLED` only) |
 | `GET` | `/api/export/decommissioned` | ADMIN | Download decommissioned-asset CSV (adds decommission metadata columns) |
 | `GET` | `/api/export/stock` | ADMIN | Download current stock inventory CSV |

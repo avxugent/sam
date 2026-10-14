@@ -55,6 +55,11 @@ describe("POST /api/models/[id]/merge", () => {
     expect((await POST(post({ targetId: "mo2" }), { params: params() })).status).toBe(403);
   });
 
+  it("allows MAINTAINER", async () => {
+    mockAuth.mockResolvedValue(session("MAINTAINER") as never);
+    expect((await POST(post({ targetId: "mo2" }), { params: params() })).status).not.toBe(403);
+  });
+
   it("returns 400 when merging a model into itself", async () => {
     mockAuth.mockResolvedValue(session() as never);
     expect((await POST(post({ targetId: "mo1" }), { params: params() })).status).toBe(400);

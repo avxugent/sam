@@ -59,20 +59,20 @@ type AdminNavItem = {
   href: string;
   labelKey: "users" | "assetTypes" | "manufacturers" | "suppliers" | "models" | "importCsv" | "exportCsv" | "auditLog" | "compliance" | "settings";
   icon: React.ReactNode;
-  adminOnly: boolean;
+  minRole: "MAINTAINER" | "ADMIN";
 };
 
 const ADMIN_NAV: AdminNavItem[] = [
-  { href: "/admin/users", labelKey: "users", icon: <Users className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/asset-types", labelKey: "assetTypes", icon: <Tag className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/manufacturers", labelKey: "manufacturers", icon: <Factory className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/suppliers", labelKey: "suppliers", icon: <Truck className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/models", labelKey: "models", icon: <Boxes className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/import", labelKey: "importCsv", icon: <Upload className="h-4 w-4" />, adminOnly: false },
-  { href: "/admin/export", labelKey: "exportCsv", icon: <Download className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/audit", labelKey: "auditLog", icon: <ClipboardList className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/compliance", labelKey: "compliance", icon: <ShieldCheck className="h-4 w-4" />, adminOnly: true },
-  { href: "/admin/settings", labelKey: "settings", icon: <Settings className="h-4 w-4" />, adminOnly: true },
+  { href: "/admin/users", labelKey: "users", icon: <Users className="h-4 w-4" />, minRole: "ADMIN" },
+  { href: "/admin/asset-types", labelKey: "assetTypes", icon: <Tag className="h-4 w-4" />, minRole: "ADMIN" },
+  { href: "/admin/manufacturers", labelKey: "manufacturers", icon: <Factory className="h-4 w-4" />, minRole: "MAINTAINER" },
+  { href: "/admin/suppliers", labelKey: "suppliers", icon: <Truck className="h-4 w-4" />, minRole: "MAINTAINER" },
+  { href: "/admin/models", labelKey: "models", icon: <Boxes className="h-4 w-4" />, minRole: "MAINTAINER" },
+  { href: "/admin/import", labelKey: "importCsv", icon: <Upload className="h-4 w-4" />, minRole: "ADMIN" },
+  { href: "/admin/export", labelKey: "exportCsv", icon: <Download className="h-4 w-4" />, minRole: "ADMIN" },
+  { href: "/admin/audit", labelKey: "auditLog", icon: <ClipboardList className="h-4 w-4" />, minRole: "ADMIN" },
+  { href: "/admin/compliance", labelKey: "compliance", icon: <ShieldCheck className="h-4 w-4" />, minRole: "ADMIN" },
+  { href: "/admin/settings", labelKey: "settings", icon: <Settings className="h-4 w-4" />, minRole: "ADMIN" },
 ];
 
 function getInitials(name?: string | null, email?: string | null): string {
@@ -306,9 +306,9 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
   const initials = getInitials(user.name, user.email);
 
   const visibleAdminItems = ADMIN_NAV.filter(
-    (item) => !item.adminOnly || user.role === "ADMIN"
+    (item) => user.role === "ADMIN" || (item.minRole === "MAINTAINER" && user.role === "MAINTAINER")
   );
-  const isAdminOrEditor = user.role === "ADMIN" || user.role === "EDITOR";
+  const isAdminOrEditor = user.role === "ADMIN" || user.role === "EDITOR" || user.role === "MAINTAINER";
   const isInAdmin = pathname.startsWith("/admin");
 
   return (

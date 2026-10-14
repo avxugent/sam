@@ -10,7 +10,7 @@ export default async function ModelsPage({
   searchParams: Promise<{ typeId?: string; manufacturerId?: string }>;
 }) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/");
+  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER")) redirect("/");
 
   const { typeId, manufacturerId } = await searchParams;
 

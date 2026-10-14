@@ -24,7 +24,7 @@ export default async function StockPage({
 
   const session = await auth();
   const userRole = session?.user?.role ?? "VIEWER";
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
+  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
 
   const t = await getTranslations("stock");
 

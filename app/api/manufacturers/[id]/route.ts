@@ -12,7 +12,7 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const body = await req.json();
@@ -58,7 +58,7 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const count = await prisma.asset.count({ where: { manufacturerId: id } });

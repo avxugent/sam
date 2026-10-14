@@ -6,7 +6,7 @@ import { SuppliersClient } from "@/components/settings/suppliers-client";
 
 export default async function SuppliersPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/");
+  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER")) redirect("/");
 
   const t = await getTranslations("suppliers");
 

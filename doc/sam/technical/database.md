@@ -14,9 +14,10 @@ SAM uses **MySQL 8** managed through **Prisma ORM**. The schema is the single so
 ### Role
 
 ```
-ADMIN   → full access including user management and settings
-EDITOR  → create/edit locations, assets, attachments; cannot manage users/types
-VIEWER  → read-only access to all data
+ADMIN      → full access including user management and settings
+MAINTAINER → everything EDITOR can do, plus manage manufacturers/suppliers/models
+EDITOR     → create/edit locations, assets, attachments; cannot manage users/types
+VIEWER     → read-only access to all data
 ```
 
 ### AssetStatus
@@ -62,7 +63,7 @@ Stores local and SSO-authenticated users.
 | `email` | string (unique) | Login identifier |
 | `passwordHash` | string? | `null` for SSO users |
 | `provider` | string | `"credentials"` or `"microsoft-entra-id"` |
-| `role` | Role | ADMIN / EDITOR / VIEWER |
+| `role` | Role | ADMIN / MAINTAINER / EDITOR / VIEWER |
 | `totpSecret` | string? | Encrypted TOTP seed |
 | `totpEnabled` | bool | Whether 2FA is active |
 | `mustChangePassword` | bool | Forces password change on next login |

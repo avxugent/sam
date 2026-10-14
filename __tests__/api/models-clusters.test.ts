@@ -32,6 +32,13 @@ describe("GET /api/models/clusters", () => {
     expect(res.status).toBe(403);
   });
 
+  it("allows MAINTAINER", async () => {
+    mockAuth.mockResolvedValue(session("MAINTAINER") as never);
+    mockGetModelClusters.mockResolvedValue([]);
+    const res = await GET();
+    expect(res.status).not.toBe(403);
+  });
+
   it("returns the clusters from getModelClusters()", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     mockGetModelClusters.mockResolvedValue([

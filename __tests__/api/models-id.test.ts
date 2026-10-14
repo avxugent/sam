@@ -55,6 +55,12 @@ describe("PUT /api/models/[id]", () => {
     expect(res.status).toBe(403);
   });
 
+  it("allows MAINTAINER", async () => {
+    mockAuth.mockResolvedValue(session("MAINTAINER") as never);
+    const res = await PUT(put({ typeId: "t1", name: "X" }), { params: params() });
+    expect(res.status).not.toBe(403);
+  });
+
   it("returns 400 on invalid input", async () => {
     mockAuth.mockResolvedValue(session() as never);
     const res = await PUT(put({ typeId: "" }), { params: params() });
@@ -133,6 +139,11 @@ describe("DELETE /api/models/[id]", () => {
   it("returns 403 for non-admin roles", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     expect((await DELETE(del(), { params: params() })).status).toBe(403);
+  });
+
+  it("allows MAINTAINER", async () => {
+    mockAuth.mockResolvedValue(session("MAINTAINER") as never);
+    expect((await DELETE(del(), { params: params() })).status).not.toBe(403);
   });
 
   it("returns 400 when the model is still used by assets or stock items", async () => {

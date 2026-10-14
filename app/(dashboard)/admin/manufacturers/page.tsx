@@ -5,7 +5,7 @@ import { ManufacturersClient } from "@/components/settings/manufacturers-client"
 
 export default async function ManufacturersPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/");
+  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER")) redirect("/");
 
   const manufacturers = await prisma.manufacturer.findMany({
     orderBy: { name: "asc" },

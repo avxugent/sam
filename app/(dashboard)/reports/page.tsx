@@ -13,7 +13,7 @@ export default async function ReportsPage() {
     select: { id: true, name: true, description: true, createdAt: true, updatedAt: true },
   });
 
-  const canEdit = session?.user?.role === "ADMIN" || session?.user?.role === "EDITOR";
+  const canEdit = session?.user?.role === "ADMIN" || session?.user?.role === "EDITOR" || session?.user?.role === "MAINTAINER";
   const isAdmin = session?.user?.role === "ADMIN";
 
   return (

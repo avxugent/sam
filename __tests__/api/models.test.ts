@@ -94,6 +94,12 @@ describe("POST /api/models", () => {
     expect(res.status).toBe(403);
   });
 
+  it("allows MAINTAINER", async () => {
+    mockAuth.mockResolvedValue(session("MAINTAINER") as never);
+    const res = await POST(postReq({ typeId: "t1", name: "UltraSharp U2722D" }));
+    expect(res.status).not.toBe(403);
+  });
+
   it("returns 400 on invalid input", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     const res = await POST(postReq({ typeId: "" }));

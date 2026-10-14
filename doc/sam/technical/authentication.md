@@ -98,34 +98,37 @@ API routes, all under `app/api/auth/passkey/`:
 
 | Role | Capabilities |
 |---|---|
-| **ADMIN** | Everything: manage users, settings, asset types, manufacturers, audit log, CSV export |
-| **EDITOR** | Create/edit/delete locations, assets, attachments; import CSV; manage work logs |
+| **ADMIN** | Everything: manage users, settings, asset types, manufacturers, suppliers, models, audit log, import, CSV export |
+| **MAINTAINER** | Everything EDITOR can do, plus manage manufacturers, suppliers, and models (catalog upkeep without full admin rights) |
+| **EDITOR** | Create/edit/delete locations, assets, attachments; manage work logs |
 | **VIEWER** | Read-only access to all data |
 
-Role hierarchy for permission checks: `ADMIN > EDITOR > VIEWER`.
+Role hierarchy for permission checks: `ADMIN > MAINTAINER > EDITOR > VIEWER`.
 
 ### What each role can and cannot do
 
-| Action | VIEWER | EDITOR | ADMIN |
-|---|---|---|---|
-| View locations and assets | ✓ | ✓ | ✓ |
-| View attachments | ✓ | ✓ | ✓ |
-| View work logs | ✓ | ✓ | ✓ |
-| View stock | ✓ | ✓ | ✓ |
-| View reports | ✓ | ✓ | ✓ |
-| Create/edit locations | ✗ | ✓ | ✓ |
-| Create/edit assets | ✗ | ✓ | ✓ |
-| Upload attachments | ✗ | ✓ | ✓ |
-| Create work logs | ✗ | ✓ | ✓ |
-| Create/deploy stock | ✗ | ✓ | ✓ |
-| Import CSV | ✗ | ✓ | ✓ |
-| Create/run reports | ✗ | ✓ | ✓ |
-| Manage asset types | ✗ | ✗ | ✓ |
-| Manage manufacturers | ✗ | ✗ | ✓ |
-| Manage users | ✗ | ✗ | ✓ |
-| View audit log | ✗ | ✗ | ✓ |
-| CSV export | ✗ | ✗ | ✓ |
-| Application settings | ✗ | ✗ | ✓ |
+| Action | VIEWER | EDITOR | MAINTAINER | ADMIN |
+|---|---|---|---|---|
+| View locations and assets | ✓ | ✓ | ✓ | ✓ |
+| View attachments | ✓ | ✓ | ✓ | ✓ |
+| View work logs | ✓ | ✓ | ✓ | ✓ |
+| View stock | ✓ | ✓ | ✓ | ✓ |
+| View reports | ✓ | ✓ | ✓ | ✓ |
+| Create/edit locations | ✗ | ✓ | ✓ | ✓ |
+| Create/edit assets | ✗ | ✓ | ✓ | ✓ |
+| Upload attachments | ✗ | ✓ | ✓ | ✓ |
+| Create work logs | ✗ | ✓ | ✓ | ✓ |
+| Create/deploy stock | ✗ | ✓ | ✓ | ✓ |
+| Create/run reports | ✗ | ✓ | ✓ | ✓ |
+| Manage manufacturers | ✗ | ✗ | ✓ | ✓ |
+| Manage suppliers | ✗ | ✗ | ✓ | ✓ |
+| Manage models | ✗ | ✗ | ✓ | ✓ |
+| Import CSV | ✗ | ✗ | ✗ | ✓ |
+| Manage asset types | ✗ | ✗ | ✗ | ✓ |
+| Manage users | ✗ | ✗ | ✗ | ✓ |
+| View audit log | ✗ | ✗ | ✗ | ✓ |
+| CSV export | ✗ | ✗ | ✗ | ✓ |
+| Application settings | ✗ | ✗ | ✗ | ✓ |
 
 ---
 

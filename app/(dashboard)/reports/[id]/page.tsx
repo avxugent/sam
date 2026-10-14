@@ -28,7 +28,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   const definition = parsed.data;
   const result = await runReport(definition);
-  const canEdit = session?.user?.role === "ADMIN" || session?.user?.role === "EDITOR";
+  const canEdit = session?.user?.role === "ADMIN" || session?.user?.role === "EDITOR" || session?.user?.role === "MAINTAINER";
   const grafanaUrl = process.env.GRAFANA_URL
     ? `${process.env.GRAFANA_URL}/explore`
     : null;

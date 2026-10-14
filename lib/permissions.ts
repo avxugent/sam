@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 
-export type UserRole = "ADMIN" | "EDITOR" | "VIEWER";
+export type UserRole = "ADMIN" | "MAINTAINER" | "EDITOR" | "VIEWER";
 
 export async function requireAuth() {
   const session = await auth();
@@ -20,7 +20,7 @@ export async function requireRole(...roles: UserRole[]) {
 }
 
 export function canEdit(role: string) {
-  return role === "ADMIN" || role === "EDITOR";
+  return role === "ADMIN" || role === "EDITOR" || role === "MAINTAINER";
 }
 
 export function isAdmin(role: string) {

@@ -5,7 +5,7 @@ sync_to_confluence: true
 
 # Administration
 
-Administration features are available to **Admin** users only. Access them via the **Administration** menu in the top navigation bar.
+Administration features are available to **Admin** users only, except Manufacturers, Suppliers, and Models, which **Maintainer** users can also manage. Access them via the **Administration** menu in the top navigation bar.
 
 ---
 
@@ -55,7 +55,7 @@ Asset types categorise assets (Projector, Display, Audio Processor, etc.).
 
 ## Manufacturers
 
-**Administration → Manufacturers**
+**Administration → Manufacturers** (Admin and Maintainer)
 
 Manufacturer names used across all assets.
 
@@ -66,7 +66,7 @@ Manufacturer names used across all assets.
 
 ## Suppliers
 
-**Administration → Suppliers**
+**Administration → Suppliers** (Admin and Maintainer)
 
 Suppliers (resellers/vendors you purchase from — distinct from manufacturers) with an optional contract reference and contact info, for supply-chain evidence.
 
@@ -77,9 +77,9 @@ Suppliers (resellers/vendors you purchase from — distinct from manufacturers) 
 
 ## Models
 
-**Administration → Models**
+**Administration → Models** (Admin and Maintainer)
 
-Models are a fixed list, scoped by asset type and manufacturer — assets and stock items pick from this list rather than typing a free-text name. Only admins can add new models here; if hardware isn't listed yet, add it first before it can be selected on an asset or stock item.
+Models are a fixed list, scoped by asset type and manufacturer — assets and stock items pick from this list rather than typing a free-text name. Only admins and maintainers can add new models here; if hardware isn't listed yet, add it first before it can be selected on an asset or stock item.
 
 - **Filter** — narrow the list by asset type and/or manufacturer using the two dropdowns above the list.
 - **Create / Edit / Delete** — click **Add model**, or the pencil icon on a row, to set its asset type, manufacturer, and name. Deletion is blocked while any asset or stock item still references the model.

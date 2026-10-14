@@ -86,7 +86,7 @@ export function WorkLogList({
   // once and new entries don't appear until a manual page reload.
   useEffect(() => { setEntries(initialEntries); }, [initialEntries]);
 
-  const canCreate = userRole === "ADMIN" || userRole === "EDITOR";
+  const canCreate = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
   const isAdmin = userRole === "ADMIN";
 
   const filtered = entries.filter((e) => {

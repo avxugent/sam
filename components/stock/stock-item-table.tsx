@@ -120,7 +120,7 @@ export function StockItemTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkRelocateOpen, setBulkRelocateOpen] = useState(false);
 
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
+  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
 
   useEffect(() => {
     setItems(initialItems);

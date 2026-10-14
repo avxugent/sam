@@ -9,7 +9,7 @@ const createSchema = z.object({
   name: z.string().min(1).max(128),
   email: z.string().email().max(255),
   password: z.string().min(8).max(128),
-  role: z.enum(["ADMIN", "EDITOR", "VIEWER"]),
+  role: z.enum(["ADMIN", "MAINTAINER", "EDITOR", "VIEWER"]),
   mustChangePassword: z.boolean().optional().default(true),
   twoFactorRequired: z.boolean().optional().default(false),
 });

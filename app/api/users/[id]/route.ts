@@ -9,7 +9,7 @@ const updateSchema = z.object({
   name: z.string().min(1).max(128).optional(),
   email: z.string().email().max(255).optional(),
   password: z.string().min(8).max(128).optional(),
-  role: z.enum(["ADMIN", "EDITOR", "VIEWER"]).optional(),
+  role: z.enum(["ADMIN", "MAINTAINER", "EDITOR", "VIEWER"]).optional(),
   twoFactorRequired: z.boolean().optional(),
 });
 

@@ -144,7 +144,7 @@ export function LocationDetailClient({
   const t = useTranslations("location");
   const tCommon = useTranslations("common");
   const tNav = useTranslations("nav");
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
+  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
 
   const [moveOpen, setMoveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);

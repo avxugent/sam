@@ -104,7 +104,7 @@ export default async function DashboardLayout({
     totpEnabled: dbUser?.totpEnabled ?? false,
   };
 
-  const isAdminOrEditor = session.user.role === "ADMIN" || session.user.role === "EDITOR";
+  const isAdminOrEditor = session.user.role === "ADMIN" || session.user.role === "EDITOR" || session.user.role === "MAINTAINER";
 
   return (
     <>

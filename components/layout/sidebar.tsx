@@ -177,7 +177,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
   const t = useTranslations("nav");
   const isStockPath = pathname === "/stock" || pathname.startsWith("/stock") || pathname === "/decommissioned" || pathname === "/in-repair";
 
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
+  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
   const totalAssets = locationTree.reduce((sum, loc) => sum + (assetCountMap[loc.id] ?? 0), 0);
   const [filterQuery, setFilterQuery] = useState("");
 

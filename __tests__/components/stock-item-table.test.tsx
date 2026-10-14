@@ -65,6 +65,12 @@ describe("<StockItemTable />", () => {
     expect(within(row).queryByRole("button")).toBeNull();
   });
 
+  it("shows edit/delete actions for maintainers", () => {
+    renderTable(ITEMS, "MAINTAINER");
+    const row = screen.getByText("Laptop").closest("tr")!;
+    expect(within(row).queryAllByRole("button").length).toBeGreaterThan(0);
+  });
+
   it("deletes via the confirm dialog and refreshes", async () => {
     const user = userEvent.setup();
     renderTable();

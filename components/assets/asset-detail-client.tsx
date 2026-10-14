@@ -157,7 +157,7 @@ export function AssetDetailClient({
   const tDecom = useTranslations("decommissioned");
   const tRepair = useTranslations("repair");
   const tHistory = useTranslations("history");
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR";
+  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
   const isDecommissioned = asset.status === "DECOMMISSIONED";
   const isInRepair = asset.status === "IN_REPAIR";
   const [attachments, setAttachments] = useState(asset.attachments);

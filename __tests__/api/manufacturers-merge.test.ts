@@ -59,6 +59,11 @@ describe("POST /api/manufacturers/[id]/merge", () => {
     expect((await POST(post({ targetId: "m2" }), { params: params() })).status).toBe(403);
   });
 
+  it("allows MAINTAINER", async () => {
+    mockAuth.mockResolvedValue(session("MAINTAINER") as never);
+    expect((await POST(post({ targetId: "m2" }), { params: params() })).status).not.toBe(403);
+  });
+
   it("400 when merging a manufacturer into itself", async () => {
     mockAuth.mockResolvedValue(session() as never);
     expect((await POST(post({ targetId: "m1" }), { params: params() })).status).toBe(400);

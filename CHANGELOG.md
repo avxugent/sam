@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.4] - 2026-10-14
+
+### Fixed
+
+- **Model merge wrongly blocked a legitimate one-step fix** — `3.0.3` rejected any merge between models of different asset types to stop the "possible duplicates" panel from suggesting nonsensical cross-type pairs (already type-scoped by that same fix). But it also blocked the only other way to hit a cross-type merge: an admin deliberately retyping a model in the edit form and confirming the resulting collision with an existing target — a correction, not a false positive. That forced a two-step workaround (rename to a temp name, change type, rename back) to do what should be a single edit. The merge now allows crossing types again, and cascades the target's `typeId` onto every moved asset/stock item in the same transaction, preserving the invariant `3.0.3` was protecting instead of just refusing the operation.
+
+---
+
 ## [3.0.3] - 2026-10-12
 
 ### Fixed

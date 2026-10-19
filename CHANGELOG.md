@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.1.1] - 2026-10-19
+
+### Fixed
+
+- **Decommissioned assets leaked into active-inventory overviews** — counts and queries meant to reflect current inventory included decommissioned assets inconsistently with where the app already excluded them (the asset-types page, search). Worst case: the location tree (sidebar, locations overview, location detail) summed every asset's quantity per location with no status filter at all, so a classroom's badge mixed installed, in-repair, and decommissioned gear into one number. Now scoped to active (INSTALLED) assets by default across the location tree, the Models/Manufacturers/Suppliers admin badges and drilldowns, model duplicate-cluster ranking, the Prometheus `/api/prometheus/metrics` gauges, Grafana `/api/grafana/query` and `/tag-values`, `/api/assets/by-hostname`, and the Report Builder — a report that explicitly filters on `status` (including decommissioned) is unaffected. Delete/merge-conflict guard counts still count every status on purpose, since they exist to prevent FK constraint violations, not to summarize inventory.
+
+---
+
 ## [3.1.0] - 2026-10-14
 
 ### Added

@@ -23,7 +23,9 @@ export async function getModelItems(): Promise<ModelClusterItem[]> {
       typeId: true,
       type: { select: { name: true } },
       manufacturer: { select: { name: true } },
-      _count: { select: { assets: true, stockItems: true } },
+      // Decommissioned assets are historical, not current inventory — excluded
+      // so a retired spelling never outranks an actively-used one as the merge target.
+      _count: { select: { assets: { where: { status: "INSTALLED" } }, stockItems: true } },
     },
   });
 

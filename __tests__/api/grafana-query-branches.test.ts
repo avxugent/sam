@@ -82,7 +82,15 @@ describe("POST /api/grafana/query — target branches", () => {
     }));
     expect(res.status).toBe(200);
     const whereArg = vi.mocked(prisma.asset.findMany).mock.calls[0][0].where;
-    expect(whereArg.AND).toHaveLength(4);
+    expect(whereArg.AND).toHaveLength(5);
+    expect(whereArg.AND).toContainEqual({ status: "INSTALLED" });
+  });
+
+  it("excludes decommissioned assets even with no adhoc filters", async () => {
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([] as never);
+    await queryPost(req({ targets: [{ target: "assets_table" }], adhocFilters: [] }));
+    const whereArg = vi.mocked(prisma.asset.findMany).mock.calls[0][0].where;
+    expect(whereArg).toEqual({ AND: [{ status: "INSTALLED" }] });
   });
 
   it("returns an empty table for an unknown target", async () => {

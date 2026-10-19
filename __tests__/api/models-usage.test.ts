@@ -46,7 +46,7 @@ describe("GET /api/models/[id]/usage", () => {
     const body = await res.json();
     expect(body.assets).toHaveLength(1);
     expect(body.stockItems).toHaveLength(1);
-    expect(mockAssetFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: { modelId: "mo1" } }));
+    expect(mockAssetFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: { modelId: "mo1", status: "INSTALLED" } }));
     expect(mockStockFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: { modelId: "mo1" } }));
   });
 });

@@ -33,7 +33,7 @@ All API routes return `NextResponse.json(...)`. Auth and role checks happen insi
 | `POST` | `/api/assets/[id]/return-to-stock` | EDITOR | Move asset back to stock. Body: `{ locationId (required, must reference an existing location) }`. Allowed from INSTALLED or IN_REPAIR |
 | `POST` | `/api/assets/[id]/send-for-repair` | EDITOR | Mark an INSTALLED asset IN_REPAIR. Body: `{ note? }`. Records who sent it and when (`repairStartedAt`). There is no "return from repair" endpoint — an IN_REPAIR asset exits via return-to-stock, decommission, or delete |
 | `GET` | `/api/assets/[id]/history` | VIEWER | Full audit trail for this asset's `lineageId`, across Asset ↔ StockItem conversions — see [Database → Asset history](database.md#asset-history) |
-| `GET` | `/api/assets/by-hostname` | Bearer token | Grafana Infinity datasource lookup |
+| `GET` | `/api/assets/by-hostname` | Bearer token | Grafana Infinity datasource lookup. Matches active (INSTALLED) assets only — decommissioned assets are historical and excluded |
 
 ### Asset body (create/update)
 
@@ -95,7 +95,7 @@ Key validated fields:
 | `GET` | `/api/manufacturers/[id]` | VIEWER | Get detail |
 | `PUT` | `/api/manufacturers/[id]` | MAINTAINER | Update |
 | `DELETE` | `/api/manufacturers/[id]` | MAINTAINER | Delete |
-| `GET` | `/api/manufacturers/[id]/assets` | VIEWER | Assets by manufacturer |
+| `GET` | `/api/manufacturers/[id]/assets` | VIEWER | Active (INSTALLED) assets by manufacturer — decommissioned assets are historical and excluded |
 | `POST` | `/api/manufacturers/[id]/merge` | MAINTAINER | Merge into another manufacturer |
 
 ---
@@ -110,7 +110,7 @@ Fixed lookup table for the Asset/StockItem "model" field, scoped by `(typeId, ma
 | `POST` | `/api/models` | MAINTAINER | Create. Body accepts an optional `documentationUrl` (must be a valid URL if present) — required for compliance, but not enforced here so a model can be added to unblock inventory entry before its documentation page exists |
 | `PUT` | `/api/models/[id]` | MAINTAINER | Update (type/manufacturer/name/documentationUrl); `409` with `{existingId, existingName, existingAssetCount, existingStockCount}` on a name collision within the same type/manufacturer |
 | `DELETE` | `/api/models/[id]` | MAINTAINER | Delete; `400` if any asset or stock item still references it |
-| `GET` | `/api/models/[id]/usage` | VIEWER | Assets and stock items referencing this model |
+| `GET` | `/api/models/[id]/usage` | VIEWER | Active (INSTALLED) assets and stock items referencing this model — decommissioned assets are historical and excluded |
 | `POST` | `/api/models/[id]/merge` | MAINTAINER | Merge into another model — reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source. If the two models don't share the same `typeId`, every moved asset/stock item's own `typeId` is cascaded to the target's as part of the merge, so it never ends up pointing at a model from a different type than itself |
 | `GET` | `/api/models/clusters` | MAINTAINER | List clusters of 2+ similar-but-not-identical model names (fuzzy edit-distance matching), for the admin page's "possible duplicates" panel. Clustered per `typeId` — a shared name across different asset types is never offered as a merge candidate |
 
@@ -120,7 +120,7 @@ Fixed lookup table for the Asset/StockItem "model" field, scoped by `(typeId, ma
 
 | Method | Path | Min role | Description |
 |---|---|---|---|
-| `GET` | `/api/suppliers` | VIEWER | List all (with asset counts) |
+| `GET` | `/api/suppliers` | VIEWER | List all (with active/INSTALLED asset counts — decommissioned assets are historical and excluded) |
 | `POST` | `/api/suppliers` | MAINTAINER | Create. Body: `{ name, contractReference?, contactInfo?, defaultFrom?, defaultUntil? }`. Overlapping default windows across suppliers return `400 supplierWindowOverlap`; duplicate name returns `409` |
 | `PUT` | `/api/suppliers/[id]` | MAINTAINER | Update (same body/validation as create) |
 | `DELETE` | `/api/suppliers/[id]` | MAINTAINER | Delete — blocked with `400` while assets reference the supplier |
@@ -270,8 +270,8 @@ Actions recorded: `CREATE`, `UPDATE`, `DELETE`, `IMPORT`, `EXPORT`, plus authent
 | `GET` | `/api/reports/[id]` | VIEWER | Get report |
 | `PUT` | `/api/reports/[id]` | EDITOR | Update report |
 | `DELETE` | `/api/reports/[id]` | EDITOR | Delete report |
-| `POST` | `/api/reports/[id]/run` | VIEWER | Execute report query |
-| `GET` | `/api/reports/[id]/export` | VIEWER | Export report results as CSV |
+| `POST` | `/api/reports/[id]/run` | VIEWER | Execute report query. Decommissioned assets are excluded by default unless the report's own filters explicitly target `status` |
+| `GET` | `/api/reports/[id]/export` | VIEWER | Export report results as CSV (same decommissioned-exclusion default as run) |
 
 ---
 
@@ -282,7 +282,7 @@ All endpoints use Bearer token authentication (`Authorization: Bearer <PROMETHEU
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/api/prometheus/sd` | HTTP Service Discovery — returns target groups with `sam_*` labels |
-| `GET` | `/api/prometheus/metrics` | Prometheus text format inventory metrics |
+| `GET` | `/api/prometheus/metrics` | Prometheus text format inventory metrics. Inventory gauges (totals, by-type, by-manufacturer, by-campus) count active (INSTALLED) assets only — decommissioned assets are historical and excluded |
 
 ---
 
@@ -292,9 +292,9 @@ All endpoints use Bearer token authentication (`Authorization: Bearer <PROMETHEU
 |---|---|---|---|
 | `GET` | `/api/grafana` | session | Index endpoint |
 | `GET` | `/api/grafana/search` | session | Field search |
-| `GET` | `/api/grafana/query` | session | Query execution |
+| `GET` | `/api/grafana/query` | session | Query execution. Every target implicitly filters to active (INSTALLED) assets — decommissioned assets are historical and excluded, with no adhoc filter to opt back in |
 | `GET` | `/api/grafana/tag-keys` | session | Tag autocomplete |
-| `GET` | `/api/grafana/tag-values` | session | Tag value lookup |
+| `GET` | `/api/grafana/tag-values` | session | Tag value lookup. `hostname` values are limited to active (INSTALLED) assets |
 
 ---
 

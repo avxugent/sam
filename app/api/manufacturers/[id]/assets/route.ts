@@ -12,7 +12,9 @@ export async function GET(
   const { id } = await params;
 
   const assets = await prisma.asset.findMany({
-    where: { manufacturerId: id },
+    // Decommissioned assets are historical, not current inventory — excluded
+    // from the drilldown, same as the badge count on the manufacturers page.
+    where: { manufacturerId: id, status: "INSTALLED" },
     select: {
       id: true,
       model: { select: { name: true } },

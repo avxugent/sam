@@ -13,7 +13,9 @@ export async function GET(
 
   const [assets, stockItems] = await Promise.all([
     prisma.asset.findMany({
-      where: { modelId: id },
+      // Decommissioned assets are historical, not current inventory — excluded
+      // from the drilldown, same as the badge count on the models page.
+      where: { modelId: id, status: "INSTALLED" },
       select: {
         id: true,
         serialNumber: true,

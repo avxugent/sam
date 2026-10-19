@@ -78,16 +78,17 @@ export default async function LocationPage({
   });
 
   // "Total assets" counts physical units (quantity), not asset rows, so a
-  // bulk item like a box of 20 batteries counts as 20.
+  // bulk item like a box of 20 batteries counts as 20. Decommissioned assets
+  // are historical, not current inventory, so they're excluded here too.
   const subtreeAssetQuantity = await prisma.asset.aggregate({
-    where: { locationId: { in: locationIds } },
+    where: { locationId: { in: locationIds }, status: "INSTALLED" },
     _sum: { quantity: true },
   });
   const subtreeAssetCount = subtreeAssetQuantity._sum.quantity ?? 0;
 
   const directQuantitySums = await prisma.asset.groupBy({
     by: ["locationId"],
-    where: { locationId: { in: [location.id, ...location.children.map((c) => c.id)] } },
+    where: { locationId: { in: [location.id, ...location.children.map((c) => c.id)] }, status: "INSTALLED" },
     _sum: { quantity: true },
   });
   const directQuantityByLocationId = new Map(

@@ -362,6 +362,37 @@ describe("runReport()", () => {
     expect(result.groups).toContainEqual({ label: "2020", count: 2 });
     expect(result.groups).toContainEqual({ label: "2022", count: 1 });
   });
+
+  it("excludes decommissioned assets by default when no status filter is set", async () => {
+    mockFindMany.mockResolvedValue([]);
+    await runAssetReport({ filters: [{ field: "typeId", op: "eq", value: "t1" }], groupBy: "none", columns: ["model"] });
+    const whereArg = mockFindMany.mock.calls[0][0]?.where as { AND: unknown[] };
+    expect(whereArg).toEqual({
+      AND: [{ AND: [{ typeId: "t1" }] }, { status: { not: "DECOMMISSIONED" } }],
+    });
+  });
+
+  it("does not add the implicit decommissioned exclusion when the user already filters on status", async () => {
+    mockFindMany.mockResolvedValue([]);
+    await runAssetReport({
+      filters: [{ field: "status", op: "eq", value: "DECOMMISSIONED" }],
+      groupBy: "none",
+      columns: ["model"],
+    });
+    const whereArg = mockFindMany.mock.calls[0][0]?.where;
+    expect(whereArg).toEqual({ AND: [{ status: "DECOMMISSIONED" }] });
+  });
+
+  it("groupBy queries also exclude decommissioned assets by default", async () => {
+    mockFindMany.mockResolvedValue([]);
+    mockGroupBy.mockResolvedValue([{ typeId: "t1", _count: { id: 2 } } as never]);
+    mockTypeFindMany.mockResolvedValue([{ id: "t1", name: "Projector" }] as never);
+
+    await runAssetReport({ filters: [], groupBy: "type", columns: ["model"] });
+
+    const groupByWhere = mockGroupBy.mock.calls[0][0]?.where as { AND: unknown[] };
+    expect(groupByWhere).toEqual({ AND: [{}, { status: { not: "DECOMMISSIONED" } }] });
+  });
 });
 
 describe("translateFilters() — NIS2 fields", () => {

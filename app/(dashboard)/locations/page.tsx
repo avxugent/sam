@@ -18,7 +18,7 @@ async function getRecursiveAssetCounts(): Promise<Record<string, number>> {
     )
     SELECT lt.root_id AS id, COALESCE(SUM(a.quantity), 0) AS totalAssets
     FROM loc_tree lt
-    LEFT JOIN assets a ON a.locationId = lt.loc_id
+    LEFT JOIN assets a ON a.locationId = lt.loc_id AND a.status = 'INSTALLED'
     GROUP BY lt.root_id
   `;
   const map: Record<string, number> = {};
@@ -80,7 +80,7 @@ export default async function AllLocationsPage() {
         },
       },
     }),
-    prisma.asset.aggregate({ _sum: { quantity: true } }),
+    prisma.asset.aggregate({ where: { status: "INSTALLED" }, _sum: { quantity: true } }),
   ]);
 
   const locationTree = rawTree.map(toNode);

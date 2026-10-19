@@ -175,7 +175,15 @@ export async function runReport(definition: ReportDefinition): Promise<ReportRes
 }
 
 export async function runAssetReport(definition: AssetReportDefinition): Promise<AssetReportResult> {
-  const where = translateFilters(definition.filters);
+  // Decommissioned assets are historical, not current inventory — excluded by
+  // default, same as every other overview/report in the app. A report that is
+  // specifically about decommissioned assets (the user added their own status
+  // filter) opts back in instead of being silently overridden here.
+  const hasStatusFilter = definition.filters.some((f) => f.field === "status");
+  const baseWhere = translateFilters(definition.filters);
+  const where: Prisma.AssetWhereInput = hasStatusFilter
+    ? baseWhere
+    : { AND: [baseWhere, { status: { not: "DECOMMISSIONED" } }] };
 
   const assets = await prisma.asset.findMany({
     where,

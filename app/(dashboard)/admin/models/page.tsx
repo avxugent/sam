@@ -23,7 +23,9 @@ export default async function ModelsPage({
       include: {
         type: { select: { id: true, name: true } },
         manufacturer: { select: { id: true, name: true } },
-        _count: { select: { assets: true, stockItems: true } },
+        // Decommissioned assets are historical, not current inventory — excluded
+        // from the badge, same as the asset-types page.
+        _count: { select: { assets: { where: { status: "INSTALLED" } }, stockItems: true } },
       },
       orderBy: [{ type: { name: "asc" } }, { manufacturer: { name: "asc" } }, { name: "asc" }],
     }),

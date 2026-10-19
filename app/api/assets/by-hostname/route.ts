@@ -76,7 +76,9 @@ export async function GET(req: NextRequest) {
   }
 
   const assets = await prisma.asset.findMany({
-    where: { hostname },
+    // Decommissioned assets are historical, not current inventory — excluded
+    // from this metadata lookup, same as /api/prometheus/sd.
+    where: { hostname, status: "INSTALLED" },
     include: {
       type: { select: { id: true, name: true } },
       manufacturer: { select: { id: true, name: true } },

@@ -75,27 +75,28 @@ export async function GET(req: NextRequest) {
     workLogsByLocation,
     monitoredAssets,
   ] = await Promise.all([
-    // Total asset count
-    prisma.asset.count(),
+    // Total asset count — decommissioned assets are historical, not current
+    // inventory, so every inventory gauge below excludes them.
+    prisma.asset.count({ where: { status: "INSTALLED" } }),
 
     // Total location count
     prisma.location.count(),
 
     // Assets that have no hostname (monitoring gap)
-    prisma.asset.count({ where: { hostname: null } }),
+    prisma.asset.count({ where: { status: "INSTALLED", hostname: null } }),
 
     // Assets grouped by type
     prisma.asset.groupBy({
       by: ["typeId"],
       _count: { id: true },
-      where: { typeId: { not: null } },
+      where: { status: "INSTALLED", typeId: { not: null } },
     }),
 
     // Assets grouped by manufacturer
     prisma.asset.groupBy({
       by: ["manufacturerId"],
       _count: { id: true },
-      where: { manufacturerId: { not: null } },
+      where: { status: "INSTALLED", manufacturerId: { not: null } },
     }),
 
     // All locations with their FI numbers (for campus breakdown and, via
@@ -108,6 +109,7 @@ export async function GET(req: NextRequest) {
     prisma.asset.groupBy({
       by: ["locationId"],
       _count: { id: true },
+      where: { status: "INSTALLED" },
     }),
 
     // Work-log items per locationId (per room)

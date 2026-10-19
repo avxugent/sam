@@ -15,7 +15,9 @@ type GrafanaTarget = {
 };
 
 function buildWhereFromAdhoc(filters: AdhocFilter[]): Prisma.AssetWhereInput {
-  const conditions: Prisma.AssetWhereInput[] = [];
+  // Decommissioned assets are historical, not current inventory — excluded
+  // from every Grafana target below (there is no adhoc filter to opt back in).
+  const conditions: Prisma.AssetWhereInput[] = [{ status: "INSTALLED" }];
   for (const f of filters) {
     if (f.key === "hostname" && f.operator === "=") {
       conditions.push({ hostname: f.value });

@@ -12,7 +12,9 @@ export default async function SuppliersPage() {
 
   const suppliers = await prisma.supplier.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { assets: true } } },
+    // Decommissioned assets are historical, not current inventory — excluded
+    // from the badge, same as the asset-types page.
+    include: { _count: { select: { assets: { where: { status: "INSTALLED" } } } } },
   });
 
   return (

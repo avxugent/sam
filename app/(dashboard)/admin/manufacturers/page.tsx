@@ -9,7 +9,9 @@ export default async function ManufacturersPage() {
 
   const manufacturers = await prisma.manufacturer.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { assets: true } } },
+    // Decommissioned assets are historical, not current inventory — excluded
+    // from the badge, same as the asset-types page.
+    include: { _count: { select: { assets: { where: { status: "INSTALLED" } } } } },
   });
 
   return (

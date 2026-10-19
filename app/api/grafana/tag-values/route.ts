@@ -23,7 +23,9 @@ export async function POST(req: NextRequest) {
   }
   if (key === "hostname") {
     const assets = await prisma.asset.findMany({
-      where: { hostname: { not: null } },
+      // Decommissioned assets are historical, not current inventory — their
+      // hostnames are excluded from this Grafana variable dropdown.
+      where: { status: "INSTALLED", hostname: { not: null } },
       select: { hostname: true },
       orderBy: { hostname: "asc" },
     });

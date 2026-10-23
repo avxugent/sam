@@ -9,11 +9,11 @@ sync_to_confluence: true
 
 | Layer | Package | Version |
 |---|---|---|
-| Framework | Next.js | 16.4.0 |
+| Framework | Next.js | 16.4.2 |
 | Language | TypeScript | ~5.9 |
 | Runtime | Node.js | 24 LTS |
 | React | react | 19.3 |
-| ORM | Prisma | 7.8 |
+| ORM | Prisma | 7.10 |
 | Database | MySQL | 8.0 |
 | Auth | NextAuth | 5.0.0-beta.32 |
 | Styling | Tailwind CSS | v4 |

@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.1.3] - 2026-10-23
+
+### Security
+
+- **Next.js 16.4.0 → 16.4.2** — fixes an unauthenticated remote code execution in the Image Optimization API with SVG files (GHSA-2464-fhr4-w9xw), a Denial of Service in the App Router via Server Actions (GHSA-p3m5-59mp-jv5r — reachable through SAM's locale server action), and a remote code execution in `use cache` functions returning typed arrays (GHSA-673q-mjm6-r5xr; SAM does not use `use cache`).
+- **Prisma 7.8.0 / adapter 7.10.0 → 7.10.1** — the MariaDB adapter no longer ships the vulnerable `mariadb@3.4.5` runtime driver, which could leak the database password to a man-in-the-middle even with TLS enabled and had several SQL-injection advisories. The Prisma CLI used by `prisma migrate deploy` now pulls `mysql2@3.24.4`, fixing an auth-plugin downgrade that leaked the plaintext password and a decompression-bomb DoS. `prisma`, `@prisma/client`, and `@prisma/adapter-mariadb` are now on the same version.
+- **Vitest 4.1.11 → 4.1.12** — dev-only moderate advisories.
+
+`npm audit --omit=dev` now reports 0 vulnerabilities.
+
+---
+
 ## [3.1.2] - 2026-10-23
 
 ### Security

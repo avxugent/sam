@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.1.2] - 2026-10-23
+
+### Security
+
+- **Node.js runtime pinned to 24.22.1 (CVE-2026-111497, "Node2Shell")** — Node.js ≤ 24.22.0 bundles a Brotli decoder with an out-of-bounds write that can lead to remote code execution when decompressing attacker-controlled Brotli data. SAM does not decode Brotli request bodies, but server-side `fetch()` calls (geocoding, Vault, Jira) transparently decompress `br` responses. The Docker base image is now pinned to `node:24.22.1-alpine` instead of the floating `node:24-alpine` tag, and `.nvmrc` to `24.22.1`. Rebuild and redeploy the image to pick up the fix.
+
+---
+
 ## [3.1.1] - 2026-10-19
 
 ### Fixed

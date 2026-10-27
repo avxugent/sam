@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { SuppliersClient } from "@/components/settings/suppliers-client";
+import { SuppliersClient } from "@/components/admin/suppliers-client";
 import { canManageCatalog } from "@/lib/permissions";
 
 export default async function SuppliersPage() {

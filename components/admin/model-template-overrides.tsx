@@ -14,7 +14,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Plus, Tag } from "lucide-react";
 import { validateTemplate } from "@/lib/scrape-template";
-import { ScrapeTemplateFields } from "@/components/settings/scrape-template-fields";
+import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";
 
 type ManufacturerOption = { id: string; name: string };
 

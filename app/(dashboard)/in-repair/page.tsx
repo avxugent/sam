@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { Wrench } from "lucide-react";
-import { InRepairTable } from "@/components/stock/in-repair-table";
+import { InRepairTable } from "@/components/assets/in-repair-table";
 
 export const dynamic = "force-dynamic";
 

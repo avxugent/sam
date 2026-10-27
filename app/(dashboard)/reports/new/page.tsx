@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildLocationPathsFromRows } from "@/lib/location-path";
-import { ReportBuilder } from "@/components/reports/ReportBuilder";
+import { ReportBuilder } from "@/components/reports/report-builder";
 import { BarChart2 } from "lucide-react";
 import { canEdit } from "@/lib/permissions";
 

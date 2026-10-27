@@ -13,8 +13,8 @@ import type {
   AssetReportResult,
   LocationReportResult,
   LocationReportRow,
-} from "@/lib/report-types";
-import { isLocationReport } from "@/lib/report-types";
+} from "@/lib/reports/types";
+import { isLocationReport } from "@/lib/reports/types";
 
 function yearsAgo(n: number): Date {
   return new Date(Date.now() - n * 365.25 * 24 * 60 * 60 * 1000);

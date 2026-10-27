@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateHostnamePattern, matchesHostnamePattern } from "@/lib/hostname-pattern";
+import { validateHostnamePattern, matchesHostnamePattern } from "@/lib/hostname/pattern";
 
 describe("validateHostnamePattern()", () => {
   it("returns null for a valid pattern", () => {

@@ -15,8 +15,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Trash2, Save, Search, X } from "lucide-react";
-import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey, ReportDefinition, ReportSource, LocationReportStatus, LocationReportPeriodUnit } from "@/lib/report-types";
-import { isLocationReport } from "@/lib/report-types";
+import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey, ReportDefinition, ReportSource, LocationReportStatus, LocationReportPeriodUnit } from "@/lib/reports/types";
+import { isLocationReport } from "@/lib/reports/types";
 
 
 const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {

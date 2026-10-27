@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { updateWorkLogItemSchema } from "@/lib/work-log-item-schema";
+import { updateWorkLogItemSchema } from "@/lib/schemas/work-log-item";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 

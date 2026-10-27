@@ -11,6 +11,8 @@ import {
   buildLocationPathString,
   findFiNumber,
   getAllDescendantLocationIds,
+  getRecursiveAssetCounts,
+  ancestorChain,
   resolveLocationPath,
   resolveAncestorChainsBatch,
   buildLocationPathsFromRows,
@@ -228,5 +230,44 @@ describe("buildLocationPathsFromRows()", () => {
   it("falls back to just the row's own name if its parent isn't in the row set", () => {
     const result = buildLocationPathsFromRows([{ id: "orphan", name: "Orphan", parentId: "missing-parent" }]);
     expect(result.get("orphan")).toBe("Orphan");
+  });
+});
+
+// ── getRecursiveAssetCounts ──────────────────────────────────────────────────
+
+describe("getRecursiveAssetCounts()", () => {
+  it("maps BigInt totals to numbers keyed by location id", async () => {
+    mockQueryRaw.mockResolvedValueOnce([
+      { id: "root", totalAssets: BigInt(7) },
+      { id: "leaf", totalAssets: BigInt(0) },
+    ] as never);
+    expect(await getRecursiveAssetCounts()).toEqual({ root: 7, leaf: 0 });
+  });
+});
+
+// ── ancestorChain ────────────────────────────────────────────────────────────
+
+describe("ancestorChain()", () => {
+  const rows = [
+    { id: "campus", parentId: null },
+    { id: "building", parentId: "campus" },
+    { id: "room", parentId: "building" },
+  ];
+  const byId = new Map(rows.map((r) => [r.id, r]));
+
+  it("returns root → leaf including the location itself", () => {
+    expect(ancestorChain("room", byId).map((r) => r.id)).toEqual(["campus", "building", "room"]);
+  });
+
+  it("is empty for an unknown id", () => {
+    expect(ancestorChain("nope", byId)).toEqual([]);
+  });
+
+  it("stops on a parentId cycle", () => {
+    const cyclic = new Map([
+      ["a", { id: "a", parentId: "b" }],
+      ["b", { id: "b", parentId: "a" }],
+    ]);
+    expect(ancestorChain("a", cyclic).map((r) => r.id)).toEqual(["b", "a"]);
   });
 });

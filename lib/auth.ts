@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
-import { isTwoFactorSetupRequired } from "@/lib/two-factor-policy";
+import { isTwoFactorSetupRequired } from "@/lib/two-factor/policy";
 
 const loginSchema = z.object({
   email: z.string().email(),

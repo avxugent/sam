@@ -9,8 +9,8 @@ vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToas
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;
 
-import { LocationReportViewer } from "@/components/reports/LocationReportViewer";
-import type { LocationReportResult } from "@/lib/report-types";
+import { LocationReportViewer } from "@/components/reports/location-report-viewer";
+import type { LocationReportResult } from "@/lib/reports/types";
 
 const RESULT: LocationReportResult = {
   source: "location",

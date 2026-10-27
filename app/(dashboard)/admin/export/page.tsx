@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { ExportClient } from "@/components/settings/export-client";
+import { ExportClient } from "@/components/admin/export-client";
 import { isAdmin } from "@/lib/permissions";
 
 export default async function ExportPage() {

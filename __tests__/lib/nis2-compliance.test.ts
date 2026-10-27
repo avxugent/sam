@@ -10,7 +10,7 @@ vi.mock("@/lib/prisma", () => ({
     workLogItem: { findUnique: vi.fn() },
   },
 }));
-vi.mock("@/lib/report-engine", () => ({
+vi.mock("@/lib/reports/engine", () => ({
   __esModule: true,
   runLocationReport: vi.fn(),
 }));
@@ -20,7 +20,7 @@ vi.mock("@/lib/syslog", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { runLocationReport } from "@/lib/report-engine";
+import { runLocationReport } from "@/lib/reports/engine";
 import { isSyslogConfigured } from "@/lib/syslog";
 import { computeNis2Compliance, computeNis2Counts } from "@/lib/nis2-compliance";
 

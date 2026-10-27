@@ -17,13 +17,13 @@ vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
 }));
 
-vi.mock("@/lib/report-engine", () => ({
+vi.mock("@/lib/reports/engine", () => ({
   runReport: vi.fn(),
 }));
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { runReport } from "@/lib/report-engine";
+import { runReport } from "@/lib/reports/engine";
 import { GET as listGet, POST } from "@/app/api/reports/route";
 import { GET as getOne, PUT, DELETE } from "@/app/api/reports/[id]/route";
 import { GET as runGet } from "@/app/api/reports/[id]/run/route";

@@ -9,7 +9,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { runLocationReport } from "@/lib/report-engine";
+import { runLocationReport } from "@/lib/reports/engine";
 import { prisma } from "@/lib/prisma";
 
 const mockItemFindMany = vi.mocked(prisma.workLogItem.findMany);

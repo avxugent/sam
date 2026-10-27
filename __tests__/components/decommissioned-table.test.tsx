@@ -13,7 +13,7 @@ vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToas
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;
 
-import { DecommissionedTable, type DecommissionedAsset } from "@/components/stock/decommissioned-table";
+import { DecommissionedTable, type DecommissionedAsset } from "@/components/assets/decommissioned-table";
 
 const ASSETS: DecommissionedAsset[] = [
   { id: "a1", locationId: "l1", model: { name: "XPS" }, serialNumber: "SN1", decommissionedAt: "2024-01-15T00:00:00Z", decommissionNote: "EOL", lastLocationName: "Room 1", lastLocationFiNumber: "14.10.100.013", type: { id: "t1", name: "Laptop" }, manufacturer: { id: "m1", name: "Dell" } },

@@ -71,7 +71,7 @@ export function _resetStorageDriverForTest(): void {
   _driver = null;
 }
 
-// ── Path safety (used by LocalDriver and exposed for legacy callers) ─────────
+// ── Path safety (used by LocalDriver; exported so it can be unit-tested) ─────
 
 /**
  * Prevent path traversal: ensure `resolvedPath` is within `uploadRoot`.

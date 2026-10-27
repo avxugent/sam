@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { verifyRegistration, readChallengeCookie, clearChallengeCookie } from "@/lib/webauthn";
+import { verifyRegistration, readChallengeCookie, clearChallengeCookie } from "@/lib/two-factor/webauthn";
 import type { RegistrationResponseJSON } from "@simplewebauthn/server";
 import { z } from "zod";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";

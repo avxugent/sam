@@ -6,7 +6,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn() }));
-vi.mock("@/lib/webauthn", () => ({
+vi.mock("@/lib/two-factor/webauthn", () => ({
   buildAuthenticationOptions: vi.fn(),
   setChallengeCookie: vi.fn(),
 }));
@@ -14,7 +14,7 @@ vi.mock("@/lib/webauthn", () => ({
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { buildAuthenticationOptions, setChallengeCookie } from "@/lib/webauthn";
+import { buildAuthenticationOptions, setChallengeCookie } from "@/lib/two-factor/webauthn";
 import { POST } from "@/app/api/auth/passkey/authentication-options/route";
 
 const mockAuth = vi.mocked(auth);

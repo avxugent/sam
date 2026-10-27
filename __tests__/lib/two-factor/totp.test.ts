@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import speakeasy from "speakeasy";
-import { generateTotpSecret, verifyTotpCode, generateQrCodeDataUrl } from "@/lib/totp";
+import { base32Decode, base32Encode, generateTotpCode, generateTotpSecret, verifyTotpCode, generateQrCodeDataUrl } from "@/lib/two-factor/totp";
 
 // ── generateTotpSecret ───────────────────────────────────────────────────────
 
@@ -34,8 +33,7 @@ describe("generateTotpSecret()", () => {
 describe("verifyTotpCode()", () => {
   it("returns true for the current valid token", () => {
     const { base32 } = generateTotpSecret("test@example.com");
-    // Generate the current valid token using speakeasy directly
-    const token = speakeasy.totp({ secret: base32, encoding: "base32" });
+    const token = generateTotpCode(base32);
     expect(verifyTotpCode(base32, token)).toBe(true);
   });
 
@@ -51,7 +49,7 @@ describe("verifyTotpCode()", () => {
 
   it("strips spaces before verification (handles formatted input like '123 456')", () => {
     const { base32 } = generateTotpSecret("test@example.com");
-    const token = speakeasy.totp({ secret: base32, encoding: "base32" });
+    const token = generateTotpCode(base32);
     // Insert a space in the middle as some authenticator apps display
     const withSpace = token.slice(0, 3) + " " + token.slice(3);
     expect(verifyTotpCode(base32, withSpace)).toBe(true);
@@ -60,13 +58,54 @@ describe("verifyTotpCode()", () => {
   it("accepts tokens from within the clock-skew window (step ±1)", () => {
     const { base32 } = generateTotpSecret("test@example.com");
     // Generate a token 30 seconds ago (one step behind)
-    const prevToken = speakeasy.totp({
-      secret: base32,
-      encoding: "base32",
-      time: Math.floor(Date.now() / 1000) - 30,
-    });
+    const now = Date.now();
+    const prevToken = generateTotpCode(base32, now - 30_000);
     // Should still be accepted due to window=1
-    expect(verifyTotpCode(base32, prevToken)).toBe(true);
+    expect(verifyTotpCode(base32, prevToken, now)).toBe(true);
+  });
+
+  it("rejects tokens two steps away", () => {
+    const { base32 } = generateTotpSecret("test@example.com");
+    const now = Date.now();
+    expect(verifyTotpCode(base32, generateTotpCode(base32, now - 60_000), now)).toBe(false);
+  });
+
+  it("rejects non-numeric tokens and an invalid secret", () => {
+    expect(verifyTotpCode("GEZDGNBVGY3TQOJQ", "12a456")).toBe(false);
+    expect(verifyTotpCode("not base32!", "123456")).toBe(false);
+  });
+});
+
+// ── RFC 6238 test vectors (SHA-1 seed "12345678901234567890", truncated to 6 digits) ──
+
+describe("generateTotpCode()", () => {
+  const secret = base32Encode(Buffer.from("12345678901234567890"));
+
+  it.each([
+    [59, "287082"],
+    [1111111109, "081804"],
+    [1111111111, "050471"],
+    [1234567890, "005924"],
+    [2000000000, "279037"],
+  ])("T=%i → %s", (seconds, code) => {
+    expect(generateTotpCode(secret, seconds * 1000)).toBe(code);
+    expect(verifyTotpCode(secret, code, seconds * 1000)).toBe(true);
+  });
+});
+
+describe("base32", () => {
+  it("round-trips arbitrary bytes", () => {
+    const bytes = Buffer.from([0, 1, 2, 250, 251, 252, 253, 254, 255]);
+    expect(base32Decode(base32Encode(bytes))).toEqual(bytes);
+  });
+
+  it("matches the RFC 4648 vector and tolerates case, spaces and padding", () => {
+    expect(base32Encode(Buffer.from("foobar"))).toBe("MZXW6YTBOI");
+    expect(base32Decode("mzxw 6ytb oi======")?.toString()).toBe("foobar");
+  });
+
+  it("returns null on characters outside the alphabet", () => {
+    expect(base32Decode("ABC1")).toBeNull();
   });
 });
 

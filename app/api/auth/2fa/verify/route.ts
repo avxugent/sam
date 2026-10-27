@@ -14,10 +14,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { verifyTotpCode } from "@/lib/totp";
+import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
-import { setRememberMeCookie } from "@/lib/remember-device";
+import { setRememberMeCookie } from "@/lib/two-factor/remember-device";
 import { z } from "zod";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 

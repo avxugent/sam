@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { ArchiveX } from "lucide-react";
-import { DecommissionedTable } from "@/components/stock/decommissioned-table";
+import { DecommissionedTable } from "@/components/assets/decommissioned-table";
 
 export const dynamic = "force-dynamic";
 

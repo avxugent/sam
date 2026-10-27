@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/model-autocomplete";
 import { cn } from "@/lib/utils";
-import { isHostnameCompliant } from "@/lib/hostname-pattern";
+import { isHostnameCompliant } from "@/lib/hostname/pattern";
 import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
 import { isWindowActive } from "@/lib/supplier-window";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
@@ -53,7 +53,7 @@ type VaultTestResult = {
 
 type AssetFormTranslator = ReturnType<typeof useTranslations<"assetForm">>;
 
-/** Client mirror of lib/asset-schema.ts, with translated messages and the selected type's hostname pattern. */
+/** Client mirror of lib/schemas/asset.ts, with translated messages and the selected type's hostname pattern. */
 function buildAssetFormSchema(t: AssetFormTranslator, assetTypes: AssetType[]) {
   const macSchema = z.object({
     address: z.string().min(1, t("errMacRequired")).refine(

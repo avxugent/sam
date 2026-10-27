@@ -27,7 +27,7 @@ import {
   setChallengeCookie,
   readChallengeCookie,
   clearChallengeCookie,
-} from "@/lib/webauthn";
+} from "@/lib/two-factor/webauthn";
 
 beforeEach(() => {
   vi.clearAllMocks();

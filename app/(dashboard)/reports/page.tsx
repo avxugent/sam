@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ReportsListClient } from "@/components/reports/ReportsListClient";
+import { ReportsListClient } from "@/components/reports/reports-list-client";
 import { BarChart2 } from "lucide-react";
 import { canEdit, isAdmin } from "@/lib/permissions";
 

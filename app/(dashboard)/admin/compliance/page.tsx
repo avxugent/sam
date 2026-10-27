@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { computeHostnameCompliance } from "@/lib/hostname-compliance";
+import { computeHostnameCompliance } from "@/lib/hostname/compliance";
 import { computeNis2Compliance } from "@/lib/nis2-compliance";
 import { HostnameComplianceClient } from "@/components/compliance/hostname-compliance-client";
 import { Nis2DashboardClient } from "@/components/compliance/nis2-dashboard-client";

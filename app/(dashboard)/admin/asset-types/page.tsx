@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { AssetTypesClient } from "@/components/settings/asset-types-client";
+import { AssetTypesClient } from "@/components/admin/asset-types-client";
 import { isAdmin } from "@/lib/permissions";
 
 export default async function AssetTypesPage() {

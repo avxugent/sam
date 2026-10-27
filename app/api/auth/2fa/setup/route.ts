@@ -11,7 +11,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generateTotpSecret, generateQrCodeDataUrl } from "@/lib/totp";
+import { generateTotpSecret, generateQrCodeDataUrl } from "@/lib/two-factor/totp";
 
 export async function POST() {
   const session = await auth();

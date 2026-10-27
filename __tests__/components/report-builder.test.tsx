@@ -15,7 +15,7 @@ vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToas
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;
 
-import { ReportBuilder } from "@/components/reports/ReportBuilder";
+import { ReportBuilder } from "@/components/reports/report-builder";
 
 const OPTS = {
   assetTypes: [{ id: "t1", name: "Laptop" }],

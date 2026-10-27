@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { runReport } from "@/lib/report-engine";
-import { reportDefinitionSchema } from "@/lib/report-schema";
-import type { ReportDefinition } from "@/lib/report-types";
+import { runReport } from "@/lib/reports/engine";
+import { reportDefinitionSchema } from "@/lib/schemas/report";
+import type { ReportDefinition } from "@/lib/reports/types";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();

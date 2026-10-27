@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createAssetSchema, updateAssetSchema, MAX_CUSTOM_FIELDS } from "@/lib/asset-schema";
+import { createAssetSchema, updateAssetSchema, MAX_CUSTOM_FIELDS } from "@/lib/schemas/asset";
 import { MAX_MAC_ADDRESSES } from "@/lib/mac-address";
 
 const base = { typeId: "t1", manufacturerId: "m1", modelId: "mo1" };

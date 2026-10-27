@@ -73,7 +73,7 @@ SAMproject/
 │   ├── email.ts              # SMTP client
 │   ├── jira.ts               # JIRA API client
 │   ├── syslog.ts             # RFC 5424 syslog client
-│   ├── totp.ts               # TOTP helper (speakeasy)
+│   ├── totp.ts               # TOTP helper (RFC 6238 on node:crypto)
 │   ├── rate-limit.ts         # In-memory rate limiter
 │   └── utils.ts              # cn() utility (clsx + tailwind-merge)
 ├── prisma/

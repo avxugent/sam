@@ -14,7 +14,7 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
-vi.mock("@/lib/report-schema", () => ({
+vi.mock("@/lib/schemas/report", () => ({
   createReportSchema: { safeParse: (b: unknown) => ({ success: true, data: b }) },
   updateReportSchema: { safeParse: (b: unknown) => ({ success: true, data: b }) },
 }));

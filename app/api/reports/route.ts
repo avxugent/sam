@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createReportSchema } from "@/lib/report-schema";
+import { createReportSchema } from "@/lib/schemas/report";
 import { logAudit } from "@/lib/audit";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";

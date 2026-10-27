@@ -69,17 +69,17 @@ Both paths converge on the same internal NextAuth `credentials-2fa-verified` pro
 
 ### Admin enforcement
 
-Admins can set `twoFactorRequired = true` on any user. On their next login, `isTwoFactorSetupRequired()` (`lib/two-factor-policy.ts`) checks whether they already have TOTP enabled **or** at least one registered passkey; if neither, they're redirected through `/login/setup-2fa`, where they can set up either method.
+Admins can set `twoFactorRequired = true` on any user. On their next login, `isTwoFactorSetupRequired()` (`lib/two-factor/policy.ts`) checks whether they already have TOTP enabled **or** at least one registered passkey; if neither, they're redirected through `/login/setup-2fa`, where they can set up either method.
 
 ### Remember device
 
-After a successful TOTP or passkey challenge, users can opt to "remember this device" for 30 days. This sets a signed JWT cookie (`sam_2fa_rm`, `lib/remember-device.ts`) — the proxy reads it and skips the 2FA challenge for that browser.
+After a successful TOTP or passkey challenge, users can opt to "remember this device" for 30 days. This sets a signed JWT cookie (`sam_2fa_rm`, `lib/two-factor/remember-device.ts`) — the proxy reads it and skips the 2FA challenge for that browser.
 
 ### Passkeys (WebAuthn)
 
 Hand-rolled with `@simplewebauthn/server`/`@simplewebauthn/browser` — **no NextAuth Adapter or WebAuthn provider is used** (this project's auth is JWT-strategy only, per the project conventions; NextAuth's built-in `Passkey`/`WebAuthn` provider requires a database Adapter, which is out of scope here). Credentials are stored in the `Passkey` model (`prisma/schema.prisma`), keyed by `userId`.
 
-Registration and authentication each need a server-generated challenge to round-trip between a browser prompt and its verification. Since this app has no server-side session/cache store beyond JWT + cookies, the challenge rides in a short-lived (5 minute), signed, single-use `sam_webauthn_challenge` cookie (`lib/webauthn.ts`), scoped to a `userId` and a `purpose` (`"registration"` or `"authentication"`) so one can't be replayed against the other endpoint.
+Registration and authentication each need a server-generated challenge to round-trip between a browser prompt and its verification. Since this app has no server-side session/cache store beyond JWT + cookies, the challenge rides in a short-lived (5 minute), signed, single-use `sam_webauthn_challenge` cookie (`lib/two-factor/webauthn.ts`), scoped to a `userId` and a `purpose` (`"registration"` or `"authentication"`) so one can't be replayed against the other endpoint.
 
 API routes, all under `app/api/auth/passkey/`:
 

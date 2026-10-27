@@ -7,8 +7,8 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/auth", () => ({ auth: vi.fn(), signIn: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn() }));
-vi.mock("@/lib/remember-device", () => ({ setRememberMeCookie: vi.fn() }));
-vi.mock("@/lib/webauthn", () => ({
+vi.mock("@/lib/two-factor/remember-device", () => ({ setRememberMeCookie: vi.fn() }));
+vi.mock("@/lib/two-factor/webauthn", () => ({
   verifyAuthentication: vi.fn(),
   readChallengeCookie: vi.fn(),
   clearChallengeCookie: vi.fn(),
@@ -18,8 +18,8 @@ import { prisma } from "@/lib/prisma";
 import { auth, signIn } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { setRememberMeCookie } from "@/lib/remember-device";
-import { verifyAuthentication, readChallengeCookie, clearChallengeCookie } from "@/lib/webauthn";
+import { setRememberMeCookie } from "@/lib/two-factor/remember-device";
+import { verifyAuthentication, readChallengeCookie, clearChallengeCookie } from "@/lib/two-factor/webauthn";
 import { POST } from "@/app/api/auth/passkey/authentication-verify/route";
 
 const mockAuth = vi.mocked(auth);

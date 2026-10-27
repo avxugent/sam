@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 
-import { InRepairTable, type InRepairAsset } from "@/components/stock/in-repair-table";
+import { InRepairTable, type InRepairAsset } from "@/components/assets/in-repair-table";
 
 const ASSETS: InRepairAsset[] = [
   { id: "a1", locationId: "l1", model: { name: "XPS" }, serialNumber: "SN1", repairStartedAt: "2024-01-15T00:00:00Z", repairNote: "Screen cracked", type: { id: "t1", name: "Laptop" }, manufacturer: { id: "m1", name: "Dell" }, location: { id: "l1", name: "Room 1" } },

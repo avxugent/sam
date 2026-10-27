@@ -365,7 +365,7 @@ User-defined custom reports.
 | `id` | string (cuid) | Primary key |
 | `name` | string | Display name |
 | `description` | string? | Optional description |
-| `definition` | JSON | Query definition (schema in `lib/report-schema.ts`) |
+| `definition` | JSON | Query definition (schema in `lib/schemas/report.ts`) |
 | `createdById` | string? | FK to User (soft ref — not a DB constraint) |
 
 ---

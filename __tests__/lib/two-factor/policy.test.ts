@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isTwoFactorSetupRequired } from "@/lib/two-factor-policy";
+import { isTwoFactorSetupRequired } from "@/lib/two-factor/policy";
 
 describe("isTwoFactorSetupRequired()", () => {
   it("requires setup when the per-user flag is set and TOTP is not enabled", () => {

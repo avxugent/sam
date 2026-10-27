@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { runReport } from "@/lib/report-engine";
-import { reportDefinitionSchema } from "@/lib/report-schema";
-import { isLocationReport } from "@/lib/report-types";
-import type { ReportDefinition, ColumnKey } from "@/lib/report-types";
+import { runReport } from "@/lib/reports/engine";
+import { reportDefinitionSchema } from "@/lib/schemas/report";
+import { isLocationReport } from "@/lib/reports/types";
+import type { ReportDefinition, ColumnKey } from "@/lib/reports/types";
 
 const COLUMN_LABELS: Record<ColumnKey, string> = {
   model: "Model",

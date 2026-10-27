@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Download, Pencil, Search, ExternalLink, Check, X } from "lucide-react";
-import type { LocationReportResult } from "@/lib/report-types";
+import type { LocationReportResult } from "@/lib/reports/types";
 
 type Props = {
   reportId: string;

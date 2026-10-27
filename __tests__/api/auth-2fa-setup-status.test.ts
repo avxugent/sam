@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({ prisma: { user: { findUnique: vi.fn(), update: vi.fn() } } }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/totp", () => ({
+vi.mock("@/lib/two-factor/totp", () => ({
   generateTotpSecret: vi.fn(() => ({ base32: "BASE32SECRET", otpauthUrl: "otpauth://totp/x" })),
   generateQrCodeDataUrl: vi.fn(async () => "data:image/png;base64,QR"),
 }));
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { generateTotpSecret } from "@/lib/totp";
+import { generateTotpSecret } from "@/lib/two-factor/totp";
 import { POST as setup } from "@/app/api/auth/2fa/setup/route";
 import { GET as status } from "@/app/api/auth/2fa/status/route";
 

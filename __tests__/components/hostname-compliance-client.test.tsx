@@ -7,7 +7,7 @@ const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
 import { HostnameComplianceClient } from "@/components/compliance/hostname-compliance-client";
-import type { HostnameComplianceResult } from "@/lib/hostname-compliance";
+import type { HostnameComplianceResult } from "@/lib/hostname/compliance";
 
 const RESULT: HostnameComplianceResult = {
   overall: { measured: 3, compliant: 2, nonCompliant: 1, rate: 2 / 3 },

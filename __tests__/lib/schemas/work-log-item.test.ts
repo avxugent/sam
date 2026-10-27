@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { createWorkLogItemSchema, updateWorkLogItemSchema } from "@/lib/work-log-item-schema";
-import { createWorkLogSchema } from "@/lib/work-log-schema";
+import { createWorkLogItemSchema, updateWorkLogItemSchema } from "@/lib/schemas/work-log-item";
+import { createWorkLogSchema } from "@/lib/schemas/work-log";
 
 describe("createWorkLogItemSchema", () => {
   it("accepts a name with optional description", () => {

@@ -1,6 +1,6 @@
 /**
  * WebAuthn (passkey) helpers — an alternative second factor to TOTP.
- * Thin wrapper around @simplewebauthn/server, same spirit as lib/totp.ts.
+ * Thin wrapper around @simplewebauthn/server, same spirit as lib/two-factor/totp.ts.
  * No NextAuth Adapter/provider is involved anywhere in this app; these
  * functions are called directly from the app/api/auth/passkey/* routes.
  */
@@ -12,7 +12,7 @@ import {
 } from "@simplewebauthn/server";
 import { isoBase64URL, isoUint8Array } from "@simplewebauthn/server/helpers";
 import type { RegistrationResponseJSON, AuthenticationResponseJSON } from "@simplewebauthn/server";
-import { APP_NAME } from "@/lib/totp";
+import { APP_NAME } from "@/lib/two-factor/totp";
 import { SignJWT, jwtVerify } from "jose";
 import type { NextRequest, NextResponse } from "next/server";
 
@@ -174,7 +174,7 @@ export async function verifyAuthentication(
 // "verify". This app has no server-side session/cache store beyond JWT +
 // cookies, so the challenge rides in a short-lived signed cookie — the same
 // pattern already used for the "remember this device" cookie
-// (lib/remember-device.ts). `purpose` binds the cookie to one call type so a
+// (lib/two-factor/remember-device.ts). `purpose` binds the cookie to one call type so a
 // registration challenge can't be replayed against the authentication-verify
 // route or vice versa.
 

@@ -8,13 +8,13 @@ vi.mock("@/lib/prisma", () => ({
 }));
 vi.mock("@/lib/auth", () => ({ __esModule: true, auth: vi.fn(), signIn: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ __esModule: true, logAudit: vi.fn() }));
-vi.mock("@/lib/totp", () => ({ __esModule: true, verifyTotpCode: vi.fn() }));
+vi.mock("@/lib/two-factor/totp", () => ({ __esModule: true, verifyTotpCode: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ __esModule: true, checkRateLimit: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { verifyTotpCode } from "@/lib/totp";
+import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { POST } from "@/app/api/auth/2fa/verify/route";
 import { NextRequest } from "next/server";

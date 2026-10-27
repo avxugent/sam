@@ -9,7 +9,7 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn(), signIn: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
-vi.mock("@/lib/totp", () => ({ verifyTotpCode: vi.fn() }));
+vi.mock("@/lib/two-factor/totp", () => ({ verifyTotpCode: vi.fn() }));
 vi.mock("bcryptjs", () => ({
   default: { compare: vi.fn(), hash: vi.fn() },
   compare: vi.fn(),
@@ -19,7 +19,7 @@ vi.mock("bcryptjs", () => ({
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { verifyTotpCode } from "@/lib/totp";
+import { verifyTotpCode } from "@/lib/two-factor/totp";
 import bcrypt from "bcryptjs";
 import { POST as enable2fa } from "@/app/api/auth/2fa/enable/route";
 import { POST as disable2fa } from "@/app/api/auth/2fa/disable/route";

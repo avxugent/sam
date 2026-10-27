@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { isHostnameCompliant } from "@/lib/hostname-pattern";
-import { createAssetSchema } from "@/lib/asset-schema";
+import { isHostnameCompliant } from "@/lib/hostname/pattern";
+import { createAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
 import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
 import { canEdit } from "@/lib/permissions";
+import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET(
@@ -25,7 +26,7 @@ export async function GET(
       : { status: "INSTALLED" as const };
 
   if (recursive) {
-    const ids = await getAllDescendantIds(id);
+    const ids = await getAllDescendantLocationIds(id);
     ids.push(id);
 
     const assets = await prisma.asset.findMany({
@@ -159,23 +160,4 @@ export async function POST(
   });
 
   return NextResponse.json(asset, { status: 201 });
-}
-
-// CUID format used by Prisma @default(cuid())
-const CUID_REGEX = /^[0-9a-z]{25}$/;
-
-// Uses a raw SQL recursive CTE instead of sequential round-trips
-async function getAllDescendantIds(locationId: string): Promise<string[]> {
-  if (!CUID_REGEX.test(locationId)) return [];
-  type Row = { id: string };
-  const rows = await prisma.$queryRaw<Row[]>`
-    WITH RECURSIVE loc_tree AS (
-      SELECT id FROM locations WHERE id = ${locationId}
-      UNION ALL
-      SELECT l.id FROM locations l
-      INNER JOIN loc_tree lt ON l.parentId = lt.id
-    )
-    SELECT id FROM loc_tree WHERE id != ${locationId}
-  `;
-  return rows.map((r) => r.id);
 }

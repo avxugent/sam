@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { verifyTotpCode } from "@/lib/totp";
+import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 import { isAdmin } from "@/lib/permissions";

@@ -25,7 +25,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkPrometheusAuth } from "@/lib/prometheus-auth";
-import { parseFiNumber, buildLocationPathsFromRows } from "@/lib/location-path";
+import { ancestorChain, buildLocationPathsFromRows, findFiNumber, parseFiNumber } from "@/lib/location-path";
 import { computeNis2Counts } from "@/lib/nis2-compliance";
 
 // ─── Text format helpers ─────────────────────────────────────────────────────
@@ -336,17 +336,9 @@ export async function GET(req: NextRequest) {
   // so sam_location_path reads identically wherever it's emitted.
   const locationPaths = buildLocationPathsFromRows(allLocations, " / ");
 
-  /** Nearest FI number walking leaf → root; mirrors findFiNumber() in SD. */
-  function inheritedFiNumber(locationId: string): string | null {
-    let current = locationsById.get(locationId);
-    while (current) {
-      if (current.fiNumber) return current.fiNumber;
-      current = current.parentId
-        ? locationsById.get(current.parentId)
-        : undefined;
-    }
-    return null;
-  }
+  /** Nearest FI number walking leaf → root, same rule as /api/prometheus/sd. */
+  const inheritedFiNumber = (locationId: string) =>
+    findFiNumber(ancestorChain(locationId, locationsById));
 
   const infoSamples: Array<{ labels: Record<string, string>; value: number }> = [];
   const maintenanceSamples: Array<{ labels: Record<string, string>; value: number }> = [];

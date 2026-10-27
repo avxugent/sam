@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { ManufacturersClient } from "@/components/settings/manufacturers-client";
+import { ManufacturersClient } from "@/components/admin/manufacturers-client";
 import { canManageCatalog } from "@/lib/permissions";
 
 export default async function ManufacturersPage() {

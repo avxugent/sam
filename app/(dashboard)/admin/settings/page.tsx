@@ -1,10 +1,10 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { GeneralSettingsClient } from "@/components/settings/general-settings-client";
-import { BrandingSettingsClient } from "@/components/settings/branding-settings-client";
-import { ComplianceSettingsClient } from "@/components/settings/compliance-settings-client";
-import { WorkLogItemsManager } from "@/components/settings/work-log-items-manager";
+import { GeneralSettingsClient } from "@/components/admin/general-settings-client";
+import { BrandingSettingsClient } from "@/components/admin/branding-settings-client";
+import { ComplianceSettingsClient } from "@/components/admin/compliance-settings-client";
+import { WorkLogItemsManager } from "@/components/admin/work-log-items-manager";
 import { isAdmin } from "@/lib/permissions";
 
 export default async function SettingsPage() {

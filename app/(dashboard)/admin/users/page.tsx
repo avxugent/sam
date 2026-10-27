@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { UsersClient } from "@/components/settings/users-client";
+import { UsersClient } from "@/components/admin/users-client";
 import { isAdmin } from "@/lib/permissions";
 
 export default async function UsersPage() {

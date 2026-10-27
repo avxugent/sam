@@ -26,7 +26,7 @@ import {
 import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
-import { createWorkLogSchema } from "@/lib/work-log-schema";
+import { createWorkLogSchema } from "@/lib/schemas/work-log";
 import { z } from "zod";
 
 type WorkLogFormValues = z.infer<typeof createWorkLogSchema>;

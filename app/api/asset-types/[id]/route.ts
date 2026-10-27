@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { validateTemplate } from "@/lib/scrape-template";
-import { validateHostnamePattern } from "@/lib/hostname-pattern";
+import { validateHostnamePattern } from "@/lib/hostname/pattern";
 import { logAudit } from "@/lib/audit";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { isAdmin } from "@/lib/permissions";

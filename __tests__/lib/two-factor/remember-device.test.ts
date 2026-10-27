@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { jwtVerify } from "jose";
 import { NextResponse } from "next/server";
-import { signRememberMeToken, setRememberMeCookie, verifyRememberMeToken, REMEMBER_ME_COOKIE } from "@/lib/remember-device";
+import { signRememberMeToken, setRememberMeCookie, verifyRememberMeToken, REMEMBER_ME_COOKIE } from "@/lib/two-factor/remember-device";
 
 beforeEach(() => {
   process.env.NEXTAUTH_SECRET = "test-secret-at-least-32-bytes-long-0000";

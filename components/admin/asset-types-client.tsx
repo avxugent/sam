@@ -41,11 +41,11 @@ import {
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { validateTemplate } from "@/lib/scrape-template";
-import { validateHostnamePattern } from "@/lib/hostname-pattern";
-import { MaintenancePresetsManager } from "@/components/settings/maintenance-presets-manager";
-import { ManufacturerTemplateOverrides } from "@/components/settings/manufacturer-template-overrides";
-import { ModelTemplateOverrides } from "@/components/settings/model-template-overrides";
-import { ScrapeTemplateFields } from "@/components/settings/scrape-template-fields";
+import { validateHostnamePattern } from "@/lib/hostname/pattern";
+import { MaintenancePresetsManager } from "@/components/admin/maintenance-presets-manager";
+import { ManufacturerTemplateOverrides } from "@/components/admin/manufacturer-template-overrides";
+import { ModelTemplateOverrides } from "@/components/admin/model-template-overrides";
+import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";
 
 type AssetType = {
   id: string;

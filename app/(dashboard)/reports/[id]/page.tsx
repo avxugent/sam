@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { runReport } from "@/lib/report-engine";
-import { reportDefinitionSchema } from "@/lib/report-schema";
-import { ReportViewer } from "@/components/reports/ReportViewer";
-import { LocationReportViewer } from "@/components/reports/LocationReportViewer";
-import { isLocationReport } from "@/lib/report-types";
+import { runReport } from "@/lib/reports/engine";
+import { reportDefinitionSchema } from "@/lib/schemas/report";
+import { ReportViewer } from "@/components/reports/report-viewer";
+import { LocationReportViewer } from "@/components/reports/location-report-viewer";
+import { isLocationReport } from "@/lib/reports/types";
 import { BarChart2 } from "lucide-react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";

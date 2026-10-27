@@ -76,6 +76,25 @@ export function findFiNumber(ancestors: LocationAncestor[]): string | null {
   return null;
 }
 
+type TreeRow = { id: string; parentId: string | null };
+
+/**
+ * Walks parentId links in an already-loaded location map and returns the
+ * chain root → leaf, including the location itself. Empty when `id` is
+ * unknown. Stops on a cycle instead of looping forever.
+ */
+export function ancestorChain<T extends TreeRow>(id: string, byId: Map<string, T>): T[] {
+  const chain: T[] = [];
+  const seen = new Set<string>();
+  let cur = byId.get(id);
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    chain.unshift(cur);
+    cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+  }
+  return chain;
+}
+
 /**
  * Fetches all locations once and resolves full path strings (root → leaf)
  * for each requested ID. Returns a map of locationId → path string.
@@ -94,13 +113,8 @@ export async function resolveLocationPathsBatch(
 
   const result = new Map<string, string>();
   for (const id of locationIds) {
-    const path: string[] = [];
-    let cur: Row | undefined = byId.get(id);
-    while (cur) {
-      path.unshift(cur.name);
-      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
-    }
-    if (path.length > 0) result.set(id, path.join(separator));
+    const chain = ancestorChain(id, byId);
+    if (chain.length > 0) result.set(id, chain.map((l) => l.name).join(separator));
   }
   return result;
 }
@@ -119,13 +133,7 @@ export function buildLocationPathsFromRows(
 
   const result = new Map<string, string>();
   for (const row of rows) {
-    const path: string[] = [];
-    let cur: typeof row | undefined = row;
-    while (cur) {
-      path.unshift(cur.name);
-      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
-    }
-    result.set(row.id, path.join(separator));
+    result.set(row.id, ancestorChain(row.id, byId).map((l) => l.name).join(separator));
   }
   return result;
 }
@@ -150,15 +158,8 @@ export async function resolveAncestorChainsBatch(
 
   const result = new Map<string, AncestorChain>();
   for (const id of locationIds) {
-    const ids: string[] = [];
-    const names: string[] = [];
-    let cur: Row | undefined = byId.get(id);
-    while (cur) {
-      ids.unshift(cur.id);
-      names.unshift(cur.name);
-      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
-    }
-    if (ids.length > 0) result.set(id, { ids, names });
+    const chain = ancestorChain(id, byId);
+    if (chain.length > 0) result.set(id, { ids: chain.map((l) => l.id), names: chain.map((l) => l.name) });
   }
   return result;
 }
@@ -183,4 +184,27 @@ export async function getAllDescendantLocationIds(locationId: string): Promise<s
     SELECT id FROM loc_tree WHERE id != ${locationId}
   `;
   return rows.map((r) => r.id);
+}
+
+/**
+ * Installed-asset quantity per location, summed over the location and all of
+ * its descendants, keyed by location id. One recursive CTE for the whole tree.
+ */
+export async function getRecursiveAssetCounts(): Promise<Record<string, number>> {
+  const rows = await prisma.$queryRaw<{ id: string; totalAssets: bigint }[]>`
+    WITH RECURSIVE loc_tree AS (
+      SELECT id AS root_id, id AS loc_id FROM locations
+      UNION ALL
+      SELECT lt.root_id, l.id AS loc_id
+      FROM loc_tree lt
+      INNER JOIN locations l ON l.parentId = lt.loc_id
+    )
+    SELECT lt.root_id AS id, COALESCE(SUM(a.quantity), 0) AS totalAssets
+    FROM loc_tree lt
+    LEFT JOIN assets a ON a.locationId = lt.loc_id AND a.status = 'INSTALLED'
+    GROUP BY lt.root_id
+  `;
+  const map: Record<string, number> = {};
+  for (const row of rows) map[row.id] = Number(row.totalAssets);
+  return map;
 }

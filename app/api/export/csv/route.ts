@@ -3,13 +3,15 @@ import { auth } from "@/lib/auth";
 import { generateExportCsv } from "@/lib/csv-export";
 import { logAudit } from "@/lib/audit";
 import { checkExportToken } from "@/lib/export-token";
+import { isAdmin } from "@/lib/permissions";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
   const hasToken = checkExportToken(req);
 
-  if (!session?.user && !hasToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasToken) {
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const csv = await generateExportCsv();

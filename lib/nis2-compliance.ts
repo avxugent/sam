@@ -3,7 +3,7 @@
  * the dashboard can show what needs fixing without a follow-up query.
  */
 import { prisma } from "@/lib/prisma";
-import { runLocationReport } from "@/lib/report-engine";
+import { runLocationReport } from "@/lib/reports/engine";
 import { isSyslogConfigured } from "@/lib/syslog";
 import type { Prisma } from "@/generated/prisma/client";
 

@@ -9,7 +9,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { buildRegistrationOptions, setChallengeCookie } from "@/lib/webauthn";
+import { buildRegistrationOptions, setChallengeCookie } from "@/lib/two-factor/webauthn";
 
 export async function POST() {
   const session = await auth();

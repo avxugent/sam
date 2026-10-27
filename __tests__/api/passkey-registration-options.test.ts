@@ -7,14 +7,14 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/webauthn", () => ({
+vi.mock("@/lib/two-factor/webauthn", () => ({
   buildRegistrationOptions: vi.fn(),
   setChallengeCookie: vi.fn(),
 }));
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { buildRegistrationOptions, setChallengeCookie } from "@/lib/webauthn";
+import { buildRegistrationOptions, setChallengeCookie } from "@/lib/two-factor/webauthn";
 import { POST } from "@/app/api/auth/passkey/registration-options/route";
 
 const mockAuth = vi.mocked(auth);

@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getModelClusters } from "@/lib/model-clusters";
-import { ModelsClient } from "@/components/settings/models-client";
+import { ModelsClient } from "@/components/admin/models-client";
 import { canManageCatalog } from "@/lib/permissions";
 
 export default async function ModelsPage({

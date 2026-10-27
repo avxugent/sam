@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import { REMEMBER_ME_COOKIE, verifyRememberMeToken } from "@/lib/remember-device";
+import { REMEMBER_ME_COOKIE, verifyRememberMeToken } from "@/lib/two-factor/remember-device";
 
 export const proxy = auth(async (req) => {
   const { pathname } = req.nextUrl;

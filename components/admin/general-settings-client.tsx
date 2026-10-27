@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, ExternalLink } from "lucide-react";
-import { renderLocationUrl, renderMacAddressUrl } from "@/lib/hostname-template";
+import { renderLocationUrl, renderMacAddressUrl } from "@/lib/hostname/template";
 
 export function GeneralSettingsClient({
   initialHostnameUrlTemplate,

@@ -4,27 +4,7 @@ import { MapPin } from "lucide-react";
 import { LocationBrowserClient } from "@/components/locations/location-browser-client";
 import type { LocationNode } from "@/components/locations/location-browser-client";
 import type { Prisma } from "@/generated/prisma/client";
-
-type AssetCountRow = { id: string; totalAssets: bigint };
-
-async function getRecursiveAssetCounts(): Promise<Record<string, number>> {
-  const rows = await prisma.$queryRaw<AssetCountRow[]>`
-    WITH RECURSIVE loc_tree AS (
-      SELECT id AS root_id, id AS loc_id FROM locations
-      UNION ALL
-      SELECT lt.root_id, l.id AS loc_id
-      FROM loc_tree lt
-      INNER JOIN locations l ON l.parentId = lt.loc_id
-    )
-    SELECT lt.root_id AS id, COALESCE(SUM(a.quantity), 0) AS totalAssets
-    FROM loc_tree lt
-    LEFT JOIN assets a ON a.locationId = lt.loc_id AND a.status = 'INSTALLED'
-    GROUP BY lt.root_id
-  `;
-  const map: Record<string, number> = {};
-  for (const row of rows) map[row.id] = Number(row.totalAssets);
-  return map;
-}
+import { getRecursiveAssetCounts } from "@/lib/location-path";
 
 type DbLocation = Prisma.LocationGetPayload<{
   include: {

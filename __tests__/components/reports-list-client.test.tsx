@@ -13,7 +13,7 @@ vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToas
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;
 
-import { ReportsListClient } from "@/components/reports/ReportsListClient";
+import { ReportsListClient } from "@/components/reports/reports-list-client";
 
 const REPORTS = [
   { id: "r1", name: "Q1 Inventory", description: "All assets", createdAt: "2024-01-01", updatedAt: "2024-02-01" },

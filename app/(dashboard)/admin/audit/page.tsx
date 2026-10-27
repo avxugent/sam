@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { AuditLogClient } from "@/components/settings/audit-log-client";
+import { AuditLogClient } from "@/components/admin/audit-log-client";
 import { isAdmin } from "@/lib/permissions";
 
 export default async function AuditLogPage() {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { computeHostnameCompliance } from "@/lib/hostname-compliance";
+import { computeHostnameCompliance } from "@/lib/hostname/compliance";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 

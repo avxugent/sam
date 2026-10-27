@@ -4,7 +4,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { resolveLocationPathsBatch } from "@/lib/location-path";
+import { ancestorChain, resolveLocationPathsBatch } from "@/lib/location-path";
 
 const CUSTOM_FIELD_COLUMNS = [
   "GUID", "DIAGONAL", "WIDTH", "HEIGHT",
@@ -52,20 +52,10 @@ type LocationRow = {
   parentId: string | null;
 };
 
-async function buildLocationHierarchy(locationId: string, locationMap: Map<string, LocationRow>): Promise<{ campus: string; building: string; room: string }> {
-  const ancestors: LocationRow[] = [];
-  let current: LocationRow | undefined = locationMap.get(locationId);
-  while (current) {
-    ancestors.unshift(current);
-    current = current.parentId ? locationMap.get(current.parentId) : undefined;
-  }
-  // Determine levels by depth (up to 3 levels: campus, building, room)
-  const [campus, building, room] = [
-    ancestors[0]?.name ?? "",
-    ancestors[1]?.name ?? "",
-    ancestors[2]?.name ?? "",
-  ];
-  return { campus, building, room };
+/** Names of the first three tree levels above (and including) the location. */
+function buildLocationHierarchy(locationId: string, locationMap: Map<string, LocationRow>): { campus: string; building: string; room: string } {
+  const [campus, building, room] = ancestorChain(locationId, locationMap).map((l) => l.name);
+  return { campus: campus ?? "", building: building ?? "", room: room ?? "" };
 }
 
 export async function generateExportCsv(includeDecommissioned = false): Promise<string> {
@@ -101,7 +91,7 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
     const loc = asset.location;
     locationsWithAssets.add(loc.id);
 
-    const hierarchy = await buildLocationHierarchy(loc.id, locationMap);
+    const hierarchy = buildLocationHierarchy(loc.id, locationMap);
     const fiNumber = loc.fiNumber ?? "";
 
     const customFieldMap: Record<string, string> = {};
@@ -145,7 +135,7 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
     const hasChildren = allLocations.some((l) => l.parentId === loc.id);
     if (hasChildren) continue; // Skip non-leaf locations without assets
 
-    const hierarchy = await buildLocationHierarchy(loc.id, locationMap);
+    const hierarchy = buildLocationHierarchy(loc.id, locationMap);
     const fiNumber = loc.fiNumber ?? "";
 
     const cells = [
@@ -207,7 +197,7 @@ export async function generateDecommissionedCsv(): Promise<string> {
 
   for (const asset of assets) {
     const loc = asset.location;
-    const hierarchy = await buildLocationHierarchy(loc.id, locationMap);
+    const hierarchy = buildLocationHierarchy(loc.id, locationMap);
 
     const customFieldMap: Record<string, string> = {};
     for (const cf of asset.customFields) {

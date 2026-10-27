@@ -61,6 +61,7 @@ export default defineConfig({
         "components/auth/**",
         "components/import/**",
         "components/search/**",
+        "components/admin/**",
         "components/settings/**",
         "components/assets/asset-detail-client.tsx",
         "components/assets/asset-table.tsx",

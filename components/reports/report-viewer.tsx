@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Download, Pencil, Search, ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
-import type { AssetReportResult, ColumnKey } from "@/lib/report-types";
+import type { AssetReportResult, ColumnKey } from "@/lib/reports/types";
 
 
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {

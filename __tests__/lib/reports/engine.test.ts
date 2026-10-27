@@ -13,7 +13,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { translateFilters, runAssetReport } from "@/lib/report-engine";
+import { translateFilters, runAssetReport } from "@/lib/reports/engine";
 import { prisma } from "@/lib/prisma";
 
 const mockFindMany = vi.mocked(prisma.asset.findMany);

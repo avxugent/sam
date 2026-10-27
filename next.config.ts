@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
   // Produces a self-contained server bundle for Docker
   output: "standalone",
 
-  serverExternalPackages: ["bcryptjs", "speakeasy", "qrcode", "mariadb", "@prisma/adapter-mariadb"],
+  serverExternalPackages: ["bcryptjs", "qrcode", "mariadb", "@prisma/adapter-mariadb"],
 
   experimental: {
     serverActions: {

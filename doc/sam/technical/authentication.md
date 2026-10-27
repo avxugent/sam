@@ -103,7 +103,7 @@ API routes, all under `app/api/auth/passkey/`:
 | **EDITOR** | Create/edit/delete locations, assets, attachments; manage work logs |
 | **VIEWER** | Read-only access to all data |
 
-Role hierarchy for permission checks: `ADMIN > MAINTAINER > EDITOR > VIEWER`.
+Role hierarchy for permission checks: `ADMIN > MAINTAINER > EDITOR > VIEWER`. Code checks roles only through the predicates in `lib/permissions.ts`: `canEdit` (EDITOR and up), `canManageCatalog` (MAINTAINER and up) and `isAdmin`.
 
 ### What each role can and cannot do
 
@@ -138,7 +138,7 @@ All authenticated routes are guarded by `proxy.ts` at the project root (Next.js 
 
 The proxy:
 1. Allows public routes: `/login`, `/api/auth/*`, `/api/setup`, `/setup`
-2. Allows Prometheus endpoints: `/api/prometheus/*`, `/api/assets/by-hostname` (Bearer token auth)
+2. Lets token-authenticated endpoints through to their handlers: `/api/prometheus/*`, `/api/grafana/*`, `/api/assets/by-hostname`, `/api/export/*` and the public `/api/branding/*` assets
 3. Redirects unauthenticated requests to `/login`
 4. Redirects to `/login/change-password` when `mustChangePassword = true`
 5. Redirects to `/login/setup-2fa` when `twoFactorRequired = true` and 2FA not yet configured
@@ -150,16 +150,16 @@ The proxy:
 
 ## Prometheus Endpoints
 
-`/api/prometheus/*` and `/api/assets/by-hostname` use **Bearer token** authentication instead of sessions:
+`/api/prometheus/*` and `/api/grafana/*` use **Bearer token** authentication instead of sessions; `/api/assets/by-hostname` accepts a session **or** the same token:
 
 ```http
 Authorization: Bearer <PROMETHEUS_SD_TOKEN>
 ```
 
-These endpoints are exempted from the session proxy and must call `checkPrometheusAuth(req)` directly in their route handlers.
+These endpoints are exempted from the session proxy and must authenticate in their route handlers — `checkPrometheusAuth(req)` for the token-only routes, `hasBearerToken(req, process.env.PROMETHEUS_SD_TOKEN)` (`lib/bearer-token.ts`, constant-time) alongside `auth()` for by-hostname.
 
 If `PROMETHEUS_SD_TOKEN` is not set, the endpoints return HTTP 503.
 
 ## Export Endpoints
 
-`/api/export/*` accept a session **or** `Bearer EXPORT_TOKEN` (checked via `checkExportToken(req)` in each handler) so external tooling can pull exports. They are likewise exempted from the session proxy; without valid credentials the handlers return HTTP 401.
+`/api/export/*` accept a session (ADMIN for the CSV exports; any role for the JSON snapshot) **or** `Bearer EXPORT_TOKEN` (checked via `checkExportToken(req)` in each handler) so external tooling can pull exports. They are likewise exempted from the session proxy; without valid credentials the handlers return HTTP 401.

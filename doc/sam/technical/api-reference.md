@@ -11,12 +11,14 @@ All API routes return `NextResponse.json(...)`. Auth and role checks happen insi
 
 | Status | Meaning |
 |---|---|
-| 400 | Validation error — body contains `{ error: string, details?: … }` |
+| 400 | Validation error — body contains `{ error: string, details?: … }`. Zod failures (including a missing or malformed JSON body) return `{ error: "Invalid input", details: { formErrors, fieldErrors } }` |
 | 401 | Unauthenticated — no valid session or Bearer token |
 | 403 | Insufficient role |
 | 404 | Resource not found |
-| 409 | Conflict — unique constraint violation (e.g., duplicate `fiNumber`) |
+| 409 | Conflict — unique constraint violation (e.g., duplicate `fiNumber`, name or email) |
 | 500 | Internal server error |
+
+Successful `DELETE` requests return `200` with `{ ok: true }`.
 
 ---
 
@@ -71,7 +73,7 @@ Key validated fields:
 | Method | Path | Min role | Description |
 |---|---|---|---|
 | `GET` | `/api/asset-types` | VIEWER | List all |
-| `POST` | `/api/asset-types` | ADMIN | Create |
+| `POST` | `/api/asset-types` | ADMIN | Create; `409` on a duplicate name |
 | `GET` | `/api/asset-types/[id]` | VIEWER | Get detail |
 | `PUT` | `/api/asset-types/[id]` | ADMIN | Update (including scrape template, `hostnamePattern`, and `defaultCriticality`) |
 | `DELETE` | `/api/asset-types/[id]` | ADMIN | Delete |
@@ -91,10 +93,9 @@ Key validated fields:
 | Method | Path | Min role | Description |
 |---|---|---|---|
 | `GET` | `/api/manufacturers` | VIEWER | List all. Accepts an optional `typeId` filter — when given, only manufacturers with at least one Model under that asset type are returned |
-| `POST` | `/api/manufacturers` | MAINTAINER | Create |
-| `GET` | `/api/manufacturers/[id]` | VIEWER | Get detail |
+| `POST` | `/api/manufacturers` | MAINTAINER | Create; `409` on a duplicate name |
 | `PUT` | `/api/manufacturers/[id]` | MAINTAINER | Update |
-| `DELETE` | `/api/manufacturers/[id]` | MAINTAINER | Delete |
+| `DELETE` | `/api/manufacturers/[id]` | MAINTAINER | Delete; `404` if unknown, `400` while assets or models reference it |
 | `GET` | `/api/manufacturers/[id]/assets` | VIEWER | Active (INSTALLED) assets by manufacturer — decommissioned assets are historical and excluded |
 | `POST` | `/api/manufacturers/[id]/merge` | MAINTAINER | Merge into another manufacturer |
 
@@ -163,11 +164,10 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 
 | Method | Path | Min role | Description |
 |---|---|---|---|
-| `GET` | `/api/users` | EDITOR | List users |
-| `POST` | `/api/users` | ADMIN | Create user |
-| `GET` | `/api/users/[id]` | EDITOR | Get user |
-| `PUT` | `/api/users/[id]` | ADMIN | Update user (rejects password change for SSO accounts) |
-| `DELETE` | `/api/users/[id]` | ADMIN | Delete user |
+| `GET` | `/api/users` | ADMIN | List users |
+| `POST` | `/api/users` | ADMIN | Create user; `409` if the email is taken |
+| `PUT` | `/api/users/[id]` | ADMIN | Update user. Rejects a password change for SSO accounts and demoting the last admin (`400`); `409` if the new email is taken |
+| `DELETE` | `/api/users/[id]` | ADMIN | Delete user. `404` if unknown; `400` for your own account or the last admin |
 | `GET` | `/api/users/me` | VIEWER | Current user's profile |
 | `GET` | `/api/users/lite` | EDITOR | Minimal `{id, name}` list (asset form owner dropdown) |
 | `GET` | `/api/users/export` | ADMIN | Access-review CSV (name, email, role, provider, 2FA status, last login). Session only — no token access |
@@ -200,8 +200,8 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | `GET` | `/api/work-logs` | VIEWER | List work logs (with optional JIRA summaries) |
 | `POST` | `/api/work-logs` | EDITOR | Create work log |
 | `GET` | `/api/work-logs/[id]` | VIEWER | Get work log |
-| `PUT` | `/api/work-logs/[id]` | EDITOR | Update work log |
-| `DELETE` | `/api/work-logs/[id]` | EDITOR | Delete work log |
+| `PUT` | `/api/work-logs/[id]` | EDITOR | Update work log — only its author or an ADMIN |
+| `DELETE` | `/api/work-logs/[id]` | EDITOR | Delete work log — only its author or an ADMIN |
 
 ### Work log items (fixed)
 
@@ -269,7 +269,7 @@ Actions recorded: `CREATE`, `UPDATE`, `DELETE`, `IMPORT`, `EXPORT`, plus authent
 | `POST` | `/api/reports` | EDITOR | Create report |
 | `GET` | `/api/reports/[id]` | VIEWER | Get report |
 | `PUT` | `/api/reports/[id]` | EDITOR | Update report |
-| `DELETE` | `/api/reports/[id]` | EDITOR | Delete report |
+| `DELETE` | `/api/reports/[id]` | ADMIN | Delete report |
 | `POST` | `/api/reports/[id]/run` | VIEWER | Execute report query. Decommissioned assets are excluded by default unless the report's own filters explicitly target `status` |
 | `GET` | `/api/reports/[id]/export` | VIEWER | Export report results as CSV (same decommissioned-exclusion default as run) |
 

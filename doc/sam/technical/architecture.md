@@ -56,26 +56,31 @@ SAMproject/
 │   ├── locations/            # Location form, detail, map
 │   ├── attachments/          # Attachment gallery
 │   ├── auth/                 # Login, 2FA, password reset forms
-│   ├── settings/             # User/type/manufacturer management
+│   ├── admin/                # Clients for the /admin pages (users, types, manufacturers, …)
+│   ├── settings/             # Per-user profile client
 │   ├── stock/                # Stock management
 │   ├── reports/              # Report builder/viewer
 │   └── import/               # CSV import wizard
-├── lib/                      # Shared server utilities
+├── lib/                      # Shared utilities
 │   ├── auth.ts               # NextAuth config + ssoEnabled flag
+│   ├── permissions.ts        # Role predicates (isAdmin, canManageCatalog, canEdit)
+│   ├── route-helpers.ts      # readJsonBody, invalidInput, Prisma error checks
+│   ├── bearer-token.ts       # Constant-time Bearer token check
 │   ├── prisma.ts             # PrismaClient singleton
 │   ├── audit.ts              # Audit log writer + syslog forwarder
-│   ├── permissions.ts        # Role helper functions
 │   ├── vault.ts              # HashiCorp Vault client
 │   ├── scrape-template.ts    # Prometheus label template renderer
 │   ├── storage.ts            # File upload abstraction (local/S3)
-│   ├── location-path.ts      # Recursive CTE ancestor resolver
-│   ├── report-engine.ts      # Report query executor
-│   ├── email.ts              # SMTP client
+│   ├── branding-assets.ts    # Logo/favicon/background serve + upload
+│   ├── location-path.ts      # Location tree helpers + recursive CTEs
 │   ├── jira.ts               # JIRA API client
 │   ├── syslog.ts             # RFC 5424 syslog client
-│   ├── totp.ts               # TOTP helper (RFC 6238 on node:crypto)
 │   ├── rate-limit.ts         # In-memory rate limiter
-│   └── utils.ts              # cn() utility (clsx + tailwind-merge)
+│   ├── utils.ts              # cn() utility (clsx + tailwind-merge)
+│   ├── schemas/              # Zod schemas shared by routes and forms
+│   ├── hostname/             # Hostname rules, URL templates, compliance
+│   ├── reports/              # Report query executor + definition types
+│   └── two-factor/           # TOTP (RFC 6238 on node:crypto), passkeys, remember-device
 ├── prisma/
 │   └── schema.prisma         # MySQL schema (source of truth)
 ├── __tests__/                # Test files mirroring source structure
@@ -152,11 +157,11 @@ UI primitives in `components/ui/` are hand-written shadcn-style components. Do *
 
 ### Database
 
-Prisma ORM with MySQL 8. Raw SQL is only used in two places:
-1. Recursive CTE for location ancestor path resolution (`lib/location-path.ts`)
-2. `getAllDescendantIds` for cascading location queries
+Prisma ORM with MySQL 8. Raw SQL is used only for:
+1. Recursive location-tree CTEs in `lib/location-path.ts` — ancestor paths, descendant IDs and per-location asset totals — plus the ordered subtree delete in `app/api/locations/[id]/route.ts`
+2. Asset totals for matched locations in `app/api/search/route.ts`
 
-Both use `prisma.$queryRaw` with tagged template literals. Never use string concatenation in SQL.
+All of it uses `prisma.$queryRaw` with tagged template literals. Never use string concatenation in SQL.
 
 MySQL returns `COUNT(*)` as `BigInt` — always wrap with `Number(row.count)`.
 

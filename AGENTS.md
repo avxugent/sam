@@ -64,26 +64,39 @@ The production build produces `.next/standalone/server.js`. The Dockerfile relie
 app/
   (auth)/          — login page (outside dashboard layout)
   (dashboard)/     — protected layout: sidebar + top nav header
-    admin/         — admin sub-pages (users, asset-types, manufacturers, import)
+    admin/         — admin sub-pages (users, asset-types, manufacturers, models, suppliers, import, export, audit, compliance, settings)
     locations/     — location detail + asset detail pages
+    stock/         — stock items; decommissioned/ and in-repair/ list assets in those states
+    reports/       — saved report builder + viewer
+    settings/      — per-user profile (password, 2FA, passkeys)
     search/        — full-text search results
   api/             — all API route handlers
   setup/           — first-run wizard (no auth required)
 proxy.ts           — NextAuth session guard (replaces middleware.ts)
-lib/               — shared server utilities
+lib/               — shared utilities
   auth.ts          — NextAuth config + ssoEnabled flag
+  permissions.ts   — role predicates (isAdmin, canManageCatalog, canEdit); client-safe
+  route-helpers.ts — readJsonBody, invalidInput, isUniqueConstraintError, isRecordNotFoundError
   prisma.ts        — PrismaClient singleton
+  storage.ts       — upload storage driver (local filesystem or S3)
   vault.ts         — HashiCorp Vault KV client (native fetch, no extra deps)
   scrape-template.ts — Prometheus scrape URL template renderer
-  location-path.ts — recursive CTE ancestor resolver
-  prometheus-auth.ts — Bearer token check for /api/prometheus/*
+  location-path.ts — location tree helpers (ancestorChain, recursive CTEs)
+  bearer-token.ts  — constant-time Bearer check; used by prometheus-auth.ts and export-token.ts
+  schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …)
+  hostname/        — hostname pattern/FQDN rules, URL templates, compliance report
+  reports/         — report engine + definition types
+  two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy
 components/
   layout/          — Sidebar (locations only) + Header (search + admin + user)
   ui/              — shadcn-style primitives (Button, Input, Dialog, …)
-  assets/          — AssetFormDialog, AssetTable, AssetDetailClient
+  assets/          — AssetFormDialog, AssetTable, AssetDetailClient, decommissioned/in-repair tables
   locations/       — LocationFormDialog, LocationDetailClient, LocationMap, CoverImagePicker
   attachments/     — AttachmentGallery
-  settings/        — LookupListManager, AssetTypesClient, UsersClient
+  admin/           — clients for the /admin pages (UsersClient, AssetTypesClient, ManufacturersClient, …)
+  settings/        — ProfileClient (per-user settings)
+  stock/           — stock item table and dialogs
+  reports/         — report builder, viewers, list
   search/          — SearchResults
   import/          — CsvImportClient
   auth/            — LoginClient
@@ -99,7 +112,7 @@ prisma/
 - **Required column with a non-DB-level default** (`@default(cuid())`, `@default(uuid())`) on a table that may already have rows: the raw diff Prisma generates will be a plain `NOT NULL` column add, which fails against a populated table. Run `npx prisma migrate dev --create-only` instead of accepting the auto-applied migration, then hand-edit `migration.sql` into three steps — add nullable, `UPDATE ... SET col = UUID() WHERE col IS NULL` to backfill, then `ALTER TABLE ... MODIFY col ... NOT NULL`. Worked example: `prisma/migrations/20260930120000_add_asset_lineage_and_repair_status/migration.sql`.
 - After a migration, Prisma regenerates the client automatically. If it does not, run `npx prisma generate`.
 - Never edit or delete an already-committed migration file — it's a permanent, ordered record. Fix forward with a new migration instead.
-- Raw SQL is used in two places: recursive CTE for asset counts (`lib/`) and the `getAllDescendantIds` helper. Use `prisma.$queryRaw` with tagged template literals — never string concatenation.
+- Raw SQL is used for recursive location-tree CTEs (`lib/location-path.ts`: ancestors, descendants, per-location asset totals; the subtree delete in `app/api/locations/[id]/route.ts`) and for per-result asset totals in search (`app/api/search/route.ts`). Put new tree queries in `lib/location-path.ts`. Use `prisma.$queryRaw` with tagged template literals — never string concatenation.
 - MySQL returns `COUNT(...)` as `BigInt`. Always wrap with `Number(row.count)`.
 - `prisma.$transaction` callbacks receive a `Prisma.TransactionClient` — type it explicitly to avoid TypeScript errors.
 - The `fiNumber` column on `Location` has a `@unique` constraint. Duplicate inserts return Prisma error code `P2002` — catch it and return a 409.
@@ -111,9 +124,9 @@ prisma/
 - **Session strategy**: JWT, 8-hour max age.
 - **Two providers**: `Credentials` (email + bcrypt) and optionally `MicrosoftEntraID`. Entra ID is only active when all three `AUTH_MICROSOFT_ENTRA_ID_*` env vars are set. The `ssoEnabled` boolean is exported from `lib/auth.ts` and passed to the login page server component.
 - **SSO users** have `passwordHash = null`. The `Credentials` provider rejects them. The `PUT /api/users/[id]` route rejects password changes for SSO accounts.
-- **Roles**: `ADMIN > EDITOR > VIEWER`. Viewers cannot write. Editors cannot manage users/types/manufacturers. Admins can do everything.
+- **Roles**: `ADMIN > MAINTAINER > EDITOR > VIEWER` (Prisma `Role` enum; `session.user.role` is typed as `Role`). Viewers cannot write. Editors write inventory data (locations, assets, stock, work logs, reports). Maintainers additionally manage the catalog (manufacturers, models, suppliers). Admins can do everything, including users, asset types, settings, import/export and audit. Check roles only through the predicates in `lib/permissions.ts` (`isAdmin`, `canManageCatalog`, `canEdit`) — never compare role strings inline.
 - Every API route handler performs its own auth check — do not rely solely on `proxy.ts`. The proxy is a redirect guard, not an authorization boundary.
-- The Prometheus endpoints (`/api/prometheus/*`) use Bearer token auth (`PROMETHEUS_SD_TOKEN`), not session cookies. They are exempted from the proxy session redirect. Their route handlers call `checkPrometheusAuth(req)` directly.
+- The Prometheus and Grafana endpoints (`/api/prometheus/*`, `/api/grafana/*`) use Bearer token auth (`PROMETHEUS_SD_TOKEN`), not session cookies, and `/api/assets/by-hostname` accepts either. They are exempted from the proxy session redirect; their route handlers authenticate themselves (`checkPrometheusAuth(req)` / `hasBearerToken`).
 
 ---
 
@@ -121,18 +134,19 @@ prisma/
 
 - All handlers return `NextResponse.json(...)`.
 - Auth errors: `401` for unauthenticated, `403` for insufficient role.
-- Validation errors: `400` with `{ error: string, details?: … }`.
-- Conflict (unique constraint): `409`.
+- Read request bodies with `readJsonBody(req)` (malformed JSON becomes a Zod 400, not a 500) and return Zod failures with `invalidInput(parsed.error)` — `400` with `{ error: "Invalid input", details }`.
+- Conflict (unique constraint): `409`. Detect it with `isUniqueConstraintError(err)`; never map every caught error to one status — rethrow what you don't handle.
+- `DELETE` handlers return `200` with `{ ok: true }`.
 - All write endpoints validate input with Zod before touching the database.
 - Zod schemas enforce length caps on all string fields. Do not remove them.
-- Cross-field validation (e.g. hostname → MAC required) uses `.superRefine()` — the same schema is duplicated in the form component and the API route so neither can be bypassed.
+- Cross-field validation (e.g. hostname → MAC required) uses `.superRefine()`. Shared schemas live in `lib/schemas/` and are imported by the API routes (and by the form when no translated messages are needed); the asset form mirrors `lib/schemas/asset.ts` with translated messages, so the server check can never be bypassed.
 
 ---
 
 ## Forms and validation
 
 - Forms use `react-hook-form` with `zodResolver`.
-- The Zod schema in the form component and its mirror in the API route must stay in sync. If you change one, change the other.
+- The Zod schema in the form component and its mirror in the API route must stay in sync. Prefer importing from `lib/schemas/`; where a form keeps its own copy (translated messages), change both.
 - Use `setValue(field, value, { shouldValidate: true })` when programmatically setting values in `Select` components so errors clear immediately.
 - Call `trigger("fieldName")` when a cross-field dependency changes (e.g. when hostname changes, re-trigger MAC validation).
 - Required fields get a visible `*` marker: `<span className="text-destructive">*</span>`.
@@ -154,7 +168,7 @@ prisma/
 
 ## File uploads
 
-- Files are stored on the local filesystem under `UPLOAD_DIR` (default `./uploads`).
+- Files go through the storage driver in `lib/storage.ts`: the local filesystem under `UPLOAD_DIR` (default `./uploads`), or an S3-compatible bucket when `STORAGE_DRIVER=s3` and `S3_BUCKET` are set.
 - The upload route validates MIME type against an allowlist and the file extension against a separate allowlist (to prevent double-extension attacks like `.jpg.php`).
 - All file paths are resolved with `path.resolve()` and checked against the upload root with `assertSafePath()` to prevent path traversal.
 - `originalName` is sanitised (strip `\r`, `\n`, `"`, `\`) before storing in the database.
@@ -168,7 +182,7 @@ prisma/
 - `/api/prometheus/sd` — HTTP Service Discovery. Returns assets with hostnames as target groups with `sam_*` labels. If the asset type has a `scrapeTargetTemplate`, it is rendered and its `__labels__` are merged in.
 - `/api/prometheus/metrics` — Prometheus text format inventory metrics. No `prom-client` dependency — the format is built as a plain string.
 - `/api/assets/by-hostname` — Grafana Infinity datasource lookup. Accepts session cookie OR Bearer token.
-- Template syntax: newline-separated `key=value` pairs. Variables: `{hostname_fqdn}`, `{serial}`, `{model}`, `{manufacturer}`, `{fi_number}`, `{vault_<key>}`. Validated server-side via `validateTemplate()` in `lib/scrape-template.ts`.
+- Template syntax: newline-separated `key=value` pairs. Variables: `{hostname_fqdn}`, `{serial}`, `{model}`, `{manufacturer}`, `{fi_number}`, `{vault_path}` (the asset's Vault path reference, never the secret itself). Validated server-side via `validateTemplate()` in `lib/scrape-template.ts`.
 - Vault client (`lib/vault.ts`) uses native `fetch`. Returns `null` on any error — never throws. Vault errors must not crash the SD endpoint for all targets.
 
 ---

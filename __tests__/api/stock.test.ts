@@ -290,11 +290,8 @@ describe("PUT /api/stock/[id]", () => {
     } as never);
     mockUpdate.mockResolvedValue(SAMPLE_ITEM as never);
     await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddresses: ["AA:BB:CC:DD:EE:FF"] }), { params: PARAMS });
-    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        metadata: JSON.stringify({ hostname: "host1", macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] }),
-      }),
-    }));
+    const { metadata } = (mockUpdate.mock.calls[0][0] as { data: { metadata: string } }).data;
+    expect(JSON.parse(metadata)).toEqual({ hostname: "host1", macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] });
   });
 
   it("clears the MAC from metadata when given an empty string", async () => {

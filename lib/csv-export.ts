@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { ancestorChain, resolveLocationPathsBatch } from "@/lib/location-path";
 import { escapeCsvCell } from "@/lib/csv";
 import { toIsoDay } from "@/lib/utils";
+import { stockMetadataMacs } from "@/lib/stock-metadata";
 
 const CUSTOM_FIELD_COLUMNS = [
   "GUID", "DIAGONAL", "WIDTH", "HEIGHT",
@@ -201,19 +202,6 @@ const STOCK_COLUMNS = [
   "RESERVED_FOR", "RESERVED_FI", "MAC", "NOTES", "INVOICE_DATE", "INVOICE_NUMBER",
 ];
 
-function macsFromStockMetadata(metadata: string | null): string {
-  if (!metadata) return "";
-  try {
-    const parsed = JSON.parse(metadata) as { macAddresses?: { address?: string }[] };
-    return (parsed.macAddresses ?? [])
-      .map((m) => m?.address ?? "")
-      .filter(Boolean)
-      .join(";");
-  } catch {
-    return "";
-  }
-}
-
 /** CSV of the current stock inventory (StockItem table). */
 export async function generateStockCsv(): Promise<string> {
   const items = await prisma.stockItem.findMany({
@@ -262,7 +250,7 @@ export async function generateStockCsv(): Promise<string> {
       storageLocation,
       reservedFor,
       reservedFi,
-      macsFromStockMetadata(item.metadata),
+      stockMetadataMacs(item.metadata).join(";"),
       item.notes ?? "",
       formatDateCell(item.invoiceDate ?? null),
       item.invoiceNumber ?? "",

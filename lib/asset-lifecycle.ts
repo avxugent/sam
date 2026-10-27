@@ -1,4 +1,5 @@
 import type { DisposalMethod, Prisma } from "@/generated/prisma/client";
+import { serializeStockMetadata } from "@/lib/stock-metadata";
 
 /**
  * Business-rule checks shared by the single-asset and bulk decommission /
@@ -77,12 +78,6 @@ export function buildReturnToStockStockItemData(
   asset: ReturnableAsset,
   locationId: string
 ): Prisma.StockItemUncheckedCreateInput {
-  const metadata: Record<string, unknown> = {};
-  if (asset.macAddresses.length > 0) metadata.macAddresses = asset.macAddresses;
-  if (asset.customFields.length > 0) metadata.customFields = asset.customFields;
-  if (asset.hostname) metadata.hostname = asset.hostname;
-  if (asset.warrantyMonths != null) metadata.warrantyMonths = asset.warrantyMonths;
-  if (asset.vaultPath) metadata.vaultPath = asset.vaultPath;
 
   return {
     lineageId: asset.lineageId,
@@ -97,7 +92,13 @@ export function buildReturnToStockStockItemData(
     notes: asset.notes,
     quantity: 1,
     locationId,
-    metadata: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
+    metadata: serializeStockMetadata({
+      macAddresses: asset.macAddresses,
+      customFields: asset.customFields,
+      hostname: asset.hostname || undefined,
+      warrantyMonths: asset.warrantyMonths ?? undefined,
+      vaultPath: asset.vaultPath || undefined,
+    }),
   };
 }
 

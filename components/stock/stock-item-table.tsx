@@ -40,6 +40,7 @@ import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { toIsoDay } from "@/lib/utils";
+import { stockMetadataMacs } from "@/lib/stock-metadata";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
@@ -61,17 +62,6 @@ export type StockItem = {
   manufacturer: { id: string; name: string } | null;
   location: { id: string; name: string } | null;
 };
-
-// The MAC addresses stored in the item's metadata blob, if any.
-function macsFromMetadata(metadata: string | null): string[] {
-  if (!metadata) return [];
-  try {
-    const meta = JSON.parse(metadata) as { macAddresses?: { address: string }[] };
-    return meta.macAddresses?.map((m) => m.address) ?? [];
-  } catch {
-    return [];
-  }
-}
 
 type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "quantity";
 
@@ -306,7 +296,7 @@ export function StockItemTable({
                             invoiceDate: item.invoiceDate
                               ? toIsoDay(item.invoiceDate)
                               : null,
-                            macAddresses: macsFromMetadata(item.metadata),
+                            macAddresses: stockMetadataMacs(item.metadata),
                           } satisfies StockItemInitialData}
                           onSuccess={() => router.refresh()}
                         >

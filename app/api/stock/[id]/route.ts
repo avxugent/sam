@@ -7,6 +7,7 @@ import { auditChanges } from "@/lib/audit-diff";
 import { MAX_MAC_ADDRESSES, macAddressField } from "@/lib/mac-address";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { parseStockMetadata, serializeStockMetadata } from "@/lib/stock-metadata";
 
 const updateSchema = z
   .object({
@@ -86,13 +87,10 @@ export async function PUT(
   // customFields, …) that may have been stored when the item came from an asset.
   let metadataUpdate: { metadata: string | null } | Record<string, never> = {};
   if (macAddresses !== undefined) {
-    let meta: Record<string, unknown> = {};
-    if (existing.metadata) {
-      try { meta = JSON.parse(existing.metadata) as Record<string, unknown>; } catch { /* ignore */ }
-    }
-    if (macAddresses.length) meta.macAddresses = macAddresses.map((address) => ({ address }));
-    else delete meta.macAddresses;
-    metadataUpdate = { metadata: Object.keys(meta).length > 0 ? JSON.stringify(meta) : null };
+    const meta = parseStockMetadata(existing.metadata);
+    metadataUpdate = {
+      metadata: serializeStockMetadata({ ...meta, macAddresses: macAddresses.map((address) => ({ address })) }),
+    };
   }
 
   const item = await prisma.stockItem.update({

@@ -7,6 +7,7 @@ import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
 import type { Prisma } from "@/generated/prisma/client";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { parseStockMetadata } from "@/lib/stock-metadata";
 
 const deploySchema = z
   .object({
@@ -65,18 +66,8 @@ export async function POST(
     );
   }
 
-  type StoredMetadata = {
-    macAddresses?: { address: string }[];
-    customFields?: { key: string; value: string }[];
-    hostname?: string;
-    warrantyMonths?: number;
-    vaultPath?: string;
-  };
-
-  let meta: StoredMetadata | null = null;
-  if (stockItem.metadata && quantity === 1) {
-    try { meta = JSON.parse(stockItem.metadata) as StoredMetadata; } catch { /* ignore */ }
-  }
+  // Identity carried in the metadata only applies when deploying a single unit.
+  const meta = stockItem.metadata && quantity === 1 ? parseStockMetadata(stockItem.metadata) : null;
 
   let createdAssets: { id: string; lineageId: string }[];
   try {

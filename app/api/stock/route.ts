@@ -6,6 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { MAX_MAC_ADDRESSES, macAddressField } from "@/lib/mac-address";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { serializeStockMetadata } from "@/lib/stock-metadata";
 
 const createSchema = z
   .object({
@@ -88,9 +89,7 @@ export async function POST(req: NextRequest) {
       reservedForLocationId: rest.reservedForLocationId ?? null,
       invoiceNumber: rest.invoiceNumber ?? null,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
-      metadata: macAddresses?.length
-        ? JSON.stringify({ macAddresses: macAddresses.map((address) => ({ address })) })
-        : null,
+      metadata: serializeStockMetadata({ macAddresses: macAddresses?.map((address) => ({ address })) }),
     },
     include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
   });

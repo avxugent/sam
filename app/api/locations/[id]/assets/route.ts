@@ -1,80 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
-import { matchesHostnamePattern } from "@/lib/hostname-pattern";
-import { normalizeMacAddress } from "@/lib/mac-address";
+import { isHostnameCompliant } from "@/lib/hostname-pattern";
+import { createAssetSchema } from "@/lib/asset-schema";
 import { logAudit } from "@/lib/audit";
-import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
 import { canEdit } from "@/lib/permissions";
-
-const MAX_CUSTOM_FIELDS = 50;
-const MAX_MAC_ADDRESSES = 20;
-
-const FQDN_REGEX =
-  /^(?!-)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
-
-// Accepts any recoverable MAC shape (colon, hyphen, dot-grouped, no
-// separator, mixed case) and normalizes it to AA:BB:CC:DD:EE:FF — mirrors
-// the CSV import behavior so manually created assets can't reintroduce
-// inconsistent formats.
-const macAddressField = z.string().transform((v, ctx) => {
-  const normalized = normalizeMacAddress(v);
-  if (normalized === null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Invalid MAC address format (expected AA:BB:CC:DD:EE:FF)",
-    });
-    return z.NEVER;
-  }
-  return normalized;
-});
-
-const customFieldSchema = z.object({
-  key: z.string().min(1).max(100),
-  value: z.string().max(1000),
-});
-
-const createAssetSchema = z
-  .object({
-    typeId: z.string().min(1, "Type is required"),
-    manufacturerId: z.string().min(1, "Manufacturer is required"),
-    modelId: z.string().min(1, "Model is required"),
-    serialNumber: z.string().max(100).optional().nullable(),
-    hostname: z.string().max(255).optional().nullable(),
-    quantity: z.number().int().min(1).max(9999).default(1),
-    installationDate: z.string().optional().nullable(),
-    invoiceNumber: z.string().max(100).optional().nullable(),
-    invoiceDate: z.string().optional().nullable(),
-    notes: z.string().max(5000).optional().nullable(),
-    vaultPath: z.string().max(500).optional().nullable(),
-    ownerId: z.string().max(64).optional().nullable(),
-    criticality: z.enum(CRITICALITY_VALUES).optional().nullable(),
-    endOfSupportDate: z.string().optional().nullable(),
-    supplierId: z.string().max(64).optional().nullable(),
-    macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
-    customFields: z.array(customFieldSchema).max(MAX_CUSTOM_FIELDS).optional(),
-  })
-  .superRefine((data, ctx) => {
-    const hostnameSet = !!data.hostname?.trim();
-    const hasValidMac = (data.macAddresses ?? []).length > 0;
-    if (hostnameSet && !hasValidMac) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["macAddresses"],
-        message: "At least one MAC address is required when hostname is set.",
-      });
-    }
-    const hasIdentity = !!data.serialNumber?.trim() || hostnameSet || hasValidMac;
-    if (hasIdentity && data.quantity !== 1) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["quantity"],
-        message: "Quantity must be 1 when a serial number, hostname, or MAC address is set.",
-      });
-    }
-  });
 
 export async function GET(
   req: NextRequest,
@@ -161,9 +92,7 @@ export async function POST(
       where: { id: assetData.typeId },
       select: { hostnamePattern: true },
     });
-    const isValidHostname = assetType?.hostnamePattern
-      ? matchesHostnamePattern(hostnameTrimmed, assetType.hostnamePattern)
-      : FQDN_REGEX.test(hostnameTrimmed);
+    const isValidHostname = isHostnameCompliant(hostnameTrimmed, assetType?.hostnamePattern);
     if (!isValidHostname) {
       return NextResponse.json(
         { error: "Hostname does not match the required format for this asset type." },

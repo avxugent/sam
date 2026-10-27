@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/model-autocomplete";
 import { cn } from "@/lib/utils";
-import { matchesHostnamePattern } from "@/lib/hostname-pattern";
+import { isHostnameCompliant } from "@/lib/hostname-pattern";
 import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
 import { isWindowActive } from "@/lib/supplier-window";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
@@ -34,71 +34,6 @@ import { Loader2, Plus, Trash2, KeyRound, CheckCircle2, XCircle } from "lucide-r
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 
-// ── Validation helpers ──────────────────────────────────────────────────────
-
-/**
- * RFC-1123 FQDN: labels separated by dots, each 1-63 chars, only alphanum + hyphen,
- * must not start or end with a hyphen, at least two labels required.
- * Examples: rectest001.ugent.be  projector-room101.example.com
- */
-const FQDN_REGEX =
-  /^(?!-)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
-
-const macAddressSchema = z.object({
-  address: z
-    .string()
-    .min(1, "MAC address is required")
-    .refine(
-      (v) => normalizeMacAddress(v) !== null,
-      "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)"
-    ),
-});
-
-const schema = z
-  .object({
-    typeId: z.string().min(1, "Type is required"),
-    manufacturerId: z.string().min(1, "Manufacturer is required"),
-    modelId: z.string().min(1, "Model is required"),
-    serialNumber: z.string().max(100).optional(),
-    hostname: z
-      .string()
-      .max(255)
-      .optional()
-      .refine(
-        (v) => !v || v.trim() === "" || FQDN_REGEX.test(v.trim()),
-        "Hostname must be a fully qualified domain name (e.g. device.example.com)"
-      ),
-    quantity: z.number().int().min(1, "Quantity must be at least 1"),
-    installationDate: z.string().optional(),
-    invoiceNumber: z.string().max(100).optional(),
-    invoiceDate: z.string().optional(),
-    notes: z.string().max(5000).optional(),
-    vaultPath: z.string().max(500).optional(),
-    ownerId: z.string().max(64).optional(),
-    criticality: z.string().max(20).optional(),
-    endOfSupportDate: z.string().optional(),
-    supplierId: z.string().max(64).optional(),
-    macAddresses: z.array(macAddressSchema),
-    customFields: z.array(z.object({ key: z.string(), value: z.string() })),
-  })
-  .superRefine((data, ctx) => {
-    const hostnameSet = !!data.hostname?.trim();
-    const hasValidMac = data.macAddresses.some(
-      (m) => normalizeMacAddress(m.address.trim()) !== null
-    );
-
-    // Rule: if hostname is filled, at least one MAC is required
-    if (hostnameSet && !hasValidMac) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["macAddresses"],
-        message:
-          "At least one MAC address is required when a hostname is set.",
-      });
-    }
-  });
-
-type FormData = z.infer<typeof schema>;
 
 type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: string | null };
 type Manufacturer = { id: string; name: string };
@@ -115,6 +50,73 @@ type VaultTestResult = {
   message: string;
   keys?: string[];
 };
+
+type AssetFormTranslator = ReturnType<typeof useTranslations<"assetForm">>;
+
+/** Client mirror of lib/asset-schema.ts, with translated messages and the selected type's hostname pattern. */
+function buildAssetFormSchema(t: AssetFormTranslator, assetTypes: AssetType[]) {
+  const macSchema = z.object({
+    address: z.string().min(1, t("errMacRequired")).refine(
+      (v) => normalizeMacAddress(v) !== null,
+      t("errMacInvalid")
+    ),
+  });
+  return z.object({
+    typeId: z.string().min(1, t("errTypeRequired")),
+    manufacturerId: z.string().min(1, t("errManufacturerRequired")),
+    modelId: z.string().min(1, t("errModelRequired")),
+    serialNumber: z.string().max(100).optional(),
+    hostname: z.string().max(255).optional(),
+    quantity: z.number().int().min(1, t("errQuantityMin")),
+    installationDate: z.string().optional(),
+    invoiceNumber: z.string().max(100).optional(),
+    invoiceDate: z.string().optional(),
+    notes: z.string().max(5000).optional(),
+    vaultPath: z.string().max(500).optional(),
+    ownerId: z.string().max(64).optional(),
+    criticality: z.string().max(20).optional(),
+    endOfSupportDate: z.string().optional(),
+    supplierId: z.string().max(64).optional(),
+    macAddresses: z.array(macSchema),
+    customFields: z.array(z.object({ key: z.string(), value: z.string() })),
+  }).superRefine((data, ctx) => {
+    const hostnameTrimmed = data.hostname?.trim();
+    const hostnameSet = !!hostnameTrimmed;
+    const hasValidMac = data.macAddresses.some(
+      (m) => normalizeMacAddress(m.address.trim()) !== null
+    );
+    if (hostnameSet && !hasValidMac) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["macAddresses"],
+        message: t("errMacRequiredForHostname"),
+      });
+    }
+    if (hostnameSet) {
+      const selectedType = assetTypes.find((at) => at.id === data.typeId);
+      const pattern = selectedType?.hostnamePattern;
+      if (!isHostnameCompliant(hostnameTrimmed!, pattern)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["hostname"],
+          message: pattern
+            ? t("errHostnamePattern", { typeName: selectedType?.name ?? "" })
+            : t("errHostnameFqdn"),
+        });
+      }
+    }
+    const hasIdentity = !!data.serialNumber?.trim() || hostnameSet || hasValidMac;
+    if (hasIdentity && data.quantity !== 1) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["quantity"],
+        message: t("errQuantityIdentity"),
+      });
+    }
+  });
+}
+
+type AssetFormValues = z.infer<ReturnType<typeof buildAssetFormSchema>>;
 
 type Props = {
   mode: "create" | "edit";
@@ -144,70 +146,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   // See the manufacturer-scoping effect below for what this guards against.
   const isInitialManufacturerLoadRef = useRef(true);
 
-  const validationSchema = useMemo(() => {
-    const macSchema = z.object({
-      address: z.string().min(1, t("errMacRequired")).refine(
-        (v) => normalizeMacAddress(v) !== null,
-        t("errMacInvalid")
-      ),
-    });
-    return z.object({
-      typeId: z.string().min(1, t("errTypeRequired")),
-      manufacturerId: z.string().min(1, t("errManufacturerRequired")),
-      modelId: z.string().min(1, t("errModelRequired")),
-      serialNumber: z.string().max(100).optional(),
-      hostname: z.string().max(255).optional(),
-      quantity: z.number().int().min(1, t("errQuantityMin")),
-      installationDate: z.string().optional(),
-      invoiceNumber: z.string().max(100).optional(),
-      invoiceDate: z.string().optional(),
-      notes: z.string().max(5000).optional(),
-      vaultPath: z.string().max(500).optional(),
-      ownerId: z.string().max(64).optional(),
-      criticality: z.string().max(20).optional(),
-      endOfSupportDate: z.string().optional(),
-      supplierId: z.string().max(64).optional(),
-      macAddresses: z.array(macSchema),
-      customFields: z.array(z.object({ key: z.string(), value: z.string() })),
-    }).superRefine((data, ctx) => {
-      const hostnameTrimmed = data.hostname?.trim();
-      const hostnameSet = !!hostnameTrimmed;
-      const hasValidMac = data.macAddresses.some(
-        (m) => normalizeMacAddress(m.address.trim()) !== null
-      );
-      if (hostnameSet && !hasValidMac) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["macAddresses"],
-          message: t("errMacRequiredForHostname"),
-        });
-      }
-      if (hostnameSet) {
-        const selectedType = assetTypes.find((at) => at.id === data.typeId);
-        const pattern = selectedType?.hostnamePattern;
-        const isValid = pattern
-          ? matchesHostnamePattern(hostnameTrimmed!, pattern)
-          : FQDN_REGEX.test(hostnameTrimmed!);
-        if (!isValid) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["hostname"],
-            message: pattern
-              ? t("errHostnamePattern", { typeName: selectedType?.name ?? "" })
-              : t("errHostnameFqdn"),
-          });
-        }
-      }
-      const hasIdentity = !!data.serialNumber?.trim() || hostnameSet || hasValidMac;
-      if (hasIdentity && data.quantity !== 1) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["quantity"],
-          message: t("errQuantityIdentity"),
-        });
-      }
-    });
-  }, [t, assetTypes]);
+  const validationSchema = useMemo(() => buildAssetFormSchema(t, assetTypes), [t, assetTypes]);
 
   const {
     register,
@@ -217,7 +156,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     trigger,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
+  } = useForm<AssetFormValues>({
     resolver: zodResolver(validationSchema),
     defaultValues: {
       typeId: "",
@@ -391,7 +330,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     setVaultTesting(false);
   }
 
-  async function onSubmit(data: FormData) {
+  async function onSubmit(data: AssetFormValues) {
     const payload = {
       ...data,
       typeId: data.typeId || null,

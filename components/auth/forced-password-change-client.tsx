@@ -24,7 +24,7 @@ const schema = z
     }
   });
 
-type FormData = z.infer<typeof schema>;
+type PasswordChangeValues = z.infer<typeof schema>;
 
 export function ForcedPasswordChangeClient() {
   const t = useTranslations("auth");
@@ -35,9 +35,9 @@ export function ForcedPasswordChangeClient() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  } = useForm<PasswordChangeValues>({ resolver: zodResolver(schema) });
 
-  async function onSubmit(data: FormData) {
+  async function onSubmit(data: PasswordChangeValues) {
     setServerError("");
     const res = await fetch("/api/users/me", {
       method: "PATCH",

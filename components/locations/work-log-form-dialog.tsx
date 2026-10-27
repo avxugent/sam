@@ -29,7 +29,7 @@ import { useTranslations } from "next-intl";
 import { createWorkLogSchema } from "@/lib/work-log-schema";
 import { z } from "zod";
 
-type FormData = z.infer<typeof createWorkLogSchema>;
+type WorkLogFormValues = z.infer<typeof createWorkLogSchema>;
 
 export type WorkLogAssetOption = {
   id: string;
@@ -120,7 +120,7 @@ export function WorkLogFormDialog({
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
+  } = useForm<WorkLogFormValues>({
     resolver: zodResolver(validationSchema),
     defaultValues: {
       assetId: initialData?.assetId ?? null,
@@ -162,7 +162,7 @@ export function WorkLogFormDialog({
     setValue("description", next, { shouldValidate: true });
   }
 
-  async function onSubmit(data: FormData) {
+  async function onSubmit(data: WorkLogFormValues) {
     const url =
       mode === "create"
         ? `/api/locations/${locationId}/work-logs`

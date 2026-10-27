@@ -1,93 +1,18 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { getStorageDriver } from "@/lib/storage";
-import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
-
-const ALLOWED_MIME_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/svg+xml",
-  "image/webp",
-]);
-
-const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
-const STORAGE_KEY = "branding/logo";
+import { removeBrandingAsset, uploadBrandingAsset } from "@/lib/branding-assets";
 
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  const formData = await req.formData();
-  const file = formData.get("file") as File | null;
-
-  if (!file) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
-  }
-
-  if (!ALLOWED_MIME_TYPES.has(file.type)) {
-    return NextResponse.json(
-      { error: "Invalid file type. Allowed: PNG, JPEG, SVG, WebP" },
-      { status: 400 }
-    );
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  if (buffer.length > MAX_SIZE) {
-    return NextResponse.json({ error: "File too large. Maximum size is 2 MB" }, { status: 400 });
-  }
-
-  const driver = getStorageDriver();
-  await driver.putObject(STORAGE_KEY, buffer, file.type);
-
-  await Promise.all([
-    prisma.appSetting.upsert({
-      where: { key: "branding.logoStorageKey" },
-      update: { value: STORAGE_KEY },
-      create: { key: "branding.logoStorageKey", value: STORAGE_KEY },
-    }),
-    prisma.appSetting.upsert({
-      where: { key: "branding.logoContentType" },
-      update: { value: file.type },
-      create: { key: "branding.logoContentType", value: file.type },
-    }),
-  ]);
-
-  await logAudit({
-    session,
-    req,
-    action: "UPDATE",
-    entityType: "Setting",
-    entityName: "Branding settings",
-    detail: { event: "Logo uploaded", contentType: file.type },
-  });
-
-  return NextResponse.json({ ok: true });
+  return uploadBrandingAsset(req, session, "logo");
 }
 
 export async function DELETE(req: Request) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  const driver = getStorageDriver();
-  await driver.deleteObject(STORAGE_KEY);
-
-  await Promise.all([
-    prisma.appSetting.deleteMany({ where: { key: "branding.logoStorageKey" } }),
-    prisma.appSetting.deleteMany({ where: { key: "branding.logoContentType" } }),
-  ]);
-
-  await logAudit({
-    session,
-    req,
-    action: "UPDATE",
-    entityType: "Setting",
-    entityName: "Branding settings",
-    detail: { event: "Logo removed" },
-  });
-
-  return NextResponse.json({ ok: true });
+  return removeBrandingAsset(req, session, "logo");
 }

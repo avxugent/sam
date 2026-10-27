@@ -26,8 +26,7 @@ type Props = {
 
 /**
  * Strict picker over the fixed Model list, scoped by type/manufacturer when
- * given. Unlike the old free-text version, there is no "create new" option —
- * models are admin-managed (see /admin/models); an asset/stock item with
+ * given. There is no "create new" option — models are admin-managed (see /admin/models); an asset/stock item with
  * unlisted hardware blocks here until an admin adds the model first.
  */
 export function ModelAutocomplete({

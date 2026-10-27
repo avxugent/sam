@@ -31,7 +31,7 @@ import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
 import { Loader2, MapPin, Search, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-type FormData = {
+type StockItemFormValues = {
   typeId: string;
   manufacturerId?: string;
   modelId: string;
@@ -151,7 +151,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     trigger,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
+  } = useForm<StockItemFormValues>({
     resolver: zodResolver(validationSchema),
     defaultValues: {
       quantity: initialData?.quantity ?? 1,
@@ -237,7 +237,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     }
   }
 
-  async function onSubmit(data: FormData) {
+  async function onSubmit(data: StockItemFormValues) {
     const url = mode === "create" ? "/api/stock" : `/api/stock/${itemId}`;
     const method = mode === "create" ? "POST" : "PUT";
 

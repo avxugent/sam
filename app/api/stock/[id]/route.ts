@@ -3,23 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { normalizeMacAddress } from "@/lib/mac-address";
+import { MAX_MAC_ADDRESSES, macAddressField } from "@/lib/mac-address";
 import { canEdit } from "@/lib/permissions";
-
-const MAX_MAC_ADDRESSES = 20;
-
-// Same normalization as the asset API and the create route.
-const macAddressField = z.string().transform((v, ctx) => {
-  const normalized = normalizeMacAddress(v);
-  if (normalized === null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
-    });
-    return z.NEVER;
-  }
-  return normalized;
-});
 
 const updateSchema = z
   .object({

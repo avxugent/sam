@@ -48,7 +48,7 @@ const schema = z.object({
   country: z.string().max(100).optional(),
 });
 
-type FormData = z.infer<typeof schema>;
+type LocationFormValues = z.infer<typeof schema>;
 
 /**
  * Auto-inserts dots as the user types: 14 → 14. → 14.10 → 14.10. → ...
@@ -131,7 +131,7 @@ export function LocationFormDialog({
     setValue,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
+  } = useForm<LocationFormValues>({
     resolver: zodResolver(validationSchema),
     defaultValues: {
       name: initialData?.name || "",
@@ -152,7 +152,7 @@ export function LocationFormDialog({
     setValue("fiNumber", formatted, { shouldValidate: true });
   }
 
-  async function onSubmit(data: FormData) {
+  async function onSubmit(data: LocationFormValues) {
     const url =
       mode === "create" ? "/api/locations" : `/api/locations/${locationId}`;
     const method = mode === "create" ? "POST" : "PUT";

@@ -28,17 +28,17 @@ export function matchesHostnamePattern(hostname: string, pattern: string | null 
 }
 
 /**
- * Generic FQDN check applied to a hostname when its asset type has no
- * configured pattern. Kept in sync with the copies in the asset create/update
- * routes.
+ * Generic RFC-1123 FQDN check applied to a hostname when its asset type has no
+ * configured pattern: dot-separated labels of 1-63 alphanumerics/hyphens, no
+ * leading/trailing hyphen, alphabetic TLD (e.g. projector-room101.example.com).
  */
 export const HOSTNAME_FQDN_REGEX =
   /^(?!-)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
 
 /**
  * Whether a hostname is compliant for an asset type: its configured pattern
- * when one is set, otherwise the generic FQDN check. Mirrors the pattern-or-FQDN
- * branch enforced in the asset create/update routes.
+ * when one is set, otherwise the generic FQDN check. Used by the asset API
+ * routes, the asset form and the hostname compliance report.
  */
 export function isHostnameCompliant(hostname: string, pattern: string | null | undefined): boolean {
   return pattern ? matchesHostnamePattern(hostname, pattern) : HOSTNAME_FQDN_REGEX.test(hostname);

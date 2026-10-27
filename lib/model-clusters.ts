@@ -11,9 +11,7 @@ export type ModelClusterItem = ModelCountRow & {
 /**
  * Every Model row, annotated with its own asset/stock usage count and
  * type/manufacturer names — feeds the admin "possible duplicates" panel on
- * /admin/models. Unlike the old free-text version of this helper, no raw SQL
- * is needed: `model` is a real lookup table now, so there's no collation
- * concern to work around.
+ * /admin/models.
  */
 export async function getModelItems(): Promise<ModelClusterItem[]> {
   const models = await prisma.model.findMany({

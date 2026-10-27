@@ -26,6 +26,7 @@ import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { escapeCsvCell } from "@/lib/csv";
 import { SortableTh } from "@/components/ui/sortable-th";
+import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
@@ -92,9 +93,9 @@ export function AssetTable({
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<SortCol | null>("type");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const { selected, setSelected, toggleAll, toggleRow: toggleSelectRow, allSelectedIn, someSelectedIn } = useRowSelection();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDecommissionOpen, setBulkDecommissionOpen] = useState(false);
   const [bulkReturnToStockOpen, setBulkReturnToStockOpen] = useState(false);
   const canEdit = permissions.canEdit(userRole);
@@ -105,7 +106,7 @@ export function AssetTable({
   useEffect(() => {
     setAssets(initialAssets);
     setSelected((prev) => new Set([...prev].filter((id) => initialAssets.some((a) => a.id === id))));
-  }, [initialAssets]);
+  }, [initialAssets, setSelected]);
 
   function handleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -113,7 +114,7 @@ export function AssetTable({
     setPage(1);
   }
 
-  useEffect(() => { setPage(1); setSelected(new Set()); }, [search]);
+  useEffect(() => { setPage(1); setSelected(new Set()); }, [search, setSelected]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -144,34 +145,15 @@ export function AssetTable({
     });
   }, [filtered, sortCol, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const paginated = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const { totalPages, safePage, pageRows: paginated } = paginate(sorted, page, pageSize);
 
   function handleRemoved(id: string) {
     setAssets((prev) => prev.filter((a) => a.id !== id));
     router.refresh();
   }
 
-  function toggleSelectAll() {
-    setSelected((prev) =>
-      filtered.length > 0 && filtered.every((a) => prev.has(a.id))
-        ? new Set()
-        : new Set(filtered.map((a) => a.id))
-    );
-  }
-
-  function toggleSelectRow(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  const allFilteredSelected = filtered.length > 0 && filtered.every((a) => selected.has(a.id));
-  const someFilteredSelected = !allFilteredSelected && filtered.some((a) => selected.has(a.id));
+  const allFilteredSelected = allSelectedIn(filtered);
+  const someFilteredSelected = someSelectedIn(filtered);
 
   function handleBulkComplete(
     action: "decommission" | "returnToStock",
@@ -267,7 +249,7 @@ export function AssetTable({
                 <th scope="col" className="w-[36px] px-4 py-[10px]">
                   <Checkbox
                     checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
-                    onCheckedChange={toggleSelectAll}
+                    onCheckedChange={() => toggleAll(filtered)}
                     aria-label={t("selectAllRows")}
                   />
                 </th>

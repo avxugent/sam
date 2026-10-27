@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit-diff";
-import { updateWorkLogSchema } from "@/lib/schemas/work-log";
+import { updateWorkLogSchema, WORK_LOG_INCLUDE } from "@/lib/schemas/work-log";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 import { toIsoDay } from "@/lib/utils";
@@ -18,20 +18,7 @@ export async function GET(
   const { id } = await params;
   const log = await prisma.workLog.findUnique({
     where: { id },
-    include: {
-      performedBy: { select: { id: true, name: true, email: true } },
-      item: { select: { id: true, name: true } },
-      asset: {
-        select: {
-          id: true,
-          model: { select: { name: true } },
-          serialNumber: true,
-          hostname: true,
-          type: { select: { id: true, name: true } },
-        },
-      },
-      location: { select: { id: true, name: true } },
-    },
+    include: { ...WORK_LOG_INCLUDE, location: { select: { id: true, name: true } } },
   });
 
   if (!log) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -71,19 +58,7 @@ export async function PUT(
       ...(data.description !== undefined ? { description: data.description ?? "" } : {}),
       ...(data.jiraIssueKey !== undefined ? { jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null } : {}),
     },
-    include: {
-      performedBy: { select: { id: true, name: true, email: true } },
-      item: { select: { id: true, name: true } },
-      asset: {
-        select: {
-          id: true,
-          model: { select: { name: true } },
-          serialNumber: true,
-          hostname: true,
-          type: { select: { id: true, name: true } },
-        },
-      },
-    },
+    include: WORK_LOG_INCLUDE,
   });
 
   const changes = auditChanges([

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { createWorkLogSchema } from "@/lib/schemas/work-log";
+import { createWorkLogSchema, WORK_LOG_INCLUDE } from "@/lib/schemas/work-log";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
@@ -16,19 +16,7 @@ export async function GET(
   const { id } = await params;
   const logs = await prisma.workLog.findMany({
     where: { locationId: id },
-    include: {
-      performedBy: { select: { id: true, name: true, email: true } },
-      item: { select: { id: true, name: true } },
-      asset: {
-        select: {
-          id: true,
-          model: { select: { name: true } },
-          serialNumber: true,
-          hostname: true,
-          type: { select: { id: true, name: true } },
-        },
-      },
-    },
+    include: WORK_LOG_INCLUDE,
     orderBy: [{ performedAt: "desc" }, { createdAt: "desc" }],
   });
 
@@ -68,19 +56,7 @@ export async function POST(
       description: data.description ?? "",
       jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null,
     },
-    include: {
-      performedBy: { select: { id: true, name: true, email: true } },
-      item: { select: { id: true, name: true } },
-      asset: {
-        select: {
-          id: true,
-          model: { select: { name: true } },
-          serialNumber: true,
-          hostname: true,
-          type: { select: { id: true, name: true } },
-        },
-      },
-    },
+    include: WORK_LOG_INCLUDE,
   });
 
   const assetName = created.asset

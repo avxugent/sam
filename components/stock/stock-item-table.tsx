@@ -41,6 +41,7 @@ import type { Role } from "@/lib/permissions";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { toIsoDay } from "@/lib/utils";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
+import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
@@ -83,9 +84,9 @@ export function StockItemTable({
   const [sortCol, setSortCol] = useState<SortCol>("type");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
+  const { selected, setSelected, toggleAll, toggleRow: toggleSelectRow, allSelectedIn, someSelectedIn } = useRowSelection();
   const [page, setPage] = useState(1);
   const [deployItem, setDeployItem] = useState<StockItem | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkRelocateOpen, setBulkRelocateOpen] = useState(false);
 
   const canEdit = permissions.canEdit(userRole);
@@ -93,7 +94,7 @@ export function StockItemTable({
   useEffect(() => {
     setItems(initialItems);
     setSelected((prev) => new Set([...prev].filter((id) => initialItems.some((i) => i.id === id))));
-  }, [initialItems]);
+  }, [initialItems, setSelected]);
 
   function toggleSort(col: SortCol) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -124,29 +125,10 @@ export function StockItemTable({
     });
   }, [filtered, sortCol, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const paginated = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const { totalPages, safePage, pageRows: paginated } = paginate(sorted, page, pageSize);
 
-  function toggleSelectAll() {
-    setSelected((prev) =>
-      filtered.length > 0 && filtered.every((i) => prev.has(i.id))
-        ? new Set()
-        : new Set(filtered.map((i) => i.id))
-    );
-  }
-
-  function toggleSelectRow(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  const allFilteredSelected = filtered.length > 0 && filtered.every((i) => selected.has(i.id));
-  const someFilteredSelected = !allFilteredSelected && filtered.some((i) => selected.has(i.id));
+  const allFilteredSelected = allSelectedIn(filtered);
+  const someFilteredSelected = someSelectedIn(filtered);
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/stock/${id}`, { method: "DELETE" });
@@ -209,7 +191,7 @@ export function StockItemTable({
                 <th className="px-3 py-2.5 w-[36px]">
                   <Checkbox
                     checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
-                    onCheckedChange={toggleSelectAll}
+                    onCheckedChange={() => toggleAll(filtered)}
                     aria-label={t("selectAllRows")}
                   />
                 </th>

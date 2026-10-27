@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, createElement } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -168,7 +168,6 @@ export function AssetDetailClient({
   }
 
   const displayName = asset.model?.name || asset.serialNumber || t("unnamedAsset");
-  const AssetTypeIcon = getAssetTypeIcon(asset.type?.name);
 
   return (
     <div className="space-y-6">
@@ -269,7 +268,7 @@ export function AssetDetailClient({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3 min-w-0">
           <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-            <AssetTypeIcon className="h-4 w-4 text-[#1e64c8]" />
+            {createElement(getAssetTypeIcon(asset.type?.name), { className: "h-4 w-4 text-[#1e64c8]" })}
           </div>
           <div>
             <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">{displayName}</h1>

@@ -204,7 +204,9 @@
     "bulkReturnToStockConfirmTitle": "Return {count} assets to stock?",
     "bulkReturnToStockConfirmDescription": "This will delete the selected assets and add them back to the stock inventory. Asset-specific data (hostname, MAC addresses, custom fields, attachments) will be permanently lost. Assets that can't be returned (already decommissioned, missing type/model) are skipped and listed.",
     "bulkReturnToStockResultsTitle": "Return to stock results",
-    "bulkReturnToStockSuccessToast": "{count, plural, =1 {# asset returned to stock} other {# assets returned to stock}}"
+    "bulkReturnToStockSuccessToast": "{count, plural, =1 {# asset returned to stock} other {# assets returned to stock}}",
+    "noAssetsFound": "No assets found",
+    "drilldownCaption": "Assets: {name}"
   },
   "assetForm": {
     "createTitle": "Create asset",

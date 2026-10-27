@@ -2,45 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { AssetDrilldownDialog } from "@/components/admin/asset-drilldown-dialog";
 
 type Manufacturer = {
   id: string;
   name: string;
   _count: { assets: number };
-};
-
-type DrilldownAsset = {
-  id: string;
-  model?: { id: string; name: string } | null;
-  serialNumber?: string | null;
-  hostname?: string | null;
-  installationDate?: string | null;
-  location: { id: string; name: string } | null;
-  type: { name: string } | null;
 };
 
 type MergeConflict = {
@@ -66,24 +39,15 @@ export function ManufacturersClient({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
 
-  // Drilldown dialog
-  const [drilldownItem, setDrilldownItem] = useState<Manufacturer | null>(null);
-  const [drilldownAssets, setDrilldownAssets] = useState<DrilldownAsset[]>([]);
-  const [drilldownLoading, setDrilldownLoading] = useState(false);
+  // Drilldown dialog — the catalog entry whose assets are listed
+  const [drilldown, setDrilldown] = useState<{ name: string; url: string } | null>(null);
 
   // Merge conflict AlertDialog (programmatically controlled)
   const [mergeConflict, setMergeConflict] = useState<MergeConflict | null>(null);
   const [merging, setMerging] = useState(false);
 
-  async function openDrilldown(item: Manufacturer) {
-    setDrilldownItem(item);
-    setDrilldownAssets([]);
-    setDrilldownLoading(true);
-    const res = await fetch(`/api/manufacturers/${item.id}/assets`);
-    setDrilldownLoading(false);
-    if (res.ok) {
-      setDrilldownAssets(await res.json());
-    }
+  function openDrilldown(item: { id: string; name: string }) {
+    setDrilldown({ name: item.name, url: `/api/manufacturers/${item.id}/assets` });
   }
 
   async function handleAdd() {
@@ -291,75 +255,7 @@ export function ManufacturersClient({
       </div>
 
       {/* Asset drilldown dialog */}
-      <Dialog
-        open={!!drilldownItem}
-        onOpenChange={(open) => { if (!open) setDrilldownItem(null); }}
-      >
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>
-              {drilldownItem?.name}
-              {!drilldownLoading && (
-                <span className="font-normal text-muted-foreground ml-2">
-                  — {drilldownAssets.length} asset{drilldownAssets.length !== 1 ? "s" : ""}
-                </span>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          {drilldownLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="overflow-auto max-h-[60vh]">
-              <table className="w-full text-sm">
-                <caption className="sr-only">Assets from {drilldownItem?.name}</caption>
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Location</th>
-                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Type</th>
-                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
-                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Serial #</th>
-                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Hostname</th>
-                    <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Installed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {drilldownAssets.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="text-center py-8 text-muted-foreground">No assets found</td>
-                    </tr>
-                  ) : (
-                    drilldownAssets.map((asset, i) => (
-                      <tr
-                        key={asset.id}
-                        className={`border-b last:border-0 hover:bg-muted/30 ${i % 2 !== 0 ? "bg-muted/10" : ""}`}
-                      >
-                        <td className="px-3 py-2">
-                          {asset.location ? (
-                            <Link href={`/locations/${asset.location.id}`} className="hover:text-primary">
-                              {asset.location.name}
-                            </Link>
-                          ) : "—"}
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground">
-                          {asset.type ? (
-                            <Badge variant="outline" className="text-xs">{asset.type.name}</Badge>
-                          ) : "—"}
-                        </td>
-                        <td className="px-3 py-2 font-medium">{asset.model?.name || "—"}</td>
-                        <td className="px-3 py-2 text-muted-foreground font-mono text-xs">{asset.serialNumber || "—"}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{asset.hostname || "—"}</td>
-                        <td className="px-3 py-2 text-muted-foreground text-xs">{formatDate(asset.installationDate)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <AssetDrilldownDialog source={drilldown} column="type" onClose={() => setDrilldown(null)} />
 
       {/* Merge conflict dialog (programmatically opened) */}
       <AlertDialog open={!!mergeConflict} onOpenChange={(open) => { if (!open) setMergeConflict(null); }}>

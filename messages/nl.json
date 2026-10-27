@@ -204,7 +204,9 @@
     "bulkReturnToStockConfirmTitle": "{count} assets terugzetten naar stock?",
     "bulkReturnToStockConfirmDescription": "Dit verwijdert de geselecteerde assets en plaatst ze terug in de stockinventaris. Asset-specifieke gegevens (hostnaam, MAC-adressen, aangepaste velden, bijlagen) gaan permanent verloren. Assets die niet kunnen worden teruggezet (al buiten dienst, geen type/model) worden overgeslagen en vermeld.",
     "bulkReturnToStockResultsTitle": "Resultaat terugzetten naar stock",
-    "bulkReturnToStockSuccessToast": "{count, plural, =1 {# asset teruggezet naar stock} other {# assets teruggezet naar stock}}"
+    "bulkReturnToStockSuccessToast": "{count, plural, =1 {# asset teruggezet naar stock} other {# assets teruggezet naar stock}}",
+    "noAssetsFound": "Geen assets gevonden",
+    "drilldownCaption": "Assets: {name}"
   },
   "assetForm": {
     "createTitle": "Asset aanmaken",

@@ -46,7 +46,6 @@ export default async function RootLayout({
   return (
     <html lang={locale} translate="no" className="h-full" suppressHydrationWarning>
       <body className="h-full antialiased">
-        {/* eslint-disable-next-line @next/next/no-before-interactive-script-outside-document */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <ThemeProvider>
           <NextIntlClientProvider locale={locale} messages={messages}>

@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { buildInventorySnapshot } from "@/lib/inventory-snapshot";
-import { checkExportToken } from "@/lib/export-token";
+import { checkExportToken } from "@/lib/tokens/export";
 import { logAudit } from "@/lib/audit";
 import { toIsoDay } from "@/lib/utils";
 

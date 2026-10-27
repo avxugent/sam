@@ -36,7 +36,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
-import { hasBearerToken } from "@/lib/bearer-token";
+import { hasBearerToken } from "@/lib/tokens/bearer";
 import {
   resolveLocationPath,
   buildLocationPathString,

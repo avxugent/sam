@@ -59,25 +59,31 @@ SAMproject/
 │   ├── admin/                # Clients for the /admin pages (users, types, manufacturers, …)
 │   ├── settings/             # Per-user profile client
 │   ├── stock/                # Stock management
+│   ├── inventory/            # Widgets shared by assets, stock and locations (pickers, MAC fields)
+│   ├── compliance/           # Hostname compliance + NIS2 dashboards
 │   ├── reports/              # Report builder/viewer
 │   └── import/               # CSV import wizard
 ├── lib/                      # Shared utilities
 │   ├── auth.ts               # NextAuth config + ssoEnabled flag
 │   ├── permissions.ts        # Role predicates (isAdmin, canManageCatalog, canEdit)
 │   ├── route-helpers.ts      # readJsonBody, invalidInput, Prisma error checks
-│   ├── bearer-token.ts       # Constant-time Bearer token check
 │   ├── prisma.ts             # PrismaClient singleton
-│   ├── audit.ts              # Audit log writer + syslog forwarder
+│   ├── app-settings.ts       # readSettings / writeSettings (AppSetting table)
 │   ├── vault.ts              # HashiCorp Vault client
 │   ├── scrape-template.ts    # Prometheus label template renderer
 │   ├── storage.ts            # File upload abstraction (local/S3)
 │   ├── branding-assets.ts    # Logo/favicon/background serve + upload
 │   ├── location-path.ts      # Location tree helpers + recursive CTEs
 │   ├── jira.ts               # JIRA API client
-│   ├── syslog.ts             # RFC 5424 syslog client
 │   ├── rate-limit.ts         # In-memory rate limiter
 │   ├── utils.ts              # cn() utility (clsx + tailwind-merge)
-│   ├── schemas/              # Zod schemas shared by routes and forms
+│   ├── assets/               # Lifecycle rules, state transitions, creation defaults, type icons
+│   ├── audit/                # logAudit, audit diffs, login-failure audit, RFC 5424 syslog client
+│   ├── csv/                  # CSV core, inventory export, import row parsing
+│   ├── models/               # Model clustering + name similarity
+│   ├── suppliers/            # Default-window rules + conflict lookup
+│   ├── tokens/               # Constant-time Bearer check, integration + export tokens
+│   ├── schemas/              # Zod schemas shared by routes and forms (no DB code)
 │   ├── hostname/             # Hostname rules, URL templates, compliance
 │   ├── reports/              # Report query executor + definition types
 │   └── two-factor/           # TOTP (RFC 6238 on node:crypto), passkeys, remember-device

@@ -66,7 +66,10 @@ app/
   (dashboard)/     — protected layout: sidebar + top nav header
     admin/         — admin sub-pages (users, asset-types, manufacturers, models, suppliers, import, export, audit, compliance, settings)
     locations/     — location detail + asset detail pages
-    stock/         — stock items; decommissioned/ and in-repair/ list assets in those states
+    stock/         — stock items
+    decommissioned/ — decommissioned assets
+    in-repair/     — assets sent for repair
+    import/        — CSV import
     reports/       — saved report builder + viewer
     settings/      — per-user profile (password, 2FA, passkeys)
     search/        — full-text search results
@@ -82,8 +85,14 @@ lib/               — shared utilities
   vault.ts         — HashiCorp Vault KV client (native fetch, no extra deps)
   scrape-template.ts — Prometheus scrape URL template renderer
   location-path.ts — location tree helpers (ancestorChain, recursive CTEs)
-  bearer-token.ts  — constant-time Bearer check; used by prometheus-auth.ts and export-token.ts
-  schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …)
+  app-settings.ts  — readSettings / writeSettings for the AppSetting key/value table
+  assets/          — lifecycle rules (pure), state transitions (writes + audit), creation defaults, type icons
+  audit/           — logAudit (index), audit diffs, login-failure audit, syslog forwarding
+  csv/             — CSV cell/parse core, inventory export, import row parsing
+  models/          — model clustering + name similarity
+  suppliers/       — default-window rules and conflict lookup
+  tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), export token
+  schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …); no DB code
   hostname/        — hostname pattern/FQDN rules, URL templates, compliance report
   reports/         — report engine + definition types
   two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy
@@ -91,11 +100,13 @@ components/
   layout/          — Sidebar (locations only) + Header (search + admin + user)
   ui/              — shadcn-style primitives (Button, Input, Dialog, …)
   assets/          — AssetFormDialog, AssetTable, AssetDetailClient, decommissioned/in-repair tables
+  inventory/       — widgets shared by assets, stock and locations (location pickers, MAC fields, bulk results)
   locations/       — LocationFormDialog, LocationDetailClient, LocationMap, CoverImagePicker
   attachments/     — AttachmentGallery
   admin/           — clients for the /admin pages (UsersClient, AssetTypesClient, ManufacturersClient, …)
   settings/        — ProfileClient (per-user settings)
   stock/           — stock item table and dialogs
+  compliance/      — hostname compliance + NIS2 dashboards
   reports/         — report builder, viewers, list
   search/          — SearchResults
   import/          — CsvImportClient
@@ -126,7 +137,7 @@ prisma/
 - **SSO users** have `passwordHash = null`. The `Credentials` provider rejects them. The `PUT /api/users/[id]` route rejects password changes for SSO accounts.
 - **Roles**: `ADMIN > MAINTAINER > EDITOR > VIEWER` (Prisma `Role` enum; `session.user.role` is typed as `Role`). Viewers cannot write. Editors write inventory data (locations, assets, stock, work logs, reports). Maintainers additionally manage the catalog (manufacturers, models, suppliers). Admins can do everything, including users, asset types, settings, import/export and audit. Check roles only through the predicates in `lib/permissions.ts` (`isAdmin`, `canManageCatalog`, `canEdit`) — never compare role strings inline.
 - Every API route handler performs its own auth check — do not rely solely on `proxy.ts`. The proxy is a redirect guard, not an authorization boundary.
-- The Prometheus and Grafana endpoints (`/api/prometheus/*`, `/api/grafana/*`) use Bearer token auth (`PROMETHEUS_SD_TOKEN`), not session cookies, and `/api/assets/by-hostname` accepts either. They are exempted from the proxy session redirect; their route handlers authenticate themselves (`checkPrometheusAuth(req)` / `hasBearerToken`).
+- The Prometheus and Grafana endpoints (`/api/prometheus/*`, `/api/grafana/*`) use Bearer token auth (`PROMETHEUS_SD_TOKEN`), not session cookies, and `/api/assets/by-hostname` accepts either. They are exempted from the proxy session redirect; their route handlers authenticate themselves (`checkIntegrationToken(req)` from `lib/tokens/integration.ts` / `hasBearerToken`).
 
 ---
 
@@ -183,7 +194,7 @@ prisma/
 - `/api/prometheus/metrics` — Prometheus text format inventory metrics. No `prom-client` dependency — the format is built as a plain string.
 - `/api/assets/by-hostname` — Grafana Infinity datasource lookup. Accepts session cookie OR Bearer token.
 - Template syntax: newline-separated `key=value` pairs. Variables: `{hostname_fqdn}`, `{serial}`, `{model}`, `{manufacturer}`, `{fi_number}`, `{vault_path}` (the asset's Vault path reference, never the secret itself). Validated server-side via `validateTemplate()` in `lib/scrape-template.ts`.
-- Vault client (`lib/vault.ts`) uses native `fetch`. Returns `null` on any error — never throws. Vault errors must not crash the SD endpoint for all targets.
+- Vault client (`lib/vault.ts`) uses native `fetch`. Returns `null` on any error — never throws. It backs the admin connectivity check (`/api/vault/test`); the SD endpoint only passes the non-secret `{vault_path}` reference and never reads Vault.
 
 ---
 

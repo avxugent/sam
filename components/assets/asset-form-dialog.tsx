@@ -28,13 +28,13 @@ import { ModelAutocomplete } from "@/components/model-autocomplete";
 import { cn, toIsoDay } from "@/lib/utils";
 import { isHostnameCompliant } from "@/lib/hostname/pattern";
 import { normalizeMacAddress } from "@/lib/mac-address";
-import { isWindowActive } from "@/lib/supplier-window";
+import { isWindowActive } from "@/lib/suppliers/window";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { Loader2, Plus, Trash2, KeyRound, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
-import { MacAddressFields } from "@/components/assets/mac-address-fields";
-import { useTypeScopedManufacturers } from "@/components/assets/use-type-scoped-manufacturers";
+import { MacAddressFields } from "@/components/inventory/mac-address-fields";
+import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
 
 
 type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: string | null };

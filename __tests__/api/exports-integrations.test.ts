@@ -7,7 +7,7 @@ vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: { report: { findUnique: vi.fn() } },
 }));
-vi.mock("@/lib/csv-export", () => ({ generateExportCsv: vi.fn() }));
+vi.mock("@/lib/csv/export", () => ({ generateExportCsv: vi.fn() }));
 vi.mock("@/lib/reports/engine", () => ({ runReport: vi.fn() }));
 vi.mock("@/lib/jira", () => ({
   isJiraConfigured: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock("@/lib/jira", () => ({
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generateExportCsv } from "@/lib/csv-export";
+import { generateExportCsv } from "@/lib/csv/export";
 import { runReport } from "@/lib/reports/engine";
 import { isJiraConfigured, isValidJiraKey, fetchJiraIssue } from "@/lib/jira";
 

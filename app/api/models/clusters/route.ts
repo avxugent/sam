@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getModelClusters } from "@/lib/model-clusters";
+import { getModelClusters } from "@/lib/models/clusters";
 import { canManageCatalog } from "@/lib/permissions";
 
 export async function GET() {

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { validateTemplate } from "@/lib/scrape-template";
 import { validateHostnamePattern } from "@/lib/hostname/pattern";
 import { logAudit } from "@/lib/audit";
-import { auditChanges } from "@/lib/audit-diff";
+import { auditChanges } from "@/lib/audit/diff";
 import { Criticality } from "@/generated/prisma/enums";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";

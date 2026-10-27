@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 import { flattenLocations, type LocationTreeNode, collectSubtreeIds, type FlatLocation } from "@/lib/location-tree";
-import { LocationSearchList } from "@/components/locations/location-search-list";
+import { LocationSearchList } from "@/components/inventory/location-search-list";
 
 type Props = {
   open: boolean;

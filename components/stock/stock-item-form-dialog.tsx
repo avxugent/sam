@@ -18,9 +18,9 @@ import { normalizeMacAddress } from "@/lib/mac-address";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
-import { MacAddressFields } from "@/components/assets/mac-address-fields";
-import { useTypeScopedManufacturers } from "@/components/assets/use-type-scoped-manufacturers";
-import { StockLocationPicker } from "@/components/stock/stock-location-picker";
+import { MacAddressFields } from "@/components/inventory/mac-address-fields";
+import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
+import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 
 type StockItemFormValues = {
   typeId: string;

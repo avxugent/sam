@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { auditChanges } from "@/lib/audit-diff";
+import { auditChanges } from "@/lib/audit/diff";
 import { isAdmin, Role } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 

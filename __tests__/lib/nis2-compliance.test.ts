@@ -14,14 +14,14 @@ vi.mock("@/lib/reports/engine", () => ({
   __esModule: true,
   runLocationReport: vi.fn(),
 }));
-vi.mock("@/lib/syslog", () => ({
+vi.mock("@/lib/audit/syslog", () => ({
   __esModule: true,
   isSyslogConfigured: vi.fn(),
 }));
 
 import { prisma } from "@/lib/prisma";
 import { runLocationReport } from "@/lib/reports/engine";
-import { isSyslogConfigured } from "@/lib/syslog";
+import { isSyslogConfigured } from "@/lib/audit/syslog";
 import { computeNis2Compliance, computeNis2Counts } from "@/lib/nis2-compliance";
 
 const mockAssetCount = vi.mocked(prisma.asset.count);

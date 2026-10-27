@@ -162,7 +162,7 @@ The proxy:
 Authorization: Bearer <PROMETHEUS_SD_TOKEN>
 ```
 
-These endpoints are exempted from the session proxy and must authenticate in their route handlers — `checkPrometheusAuth(req)` for the token-only routes, `hasBearerToken(req, process.env.PROMETHEUS_SD_TOKEN)` (`lib/bearer-token.ts`, constant-time) alongside `auth()` for by-hostname.
+These endpoints are exempted from the session proxy and must authenticate in their route handlers — `checkIntegrationToken(req)` for the token-only routes, `hasBearerToken(req, process.env.PROMETHEUS_SD_TOKEN)` (`lib/tokens/bearer.ts`, constant-time) alongside `auth()` for by-hostname.
 
 If `PROMETHEUS_SD_TOKEN` is not set, the endpoints return HTTP 503.
 

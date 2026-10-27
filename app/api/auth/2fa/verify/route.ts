@@ -18,7 +18,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIp, tooManyAttempts } from "@/lib/request-limits";
-import { auditLoginFailure } from "@/lib/login-audit";
+import { auditLoginFailure } from "@/lib/audit/login";
 import { setRememberMeCookie } from "@/lib/two-factor/remember-device";
 import { z } from "zod";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";

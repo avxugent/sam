@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { auditChanges } from "@/lib/audit-diff";
+import { auditChanges } from "@/lib/audit/diff";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";

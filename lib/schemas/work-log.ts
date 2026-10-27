@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { Prisma } from "@/generated/prisma/client";
 
 const JIRA_KEY_REGEX = /^[A-Z][A-Z0-9_]+-\d+$/;
 
@@ -42,18 +41,3 @@ export const createPresetSchema = z.object({
 });
 
 export const updatePresetSchema = createPresetSchema.partial();
-
-/** Relations returned with every work log entry by the work-log API routes. */
-export const WORK_LOG_INCLUDE = {
-  performedBy: { select: { id: true, name: true, email: true } },
-  item: { select: { id: true, name: true } },
-  asset: {
-    select: {
-      id: true,
-      model: { select: { name: true } },
-      serialNumber: true,
-      hostname: true,
-      type: { select: { id: true, name: true } },
-    },
-  },
-} satisfies Prisma.WorkLogInclude;

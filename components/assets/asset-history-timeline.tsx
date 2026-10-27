@@ -26,7 +26,7 @@ function parseDetail(raw: string | null): Record<string, unknown> | null {
  * writes share the generic CREATE/UPDATE/DELETE actions, so the specific
  * event (e.g. deploy vs. manual create) is disambiguated by sniffing the
  * `detail` JSON keys each lifecycle route already writes — see
- * lib/asset-lifecycle.ts and the various asset/stock API routes.
+ * lib/assets/lifecycle-rules.ts and the various asset/stock API routes.
  */
 export function historyLabelKey(entry: AuditLogEntry): string {
   const detail = parseDetail(entry.detail);

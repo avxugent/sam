@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { useTypeScopedManufacturers } from "@/components/assets/use-type-scoped-manufacturers";
+import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
 
 type Pending = { url: string; resolve: (list: { id: string; name: string }[]) => void };
 let pending: Pending[] = [];

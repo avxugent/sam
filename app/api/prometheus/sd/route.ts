@@ -48,7 +48,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { checkPrometheusAuth } from "@/lib/prometheus-auth";
+import { checkIntegrationToken } from "@/lib/tokens/integration";
 import { auth } from "@/lib/auth";
 import {
   resolveLocationPath,
@@ -72,7 +72,7 @@ function safeLabel(value: string | null | undefined): string {
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!isAdmin(session?.user?.role)) {
-    const authError = checkPrometheusAuth(req);
+    const authError = checkIntegrationToken(req);
     if (authError) return authError;
   }
 

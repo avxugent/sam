@@ -33,7 +33,7 @@ function getArg(flag, defaultValue = null) {
 const dryRun = process.argv.includes("--dry-run");
 const batchSize = parseInt(getArg("--batch", "1000"), 10) || 1000;
 
-// ── RFC 5424 formatter (mirrors lib/syslog.ts) ───────────────────────────────
+// ── RFC 5424 formatter (mirrors lib/audit/syslog.ts) ───────────────────────────────
 
 const SEVERITY_INFO = 6;
 

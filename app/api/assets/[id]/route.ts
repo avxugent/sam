@@ -5,7 +5,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { isHostnameCompliant } from "@/lib/hostname/pattern";
 import { updateAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
-import { auditChanges, type FieldChange } from "@/lib/audit-diff";
+import { auditChanges, type FieldChange } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 import { toIsoDay } from "@/lib/utils";

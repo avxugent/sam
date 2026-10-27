@@ -3,14 +3,14 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
-vi.mock("@/lib/csv-export", () => ({
+vi.mock("@/lib/csv/export", () => ({
   generateDecommissionedCsv: vi.fn(),
   generateStockCsv: vi.fn(),
 }));
 vi.mock("@/lib/hostname/compliance", () => ({ computeHostnameCompliance: vi.fn() }));
 
 import { auth } from "@/lib/auth";
-import { generateDecommissionedCsv, generateStockCsv } from "@/lib/csv-export";
+import { generateDecommissionedCsv, generateStockCsv } from "@/lib/csv/export";
 import { computeHostnameCompliance } from "@/lib/hostname/compliance";
 
 import { GET as exportDecommissioned } from "@/app/api/export/decommissioned/route";

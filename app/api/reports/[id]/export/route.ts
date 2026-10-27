@@ -6,7 +6,7 @@ import { parseReportDefinition } from "@/lib/schemas/report";
 import { csvDownload } from "@/lib/route-helpers";
 import { isLocationReport } from "@/lib/reports/types";
 import type { ColumnKey } from "@/lib/reports/types";
-import { escapeCsvCell } from "@/lib/csv";
+import { escapeCsvCell } from "@/lib/csv/core";
 
 const COLUMN_LABELS: Record<ColumnKey, string> = {
   model: "Model",

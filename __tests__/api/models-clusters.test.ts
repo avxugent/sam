@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/model-clusters", () => ({
+vi.mock("@/lib/models/clusters", () => ({
   getModelClusters: vi.fn(),
 }));
 
@@ -8,7 +8,7 @@ vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
 }));
 
-import { getModelClusters } from "@/lib/model-clusters";
+import { getModelClusters } from "@/lib/models/clusters";
 import { auth } from "@/lib/auth";
 import { GET } from "@/app/api/models/clusters/route";
 

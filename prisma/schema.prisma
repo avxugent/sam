@@ -276,7 +276,7 @@ model Asset {
   // Stable identity that survives Asset <-> StockItem conversions
   // (return-to-stock, deploy-from-stock). Fresh on brand-new creation;
   // explicitly copied forward on every conversion route so AuditLog.lineageId
-  // can reconstruct full history across table hops. See lib/asset-lifecycle.ts.
+  // can reconstruct full history across table hops. See lib/assets/lifecycle-rules.ts.
   lineageId            String          @default(cuid())
   locationId           String
   typeId               String?

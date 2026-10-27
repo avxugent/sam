@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generateUsersCsv } from "@/lib/csv-export";
+import { generateUsersCsv } from "@/lib/csv/export";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { toIsoDay } from "@/lib/utils";

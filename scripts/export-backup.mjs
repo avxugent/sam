@@ -113,7 +113,7 @@ async function main() {
     orderBy: [{ locationId: "asc" }, { createdAt: "asc" }],
   });
 
-  // Owner is a soft ref exported as email (mirrors lib/csv-export.ts)
+  // Owner is a soft ref exported as email (mirrors lib/csv/export.ts)
   const ownerIds = [...new Set(assets.map((a) => a.ownerId).filter(Boolean))];
   const owners = ownerIds.length
     ? await prisma.user.findMany({ where: { id: { in: ownerIds } }, select: { id: true, email: true } })

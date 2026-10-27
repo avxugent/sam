@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { getModelClusters } from "@/lib/model-clusters";
+import { getModelClusters } from "@/lib/models/clusters";
 import { ModelsClient } from "@/components/admin/models-client";
 import { canManageCatalog } from "@/lib/permissions";
 

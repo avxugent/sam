@@ -40,7 +40,7 @@ import {
   FileText,
 } from "lucide-react";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname/template";
-import { getAssetTypeIcon } from "@/lib/asset-type-icon";
+import { getAssetTypeIcon } from "@/lib/assets/type-icon";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
 import { AssetHistoryTimeline } from "@/components/assets/asset-history-timeline";
 import * as permissions from "@/lib/permissions";

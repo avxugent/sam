@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { DISPOSAL_METHODS } from "@/components/assets/remove-asset-dialog";
-import { BulkResultSummary, type BulkResult } from "@/components/assets/bulk-result-summary";
+import { BulkResultSummary, type BulkResult } from "@/components/inventory/bulk-result-summary";
 
 type Props = {
   open: boolean;

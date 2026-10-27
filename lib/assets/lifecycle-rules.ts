@@ -1,0 +1,139 @@
+import type { AssetStatus, DisposalMethod, Prisma } from "@/generated/prisma/client";
+import { serializeStockMetadata } from "@/lib/stock-metadata";
+
+/**
+ * Pure lifecycle rules: the checks and update-data builders shared by the
+ * single-asset and bulk decommission / repair / return-to-stock routes, so
+ * both enforce identical validation. lib/assets/transitions.ts performs the
+ * writes and audit entries on top of these.
+ */
+export type AssetLifecycleErrorCode =
+  | "ALREADY_DECOMMISSIONED"
+  | "ALREADY_IN_REPAIR"
+  | "MISSING_TYPE"
+  | "MISSING_MODEL";
+
+export class AssetLifecycleError extends Error {
+  code: AssetLifecycleErrorCode;
+
+  constructor(code: AssetLifecycleErrorCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+export function assertDecommissionable(asset: { status: AssetStatus }): void {
+  if (asset.status === "DECOMMISSIONED") {
+    throw new AssetLifecycleError("ALREADY_DECOMMISSIONED", "Asset is already decommissioned.");
+  }
+}
+
+export function assertRepairable(asset: { status: AssetStatus }): void {
+  if (asset.status === "DECOMMISSIONED") {
+    throw new AssetLifecycleError(
+      "ALREADY_DECOMMISSIONED",
+      "Decommissioned assets cannot be sent for repair."
+    );
+  }
+  if (asset.status === "IN_REPAIR") {
+    throw new AssetLifecycleError("ALREADY_IN_REPAIR", "Asset is already sent for repair.");
+  }
+}
+
+export function assertReturnableToStock(asset: {
+  status: AssetStatus;
+  typeId: string | null;
+  modelId: string | null;
+}): void {
+  if (asset.status === "DECOMMISSIONED") {
+    throw new AssetLifecycleError(
+      "ALREADY_DECOMMISSIONED",
+      "Decommissioned assets cannot be returned to stock."
+    );
+  }
+  if (!asset.typeId) {
+    throw new AssetLifecycleError("MISSING_TYPE", "Asset must have a type to be returned to stock.");
+  }
+  if (!asset.modelId) {
+    throw new AssetLifecycleError("MISSING_MODEL", "Asset must have a model to be returned to stock.");
+  }
+}
+
+type ReturnableAsset = {
+  lineageId: string;
+  typeId: string | null;
+  manufacturerId: string | null;
+  modelId: string | null;
+  serialNumber: string | null;
+  invoiceNumber: string | null;
+  invoiceDate: Date | null;
+  notes: string | null;
+  hostname: string | null;
+  warrantyMonths: number | null;
+  vaultPath: string | null;
+  macAddresses: { address: string }[];
+  customFields: { key: string; value: string }[];
+};
+
+/** The exact `tx.stockItem.create({ data })` payload for a returned asset. */
+export function buildStockItemFromReturn(
+  asset: ReturnableAsset,
+  locationId: string
+): Prisma.StockItemUncheckedCreateInput {
+
+  return {
+    lineageId: asset.lineageId,
+    typeId: asset.typeId!,
+    manufacturerId: asset.manufacturerId,
+    // assertReturnableToStock (called by every caller before this) already
+    // throws MISSING_MODEL when null — same guarantee as typeId above.
+    modelId: asset.modelId!,
+    serialNumber: asset.serialNumber,
+    invoiceNumber: asset.invoiceNumber,
+    invoiceDate: asset.invoiceDate,
+    notes: asset.notes,
+    quantity: 1,
+    locationId,
+    metadata: serializeStockMetadata({
+      macAddresses: asset.macAddresses,
+      customFields: asset.customFields,
+      hostname: asset.hostname || undefined,
+      warrantyMonths: asset.warrantyMonths ?? undefined,
+      vaultPath: asset.vaultPath || undefined,
+    }),
+  };
+}
+
+/** The exact `prisma.asset.update({ data })` payload for decommissioning. */
+export function buildDecommissionUpdateData(params: {
+  note: string | null;
+  disposalMethod: DisposalMethod;
+  actorId: string;
+  location: { name: string; fiNumber: string | null };
+}): Prisma.AssetUpdateInput {
+  return {
+    status: "DECOMMISSIONED",
+    decommissionedAt: new Date(),
+    decommissionNote: params.note,
+    disposalMethod: params.disposalMethod,
+    decommissionedById: params.actorId,
+    lastLocationName: params.location.name,
+    lastLocationFiNumber: params.location.fiNumber ?? null,
+    repairStartedAt: null,
+    repairNote: null,
+    sentForRepairById: null,
+  };
+}
+
+/** The exact `prisma.asset.update({ data })` payload for sending an asset for repair. */
+export function buildSendForRepairUpdateData(params: {
+  note: string | null;
+  actorId: string;
+}): Prisma.AssetUpdateInput {
+  return {
+    status: "IN_REPAIR",
+    repairStartedAt: new Date(),
+    repairNote: params.note,
+    sentForRepairById: params.actorId,
+  };
+}

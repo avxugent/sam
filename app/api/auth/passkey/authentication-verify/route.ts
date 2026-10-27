@@ -15,7 +15,7 @@ import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIp, tooManyAttempts } from "@/lib/request-limits";
-import { auditLoginFailure } from "@/lib/login-audit";
+import { auditLoginFailure } from "@/lib/audit/login";
 import { setRememberMeCookie } from "@/lib/two-factor/remember-device";
 import { verifyAuthentication, readChallengeCookie, clearChallengeCookie } from "@/lib/two-factor/webauthn";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";

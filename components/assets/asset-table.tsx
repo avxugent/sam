@@ -25,7 +25,7 @@ import {
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import type { AssetStatus } from "@/generated/prisma/enums";
-import { escapeCsvCell } from "@/lib/csv";
+import { escapeCsvCell } from "@/lib/csv/core";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
 

@@ -5,7 +5,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: { asset: { findMany: vi.fn() } },
 }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/prometheus-auth", () => ({ checkPrometheusAuth: vi.fn() }));
+vi.mock("@/lib/tokens/integration", () => ({ checkIntegrationToken: vi.fn() }));
 // location-path is mocked to keep the test focused on target/address handling;
 // scrape-template is intentionally NOT mocked so template rendering is real.
 vi.mock("@/lib/location-path", () => ({
@@ -17,12 +17,12 @@ vi.mock("@/lib/location-path", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { checkPrometheusAuth } from "@/lib/prometheus-auth";
+import { checkIntegrationToken } from "@/lib/tokens/integration";
 import { GET } from "@/app/api/prometheus/sd/route";
 
 const mockAuth = vi.mocked(auth);
 const mockFindMany = vi.mocked(prisma.asset.findMany);
-const mockCheckAuth = vi.mocked(checkPrometheusAuth);
+const mockCheckAuth = vi.mocked(checkIntegrationToken);
 
 function req() {
   return new NextRequest("http://localhost/api/prometheus/sd");

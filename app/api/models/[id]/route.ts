@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { auditChanges } from "@/lib/audit-diff";
+import { auditChanges } from "@/lib/audit/diff";
 import { canManageCatalog } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 

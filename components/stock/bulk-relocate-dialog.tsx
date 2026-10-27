@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
-import { StockLocationPicker } from "@/components/stock/stock-location-picker";
-import { BulkResultSummary, type BulkResult } from "@/components/assets/bulk-result-summary";
+import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
+import { BulkResultSummary, type BulkResult } from "@/components/inventory/bulk-result-summary";
 
 type Props = {
   open: boolean;

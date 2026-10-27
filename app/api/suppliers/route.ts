@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { supplierSchema, findConflictingWindows } from "@/lib/schemas/supplier";
+import { supplierSchema } from "@/lib/schemas/supplier";
+import { findConflictingWindows } from "@/lib/suppliers/conflicts";
 import { canManageCatalog } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 

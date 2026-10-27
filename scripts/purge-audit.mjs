@@ -39,7 +39,7 @@ async function main() {
   }
 
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-  // Mirrors isSyslogConfigured() in lib/syslog.ts
+  // Mirrors isSyslogConfigured() in lib/audit/syslog.ts
   const syslogConfigured = !!process.env.SYSLOG_HOST;
 
   const where = {

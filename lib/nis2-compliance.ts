@@ -5,7 +5,7 @@
 import { prisma } from "@/lib/prisma";
 import { readSettings } from "@/lib/app-settings";
 import { runLocationReport } from "@/lib/reports/engine";
-import { isSyslogConfigured } from "@/lib/syslog";
+import { isSyslogConfigured } from "@/lib/audit/syslog";
 import type { Prisma } from "@/generated/prisma/client";
 
 const SAMPLE_SIZE = 50;

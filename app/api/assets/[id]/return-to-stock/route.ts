@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { assertReturnableToStock } from "@/lib/asset-lifecycle";
-import { RETURN_TO_STOCK_INCLUDE, lifecycleViolationResponse, returnAssetToStock } from "@/lib/asset-transitions";
+import { assertReturnableToStock } from "@/lib/assets/lifecycle-rules";
+import { RETURN_TO_STOCK_INCLUDE, lifecycleViolationResponse, returnAssetToStock } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 

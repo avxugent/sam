@@ -9,8 +9,8 @@ const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { BulkResultSummary } from "@/components/assets/bulk-result-summary";
-import { MacAddressFields } from "@/components/assets/mac-address-fields";
+import { BulkResultSummary } from "@/components/inventory/bulk-result-summary";
+import { MacAddressFields } from "@/components/inventory/mac-address-fields";
 import { AssetStateTable } from "@/components/assets/asset-state-table";
 import { AssetDrilldownDialog } from "@/components/admin/asset-drilldown-dialog";
 import { ReportToolbar } from "@/components/reports/report-toolbar";

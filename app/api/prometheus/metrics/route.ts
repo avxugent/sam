@@ -24,7 +24,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { checkPrometheusAuth } from "@/lib/prometheus-auth";
+import { checkIntegrationToken } from "@/lib/tokens/integration";
 import { ancestorChain, buildLocationPathsFromRows, findFiNumber, parseFiNumber } from "@/lib/location-path";
 import { computeNis2Counts } from "@/lib/nis2-compliance";
 
@@ -60,7 +60,7 @@ function gauge(
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const authError = checkPrometheusAuth(req);
+  const authError = checkIntegrationToken(req);
   if (authError) return authError;
 
   // Run all DB queries in parallel for efficiency

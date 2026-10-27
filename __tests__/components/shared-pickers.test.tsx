@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LocationSearchList } from "@/components/locations/location-search-list";
-import { StockLocationPicker } from "@/components/stock/stock-location-picker";
+import { LocationSearchList } from "@/components/inventory/location-search-list";
+import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import type { FlatLocation } from "@/lib/location-tree";
 
 const locations: FlatLocation[] = [

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { parseCsv } from "@/lib/csv";
-import { parseImportRow } from "@/lib/csv-import";
+import { parseCsv } from "@/lib/csv/core";
+import { parseImportRow } from "@/lib/csv/import";
 import { logAudit } from "@/lib/audit";
-import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
+import { resolveAssetCreationDefaults } from "@/lib/assets/defaults";
 import { isAdmin } from "@/lib/permissions";
 
 const ALLOWED_CSV_TYPES = new Set(["text/csv", "text/plain", "application/csv"]);

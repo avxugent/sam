@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { computeHostnameCompliance } from "@/lib/hostname/compliance";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
-import { escapeCsvCell } from "@/lib/csv";
+import { escapeCsvCell } from "@/lib/csv/core";
 import { toIsoDay } from "@/lib/utils";
 import { csvDownload } from "@/lib/route-helpers";
 

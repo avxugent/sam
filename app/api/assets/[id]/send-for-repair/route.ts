@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { assertRepairable, buildSendForRepairUpdateData } from "@/lib/asset-lifecycle";
-import { lifecycleViolationResponse } from "@/lib/asset-transitions";
+import { assertRepairable, buildSendForRepairUpdateData } from "@/lib/assets/lifecycle-rules";
+import { lifecycleViolationResponse } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 

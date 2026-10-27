@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { assertDecommissionable } from "@/lib/asset-lifecycle";
-import { DECOMMISSION_SELECT, decommissionAsset, decommissionFields, lifecycleViolationResponse } from "@/lib/asset-transitions";
+import { assertDecommissionable } from "@/lib/assets/lifecycle-rules";
+import { DECOMMISSION_SELECT, decommissionAsset, decommissionFields, lifecycleViolationResponse } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 

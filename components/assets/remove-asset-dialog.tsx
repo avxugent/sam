@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Package, ArchiveX, Trash2, ChevronRight, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
-import { StockLocationPicker } from "@/components/stock/stock-location-picker";
+import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { DisposalMethod } from "@/generated/prisma/enums";
 
 /** Disposal evidence options, in the order the Prisma enum defines them. */

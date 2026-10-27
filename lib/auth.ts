@@ -7,7 +7,7 @@ import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request-limits";
 import { logAudit } from "@/lib/audit";
-import { auditLoginFailure } from "@/lib/login-audit";
+import { auditLoginFailure } from "@/lib/audit/login";
 import { isTwoFactorSetupRequired } from "@/lib/two-factor/policy";
 import { verifyUpgradeProof } from "@/lib/two-factor/upgrade-proof";
 

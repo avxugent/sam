@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { isHostnameCompliant } from "@/lib/hostname/pattern";
 import { createAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
-import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
+import { resolveAssetCreationDefaults } from "@/lib/assets/defaults";
 import { canEdit } from "@/lib/permissions";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";

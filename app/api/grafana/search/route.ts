@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkPrometheusAuth } from "@/lib/prometheus-auth";
+import { checkIntegrationToken } from "@/lib/tokens/integration";
 
 const TARGETS = [
   "assets_table",
@@ -10,7 +10,7 @@ const TARGETS = [
 ];
 
 export async function POST(req: NextRequest) {
-  const authError = checkPrometheusAuth(req);
+  const authError = checkIntegrationToken(req);
   if (authError) return authError;
   return NextResponse.json(TARGETS);
 }

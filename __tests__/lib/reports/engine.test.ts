@@ -198,6 +198,17 @@ describe("translateFilters()", () => {
     expect(result).toEqual({});
   });
 
+  it("ignores before/after date filters with an unparseable date", () => {
+    expect(translateFilters([{ field: "installationDate", op: "before", value: "not-a-date" }])).toEqual({});
+    expect(translateFilters([{ field: "lastChanged", op: "after", value: "2026-13-45" }])).toEqual({});
+  });
+
+  it("translates a valid lastChanged before date", () => {
+    expect(translateFilters([{ field: "lastChanged", op: "before", value: "2026-01-01" }])).toEqual({
+      AND: [{ updatedAt: { lt: new Date("2026-01-01") } }],
+    });
+  });
+
   it("ignores status filter with no value", () => {
     const result = translateFilters([{ field: "status", op: "eq" }]);
     expect(result).toEqual({});
@@ -381,6 +392,16 @@ describe("runReport()", () => {
     });
     const whereArg = mockFindMany.mock.calls[0][0]?.where;
     expect(whereArg).toEqual({ AND: [{ status: "DECOMMISSIONED" }] });
+  });
+
+  it.each([
+    ["an unknown value", { field: "status", op: "eq", value: "BOGUS" }],
+    ["an op other than eq/neq", { field: "status", op: "isNull" }],
+  ] as const)("keeps the decommissioned exclusion when the status filter has %s", async (_label, filter) => {
+    mockFindMany.mockResolvedValue([]);
+    await runAssetReport({ filters: [filter], groupBy: "none", columns: ["model"] });
+    const whereArg = mockFindMany.mock.calls[0][0]?.where;
+    expect(whereArg).toEqual({ AND: [{}, { status: { not: "DECOMMISSIONED" } }] });
   });
 
   it("groupBy queries also exclude decommissioned assets by default", async () => {

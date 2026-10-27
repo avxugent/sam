@@ -1,4 +1,5 @@
 import { Prisma } from "@/generated/prisma/client";
+import { AssetStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { resolveLocationPathsBatch, resolveAncestorChainsBatch } from "@/lib/location-path";
 import { effectiveCriticality } from "@/lib/criticality";
@@ -31,6 +32,22 @@ function periodCutoff(count: number, unit: "days" | "months" | "years"): Date {
   else if (unit === "months") d.setMonth(d.getMonth() - count);
   else d.setFullYear(d.getFullYear() - count);
   return d;
+}
+
+/** Parses a before/after filter value; null for an unparseable date. */
+function parseDate(value: string): Date | null {
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * The status a status filter actually applies, or null when translateFilters
+ * ignores it (an op other than eq/neq, or a value outside the enum) — so a
+ * bad value can never widen the result set.
+ */
+function appliedStatus(f: ReportFilter): AssetStatus | null {
+  if (f.field !== "status" || (f.op !== "eq" && f.op !== "neq")) return null;
+  return Object.values(AssetStatus).find((s) => s === f.value) ?? null;
 }
 
 export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInput {
@@ -84,10 +101,7 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
     }
 
     if (field === "status") {
-      // Only the enum members are valid; ignore anything else so a bad
-      // value can never widen the result set.
-      const status =
-        value === "INSTALLED" || value === "IN_REPAIR" || value === "DECOMMISSIONED" ? value : null;
+      const status = appliedStatus(f);
       if (status && op === "eq") conditions.push({ status });
       else if (status && op === "neq") conditions.push({ status: { not: status } });
       continue;
@@ -137,19 +151,17 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
       } else if (op === "olderThanDays" && value) {
         const n = parseFloat(value);
         if (!isNaN(n)) conditions.push({ updatedAt: { lt: daysAgo(n) } });
-      } else if (op === "before" && value) {
-        conditions.push({ updatedAt: { lt: new Date(value) } });
-      } else if (op === "after" && value) {
-        conditions.push({ updatedAt: { gt: new Date(value) } });
+      } else if ((op === "before" || op === "after") && value) {
+        const d = parseDate(value);
+        if (d) conditions.push({ updatedAt: op === "before" ? { lt: d } : { gt: d } });
       }
       continue;
     }
 
     if (field === "installationDate" || field === "invoiceDate" || field === "endOfSupportDate") {
-      if (op === "before" && value) {
-        conditions.push({ [field]: { lt: new Date(value) } });
-      } else if (op === "after" && value) {
-        conditions.push({ [field]: { gt: new Date(value) } });
+      if ((op === "before" || op === "after") && value) {
+        const d = parseDate(value);
+        if (d) conditions.push({ [field]: op === "before" ? { lt: d } : { gt: d } });
       } else if (op === "olderThanYears" && value) {
         const n = parseFloat(value);
         if (!isNaN(n)) conditions.push({ [field]: { lt: yearsAgo(n) } });
@@ -177,10 +189,11 @@ export async function runReport(definition: ReportDefinition): Promise<ReportRes
 
 export async function runAssetReport(definition: AssetReportDefinition): Promise<AssetReportResult> {
   // Decommissioned assets are historical, not current inventory — excluded by
-  // default, same as every other overview/report in the app. A report that is
-  // specifically about decommissioned assets (the user added their own status
-  // filter) opts back in instead of being silently overridden here.
-  const hasStatusFilter = definition.filters.some((f) => f.field === "status");
+  // default. Unlike the INSTALLED-only overviews, reports keep IN_REPAIR
+  // assets. A report that is specifically about decommissioned assets (the
+  // user added their own, applied, status filter) opts back in instead of
+  // being silently overridden here.
+  const hasStatusFilter = definition.filters.some((f) => appliedStatus(f) !== null);
   const baseWhere = translateFilters(definition.filters);
   const where: Prisma.AssetWhereInput = hasStatusFilter
     ? baseWhere

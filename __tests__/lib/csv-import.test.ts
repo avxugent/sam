@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { parseImportRow, FI_REGEX, type ParsedImportRow } from "@/lib/csv-import";
+import { parseImportRow, type ParsedImportRow } from "@/lib/csv-import";
+import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
 
 const users = new Map([["owner@x.com", "u-owner"]]);
 const parse = (row: Record<string, string>) => parseImportRow({ LOKAAL: "Room 1", ...row }, users);
@@ -14,7 +15,7 @@ describe("parseImportRow()", () => {
     expect(ok({ "FI NUMMER": "14.10.100.013" }).location.fiNumber).toBe("14.10.100.013");
     expect(ok({ FI_NUMMER: "14.10.100.13" }).location.fiNumber).toBe("14.10.100.13");
     expect(ok({ "FI NUMMER": "14-10-100" }).location.fiNumber).toBeNull();
-    expect(FI_REGEX.test("14.10.100.0133")).toBe(false);
+    expect(FI_NUMBER_REGEX.test("14.10.100.0133")).toBe(false);
   });
 
   it("matches the owner by email, case-insensitively, else warns", () => {

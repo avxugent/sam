@@ -14,13 +14,9 @@
 import { csvValue as v, parseDate, type CsvRow } from "@/lib/csv";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
+import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
 import type { Criticality } from "@/generated/prisma/enums";
 
-/**
- * FI number format: CC.BB.FFF.RR(R) (e.g. 14.10.100.13 or 14.10.100.013),
- * stored on the room-level location (LOKAAL). The room segment may be 2 or 3 digits.
- */
-export const FI_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{2,3}$/;
 
 /** Legacy columns kept as custom fields: [custom field key, CSV column]. */
 const CUSTOM_FIELD_COLUMNS: [string, string][] = [
@@ -132,7 +128,8 @@ export function parseImportRow(row: CsvRow, userIdByEmail: Map<string, string>):
       campus: v(row, "CAMPUS"),
       building: v(row, "GEBOUW"),
       room,
-      fiNumber: rawFi && FI_REGEX.test(rawFi) ? rawFi : null,
+      // The FI number is stored on the room-level location (LOKAAL).
+      fiNumber: rawFi && FI_NUMBER_REGEX.test(rawFi) ? rawFi : null,
     },
     typeName: v(row, "TYPE"),
     brandName: v(row, "BRAND"),

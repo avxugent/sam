@@ -30,25 +30,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Hash } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
+import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
 
-// FI number: CC.BB.FFF.RR(R)  e.g. "14.10.100.13" or "14.10.100.013"
-// Last (room) segment may be 2 or 3 digits.
-const FI_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{2,3}$/;
+type LocationFormTranslator = ReturnType<typeof useTranslations<"locationForm">>;
 
-const schema = z.object({
-  name: z.string().min(1, "Name is required").max(255),
-  description: z.string().max(2000).optional(),
-  fiNumber: z
-    .string()
-    .regex(FI_REGEX, "Format: CC.BB.FFF.RRR (e.g. 14.10.100.013)")
-    .optional()
-    .or(z.literal("")),
-  address: z.string().max(500).optional(),
-  city: z.string().max(255).optional(),
-  country: z.string().max(100).optional(),
-});
+/** Client mirror of lib/schemas/location.ts with translated messages. */
+function buildLocationFormSchema(t: LocationFormTranslator) {
+  return z.object({
+    name: z.string().min(1, t("errNameRequired")).max(255),
+    description: z.string().max(2000).optional(),
+    fiNumber: z.string().regex(FI_NUMBER_REGEX, t("errFiNumberFormat")).optional().or(z.literal("")),
+    address: z.string().max(500).optional(),
+    city: z.string().max(255).optional(),
+    country: z.string().max(100).optional(),
+  });
+}
 
-type LocationFormValues = z.infer<typeof schema>;
+type LocationFormValues = z.infer<ReturnType<typeof buildLocationFormSchema>>;
 
 /**
  * Auto-inserts dots as the user types: 14 → 14. → 14.10 → 14.10. → ...
@@ -75,7 +73,7 @@ function autoFormatFiNumber(raw: string): string {
  * Returns null if the number is not fully formed.
  */
 function parseFiNumber(fi: string): { campus: string; building: string; floor: string; room: string } | null {
-  if (!FI_REGEX.test(fi)) return null;
+  if (!FI_NUMBER_REGEX.test(fi)) return null;
   const [campus, building, floor, room] = fi.split(".");
   return { campus, building, floor, room };
 }
@@ -115,14 +113,7 @@ export function LocationFormDialog({
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
 
-  const validationSchema = useMemo(() => z.object({
-    name: z.string().min(1, t("errNameRequired")).max(255),
-    description: z.string().max(2000).optional(),
-    fiNumber: z.string().regex(FI_REGEX, t("errFiNumberFormat")).optional().or(z.literal("")),
-    address: z.string().max(500).optional(),
-    city: z.string().max(255).optional(),
-    country: z.string().max(100).optional(),
-  }), [t]);
+  const validationSchema = useMemo(() => buildLocationFormSchema(t), [t]);
 
   const {
     register,

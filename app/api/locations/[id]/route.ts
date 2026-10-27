@@ -1,35 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit-diff";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
-
-// FI number format: CC.BB.FFF.RR(R)  e.g. "14.10.100.13" or "14.10.100.013"
-// Last (room) segment may be 2 or 3 digits.
-const FI_NUMBER_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{2,3}$/;
-
-const updateSchema = z.object({
-  name: z.string().min(1).max(255).optional(),
-  description: z.string().max(2000).optional().nullable(),
-  parentId: z.string().nullable().optional(),
-  fiNumber: z
-    .string()
-    .max(20)
-    .regex(FI_NUMBER_REGEX, "FI number must be in format CC.BB.FFF.RRR (e.g. 14.10.100.013)")
-    .optional()
-    .nullable(),
-  address: z.string().max(500).optional().nullable(),
-  city: z.string().max(255).optional().nullable(),
-  country: z.string().max(100).optional().nullable(),
-  latitude: z.number().min(-90).max(90).optional().nullable(),
-  longitude: z.number().min(-180).max(180).optional().nullable(),
-  coverImageId: z.string().optional().nullable(),
-  inMaintenance: z.boolean().optional(),
-});
+import { updateLocationSchema } from "@/lib/schemas/location";
 
 export async function GET(
   _req: NextRequest,
@@ -67,7 +44,7 @@ export async function PUT(
 
   const { id } = await params;
   const body = await readJsonBody(req);
-  const parsed = updateSchema.safeParse(body);
+  const parsed = updateLocationSchema.safeParse(body);
   if (!parsed.success) {
     return invalidInput(parsed.error);
   }

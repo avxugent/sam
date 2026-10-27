@@ -1,36 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { MAX_MAC_ADDRESSES, macAddressField } from "@/lib/mac-address";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 import { serializeStockMetadata } from "@/lib/stock-metadata";
-
-const createSchema = z
-  .object({
-    typeId: z.string().min(1, "Type is required"),
-    manufacturerId: z.string().min(1).optional().nullable(),
-    modelId: z.string().min(1, "Model is required"),
-    serialNumber: z.string().max(100).optional().nullable(),
-    quantity: z.number().int().min(1).default(1),
-    notes: z.string().max(5000).optional().nullable(),
-    locationId: z.string().optional().nullable(),
-    reservedForLocationId: z.string().optional().nullable(),
-    invoiceNumber: z.string().max(100).optional().nullable(),
-    invoiceDate: z.string().optional().nullable(),
-    macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.serialNumber && data.quantity > 1) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["quantity"],
-        message: "Quantity must be 1 when a serial number is set.",
-      });
-    }
-  });
+import { createStockItemSchema } from "@/lib/schemas/stock";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -73,7 +48,7 @@ export async function POST(req: NextRequest) {
   if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await readJsonBody(req);
-  const parsed = createSchema.safeParse(body);
+  const parsed = createStockItemSchema.safeParse(body);
   if (!parsed.success) {
     return invalidInput(parsed.error);
   }

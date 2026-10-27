@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
-
-const schema = z.object({ targetId: z.string().min(1) });
+import { readMergeRequest } from "@/lib/route-helpers";
 
 export async function POST(
   req: NextRequest,
@@ -17,25 +15,11 @@ export async function POST(
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await readJsonBody(req);
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) return invalidInput(parsed.error);
+  const merge = await readMergeRequest(req, id, { article: "an", name: "asset type" }, (tid) => prisma.assetType.findUnique({ where: { id: tid }, select: { id: true, name: true } }));
+  if ("error" in merge) return merge.error;
+  const { source, target, targetId } = merge;
 
-  const { targetId } = parsed.data;
-
-  if (id === targetId) {
-    return NextResponse.json({ error: "Cannot merge an asset type into itself." }, { status: 400 });
-  }
-
-  const [source, target] = await Promise.all([
-    prisma.assetType.findUnique({ where: { id }, select: { id: true, name: true } }),
-    prisma.assetType.findUnique({ where: { id: targetId }, select: { id: true, name: true } }),
-  ]);
-
-  if (!source) return NextResponse.json({ error: "Source asset type not found." }, { status: 404 });
-  if (!target) return NextResponse.json({ error: "Target asset type not found." }, { status: 404 });
-
-  const { assetCount, stockCount } = await prisma.$transaction(async (tx: import("@/generated/prisma/client").Prisma.TransactionClient) => {
+  const { assetCount, stockCount } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const [assetResult, stockResult] = await Promise.all([
       tx.asset.updateMany({ where: { typeId: id }, data: { typeId: targetId } }),
       tx.stockItem.updateMany({ where: { typeId: id }, data: { typeId: targetId } }),

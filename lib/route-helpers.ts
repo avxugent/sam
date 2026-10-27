@@ -38,3 +38,29 @@ export function isRecordNotFoundError(err: unknown): boolean {
 function hasPrismaCode(err: unknown, code: string): boolean {
   return typeof err === "object" && err !== null && "code" in err && err.code === code;
 }
+
+const mergeRequestSchema = z.object({ targetId: z.string().min(1) });
+
+/**
+ * Shared prelude of the "merge X into Y" routes: reads `{ targetId }`, refuses
+ * a self-merge and loads both records, or returns the 400/404 to send back.
+ * `noun` is used in messages ("Cannot merge a model into itself.").
+ */
+export async function readMergeRequest<T>(
+  req: Request,
+  sourceId: string,
+  noun: { article: "a" | "an"; name: string },
+  load: (id: string) => Promise<T | null>
+): Promise<{ source: T; target: T; targetId: string } | { error: Response }> {
+  const parsed = mergeRequestSchema.safeParse(await readJsonBody(req));
+  if (!parsed.success) return { error: invalidInput(parsed.error) };
+  const { targetId } = parsed.data;
+
+  if (sourceId === targetId) {
+    return { error: NextResponse.json({ error: `Cannot merge ${noun.article} ${noun.name} into itself.` }, { status: 400 }) };
+  }
+  const [source, target] = await Promise.all([load(sourceId), load(targetId)]);
+  if (!source) return { error: NextResponse.json({ error: `Source ${noun.name} not found.` }, { status: 404 }) };
+  if (!target) return { error: NextResponse.json({ error: `Target ${noun.name} not found.` }, { status: 404 }) };
+  return { source, target, targetId };
+}

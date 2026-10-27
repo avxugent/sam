@@ -43,8 +43,7 @@ import { formatDate, apiErrorMessage } from "@/lib/utils";
 import { validateTemplate } from "@/lib/scrape-template";
 import { validateHostnamePattern } from "@/lib/hostname/pattern";
 import { MaintenancePresetsManager } from "@/components/admin/maintenance-presets-manager";
-import { ManufacturerTemplateOverrides } from "@/components/admin/manufacturer-template-overrides";
-import { ModelTemplateOverrides } from "@/components/admin/model-template-overrides";
+import { TemplateOverridesEditor } from "@/components/admin/template-overrides-editor";
 import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";
 
 type AssetType = {
@@ -608,14 +607,16 @@ export function AssetTypesClient({
                     </div>
 
                     <div className="pt-4 mt-4 border-t">
-                      <ManufacturerTemplateOverrides
+                      <TemplateOverridesEditor
+                        kind="manufacturer"
                         assetTypeId={item.id}
                         manufacturers={manufacturers}
                       />
                     </div>
 
                     <div className="pt-4 mt-4 border-t">
-                      <ModelTemplateOverrides
+                      <TemplateOverridesEditor
+                        kind="model"
                         assetTypeId={item.id}
                         manufacturers={manufacturers}
                       />

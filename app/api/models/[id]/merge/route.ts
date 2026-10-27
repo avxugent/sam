@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
-
-const schema = z.object({ targetId: z.string().min(1) });
+import { readMergeRequest } from "@/lib/route-helpers";
 
 export async function POST(
   req: NextRequest,
@@ -18,23 +15,9 @@ export async function POST(
   if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await readJsonBody(req);
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) return invalidInput(parsed.error);
-
-  const { targetId } = parsed.data;
-
-  if (id === targetId) {
-    return NextResponse.json({ error: "Cannot merge a model into itself." }, { status: 400 });
-  }
-
-  const [source, target] = await Promise.all([
-    prisma.model.findUnique({ where: { id } }),
-    prisma.model.findUnique({ where: { id: targetId } }),
-  ]);
-
-  if (!source) return NextResponse.json({ error: "Source model not found." }, { status: 404 });
-  if (!target) return NextResponse.json({ error: "Target model not found." }, { status: 404 });
+  const merge = await readMergeRequest(req, id, { article: "a", name: "model" }, (mid) => prisma.model.findUnique({ where: { id: mid } }));
+  if ("error" in merge) return merge.error;
+  const { source, target, targetId } = merge;
 
   // A Model is scoped to exactly one asset type, so every asset/stock item
   // that follows it must stay in sync with that type. A cross-type merge

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildLocationPathsFromRows } from "@/lib/location-path";
-import { reportDefinitionSchema } from "@/lib/schemas/report";
+import { parseReportDefinition } from "@/lib/schemas/report";
 import { ReportBuilder } from "@/components/reports/report-builder";
 import { BarChart2 } from "lucide-react";
 import { canEdit } from "@/lib/permissions";
@@ -17,8 +17,7 @@ export default async function EditReportPage({ params }: { params: Promise<{ id:
   const report = await prisma.report.findUnique({ where: { id } });
   if (!report) notFound();
 
-  const parsed = reportDefinitionSchema.safeParse(JSON.parse(report.definition));
-  const definition = parsed.success ? parsed.data : undefined;
+  const definition = parseReportDefinition(report.definition) ?? undefined;
 
   const [assetTypes, manufacturers, locations, workLogItems, suppliers] = await Promise.all([
     prisma.assetType.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),

@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { runReport } from "@/lib/reports/engine";
-import { reportDefinitionSchema } from "@/lib/schemas/report";
+import { parseReportDefinition } from "@/lib/schemas/report";
 import { isLocationReport } from "@/lib/reports/types";
-import type { ReportDefinition, ColumnKey } from "@/lib/reports/types";
+import type { ColumnKey } from "@/lib/reports/types";
 import { escapeCsvCell } from "@/lib/csv";
 
 const COLUMN_LABELS: Record<ColumnKey, string> = {
@@ -32,10 +32,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const report = await prisma.report.findUnique({ where: { id } });
   if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  let definition: ReportDefinition;
-  try {
-    definition = reportDefinitionSchema.parse(JSON.parse(report.definition));
-  } catch {
+  const definition = parseReportDefinition(report.definition);
+  if (!definition) {
     return NextResponse.json({ error: "Report definition is invalid" }, { status: 422 });
   }
 

@@ -89,6 +89,21 @@ export const reportDefinitionSchema = z.union([
   assetReportDefinitionSchema,
 ]);
 
+/**
+ * Parses a stored Report.definition (JSON text). Returns null when the text is
+ * not JSON or no longer matches the schema, e.g. after a schema change.
+ */
+export function parseReportDefinition(stored: string): z.infer<typeof reportDefinitionSchema> | null {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(stored);
+  } catch {
+    return null;
+  }
+  const parsed = reportDefinitionSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
 export const createReportSchema = z.object({
   name: z.string().min(1).max(255),
   description: z.string().max(2000).optional(),

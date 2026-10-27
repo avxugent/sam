@@ -65,8 +65,10 @@ export async function logAudit({
     if (isSyslogConfigured()) {
       void forwardAndMark(created.id);
     }
-  } catch {
-    // Audit logging must never block or crash the main operation
+  } catch (err) {
+    // Audit logging must never block or crash the main operation, but a broken
+    // audit trail has to be visible in the logs.
+    console.warn("[audit] failed to write audit entry:", err instanceof Error ? err.message : err);
   }
 }
 
@@ -93,8 +95,9 @@ async function forwardAndMark(id: string): Promise<void> {
         data: { forwardedAt: new Date() },
       });
     }
-  } catch {
+  } catch (err) {
     // Same defensive posture as logAudit — never let a syslog problem
     // surface to the caller. The DB row is preserved for retry.
+    console.warn("[audit] failed to forward audit entry to syslog:", err instanceof Error ? err.message : err);
   }
 }

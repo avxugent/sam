@@ -92,11 +92,14 @@ describe("logAudit()", () => {
     );
   });
 
-  it("never throws when the DB write fails", async () => {
+  it("never throws when the DB write fails, but logs a warning", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     mockCreate.mockRejectedValue(new Error("db down"));
     await expect(
       logAudit({ session: SESSION, action: "DELETE", entityType: "Asset" })
     ).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledWith("[audit] failed to write audit entry:", "db down");
+    warn.mockRestore();
   });
 
   it("does not forward to syslog when not configured", async () => {
@@ -132,12 +135,15 @@ describe("logAudit()", () => {
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it("swallows errors thrown during forwarding", async () => {
+  it("swallows errors thrown during forwarding, but logs a warning", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     mockConfigured.mockReturnValue(true);
     mockFindUnique.mockRejectedValue(new Error("boom"));
     await logAudit({ session: SESSION, action: "CREATE", entityType: "Asset" });
     await flush();
     expect(mockUpdate).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith("[audit] failed to forward audit entry to syslog:", "boom");
+    warn.mockRestore();
   });
 
   it("uses actor attribution when no session is present", async () => {

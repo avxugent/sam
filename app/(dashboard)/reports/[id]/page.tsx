@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { runReport } from "@/lib/reports/engine";
-import { reportDefinitionSchema } from "@/lib/schemas/report";
+import { parseReportDefinition } from "@/lib/schemas/report";
 import { ReportViewer } from "@/components/reports/report-viewer";
 import { LocationReportViewer } from "@/components/reports/location-report-viewer";
 import { isLocationReport } from "@/lib/reports/types";
@@ -17,8 +17,8 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   const report = await prisma.report.findUnique({ where: { id } });
   if (!report) notFound();
 
-  const parsed = reportDefinitionSchema.safeParse(JSON.parse(report.definition));
-  if (!parsed.success) {
+  const definition = parseReportDefinition(report.definition);
+  if (!definition) {
     return (
       <div className="p-6 text-destructive text-sm">
         Report definition is invalid. Please edit and re-save this report.
@@ -26,7 +26,6 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
     );
   }
 
-  const definition = parsed.data;
   const result = await runReport(definition);
   const userCanEdit = canEdit(session?.user?.role);
   const grafanaUrl = process.env.GRAFANA_URL

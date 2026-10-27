@@ -117,4 +117,10 @@ describe("GET /api/audit-logs", () => {
     await getAuditLogs(req("?limit=99999"));
     expect(mockAuditFind).toHaveBeenCalledWith(expect.objectContaining({ take: 1000 }));
   });
+
+  it.each(["?limit=abc", "?limit=0", "?from=not-a-date", "?to=2024-13-45"])("400 for an invalid query (%s)", async (qs) => {
+    mockAuth.mockResolvedValue(admin as never);
+    expect((await getAuditLogs(req(qs))).status).toBe(400);
+    expect(mockAuditFind).not.toHaveBeenCalled();
+  });
 });

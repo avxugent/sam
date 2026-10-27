@@ -2,22 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
-import { MapPin, Search, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
+import { StockLocationPicker } from "@/components/stock/stock-location-picker";
 
 type BulkResult = { succeeded: string[]; failed: { id: string; reason: string }[] };
 
@@ -37,9 +27,7 @@ export function BulkReturnToStockDialog({ open, onOpenChange, assetIds, onComple
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<BulkResult | null>(null);
   const [locations, setLocations] = useState<FlatLocation[]>([]);
-  const [locationQuery, setLocationQuery] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState("");
-  const [showAllLocations, setShowAllLocations] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -51,9 +39,7 @@ export function BulkReturnToStockDialog({ open, onOpenChange, assetIds, onComple
   function handleClose() {
     onOpenChange(false);
     setResult(null);
-    setLocationQuery("");
     setSelectedLocationId("");
-    setShowAllLocations(false);
   }
 
   async function handleSubmit() {
@@ -80,10 +66,6 @@ export function BulkReturnToStockDialog({ open, onOpenChange, assetIds, onComple
       setResult(data);
     }
   }
-
-  const filteredLocations = locations
-    .filter((l) => showAllLocations || l.hasStock || l.id === selectedLocationId)
-    .filter((l) => l.breadcrumb.toLowerCase().includes(locationQuery.toLowerCase()));
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -116,60 +98,15 @@ export function BulkReturnToStockDialog({ open, onOpenChange, assetIds, onComple
               <Label htmlFor="bulk-return-location-search" className="text-[13px]">
                 {t("returnToStockLocationLabel")} <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
-                <Input
-                  id="bulk-return-location-search"
-                  placeholder={t("searchLocations")}
-                  value={locationQuery}
-                  onChange={(e) => setLocationQuery(e.target.value)}
-                  className="pl-8 h-9 text-[13px]"
-                />
-              </div>
-              <label htmlFor="bulk-return-show-all-locations" className="flex items-center gap-1.5 text-[12px] text-[#64748b] cursor-pointer">
-                <Checkbox
-                  id="bulk-return-show-all-locations"
-                  checked={showAllLocations}
-                  onCheckedChange={(v) => setShowAllLocations(v === true)}
-                />
-                {t("showAllLocations")}
-              </label>
-              <div className="border border-[#e2e8f0] rounded-[8px] overflow-y-auto max-h-40">
-                {filteredLocations.length === 0 ? (
-                  <div className="flex items-center justify-center h-16 text-[12.5px] text-[#94a3b8]">
-                    {t("noLocationsFound")}
-                  </div>
-                ) : (
-                  <ul className="divide-y divide-[#f1f5f9]">
-                    {filteredLocations.map((loc) => {
-                      const parts = loc.breadcrumb.split(" › ");
-                      const isSelected = selectedLocationId === loc.id;
-                      return (
-                        <li key={loc.id}>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedLocationId(loc.id)}
-                            className={cn(
-                              "w-full text-left px-3 py-2 flex items-center gap-1.5 transition-colors",
-                              isSelected ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#0f172a]"
-                            )}
-                          >
-                            <MapPin className={cn("h-3 w-3 flex-shrink-0", isSelected ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
-                            <span className="flex items-center gap-1 text-[12.5px] flex-wrap">
-                              {parts.map((part, i) => (
-                                <span key={i} className="flex items-center gap-1">
-                                  {i > 0 && <ChevronRight className="h-2.5 w-2.5 opacity-40" />}
-                                  <span className={i === parts.length - 1 ? "font-medium" : "text-[#64748b]"}>{part}</span>
-                                </span>
-                              ))}
-                            </span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
+              <StockLocationPicker
+                locations={locations}
+                selectedId={selectedLocationId}
+                onSelect={setSelectedLocationId}
+                placeholder={t("searchLocations")}
+                showAllLabel={t("showAllLocations")}
+                emptyText={t("noLocationsFound")}
+                idPrefix="bulk-return"
+              />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" size="sm" onClick={handleClose} disabled={submitting}>

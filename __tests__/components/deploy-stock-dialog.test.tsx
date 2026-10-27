@@ -8,7 +8,9 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
   usePathname: () => "/",
 }));
-vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
+// Stable translator, like next-intl's: a fresh function per render would retrigger effects that depend on it.
+const tFn = (key: string) => key;
+vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 const mockFetch = vi.fn();

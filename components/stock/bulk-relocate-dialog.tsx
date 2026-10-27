@@ -2,20 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
-import { Loader2, MapPin, Search, ChevronRight } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
+import { StockLocationPicker } from "@/components/stock/stock-location-picker";
 
 type BulkRelocateResult = {
   succeeded: string[];
@@ -35,8 +27,6 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
   const { toast } = useToast();
 
   const [locations, setLocations] = useState<FlatLocation[]>([]);
-  const [locationQuery, setLocationQuery] = useState("");
-  const [showAllLocations, setShowAllLocations] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<BulkRelocateResult | null>(null);
@@ -50,8 +40,6 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
 
   function handleClose() {
     onOpenChange(false);
-    setLocationQuery("");
-    setShowAllLocations(false);
     setSelectedLocationId("");
     setResult(null);
   }
@@ -79,10 +67,6 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
       setResult(data);
     }
   }
-
-  const filteredLocations = locations
-    .filter((l) => showAllLocations || l.hasStock || l.id === selectedLocationId)
-    .filter((l) => l.breadcrumb.toLowerCase().includes(locationQuery.toLowerCase()));
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -113,65 +97,16 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
             <p className="text-[12.5px] text-[#64748b]">{t("bulkRelocateDescription")}</p>
 
             <div className="space-y-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
-                <Input
-                  placeholder={t("selectLocation")}
-                  value={locationQuery}
-                  onChange={(e) => setLocationQuery(e.target.value)}
-                  className="pl-8 h-9 text-[13px]"
-                />
-              </div>
-              <label htmlFor="bulkShowAllLocations" className="flex items-center gap-1.5 text-[12px] text-[#64748b] cursor-pointer">
-                <Checkbox
-                  id="bulkShowAllLocations"
-                  checked={showAllLocations}
-                  onCheckedChange={(v) => setShowAllLocations(v === true)}
-                />
-                {t("showAllLocations")}
-              </label>
-              <div className="border border-[#e2e8f0] rounded-[8px] overflow-y-auto max-h-48">
-                <ul className="divide-y divide-[#f1f5f9]">
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedLocationId("")}
-                      className={cn(
-                        "w-full text-left px-3 py-2 text-[12.5px] transition-colors",
-                        !selectedLocationId ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#64748b]"
-                      )}
-                    >
-                      {t("unassigned")}
-                    </button>
-                  </li>
-                  {filteredLocations.map((loc) => {
-                    const parts = loc.breadcrumb.split(" › ");
-                    const isSelected = selectedLocationId === loc.id;
-                    return (
-                      <li key={loc.id}>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedLocationId(loc.id)}
-                          className={cn(
-                            "w-full text-left px-3 py-2 flex items-center gap-1.5 transition-colors",
-                            isSelected ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#0f172a]"
-                          )}
-                        >
-                          <MapPin className={cn("h-3 w-3 flex-shrink-0", isSelected ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
-                          <span className="flex items-center gap-1 text-[12.5px] flex-wrap">
-                            {parts.map((part, i) => (
-                              <span key={i} className="flex items-center gap-1">
-                                {i > 0 && <ChevronRight className="h-2.5 w-2.5 opacity-40" />}
-                                <span className={i === parts.length - 1 ? "font-medium" : "text-[#64748b]"}>{part}</span>
-                              </span>
-                            ))}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+              <StockLocationPicker
+                locations={locations}
+                selectedId={selectedLocationId}
+                onSelect={setSelectedLocationId}
+                placeholder={t("selectLocation")}
+                showAllLabel={t("showAllLocations")}
+                unassignedLabel={t("unassigned")}
+                idPrefix="bulk-relocate"
+                listClassName="max-h-48"
+              />
             </div>
 
             <DialogFooter>

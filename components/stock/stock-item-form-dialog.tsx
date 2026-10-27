@@ -6,33 +6,21 @@ import { useTranslations } from "next-intl";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/model-autocomplete";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { normalizeMacAddress } from "@/lib/mac-address";
-import { Loader2, MapPin, Search, ChevronRight } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
 import { MacAddressFields } from "@/components/assets/mac-address-fields";
 import { useTypeScopedManufacturers } from "@/components/assets/use-type-scoped-manufacturers";
+import { StockLocationPicker } from "@/components/stock/stock-location-picker";
 
 type StockItemFormValues = {
   typeId: string;
@@ -110,8 +98,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [locations, setLocations] = useState<FlatLocation[]>([]);
-  const [locationQuery, setLocationQuery] = useState("");
-  const [showAllLocations, setShowAllLocations] = useState(false);
   // Initialised synchronously from prop so the value is ready before any fetch completes
   const [selectedTypeId, setSelectedTypeId] = useState(initialData?.typeId ?? "");
   const [selectedMfgId, setSelectedMfgId] = useState(initialData?.manufacturerId ?? "");
@@ -188,8 +174,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
       setSelectedTypeId("");
       setSelectedMfgId("");
       setSelectedLocationId("");
-      setLocationQuery("");
-      setShowAllLocations(false);
     }
   }
 
@@ -234,10 +218,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const locationLabel = selectedLocationId
     ? locations.find((l) => l.id === selectedLocationId)?.breadcrumb ?? initialData?.locationBreadcrumb ?? t("selectLocation")
     : t("unassigned");
-
-  const filteredLocations = locations
-    .filter((l) => showAllLocations || l.hasStock || l.id === selectedLocationId)
-    .filter((l) => l.breadcrumb.toLowerCase().includes(locationQuery.toLowerCase()));
 
   if (!mounted) return <>{children}</>;
 
@@ -316,74 +296,21 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
 
           {/* Storage location */}
           <div className="space-y-1">
-            <Label htmlFor="locationSearch">{t("location")}</Label>
+            <Label htmlFor="stock-item-location-search">{t("location")}</Label>
             <p className="text-[12px] text-[#64748b]">{locationLabel}</p>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
-              <Input
-                id="locationSearch"
-                placeholder={t("selectLocation")}
-                value={locationQuery}
-                onChange={(e) => setLocationQuery(e.target.value)}
-                className="pl-8 h-9 text-[13px]"
-              />
-            </div>
-            <label htmlFor="showAllLocations" className="flex items-center gap-1.5 text-[12px] text-[#64748b] cursor-pointer">
-              <Checkbox
-                id="showAllLocations"
-                checked={showAllLocations}
-                onCheckedChange={(v) => setShowAllLocations(v === true)}
-              />
-              {t("showAllLocations")}
-            </label>
-            <div className="border border-[#e2e8f0] rounded-[8px] overflow-y-auto max-h-36">
-              <ul className="divide-y divide-[#f1f5f9]">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedLocationId("");
-                      setValue("locationId", "", { shouldValidate: true });
-                    }}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-[12.5px] transition-colors",
-                      !selectedLocationId ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#64748b]"
-                    )}
-                  >
-                    {t("unassigned")}
-                  </button>
-                </li>
-                {filteredLocations.map((loc) => {
-                  const parts = loc.breadcrumb.split(" › ");
-                  const isSelected = selectedLocationId === loc.id;
-                  return (
-                    <li key={loc.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedLocationId(loc.id);
-                          setValue("locationId", loc.id, { shouldValidate: true });
-                        }}
-                        className={cn(
-                          "w-full text-left px-3 py-2 flex items-center gap-1.5 transition-colors",
-                          isSelected ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#0f172a]"
-                        )}
-                      >
-                        <MapPin className={cn("h-3 w-3 flex-shrink-0", isSelected ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
-                        <span className="flex items-center gap-1 text-[12.5px] flex-wrap">
-                          {parts.map((part, i) => (
-                            <span key={i} className="flex items-center gap-1">
-                              {i > 0 && <ChevronRight className="h-2.5 w-2.5 opacity-40" />}
-                              <span className={i === parts.length - 1 ? "font-medium" : "text-[#64748b]"}>{part}</span>
-                            </span>
-                          ))}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+            <StockLocationPicker
+              locations={locations}
+              selectedId={selectedLocationId}
+              onSelect={(locationId) => {
+                setSelectedLocationId(locationId);
+                setValue("locationId", locationId, { shouldValidate: true });
+              }}
+              placeholder={t("selectLocation")}
+              showAllLabel={t("showAllLocations")}
+              unassignedLabel={t("unassigned")}
+              idPrefix="stock-item"
+              listClassName="max-h-36"
+            />
           </div>
 
           {/* Serial + Quantity row */}

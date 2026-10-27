@@ -104,7 +104,7 @@ export function WorkLogFormDialog({
     jiraIssueKey: z.string().regex(JIRA_KEY_REGEX, t("errJiraKeyFormat")).optional().nullable().or(z.literal("")),
   }).superRefine((data, ctx) => {
     if (!data.itemId && !data.description?.trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["description"], message: t("errDescriptionRequired") });
+      ctx.addIssue({ code: "custom", path: ["description"], message: t("errDescriptionRequired") });
     }
   }), [t]);
 

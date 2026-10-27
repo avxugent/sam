@@ -7,7 +7,7 @@ import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const setupSchema = z.object({
   name: z.string().min(1),
-  email: z.string().email(),
+  email: z.email().max(255),
   password: z.string().min(8),
 });
 

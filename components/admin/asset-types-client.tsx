@@ -39,7 +39,7 @@ import {
   Info,
   Hash,
 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, apiErrorMessage } from "@/lib/utils";
 import { validateTemplate } from "@/lib/scrape-template";
 import { validateHostnamePattern } from "@/lib/hostname/pattern";
 import { MaintenancePresetsManager } from "@/components/admin/maintenance-presets-manager";
@@ -220,7 +220,7 @@ export function AssetTypesClient({
     setTemplateSaving(false);
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error || err.details?.[0], variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     const updated = await res.json();
@@ -253,7 +253,7 @@ export function AssetTypesClient({
     setHostnamePatternSavingId(null);
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error || err.details?.[0], variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     const updated = await res.json();

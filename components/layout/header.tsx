@@ -81,7 +81,6 @@ function SearchBar() {
   const tc = useTranslations("common");
   const tAsset = useTranslations("asset");
   const router = useRouter();
-  const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [quickResults, setQuickResults] = useState<QuickResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -89,10 +88,6 @@ function SearchBar() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!pathname.startsWith("/search")) return;
-  }, [pathname]);
 
   useEffect(() => {
     function onOutside(e: MouseEvent) {

@@ -9,7 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { isTwoFactorSetupRequired } from "@/lib/two-factor/policy";
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.email().max(255),
   password: z.string().min(1),
 });
 

@@ -106,6 +106,7 @@ npm test                 # run test suite (must pass before committing)
 npm run test:watch       # watch mode for TDD
 npm run test:coverage    # run tests + enforce 80% coverage threshold
 npm run test:ui          # open Vitest browser UI
+npm run test:integration # opt-in raw SQL tests against the dev MySQL (needs DB_* env)
 npm run db:migrate       # create + apply a migration from schema.prisma edits (dev)
 npm run db:migrate:deploy # apply committed, pending migrations only (prod / fresh DB)
 npm run db:push          # push schema straight to DB, no migration file (prototyping only)

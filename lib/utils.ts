@@ -36,3 +36,14 @@ export function toIsoDay(date: Date | string | number | null | undefined): strin
 export function toIsoDay(date: Date | string | number | null | undefined): string | null {
   return date == null ? null : new Date(date).toISOString().slice(0, 10);
 }
+
+/**
+ * User-facing text for an API error body. Routes return `{ error }` plus, for
+ * template and pattern checks, `details: string[]` with the specific problems;
+ * Zod's structured `details` object is not meant for display and is ignored.
+ */
+export function apiErrorMessage(body: { error?: string; details?: unknown }, fallback = ""): string {
+  const details = Array.isArray(body.details) ? body.details.filter((d): d is string => typeof d === "string") : [];
+  const message = body.error ?? fallback;
+  return details.length > 0 ? `${message}: ${details.join("; ")}` : message;
+}

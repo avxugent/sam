@@ -25,7 +25,7 @@ const updateSchema = z
   .superRefine((data, ctx) => {
     if (data.serialNumber && data.quantity !== undefined && data.quantity > 1) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["quantity"],
         message: "Quantity must be 1 when a serial number is set.",
       });

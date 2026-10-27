@@ -26,7 +26,7 @@ const workLogFields = z.object({
 export const createWorkLogSchema = workLogFields.superRefine((data, ctx) => {
   if (!data.itemId && !data.description?.trim()) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: "custom",
       path: ["description"],
       message: "Description is required",
     });

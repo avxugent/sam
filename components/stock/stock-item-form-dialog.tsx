@@ -99,7 +99,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   }).superRefine((data, ctx) => {
     if (data.serialNumber?.trim() && data.quantity > 1) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["quantity"],
         message: t("errQuantitySerial"),
       });

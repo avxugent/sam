@@ -17,7 +17,7 @@ const deploySchema = z
   .superRefine((data, ctx) => {
     if (data.serialNumbers !== undefined && data.serialNumbers.length !== data.quantity) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["serialNumbers"],
         message: "serialNumbers length must equal quantity.",
       });

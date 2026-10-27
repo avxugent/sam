@@ -11,7 +11,7 @@ import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 const updateSchema = z.object({
   displayName: z.string().max(255).nullable().optional(),
   description: z.string().max(2000).nullable().optional(),
-  url: z.string().url().max(2048).nullable().optional(),
+  url: z.url().max(2048).nullable().optional(),
 });
 
 /** Strip characters that could break HTTP headers or cause path traversal */

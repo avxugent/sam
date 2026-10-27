@@ -11,7 +11,7 @@ All API routes return `NextResponse.json(...)`. Auth and role checks happen insi
 
 | Status | Meaning |
 |---|---|
-| 400 | Validation error — body contains `{ error: string, details?: … }`. Zod failures (including a missing or malformed JSON body) return `{ error: "Invalid input", details: { formErrors, fieldErrors } }` |
+| 400 | Validation error — body contains `{ error: string, details?: … }`. Zod failures (including a missing or malformed JSON body) return `{ error: "Invalid input", details: { formErrors, fieldErrors } }`; domain checks that list specific problems (scrape template syntax, hostname pattern, overlapping supplier windows) return `details` as a `string[]` meant for display |
 | 401 | Unauthenticated — no valid session or Bearer token |
 | 403 | Insufficient role |
 | 404 | Resource not found |

@@ -76,12 +76,13 @@ export default defineConfig({
     },
     testTimeout: 10000,
     include: ["**/__tests__/**/*.{test,spec}.{ts,tsx}", "**/*.{test,spec}.{ts,tsx}"],
-    exclude: ["node_modules", ".next", "coverage"],
+    // __tests__/integration needs a real database: run with `npm run test:integration`.
+    exclude: ["node_modules", ".next", "coverage", "__tests__/integration/**"],
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "."),
-      "@prisma/client": path.resolve(__dirname, "generated/prisma/client.ts"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, ".") },
+      { find: /^@prisma\/client$/, replacement: path.resolve(__dirname, "generated/prisma/client.ts") },
+    ],
   },
 });

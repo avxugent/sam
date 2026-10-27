@@ -12,7 +12,7 @@ const createSchema = z.object({
   name: z.string().min(1).max(255),
   // Required for compliance, but intentionally not enforced here — see the
   // comment on Model.documentationUrl in schema.prisma.
-  documentationUrl: z.string().url().max(2048).nullable().optional(),
+  documentationUrl: z.url().max(2048).nullable().optional(),
 });
 
 export async function GET(req: NextRequest) {

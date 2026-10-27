@@ -16,14 +16,14 @@ export const supplierSchema = z
   .superRefine((data, ctx) => {
     if (data.defaultUntil && !data.defaultFrom) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["defaultUntil"],
         message: "defaultUntil requires defaultFrom",
       });
     }
     if (data.defaultFrom && data.defaultUntil && data.defaultUntil < data.defaultFrom) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["defaultUntil"],
         message: "defaultUntil must be on or after defaultFrom",
       });

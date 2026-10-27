@@ -255,6 +255,7 @@ npm test                # run all tests once
 npm run test:watch      # watch mode
 npm run test:coverage   # run with coverage report + enforce thresholds
 npm run test:ui         # open Vitest UI in browser
+npm run test:integration # opt-in: raw SQL against a real MySQL (DB_* env), see __tests__/integration/
 ```
 
 > **Always run `npm test` after making any code change** and confirm the output shows no failures before considering the task complete. A passing test run is the minimum bar — never leave tests broken.

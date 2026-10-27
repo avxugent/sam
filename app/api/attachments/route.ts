@@ -98,7 +98,7 @@ function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
 }
 
 const linkSchema = z.object({
-  url: z.string().url().max(2000),
+  url: z.url().max(2000),
   label: z.string().min(1).max(255),
   description: z.string().max(2000).nullable().optional(),
   locationId: z.string().optional().nullable(),

@@ -11,7 +11,7 @@ const updateSchema = z.object({
   typeId: z.string().min(1),
   manufacturerId: z.string().min(1).optional().nullable(),
   name: z.string().min(1).max(255),
-  documentationUrl: z.string().url().max(2048).nullable().optional(),
+  documentationUrl: z.url().max(2048).nullable().optional(),
 });
 
 export async function PUT(

@@ -43,7 +43,7 @@ import { SortableTh } from "@/components/ui/sortable-th";
 
 const createSchema = z.object({
   name: z.string().min(1).max(128),
-  email: z.string().email().max(255),
+  email: z.email().max(255),
   password: z.string().min(8).max(128),
   role: z.enum(Role),
   mustChangePassword: z.boolean().default(true),
@@ -52,7 +52,7 @@ const createSchema = z.object({
 
 const editSchema = z.object({
   name: z.string().min(1).max(128),
-  email: z.string().email().max(255),
+  email: z.email().max(255),
   password: z.string().max(128).optional(),
   role: z.enum(Role),
   twoFactorRequired: z.boolean().optional(),

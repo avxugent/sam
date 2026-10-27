@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Plus, Tags } from "lucide-react";
 import { validateTemplate } from "@/lib/scrape-template";
 import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";
+import { apiErrorMessage } from "@/lib/utils";
 
 type ManufacturerOption = { id: string; name: string };
 
@@ -97,7 +98,7 @@ export function ManufacturerTemplateOverrides({
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error || err.details?.[0], variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
 

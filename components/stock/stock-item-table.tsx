@@ -36,6 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import * as permissions from "@/lib/permissions";
+import type { Role } from "@/lib/permissions";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
@@ -103,7 +105,7 @@ export function StockItemTable({
   locationBreadcrumbs = {},
 }: {
   items: StockItem[];
-  userRole: string;
+  userRole: Role;
   locationBreadcrumbs?: Record<string, string>;
 }) {
   const router = useRouter();
@@ -120,7 +122,7 @@ export function StockItemTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkRelocateOpen, setBulkRelocateOpen] = useState(false);
 
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
+  const canEdit = permissions.canEdit(userRole);
 
   useEffect(() => {
     setItems(initialItems);

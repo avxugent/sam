@@ -4,12 +4,13 @@ import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { isAdmin, Role } from "@/lib/permissions";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(128).optional(),
   email: z.string().email().max(255).optional(),
   password: z.string().min(8).max(128).optional(),
-  role: z.enum(["ADMIN", "MAINTAINER", "EDITOR", "VIEWER"]).optional(),
+  role: z.enum(Role).optional(),
   twoFactorRequired: z.boolean().optional(),
 });
 
@@ -19,7 +20,7 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const body = await req.json();
@@ -86,7 +87,7 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
 
@@ -96,7 +97,7 @@ export async function DELETE(
 
   const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
   const userToDelete = await prisma.user.findUnique({ where: { id }, select: { role: true, email: true } });
-  if (userToDelete?.role === "ADMIN" && adminCount <= 1) {
+  if (isAdmin(userToDelete?.role) && adminCount <= 1) {
     return NextResponse.json({ error: "Cannot delete the last admin account." }, { status: 400 });
   }
 

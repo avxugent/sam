@@ -24,7 +24,7 @@ import { LocationFormDialog } from "@/components/locations/location-form-dialog"
 import { MoveLocationDialog } from "@/components/locations/move-location-dialog";
 import { AssetTable } from "@/components/assets/asset-table";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
-import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
+import { AttachmentGallery, type Attachment } from "@/components/attachments/attachment-gallery";
 import { CoverImagePicker } from "@/components/locations/cover-image-picker";
 import { LocationMap } from "@/components/locations/location-map";
 import { WorkLogList, type WorkLogEntry } from "@/components/locations/work-log-list";
@@ -45,6 +45,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { renderLocationUrl } from "@/lib/hostname-template";
+import * as permissions from "@/lib/permissions";
+import type { Role } from "@/lib/permissions";
 
 type Breadcrumb = { id: string; name: string };
 
@@ -56,19 +58,6 @@ type LocationChild = {
   coverImageId?: string | null;
   inMaintenance?: boolean;
   _count: { assets: number; children: number };
-};
-
-type Attachment = {
-  id: string;
-  attachmentType?: string;
-  filename?: string | null;
-  originalName: string;
-  mimeType?: string | null;
-  size?: number | null;
-  url?: string | null;
-  path?: string | null;
-  createdAt: Date | string;
-  uploadedBy: { id: string; name: string };
 };
 
 type Asset = {
@@ -126,7 +115,7 @@ export function LocationDetailClient({
   assets: Asset[];
   subtreeAssetCount?: number;
   breadcrumbs: Breadcrumb[];
-  userRole: string;
+  userRole: Role;
   currentUserId?: string;
   showLocation?: boolean;
   defaultTab?: string;
@@ -144,7 +133,7 @@ export function LocationDetailClient({
   const t = useTranslations("location");
   const tCommon = useTranslations("common");
   const tNav = useTranslations("nav");
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
+  const canEdit = permissions.canEdit(userRole);
 
   const [moveOpen, setMoveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);

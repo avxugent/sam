@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { updateWorkLogSchema } from "@/lib/work-log-schema";
+import { isAdmin } from "@/lib/permissions";
 
 export async function GET(
   _req: NextRequest,
@@ -46,8 +47,7 @@ export async function PUT(
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const isAuthor = existing.performedById === session.user.id;
-  const isAdmin = session.user.role === "ADMIN";
-  if (!isAuthor && !isAdmin) {
+  if (!isAuthor && !isAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -120,8 +120,7 @@ export async function DELETE(
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const isAuthor = existing.performedById === session.user.id;
-  const isAdmin = session.user.role === "ADMIN";
-  if (!isAuthor && !isAdmin) {
+  if (!isAuthor && !isAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

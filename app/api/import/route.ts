@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
 import type { Criticality } from "@/generated/prisma/client";
+import { isAdmin } from "@/lib/permissions";
 
 // CSV columns from the legacy export
 // GUID;FI NUMMER;CAMPUS;GEBOUW;LOKAAL;TYPE;BRAND;MODEL;SERIAL;QUANTITY;
@@ -24,7 +25,7 @@ const v = csvValue;
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;

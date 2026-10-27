@@ -22,6 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import * as permissions from "@/lib/permissions";
+import type { Role } from "@/lib/permissions";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
@@ -109,7 +111,7 @@ export function AssetTable({
 }: {
   assets: Asset[];
   locationId: string;
-  userRole: string;
+  userRole: Role;
   showLocation?: boolean;
   hostnameUrlTemplate?: string | null;
   macAddressUrlTemplate?: string | null;
@@ -129,7 +131,7 @@ export function AssetTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDecommissionOpen, setBulkDecommissionOpen] = useState(false);
   const [bulkReturnToStockOpen, setBulkReturnToStockOpen] = useState(false);
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
+  const canEdit = permissions.canEdit(userRole);
 
   // Sync local state when the parent re-fetches (e.g. after router.refresh()
   // from AssetFormDialog). Without this, useState's initializer runs only

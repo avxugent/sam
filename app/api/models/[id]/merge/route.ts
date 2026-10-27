@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
+import { canManageCatalog } from "@/lib/permissions";
 
 const schema = z.object({ targetId: z.string().min(1) });
 
@@ -13,7 +14,7 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const body = await req.json().catch(() => null);

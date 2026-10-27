@@ -21,6 +21,8 @@ import { WorkLogFormDialog, type WorkLogAssetOption, type WorkLogUserOption, typ
 import { JiraIssueBadge } from "@/components/locations/jira-issue-badge";
 import { useTranslations } from "next-intl";
 import { formatDate } from "@/lib/utils";
+import * as permissions from "@/lib/permissions";
+import type { Role } from "@/lib/permissions";
 
 export type WorkLogEntry = {
   id: string;
@@ -45,7 +47,7 @@ type Props = {
   users: WorkLogUserOption[];
   items: WorkLogItemOption[];
   currentUserId: string;
-  userRole: string;
+  userRole: Role;
   jiraBaseUrl: string | null;
 };
 
@@ -86,8 +88,8 @@ export function WorkLogList({
   // once and new entries don't appear until a manual page reload.
   useEffect(() => { setEntries(initialEntries); }, [initialEntries]);
 
-  const canCreate = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
-  const isAdmin = userRole === "ADMIN";
+  const canCreate = permissions.canEdit(userRole);
+  const isAdmin = permissions.isAdmin(userRole);
 
   const filtered = entries.filter((e) => {
     if (!search) return true;

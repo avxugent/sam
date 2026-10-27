@@ -38,11 +38,12 @@ import {
   Boxes,
   Truck,
 } from "lucide-react";
+import { canManageCatalog, isAdmin, type Role } from "@/lib/permissions";
 
 type HeaderUser = {
   name?: string | null;
   email?: string | null;
-  role?: string;
+  role?: Role;
   provider?: string;
   totpEnabled?: boolean;
 };
@@ -305,10 +306,9 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
   const t = useTranslations("nav");
   const initials = getInitials(user.name, user.email);
 
-  const visibleAdminItems = ADMIN_NAV.filter(
-    (item) => user.role === "ADMIN" || (item.minRole === "MAINTAINER" && user.role === "MAINTAINER")
+  const visibleAdminItems = ADMIN_NAV.filter((item) =>
+    item.minRole === "ADMIN" ? isAdmin(user.role) : canManageCatalog(user.role)
   );
-  const isAdminOrEditor = user.role === "ADMIN" || user.role === "EDITOR" || user.role === "MAINTAINER";
   const isInAdmin = pathname.startsWith("/admin");
 
   return (
@@ -346,7 +346,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
           </Link>
         </Button>
 
-        {isAdminOrEditor && (
+        {visibleAdminItems.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

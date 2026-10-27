@@ -5,10 +5,11 @@ import { GeneralSettingsClient } from "@/components/settings/general-settings-cl
 import { BrandingSettingsClient } from "@/components/settings/branding-settings-client";
 import { ComplianceSettingsClient } from "@/components/settings/compliance-settings-client";
 import { WorkLogItemsManager } from "@/components/settings/work-log-items-manager";
+import { isAdmin } from "@/lib/permissions";
 
 export default async function SettingsPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/");
+  if (!session?.user || !isAdmin(session.user.role)) redirect("/");
 
   const settings = await prisma.appSetting.findMany({
     where: {

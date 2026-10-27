@@ -20,6 +20,8 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Search, RotateCcw, ChevronUp, ChevronDown } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import * as permissions from "@/lib/permissions";
+import type { Role } from "@/lib/permissions";
 
 type SortCol = "type" | "model" | "serialNumber" | "lastLocation" | "decommissionedAt";
 
@@ -72,7 +74,7 @@ export function DecommissionedTable({
   userRole,
 }: {
   assets: DecommissionedAsset[];
-  userRole: string;
+  userRole: Role;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -82,7 +84,7 @@ export function DecommissionedTable({
   const tAsset = useTranslations("asset");
   const [assets, setAssets] = useState(initialAssets);
   const [query, setQuery] = useState("");
-  const isAdmin = userRole === "ADMIN";
+  const isAdmin = permissions.isAdmin(userRole);
   const [sortCol, setSortCol] = useState<SortCol | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 

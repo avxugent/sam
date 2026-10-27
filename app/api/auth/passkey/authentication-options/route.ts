@@ -14,7 +14,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!(session as { needs2FA?: boolean }).needs2FA) {
+  if (!session.needs2FA) {
     return NextResponse.json({ error: "No pending 2FA challenge." }, { status: 400 });
   }
 

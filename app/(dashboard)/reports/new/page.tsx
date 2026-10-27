@@ -4,13 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { buildLocationPathsFromRows } from "@/lib/location-path";
 import { ReportBuilder } from "@/components/reports/ReportBuilder";
 import { BarChart2 } from "lucide-react";
+import { canEdit } from "@/lib/permissions";
 
 export const metadata = { title: "New Report – SAM" };
 
 export default async function NewReportPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (session.user.role === "VIEWER") redirect("/reports");
+  if (!canEdit(session.user.role)) redirect("/reports");
 
   const [assetTypes, manufacturers, locations, workLogItems, suppliers] = await Promise.all([
     prisma.assetType.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),

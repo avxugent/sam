@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/totp";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
+import { isAdmin } from "@/lib/permissions";
 
 const schema = z.object({
   userId: z.string().optional(),
@@ -33,10 +34,9 @@ export async function POST(req: NextRequest) {
 
   const targetId = parsed.data.userId ?? session.user.id;
   const isSelf = targetId === session.user.id;
-  const isAdmin = session.user.role === "ADMIN";
 
   // Only admins can disable 2FA for other users
-  if (!isSelf && !isAdmin) {
+  if (!isSelf && !isAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

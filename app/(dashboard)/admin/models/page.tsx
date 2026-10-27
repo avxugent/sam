@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getModelClusters } from "@/lib/model-clusters";
 import { ModelsClient } from "@/components/settings/models-client";
+import { canManageCatalog } from "@/lib/permissions";
 
 export default async function ModelsPage({
   searchParams,
@@ -10,7 +11,7 @@ export default async function ModelsPage({
   searchParams: Promise<{ typeId?: string; manufacturerId?: string }>;
 }) {
   const session = await auth();
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER")) redirect("/");
+  if (!session?.user || !canManageCatalog(session.user.role)) redirect("/");
 
   const { typeId, manufacturerId } = await searchParams;
 

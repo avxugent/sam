@@ -17,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
+import { AttachmentGallery, type Attachment } from "@/components/attachments/attachment-gallery";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { RemoveAssetDialog } from "@/components/assets/remove-asset-dialog";
 import { formatDate } from "@/lib/utils";
@@ -43,18 +43,8 @@ import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/hostname-template"
 import { getAssetTypeIcon } from "@/lib/asset-type-icon";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
 import { AssetHistoryTimeline } from "@/components/assets/asset-history-timeline";
-
-type Attachment = {
-  id: string;
-  attachmentType?: string;
-  filename?: string | null;
-  originalName: string;
-  mimeType?: string | null;
-  size?: number | null;
-  url?: string | null;
-  createdAt: Date | string;
-  uploadedBy: { id: string; name: string };
-};
+import * as permissions from "@/lib/permissions";
+import type { Role } from "@/lib/permissions";
 
 type Asset = {
   id: string;
@@ -142,7 +132,7 @@ export function AssetDetailClient({
 }: {
   asset: Asset;
   breadcrumbs: Breadcrumb[];
-  userRole: string;
+  userRole: Role;
   hostnameUrlTemplate?: string | null;
   macAddressUrlTemplate?: string | null;
   ownerName?: string | null;
@@ -157,7 +147,7 @@ export function AssetDetailClient({
   const tDecom = useTranslations("decommissioned");
   const tRepair = useTranslations("repair");
   const tHistory = useTranslations("history");
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
+  const canEdit = permissions.canEdit(userRole);
   const isDecommissioned = asset.status === "DECOMMISSIONED";
   const isInRepair = asset.status === "IN_REPAIR";
   const [attachments, setAttachments] = useState(asset.attachments);
@@ -223,7 +213,7 @@ export function AssetDetailClient({
               <p className="text-[12px] text-[#92400e] mt-0.5">{asset.decommissionNote}</p>
             )}
           </div>
-          {userRole === "ADMIN" && (
+          {permissions.isAdmin(userRole) && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-[30px] text-[12px] gap-1.5 border-[#fde047] text-[#713f12] hover:bg-[#fef9c3] flex-shrink-0">

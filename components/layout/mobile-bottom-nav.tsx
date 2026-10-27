@@ -37,17 +37,17 @@ const tabs: NavTab[] = [
 ];
 
 const adminTab: NavTab = {
-  href: "/admin/users",
+  href: "/admin",
   labelKey: "administration",
   icon: <ShieldCheck className="h-5 w-5" />,
   match: (p) => p.startsWith("/admin"),
 };
 
-export function MobileBottomNav({ isAdminOrEditor }: { isAdminOrEditor: boolean }) {
+export function MobileBottomNav({ showAdminTab }: { showAdminTab: boolean }) {
   const pathname = usePathname();
   const tNav = useTranslations("nav");
   const tCommon = useTranslations("common");
-  const navTabs = isAdminOrEditor ? [...tabs, adminTab] : tabs;
+  const navTabs = showAdminTab ? [...tabs, adminTab] : tabs;
 
   function labelOf(key: LabelKey): string {
     return key === "search" ? tCommon("search") : tNav(key);

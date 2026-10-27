@@ -4,12 +4,13 @@ import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { isAdmin, Role } from "@/lib/permissions";
 
 const createSchema = z.object({
   name: z.string().min(1).max(128),
   email: z.string().email().max(255),
   password: z.string().min(8).max(128),
-  role: z.enum(["ADMIN", "MAINTAINER", "EDITOR", "VIEWER"]),
+  role: z.enum(Role),
   mustChangePassword: z.boolean().optional().default(true),
   twoFactorRequired: z.boolean().optional().default(false),
 });
@@ -30,7 +31,7 @@ const USER_SELECT = {
 export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const users = await prisma.user.findMany({
     select: USER_SELECT,
@@ -42,7 +43,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const parsed = createSchema.safeParse(body);

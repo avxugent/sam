@@ -46,3 +46,7 @@ next-env.d.ts
 /uploads/
 .claude/scheduled_tasks.lock
 app/.next/
+
+# desloppify local state
+.desloppify/
+scorecard.png

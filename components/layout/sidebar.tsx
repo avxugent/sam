@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 import { StockNavItems } from "@/components/layout/stock-nav-items";
+import * as permissions from "@/lib/permissions";
+import type { Role } from "@/lib/permissions";
 
 type LocationNode = {
   id: string;
@@ -33,7 +35,7 @@ type StockTypeNode = { id: string; name: string };
 
 type SidebarProps = {
   locationTree: LocationNode[];
-  userRole: string;
+  userRole: Role;
   assetCountMap: Record<string, number>;
   stockItemCount?: number;
   stockTypes?: StockTypeNode[];
@@ -58,7 +60,7 @@ function LocationTreeItem({
 }: {
   location: LocationNode;
   depth?: number;
-  userRole: string;
+  userRole: Role;
   assetCountMap: Record<string, number>;
   filterQuery?: string;
   showAll?: boolean;
@@ -177,7 +179,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
   const t = useTranslations("nav");
   const isStockPath = pathname === "/stock" || pathname.startsWith("/stock") || pathname === "/decommissioned" || pathname === "/in-repair";
 
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
+  const canEdit = permissions.canEdit(userRole);
   const totalAssets = locationTree.reduce((sum, loc) => sum + (assetCountMap[loc.id] ?? 0), 0);
   const [filterQuery, setFilterQuery] = useState("");
 

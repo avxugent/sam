@@ -10,11 +10,12 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateUsersCsv } from "@/lib/csv-export";
 import { logAudit } from "@/lib/audit";
+import { isAdmin } from "@/lib/permissions";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const users = await prisma.user.findMany({
     select: {

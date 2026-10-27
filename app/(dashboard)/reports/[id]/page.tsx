@@ -9,6 +9,7 @@ import { isLocationReport } from "@/lib/report-types";
 import { BarChart2 } from "lucide-react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { canEdit } from "@/lib/permissions";
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,7 +29,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   const definition = parsed.data;
   const result = await runReport(definition);
-  const canEdit = session?.user?.role === "ADMIN" || session?.user?.role === "EDITOR" || session?.user?.role === "MAINTAINER";
+  const userCanEdit = canEdit(session?.user?.role);
   const grafanaUrl = process.env.GRAFANA_URL
     ? `${process.env.GRAFANA_URL}/explore`
     : null;
@@ -59,7 +60,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             reportId={report.id}
             reportName={report.name}
             result={result}
-            canEdit={canEdit}
+            canEdit={userCanEdit}
           />
         )
       ) : (
@@ -69,7 +70,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             reportName={report.name}
             columns={definition.columns}
             result={result}
-            canEdit={canEdit}
+            canEdit={userCanEdit}
             grafanaUrl={grafanaUrl}
           />
         )

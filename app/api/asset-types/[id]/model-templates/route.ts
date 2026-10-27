@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { validateTemplate } from "@/lib/scrape-template";
 import { logAudit } from "@/lib/audit";
+import { isAdmin } from "@/lib/permissions";
 
 const createSchema = z.object({
   manufacturerId: z.string().min(1),
@@ -48,7 +49,7 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id: typeId } = await params;
   const type = await prisma.assetType.findUnique({ where: { id: typeId }, select: { id: true, name: true } });

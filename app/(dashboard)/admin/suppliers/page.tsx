@@ -3,10 +3,11 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { SuppliersClient } from "@/components/settings/suppliers-client";
+import { canManageCatalog } from "@/lib/permissions";
 
 export default async function SuppliersPage() {
   const session = await auth();
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER")) redirect("/");
+  if (!session?.user || !canManageCatalog(session.user.role)) redirect("/");
 
   const t = await getTranslations("suppliers");
 

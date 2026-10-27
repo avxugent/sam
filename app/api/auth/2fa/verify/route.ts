@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const session = await auth();
 
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!(session as { needs2FA?: boolean }).needs2FA) {
+  if (!session.needs2FA) {
     // Already fully authenticated — nothing to do
     return NextResponse.json({ ok: true });
   }

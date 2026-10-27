@@ -7,6 +7,7 @@ import { matchesHostnamePattern } from "@/lib/hostname-pattern";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { logAudit } from "@/lib/audit";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
+import { canEdit } from "@/lib/permissions";
 
 const MAX_CUSTOM_FIELDS = 50;
 const MAX_MAC_ADDRESSES = 20;
@@ -103,7 +104,7 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const body = await req.json();
@@ -323,7 +324,7 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const asset = await prisma.asset.findUnique({

@@ -5,10 +5,11 @@ import { computeHostnameCompliance } from "@/lib/hostname-compliance";
 import { computeNis2Compliance } from "@/lib/nis2-compliance";
 import { HostnameComplianceClient } from "@/components/compliance/hostname-compliance-client";
 import { Nis2DashboardClient } from "@/components/compliance/nis2-dashboard-client";
+import { isAdmin } from "@/lib/permissions";
 
 export default async function CompliancePage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/");
+  if (!session?.user || !isAdmin(session.user.role)) redirect("/");
 
   const t = await getTranslations("compliance");
   const [nis2Result, hostnameResult] = await Promise.all([

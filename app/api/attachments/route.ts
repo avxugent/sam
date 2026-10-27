@@ -6,6 +6,7 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { getStorageDriver } from "@/lib/storage";
+import { canEdit } from "@/lib/permissions";
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
 const ALLOWED_TYPES = new Set([
@@ -106,7 +107,7 @@ const linkSchema = z.object({
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const contentType = req.headers.get("content-type") ?? "";
 

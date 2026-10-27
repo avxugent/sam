@@ -103,7 +103,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             id: user.id,
             name: user.name,
             email: user.email,
-            role: user.role as string,
+            role: user.role,
             needsPasswordChange: true,
           };
         }
@@ -120,7 +120,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             id: user.id,
             name: user.name,
             email: user.email,
-            role: user.role as string,
+            role: user.role,
             needs2FASetup: true,
           };
         }
@@ -129,7 +129,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role as string,
+          role: user.role,
           // Signal that a 2FA step is still required before granting full access
           needs2FA: (user.totpEnabled || hasPasskey) ? true : undefined,
         };
@@ -168,7 +168,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role as string,
+          role: user.role,
           // No needs2FA — this is the verified session
           method: typeof credentials?.method === "string" ? credentials.method : undefined,
         };
@@ -212,10 +212,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
           });
           user.id = newUser.id;
-          (user as { role?: string }).role = "VIEWER";
+          user.role = "VIEWER";
         } else {
           user.id = existing.id;
-          (user as { role?: string }).role = existing.role as string;
+          user.role = existing.role;
         }
         return true;
       }
@@ -225,19 +225,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as { id?: string; role?: string }).role;
-        const u = user as { needs2FA?: boolean; needsPasswordChange?: boolean; needs2FASetup?: boolean };
-        if (u.needs2FA) {
+        token.role = user.role;
+        if (user.needs2FA) {
           token.needs2FA = true;
         } else {
           delete token.needs2FA;
         }
-        if (u.needsPasswordChange) {
+        if (user.needsPasswordChange) {
           token.needsPasswordChange = true;
         } else {
           delete token.needsPasswordChange;
         }
-        if (u.needs2FASetup) {
+        if (user.needs2FASetup) {
           token.needs2FASetup = true;
         } else {
           delete token.needs2FASetup;
@@ -248,7 +247,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Verify user still exists in the database every 5 minutes.
       // Returns null to invalidate the session if the user has been deleted.
       const now = Math.floor(Date.now() / 1000);
-      const lastCheck = (token.dbCheck as number) ?? 0;
+      const lastCheck = token.dbCheck ?? 0;
       if (now - lastCheck > 300) {
         const exists = await prisma.user.findUnique({
           where: { id: token.id as string },
@@ -264,7 +263,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        session.user.role = token.role ?? "VIEWER";
         if (token.needs2FA) session.needs2FA = true;
         if (token.needsPasswordChange) session.needsPasswordChange = true;
         if (token.needs2FASetup) session.needs2FASetup = true;
@@ -275,40 +274,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   events: {
     async signIn({ user, account }) {
-      const u = user as {
-        id?: string;
-        email?: string | null;
-        needs2FA?: boolean;
-        needsPasswordChange?: boolean;
-        needs2FASetup?: boolean;
-        method?: string;
-      };
       // A credentials login that still owes a second-factor challenge is
       // only a partial login — the follow-up "credentials-2fa-verified"
       // sign-in produces the single LOGIN_SUCCESS entry and lastLoginAt write.
-      if (account?.provider === "credentials" && u.needs2FA) return;
+      if (account?.provider === "credentials" && user.needs2FA) return;
 
       void logAudit({
         session: null,
-        actor: { id: u.id, email: u.email },
+        actor: { id: user.id, email: user.email },
         action: "LOGIN_SUCCESS",
         entityType: "Auth",
-        entityId: u.id,
-        entityName: u.email ?? undefined,
+        entityId: user.id,
+        entityName: user.email ?? undefined,
         detail: {
           provider:
             account?.provider === "credentials-2fa-verified"
-              ? `credentials+${u.method || "totp"}`
+              ? `credentials+${user.method || "totp"}`
               : account?.provider,
-          ...(u.needsPasswordChange || u.needs2FASetup
+          ...(user.needsPasswordChange || user.needs2FASetup
             ? { pendingEnrollment: true }
             : {}),
         },
       });
 
-      if (u.id) {
+      if (user.id) {
         await prisma.user
-          .update({ where: { id: u.id }, data: { lastLoginAt: new Date() } })
+          .update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
           .catch(() => {});
       }
     },

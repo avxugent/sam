@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   // When this is a forced-setup session (needs2FASetup=true in JWT), re-issue a
   // clean session so the proxy no longer redirects to /login/setup-2fa.
   // Mirrors what /api/auth/2fa/verify does for the needs2FA flag.
-  if ((session as { needs2FASetup?: boolean }).needs2FASetup) {
+  if (session.needs2FASetup) {
     try {
       await signIn("credentials-2fa-verified", {
         userId: session.user.id,

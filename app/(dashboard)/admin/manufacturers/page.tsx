@@ -2,10 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ManufacturersClient } from "@/components/settings/manufacturers-client";
+import { canManageCatalog } from "@/lib/permissions";
 
 export default async function ManufacturersPage() {
   const session = await auth();
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER")) redirect("/");
+  if (!session?.user || !canManageCatalog(session.user.role)) redirect("/");
 
   const manufacturers = await prisma.manufacturer.findMany({
     orderBy: { name: "asc" },

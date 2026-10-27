@@ -61,6 +61,7 @@ import {
   resolveScrapeTemplate,
   type TemplateVars,
 } from "@/lib/scrape-template";
+import { isAdmin } from "@/lib/permissions";
 
 // Prometheus label values: allow printable ASCII, replace control chars
 function safeLabel(value: string | null | undefined): string {
@@ -70,8 +71,7 @@ function safeLabel(value: string | null | undefined): string {
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  const isAdmin = session?.user?.role === "ADMIN";
-  if (!isAdmin) {
+  if (!isAdmin(session?.user?.role)) {
     const authError = checkPrometheusAuth(req);
     if (authError) return authError;
   }

@@ -43,7 +43,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-type Attachment = {
+export type Attachment = {
   id: string;
   attachmentType?: string;
   filename?: string | null;

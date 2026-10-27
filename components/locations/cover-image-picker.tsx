@@ -6,13 +6,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Check, ImageOff, Loader2, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Attachment as GalleryAttachment } from "@/components/attachments/attachment-gallery";
 
-type Attachment = {
-  id: string;
-  originalName: string;
-  mimeType?: string | null;
-  size?: number | null;
-};
+type Attachment = Pick<GalleryAttachment, "id" | "originalName" | "mimeType" | "size">;
 
 type Props = {
   locationId: string;

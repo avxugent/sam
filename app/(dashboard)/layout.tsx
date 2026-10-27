@@ -7,6 +7,7 @@ import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { ThemeSync } from "@/components/theme-sync";
 import { AppFooter } from "@/components/layout/app-footer";
 import { version } from "@/package.json";
+import { canManageCatalog } from "@/lib/permissions";
 
 type AssetCountRow = { id: string; totalAssets: bigint };
 
@@ -104,7 +105,7 @@ export default async function DashboardLayout({
     totpEnabled: dbUser?.totpEnabled ?? false,
   };
 
-  const isAdminOrEditor = session.user.role === "ADMIN" || session.user.role === "EDITOR" || session.user.role === "MAINTAINER";
+  const showAdminNav = canManageCatalog(session.user.role);
 
   return (
     <>
@@ -138,7 +139,7 @@ export default async function DashboardLayout({
           </main>
         </div>
         {/* Mobile bottom tab bar */}
-        <MobileBottomNav isAdminOrEditor={isAdminOrEditor} />
+        <MobileBottomNav showAdminTab={showAdminNav} />
       </div>
       <AppFooter version={version} />
     </div>

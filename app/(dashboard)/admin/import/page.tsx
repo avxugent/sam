@@ -1,11 +1,12 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { CsvImportClient } from "@/components/import/csv-import-client";
+import { isAdmin } from "@/lib/permissions";
 
 export default async function ImportPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (session.user.role !== "ADMIN") redirect("/");
+  if (!isAdmin(session.user.role)) redirect("/");
 
   return (
     <div>

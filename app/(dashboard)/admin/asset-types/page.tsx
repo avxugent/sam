@@ -2,10 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AssetTypesClient } from "@/components/settings/asset-types-client";
+import { isAdmin } from "@/lib/permissions";
 
 export default async function AssetTypesPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/");
+  if (!session?.user || !isAdmin(session.user.role)) redirect("/");
 
   const [types, manufacturers] = await Promise.all([
     prisma.assetType.findMany({

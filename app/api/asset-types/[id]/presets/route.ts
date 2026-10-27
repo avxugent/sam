@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { createPresetSchema } from "@/lib/work-log-schema";
+import { isAdmin } from "@/lib/permissions";
 
 export async function GET(
   _req: NextRequest,
@@ -25,7 +26,7 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id: assetTypeId } = await params;
   const type = await prisma.assetType.findUnique({ where: { id: assetTypeId }, select: { id: true, name: true } });

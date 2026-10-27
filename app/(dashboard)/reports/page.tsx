@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ReportsListClient } from "@/components/reports/ReportsListClient";
 import { BarChart2 } from "lucide-react";
+import { canEdit, isAdmin } from "@/lib/permissions";
 
 export const metadata = { title: "Reports – SAM" };
 
@@ -13,8 +14,6 @@ export default async function ReportsPage() {
     select: { id: true, name: true, description: true, createdAt: true, updatedAt: true },
   });
 
-  const canEdit = session?.user?.role === "ADMIN" || session?.user?.role === "EDITOR" || session?.user?.role === "MAINTAINER";
-  const isAdmin = session?.user?.role === "ADMIN";
 
   return (
     <div className="space-y-6">
@@ -30,7 +29,7 @@ export default async function ReportsPage() {
         </div>
       </div>
 
-      <ReportsListClient reports={reports} canEdit={canEdit} isAdmin={isAdmin} />
+      <ReportsListClient reports={reports} canEdit={canEdit(session?.user?.role)} isAdmin={isAdmin(session?.user?.role)} />
     </div>
   );
 }

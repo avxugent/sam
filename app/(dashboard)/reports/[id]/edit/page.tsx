@@ -6,12 +6,13 @@ import { reportDefinitionSchema } from "@/lib/report-schema";
 import { ReportBuilder } from "@/components/reports/ReportBuilder";
 import { BarChart2, ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { canEdit } from "@/lib/permissions";
 
 export default async function EditReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (session.user.role === "VIEWER") redirect(`/reports/${id}`);
+  if (!canEdit(session.user.role)) redirect(`/reports/${id}`);
 
   const report = await prisma.report.findUnique({ where: { id } });
   if (!report) notFound();

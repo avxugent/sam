@@ -7,6 +7,7 @@ import { StockItemFormDialog } from "@/components/stock/stock-item-form-dialog";
 import { StockLocationFilter } from "@/components/stock/stock-location-filter";
 import { Button } from "@/components/ui/button";
 import { buildLocationPathsFromRows } from "@/lib/location-path";
+import * as permissions from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function StockPage({
 
   const session = await auth();
   const userRole = session?.user?.role ?? "VIEWER";
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
+  const canEdit = permissions.canEdit(userRole);
 
   const t = await getTranslations("stock");
 

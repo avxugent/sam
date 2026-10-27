@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/request-limits";
 import { logAudit } from "@/lib/audit";
+import { auditLoginFailure } from "@/lib/login-audit";
 import { isTwoFactorSetupRequired } from "@/lib/two-factor/policy";
 
 const loginSchema = z.object({
@@ -34,21 +36,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!parsed.success) return null;
 
         // Rate-limit by IP (broad) and by email (per-account)
-        const ip =
-          request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-          request.headers.get("x-real-ip") ??
-          "unknown";
+        const ip = clientIp(request.headers) ?? "unknown";
         const ipRl = checkRateLimit(`login:ip:${ip}`, 20, 15 * 60 * 1000);
         const emailRl = checkRateLimit(`login:email:${parsed.data.email}`, 10, 15 * 60 * 1000);
         if (!ipRl.allowed || !emailRl.allowed) {
-          void logAudit({
-            session: null,
-            req: request,
-            action: "LOGIN_FAILED",
-            entityType: "Auth",
-            entityName: parsed.data.email,
-            detail: { reason: "rate_limited" },
-          });
+          auditLoginFailure({ req: request, entityName: parsed.data.email, detail: { reason: "rate_limited" } });
           return null;
         }
 
@@ -69,14 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Reject if user has no password (SSO-only account)
         if (!user || !user.passwordHash) {
-          void logAudit({
-            session: null,
-            req: request,
-            action: "LOGIN_FAILED",
-            entityType: "Auth",
-            entityName: parsed.data.email,
-            detail: { reason: user ? "sso_only" : "unknown_user" },
-          });
+          auditLoginFailure({ req: request, entityName: parsed.data.email, detail: { reason: user ? "sso_only" : "unknown_user" } });
           return null;
         }
 
@@ -85,15 +70,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user.passwordHash
         );
         if (!valid) {
-          void logAudit({
-            session: null,
-            req: request,
-            action: "LOGIN_FAILED",
-            entityType: "Auth",
-            entityId: user.id,
-            entityName: parsed.data.email,
-            detail: { reason: "invalid_password" },
-          });
+          auditLoginFailure({ req: request, entityId: user.id, entityName: parsed.data.email, detail: { reason: "invalid_password" } });
           return null;
         }
 

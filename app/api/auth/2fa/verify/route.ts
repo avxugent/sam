@@ -16,7 +16,8 @@ import { auth, signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { logAudit } from "@/lib/audit";
+import { clientIp, tooManyAttempts } from "@/lib/request-limits";
+import { auditLoginFailure } from "@/lib/login-audit";
 import { setRememberMeCookie } from "@/lib/two-factor/remember-device";
 import { z } from "zod";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
@@ -36,29 +37,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Rate-limit TOTP verification per user + IP to prevent brute-force of 6-digit codes
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    req.headers.get("x-real-ip") ??
-    "unknown";
+  const ip = clientIp(req.headers) ?? "unknown";
   const rl = checkRateLimit(`2fa:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
   if (!rl.allowed) {
-    void logAudit({
-      session: null,
-      actor: { id: session.user.id, email: session.user.email },
-      req,
-      action: "LOGIN_FAILED",
-      entityType: "Auth",
-      entityId: session.user.id,
-      entityName: session.user.email ?? undefined,
-      detail: { stage: "totp", reason: "rate_limited" },
-    });
-    return NextResponse.json(
-      { error: "Too many attempts. Please try again later." },
-      {
-        status: 429,
-        headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) },
-      }
-    );
+    auditLoginFailure({ req, actor: session.user, entityId: session.user.id, entityName: session.user.email, detail: { stage: "totp", reason: "rate_limited" } });
+    return tooManyAttempts(rl.retryAfterMs);
   }
 
   const body = await readJsonBody(req);
@@ -81,16 +64,7 @@ export async function POST(req: NextRequest) {
 
   const valid = verifyTotpCode(user.totpSecret, parsed.data.code);
   if (!valid) {
-    void logAudit({
-      session: null,
-      actor: { id: session.user.id, email: session.user.email },
-      req,
-      action: "LOGIN_FAILED",
-      entityType: "Auth",
-      entityId: session.user.id,
-      entityName: session.user.email ?? undefined,
-      detail: { stage: "totp", reason: "invalid_code" },
-    });
+    auditLoginFailure({ req, actor: session.user, entityId: session.user.id, entityName: session.user.email, detail: { stage: "totp", reason: "invalid_code" } });
     return NextResponse.json(
       { error: "Invalid code. Check your authenticator app and try again." },
       { status: 400 }

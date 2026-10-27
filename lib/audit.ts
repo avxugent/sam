@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Session } from "next-auth";
 import { forwardAuditEntry, isSyslogConfigured } from "@/lib/syslog";
+import { clientIp } from "@/lib/request-limits";
 
 export type AuditAction =
   | "CREATE"
@@ -36,11 +37,7 @@ export async function logAudit({
   lineageId?: string;
 }): Promise<void> {
   try {
-    const ip = req
-      ? (req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-         req.headers.get("x-real-ip") ??
-         null)
-      : null;
+    const ip = req ? clientIp(req.headers) : null;
     const userAgent = req ? req.headers.get("user-agent") ?? null : null;
 
     const created = await prisma.auditLog.create({

@@ -10,6 +10,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildAuthenticationOptions, setChallengeCookie } from "@/lib/two-factor/webauthn";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp, tooManyAttempts } from "@/lib/request-limits";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -18,16 +19,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No pending 2FA challenge." }, { status: 400 });
   }
 
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    req.headers.get("x-real-ip") ??
-    "unknown";
+  const ip = clientIp(req.headers) ?? "unknown";
   const rl = checkRateLimit(`passkey-auth-options:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
   if (!rl.allowed) {
-    return NextResponse.json(
-      { error: "Too many attempts. Please try again later." },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) } }
-    );
+    return tooManyAttempts(rl.retryAfterMs);
   }
 
   const existingPasskeys = await prisma.passkey.findMany({

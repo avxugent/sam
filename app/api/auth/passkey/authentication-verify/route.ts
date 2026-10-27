@@ -13,7 +13,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { logAudit } from "@/lib/audit";
+import { clientIp, tooManyAttempts } from "@/lib/request-limits";
+import { auditLoginFailure } from "@/lib/login-audit";
 import { setRememberMeCookie } from "@/lib/two-factor/remember-device";
 import { verifyAuthentication, readChallengeCookie, clearChallengeCookie } from "@/lib/two-factor/webauthn";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
@@ -34,26 +35,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    req.headers.get("x-real-ip") ??
-    "unknown";
+  const ip = clientIp(req.headers) ?? "unknown";
   const rl = checkRateLimit(`passkey-auth-verify:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
   if (!rl.allowed) {
-    void logAudit({
-      session: null,
-      actor: { id: session.user.id, email: session.user.email },
-      req,
-      action: "LOGIN_FAILED",
-      entityType: "Auth",
-      entityId: session.user.id,
-      entityName: session.user.email ?? undefined,
-      detail: { stage: "passkey", reason: "rate_limited" },
-    });
-    return NextResponse.json(
-      { error: "Too many attempts. Please try again later." },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) } }
-    );
+    auditLoginFailure({ req, actor: session.user, entityId: session.user.id, entityName: session.user.email, detail: { stage: "passkey", reason: "rate_limited" } });
+    return tooManyAttempts(rl.retryAfterMs);
   }
 
   const body = await readJsonBody(req);
@@ -79,16 +65,7 @@ export async function POST(req: NextRequest) {
   if (!passkey || passkey.userId !== session.user.id) {
     const response = NextResponse.json({ error: "Passkey not recognized." }, { status: 400 });
     clearChallengeCookie(response);
-    void logAudit({
-      session: null,
-      actor: { id: session.user.id, email: session.user.email },
-      req,
-      action: "LOGIN_FAILED",
-      entityType: "Auth",
-      entityId: session.user.id,
-      entityName: session.user.email ?? undefined,
-      detail: { stage: "passkey", reason: "unknown_credential" },
-    });
+    auditLoginFailure({ req, actor: session.user, entityId: session.user.id, entityName: session.user.email, detail: { stage: "passkey", reason: "unknown_credential" } });
     return response;
   }
 
@@ -104,16 +81,7 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
     clearChallengeCookie(response);
-    void logAudit({
-      session: null,
-      actor: { id: session.user.id, email: session.user.email },
-      req,
-      action: "LOGIN_FAILED",
-      entityType: "Auth",
-      entityId: session.user.id,
-      entityName: session.user.email ?? undefined,
-      detail: { stage: "passkey", reason: "invalid_signature" },
-    });
+    auditLoginFailure({ req, actor: session.user, entityId: session.user.id, entityName: session.user.email, detail: { stage: "passkey", reason: "invalid_signature" } });
     return response;
   }
 

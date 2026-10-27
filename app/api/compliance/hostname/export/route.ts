@@ -3,15 +3,9 @@ import { auth } from "@/lib/auth";
 import { computeHostnameCompliance } from "@/lib/hostname/compliance";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
+import { escapeCsvCell } from "@/lib/csv";
 
 const COLUMNS = ["TYPE", "PATTERN", "HOSTNAME", "MODEL", "SERIAL", "LOCATION", "FI_NUMBER"];
-
-function escapeCell(value: string): string {
-  if (value.includes(";") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -32,7 +26,7 @@ export async function GET(req: NextRequest) {
         a.locationPath ?? "",
         a.fiNumber ?? "",
       ];
-      rows.push(cells.map(escapeCell).join(";"));
+      rows.push(cells.map((cell) => escapeCsvCell(cell)).join(";"));
     }
   }
   const csv = rows.join("\r\n");

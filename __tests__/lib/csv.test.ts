@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseCsv, parseDate, splitCsvLine, csvValue } from "@/lib/csv";
+import { parseCsv, parseDate, splitCsvLine, csvValue, escapeCsvCell } from "@/lib/csv";
 
 // ── parseDate ───────────────────────────────────────────────────────────────
 
@@ -172,5 +172,39 @@ describe("csvValue()", () => {
   it("trims whitespace from values", () => {
     const r = { X: "  hello  " };
     expect(csvValue(r, "X")).toBe("hello");
+  });
+});
+
+// ── escapeCsvCell ────────────────────────────────────────────────────────────
+
+describe("escapeCsvCell()", () => {
+  it("leaves plain values alone and maps null/undefined to empty", () => {
+    expect(escapeCsvCell("plain")).toBe("plain");
+    expect(escapeCsvCell(null)).toBe("");
+    expect(escapeCsvCell(undefined, ",")).toBe("");
+  });
+
+  it("quotes only the active delimiter", () => {
+    expect(escapeCsvCell("a;b")).toBe('"a;b"');
+    expect(escapeCsvCell("a,b")).toBe("a,b");
+    expect(escapeCsvCell("a,b", ",")).toBe('"a,b"');
+  });
+
+  it("quotes and doubles embedded quotes and line breaks", () => {
+    expect(escapeCsvCell('say "hi"')).toBe('"say ""hi"""');
+    expect(escapeCsvCell("line1\nline2")).toBe('"line1\nline2"');
+    expect(escapeCsvCell("cr\r")).toBe('"cr\r"');
+  });
+});
+
+describe("export → import round-trip", () => {
+  it("parseCsv reads back quoted multi-line and quoted-delimiter cells", () => {
+    const header = ["NAME", "NOTES"].join(";");
+    const row = ["Room 1", 'first line\nsecond; "quoted"'].map((c) => escapeCsvCell(c)).join(";");
+    const next = ["Room 2", "simple"].join(";");
+    expect(parseCsv([header, row, next].join("\r\n"))).toEqual([
+      { NAME: "Room 1", NOTES: 'first line\nsecond; "quoted"' },
+      { NAME: "Room 2", NOTES: "simple" },
+    ]);
   });
 });

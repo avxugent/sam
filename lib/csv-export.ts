@@ -3,8 +3,10 @@
  * Used by the export API endpoint and the export-backup CLI script.
  */
 
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ancestorChain, resolveLocationPathsBatch } from "@/lib/location-path";
+import { escapeCsvCell } from "@/lib/csv";
 
 const CUSTOM_FIELD_COLUMNS = [
   "GUID", "DIAGONAL", "WIDTH", "HEIGHT",
@@ -33,13 +35,6 @@ async function buildOwnerEmailMap(ownerIds: Array<string | null>): Promise<Map<s
   return new Map(users.map((u) => [u.id, u.email]));
 }
 
-function escapeCsvCell(value: string): string {
-  if (value.includes(";") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
-
 function formatDateCell(date: Date | null | undefined): string {
   if (!date) return "";
   return date.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -58,6 +53,58 @@ function buildLocationHierarchy(locationId: string, locationMap: Map<string, Loc
   return { campus: campus ?? "", building: building ?? "", room: room ?? "" };
 }
 
+const ASSET_EXPORT_INCLUDE = {
+  type: { select: { name: true } },
+  manufacturer: { select: { name: true } },
+  model: { select: { name: true } },
+  supplier: { select: { name: true } },
+  macAddresses: { select: { address: true } },
+  customFields: { select: { key: true, value: true } },
+  location: { select: { id: true, name: true, fiNumber: true, parentId: true } },
+} satisfies Prisma.AssetInclude;
+
+type ExportAsset = Prisma.AssetGetPayload<{ include: typeof ASSET_EXPORT_INCLUDE }>;
+
+/** CAMPUS, GEBOUW, LOKAAL, FI NUMMER for a location. */
+function locationCells(loc: LocationRow, locationMap: Map<string, LocationRow>): string[] {
+  const hierarchy = buildLocationHierarchy(loc.id, locationMap);
+  return [hierarchy.campus, hierarchy.building, hierarchy.room || loc.name, loc.fiNumber ?? ""];
+}
+
+/** One cell per entry in COLUMNS. */
+function assetCells(
+  asset: ExportAsset,
+  locationMap: Map<string, LocationRow>,
+  ownerEmailById: Map<string, string>
+): string[] {
+  const customFieldMap: Record<string, string> = {};
+  for (const cf of asset.customFields) {
+    customFieldMap[cf.key.toUpperCase()] = cf.value;
+  }
+  return [
+    ...locationCells(asset.location, locationMap),
+    asset.type?.name ?? "",
+    asset.manufacturer?.name ?? "",
+    asset.model?.name ?? "",
+    asset.serialNumber ?? "",
+    String(asset.quantity),
+    asset.macAddresses.map((m) => m.address).join(";"),
+    asset.hostname ?? "",
+    formatDateCell(asset.installationDate ?? null),
+    formatDateCell(asset.invoiceDate ?? null),
+    asset.invoiceNumber ?? "",
+    ...CUSTOM_FIELD_COLUMNS.map((col) => customFieldMap[col] ?? ""),
+    asset.ownerId ? ownerEmailById.get(asset.ownerId) ?? asset.ownerId : "",
+    asset.criticality ?? "",
+    formatDateCell(asset.endOfSupportDate ?? null),
+    asset.supplier?.name ?? "",
+  ];
+}
+
+function csvLine(cells: string[]): string {
+  return cells.map((cell) => escapeCsvCell(cell)).join(";");
+}
+
 export async function generateExportCsv(includeDecommissioned = false): Promise<string> {
   // Fetch all locations into a map for hierarchy lookup
   const allLocations = await prisma.location.findMany({
@@ -68,15 +115,7 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
   // Fetch assets — decommissioned excluded by default
   const assets = await prisma.asset.findMany({
     where: includeDecommissioned ? {} : { status: "INSTALLED" },
-    include: {
-      type: { select: { name: true } },
-      manufacturer: { select: { name: true } },
-      model: { select: { name: true } },
-      supplier: { select: { name: true } },
-      macAddresses: { select: { address: true } },
-      customFields: { select: { key: true, value: true } },
-      location: { select: { id: true, name: true, fiNumber: true, parentId: true } },
-    },
+    include: ASSET_EXPORT_INCLUDE,
     orderBy: [{ locationId: "asc" }, { createdAt: "asc" }],
   });
 
@@ -88,66 +127,17 @@ export async function generateExportCsv(includeDecommissioned = false): Promise<
   const locationsWithAssets = new Set<string>();
 
   for (const asset of assets) {
-    const loc = asset.location;
-    locationsWithAssets.add(loc.id);
-
-    const hierarchy = buildLocationHierarchy(loc.id, locationMap);
-    const fiNumber = loc.fiNumber ?? "";
-
-    const customFieldMap: Record<string, string> = {};
-    for (const cf of asset.customFields) {
-      customFieldMap[cf.key.toUpperCase()] = cf.value;
-    }
-
-    const macs = asset.macAddresses.map((m) => m.address).join(";");
-    const installDate = formatDateCell(asset.installationDate ?? null);
-    const invoiceDate = formatDateCell(asset.invoiceDate ?? null);
-
-    const cells = [
-      hierarchy.campus,
-      hierarchy.building,
-      hierarchy.room || loc.name,
-      fiNumber,
-      asset.type?.name ?? "",
-      asset.manufacturer?.name ?? "",
-      asset.model?.name ?? "",
-      asset.serialNumber ?? "",
-      String(asset.quantity),
-      macs,
-      asset.hostname ?? "",
-      installDate,
-      invoiceDate,
-      asset.invoiceNumber ?? "",
-      ...CUSTOM_FIELD_COLUMNS.map((col) => customFieldMap[col] ?? ""),
-      asset.ownerId ? ownerEmailById.get(asset.ownerId) ?? asset.ownerId : "",
-      asset.criticality ?? "",
-      formatDateCell(asset.endOfSupportDate ?? null),
-      asset.supplier?.name ?? "",
-    ];
-
-    rows.push(cells.map(escapeCsvCell).join(";"));
+    locationsWithAssets.add(asset.location.id);
+    rows.push(csvLine(assetCells(asset, locationMap, ownerEmailById)));
   }
 
-  // Locations without assets: export as rows with empty asset fields
+  // Leaf locations (rooms) without assets: export as rows with empty asset fields
+  const parentIds = new Set(allLocations.map((l) => l.parentId));
   for (const loc of allLocations) {
-    if (locationsWithAssets.has(loc.id)) continue;
-    // Only export leaf nodes or nodes with fiNumber (rooms)
-    const hasChildren = allLocations.some((l) => l.parentId === loc.id);
-    if (hasChildren) continue; // Skip non-leaf locations without assets
+    if (locationsWithAssets.has(loc.id) || parentIds.has(loc.id)) continue;
 
-    const hierarchy = buildLocationHierarchy(loc.id, locationMap);
-    const fiNumber = loc.fiNumber ?? "";
-
-    const cells = [
-      hierarchy.campus,
-      hierarchy.building,
-      hierarchy.room || loc.name,
-      fiNumber,
-      "", "", "", "", "", "", "", "", "", "",
-      ...CUSTOM_FIELD_COLUMNS.map(() => ""),
-      "", "", "", "",
-    ];
-    rows.push(cells.map(escapeCsvCell).join(";"));
+    const cells = locationCells(loc, locationMap);
+    rows.push(csvLine([...cells, ...Array(COLUMNS.length - cells.length).fill("")]));
   }
 
   return rows.join("\r\n");
@@ -171,15 +161,7 @@ export async function generateDecommissionedCsv(): Promise<string> {
 
   const assets = await prisma.asset.findMany({
     where: { status: "DECOMMISSIONED" },
-    include: {
-      type: { select: { name: true } },
-      manufacturer: { select: { name: true } },
-      model: { select: { name: true } },
-      supplier: { select: { name: true } },
-      macAddresses: { select: { address: true } },
-      customFields: { select: { key: true, value: true } },
-      location: { select: { id: true, name: true, fiNumber: true, parentId: true } },
-    },
+    include: ASSET_EXPORT_INCLUDE,
     orderBy: [{ decommissionedAt: "desc" }, { createdAt: "asc" }],
   });
 
@@ -196,47 +178,19 @@ export async function generateDecommissionedCsv(): Promise<string> {
   const rows: string[] = [DECOMMISSIONED_COLUMNS.join(";")];
 
   for (const asset of assets) {
-    const loc = asset.location;
-    const hierarchy = buildLocationHierarchy(loc.id, locationMap);
-
-    const customFieldMap: Record<string, string> = {};
-    for (const cf of asset.customFields) {
-      customFieldMap[cf.key.toUpperCase()] = cf.value;
-    }
-
-    const macs = asset.macAddresses.map((m) => m.address).join(";");
-
-    const cells = [
-      hierarchy.campus,
-      hierarchy.building,
-      hierarchy.room || loc.name,
-      loc.fiNumber ?? "",
-      asset.type?.name ?? "",
-      asset.manufacturer?.name ?? "",
-      asset.model?.name ?? "",
-      asset.serialNumber ?? "",
-      String(asset.quantity),
-      macs,
-      asset.hostname ?? "",
-      formatDateCell(asset.installationDate ?? null),
-      formatDateCell(asset.invoiceDate ?? null),
-      asset.invoiceNumber ?? "",
-      ...CUSTOM_FIELD_COLUMNS.map((col) => customFieldMap[col] ?? ""),
-      asset.ownerId ? ownerEmailById.get(asset.ownerId) ?? asset.ownerId : "",
-      asset.criticality ?? "",
-      formatDateCell(asset.endOfSupportDate ?? null),
-      asset.supplier?.name ?? "",
-      formatDateCell(asset.decommissionedAt ?? null),
-      asset.decommissionNote ?? "",
-      asset.disposalMethod ?? "",
-      asset.decommissionedById
-        ? decommissionerNameById.get(asset.decommissionedById) ?? asset.decommissionedById
-        : "",
-      asset.lastLocationName ?? "",
-      asset.lastLocationFiNumber ?? "",
-    ];
-
-    rows.push(cells.map(escapeCsvCell).join(";"));
+    rows.push(
+      csvLine([
+        ...assetCells(asset, locationMap, ownerEmailById),
+        formatDateCell(asset.decommissionedAt ?? null),
+        asset.decommissionNote ?? "",
+        asset.disposalMethod ?? "",
+        asset.decommissionedById
+          ? decommissionerNameById.get(asset.decommissionedById) ?? asset.decommissionedById
+          : "",
+        asset.lastLocationName ?? "",
+        asset.lastLocationFiNumber ?? "",
+      ])
+    );
   }
 
   return rows.join("\r\n");
@@ -314,7 +268,7 @@ export async function generateStockCsv(): Promise<string> {
       item.invoiceNumber ?? "",
     ];
 
-    rows.push(cells.map(escapeCsvCell).join(";"));
+    rows.push(csvLine(cells));
   }
 
   return rows.join("\r\n");
@@ -352,7 +306,7 @@ export function generateUsersCsv(
       user.twoFactorRequired ? "yes" : "no",
       user.lastLoginAt ? user.lastLoginAt.toISOString() : "",
     ];
-    rows.push(cells.map(escapeCsvCell).join(";"));
+    rows.push(csvLine(cells));
   }
 
   return rows.join("\r\n");

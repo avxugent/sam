@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
+import { escapeCsvCell } from "@/lib/csv";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
@@ -44,11 +45,6 @@ type Asset = {
 
 type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "hostname" | "installationDate" | "location";
 
-function escapeCell(v: string | null | undefined): string {
-  const s = v ?? "";
-  return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
 function exportToCsv(assets: Asset[], filename: string, headers: string[]) {
   const rows = assets.map((a) => [
     a.type?.name,
@@ -60,8 +56,8 @@ function exportToCsv(assets: Asset[], filename: string, headers: string[]) {
     String(a.quantity),
     a.location?.name,
     a.installationDate ? new Date(a.installationDate).toLocaleDateString("sv-SE") : null,
-  ].map(escapeCell).join(","));
-  const csv = [headers.join(","), ...rows].join("\n");
+  ].map((cell) => escapeCsvCell(cell, ",")).join(","));
+  const csv = [headers.map((h) => escapeCsvCell(h, ",")).join(","), ...rows].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

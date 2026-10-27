@@ -1,6 +1,6 @@
 /**
- * CSV parsing utilities extracted from the import route for testability.
- * Used by app/api/import/route.ts and its test suite.
+ * CSV utilities: parsing for the import route, cell escaping for every CSV export.
+ * Client-safe (no server imports).
  */
 
 export type CsvRow = Record<string, string>;
@@ -78,14 +78,48 @@ export function splitCsvLine(line: string, delimiter: string): string[] {
 }
 
 /**
+ * Splits CSV text into records on line breaks that are outside quoted
+ * fields, so a quoted cell may itself contain newlines.
+ */
+function splitCsvRecords(text: string): string[] {
+  const records: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') inQuotes = !inQuotes; // an escaped "" toggles twice, so state stays right
+    if (!inQuotes && (ch === "\n" || (ch === "\r" && text[i + 1] === "\n"))) {
+      if (ch === "\r") i++;
+      records.push(current);
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  records.push(current);
+  return records;
+}
+
+/**
+ * Quotes a cell for CSV output when it contains the delimiter, a quote or a
+ * line break (doubling inner quotes). The import-compatible exports use ";",
+ * report and table downloads use ",".
+ */
+export function escapeCsvCell(value: string | null | undefined, delimiter: ";" | "," = ";"): string {
+  const s = value ?? "";
+  return s.includes(delimiter) || /["\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/**
  * Parses a full CSV text into an array of row objects.
  * - Auto-detects delimiter (`;` preferred over `,`)
- * - Strips surrounding double-quotes from header and value cells
+ * - Unquotes header and value cells ("" inside a quoted cell is a literal quote)
+ * - Allows line breaks inside quoted cells
  * - Skips blank rows
  * - Returns [] when fewer than 2 lines (no data beyond header)
  */
 export function parseCsv(text: string): CsvRow[] {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
+  const lines = splitCsvRecords(text).filter((l) => l.trim() !== "");
   if (lines.length < 2) return [];
 
   const firstLine = lines[0];
@@ -102,7 +136,8 @@ export function parseCsv(text: string): CsvRow[] {
     if (values.every((v) => v.trim() === "")) continue;
     const row: CsvRow = {};
     headers.forEach((h, idx) => {
-      row[h] = (values[idx] ?? "").trim().replace(/^"|"$/g, "");
+      // splitCsvLine already removed the quoting; stripping again would eat a real trailing quote.
+      row[h] = (values[idx] ?? "").trim();
     });
     rows.push(row);
   }

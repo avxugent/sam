@@ -5,6 +5,7 @@ import { runReport } from "@/lib/reports/engine";
 import { reportDefinitionSchema } from "@/lib/schemas/report";
 import { isLocationReport } from "@/lib/reports/types";
 import type { ReportDefinition, ColumnKey } from "@/lib/reports/types";
+import { escapeCsvCell } from "@/lib/csv";
 
 const COLUMN_LABELS: Record<ColumnKey, string> = {
   model: "Model",
@@ -22,13 +23,6 @@ const COLUMN_LABELS: Record<ColumnKey, string> = {
   criticality: "Criticality",
   endOfSupportDate: "End of Support",
 };
-
-function escapeCell(v: string | null | undefined): string {
-  const s = v ?? "";
-  return s.includes(",") || s.includes('"') || s.includes("\n")
-    ? `"${s.replace(/"/g, '""')}"`
-    : s;
-}
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -49,26 +43,28 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   let csv: string;
   if (isLocationReport(definition) && result.source === "location") {
-    const header = ["Campus", "Building", "Room", "FI number", ...result.itemColumns.map((c) => c.name)].join(",");
+    const header = ["Campus", "Building", "Room", "FI number", ...result.itemColumns.map((c) => c.name)]
+      .map((h) => escapeCsvCell(h, ","))
+      .join(",");
     const csvRows = result.rows.map((row) =>
       [
-        escapeCell(row.campus),
-        escapeCell(row.building),
-        escapeCell(row.name),
-        escapeCell(row.fiNumber),
+        escapeCsvCell(row.campus, ","),
+        escapeCsvCell(row.building, ","),
+        escapeCsvCell(row.name, ","),
+        escapeCsvCell(row.fiNumber, ","),
         ...result.itemColumns.map((c) => {
           const s = row.items[c.id];
-          if (s?.filled) return escapeCell(`Filled${s.date ? ` (${s.date})` : ""}`);
-          return escapeCell(s?.date ? `Overdue (${s.date})` : "Not filled");
+          if (s?.filled) return escapeCsvCell(`Filled${s.date ? ` (${s.date})` : ""}`, ",");
+          return escapeCsvCell(s?.date ? `Overdue (${s.date})` : "Not filled", ",");
         }),
       ].join(",")
     );
     csv = [header, ...csvRows].join("\n");
   } else if (!isLocationReport(definition) && result.source === "asset") {
     const cols = definition.columns;
-    const header = cols.map((c) => COLUMN_LABELS[c]).join(",");
+    const header = cols.map((c) => escapeCsvCell(COLUMN_LABELS[c], ",")).join(",");
     const csvRows = result.rows.map((row) =>
-      cols.map((c) => escapeCell(row[c] as string | null)).join(",")
+      cols.map((c) => escapeCsvCell(row[c] as string | null, ",")).join(",")
     );
     csv = [header, ...csvRows].join("\n");
   } else {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,16 +27,17 @@ import {
 import { ModelAutocomplete } from "@/components/model-autocomplete";
 import { cn } from "@/lib/utils";
 import { isHostnameCompliant } from "@/lib/hostname/pattern";
-import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
+import { normalizeMacAddress } from "@/lib/mac-address";
 import { isWindowActive } from "@/lib/supplier-window";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { Loader2, Plus, Trash2, KeyRound, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
+import { MacAddressFields } from "@/components/assets/mac-address-fields";
+import { useTypeScopedManufacturers } from "@/components/assets/use-type-scoped-manufacturers";
 
 
 type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: string | null };
-type Manufacturer = { id: string; name: string };
 type Supplier = {
   id: string;
   name: string;
@@ -136,15 +137,12 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
-  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [usersLite, setUsersLite] = useState<UserLite[]>([]);
   const [manufacturerSearch, setManufacturerSearch] = useState("");
   const [showManufacturerDropdown, setShowManufacturerDropdown] = useState(false);
   const [vaultTestResult, setVaultTestResult] = useState<VaultTestResult | null>(null);
   const [vaultTesting, setVaultTesting] = useState(false);
-  // See the manufacturer-scoping effect below for what this guards against.
-  const isInitialManufacturerLoadRef = useRef(true);
 
   const validationSchema = useMemo(() => buildAssetFormSchema(t, assetTypes), [t, assetTypes]);
 
@@ -257,7 +255,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
   useEffect(() => {
     if (open) {
-      isInitialManufacturerLoadRef.current = true;
       const dropdowns = fetchDropdowns();
       if (mode === "edit") {
         fetchAsset();
@@ -277,33 +274,15 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     }
   }, [open, fetchDropdowns, fetchAsset, mode, reset, setValue]);
 
-  // Manufacturer options are scoped to the selected asset type (only
-  // manufacturers with at least one Model under that type) — refetched
-  // whenever typeId changes. The very first fetch after opening the dialog
-  // (including the one triggered once edit-mode's fetchAsset() applies the
-  // asset's own typeId) never clears the current selection, even if that
-  // manufacturer happens to have no Model yet for this type; only a genuine
-  // later type change by the user clears a selection that's no longer valid.
-  useEffect(() => {
-    if (!open) return;
-    (async () => {
-      const params = new URLSearchParams();
-      if (typeIdValue) params.set("typeId", typeIdValue);
-      const res = await fetch(`/api/manufacturers?${params}`);
-      if (!res.ok) return;
-      const list: Manufacturer[] = await res.json();
-      setManufacturers(list);
-      if (
-        !isInitialManufacturerLoadRef.current &&
-        manufacturerIdValue &&
-        !list.some((m) => m.id === manufacturerIdValue)
-      ) {
-        setValue("manufacturerId", "", { shouldValidate: false });
-        setValue("modelId", "", { shouldValidate: false });
-      }
-      isInitialManufacturerLoadRef.current = false;
-    })();
-  }, [typeIdValue, open, manufacturerIdValue, setValue]);
+  const manufacturers = useTypeScopedManufacturers({
+    open,
+    typeId: typeIdValue,
+    manufacturerId: manufacturerIdValue,
+    onSelectionInvalid: () => {
+      setValue("manufacturerId", "", { shouldValidate: false });
+      setValue("modelId", "", { shouldValidate: false });
+    },
+  });
 
   // Sync manufacturer display name when manufacturerId or manufacturers list changes (handles edit mode)
   useEffect(() => {
@@ -701,77 +680,16 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             </div>
           </div>
 
-          {/* MAC Addresses */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>
-                  {tField("macAddresses")}
-                  {hostnameSet && !hasAnyMac && (
-                    <span className="ml-1.5 text-destructive text-xs">*</span>
-                  )}
-                </Label>
-                {hostnameSet && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {tAsset("macHelpText")}
-                  </p>
-                )}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => appendMac({ address: "" })}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                {t("addMacAddress")}
-              </Button>
-            </div>
-
-            {macFields.map((field, i) => (
-              <div key={field.id} className="flex gap-2">
-                <Input
-                  {...register(`macAddresses.${i}.address`, {
-                    onChange: (e) => {
-                      e.target.value = formatMacInputValue(e.target.value);
-                    },
-                  })}
-                  aria-label={`${tField("macAddress")} ${i + 1}`}
-                  aria-invalid={!!errors.macAddresses?.[i]?.address}
-                  aria-describedby={errors.macAddresses?.[i]?.address ? `mac-err-${i}` : undefined}
-                  placeholder={t("macPlaceholder")}
-                  className={cn(
-                    "font-mono",
-                    errors.macAddresses?.[i]?.address && "border-destructive"
-                  )}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t("removeMacAriaLabel", { n: i + 1 })}
-                  onClick={() => removeMac(i)}
-                  className="text-destructive hover:text-destructive flex-shrink-0"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-
-            {/* Per-entry MAC format errors */}
-            {macFields.map((field, i) =>
-              errors.macAddresses?.[i]?.address ? (
-                <p key={`mac-err-${field.id}`} id={`mac-err-${i}`} className="text-xs text-destructive -mt-1">
-                  {t("macLabel", { n: i + 1 })}: {errors.macAddresses[i]?.address?.message}
-                </p>
-              ) : null
-            )}
-
-            {/* Cross-field error: hostname set but no MAC */}
-            {macCrossError && (
-              <p className="text-xs text-destructive">{macCrossError}</p>
-            )}
-          </div>
+          <MacAddressFields
+            fields={macFields}
+            register={register}
+            errors={errors.macAddresses}
+            onAdd={() => appendMac({ address: "" })}
+            onRemove={removeMac}
+            required={hostnameSet && !hasAnyMac}
+            helpText={hostnameSet ? tAsset("macHelpText") : undefined}
+            listError={macCrossError}
+          />
 
           {/* Notes */}
           <div className="space-y-1.5">

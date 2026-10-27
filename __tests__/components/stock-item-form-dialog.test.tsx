@@ -146,7 +146,7 @@ describe("<StockItemFormDialog /> create", () => {
 
   it("auto-punctuates the MAC address field as you type", async () => {
     const user = await openCreate();
-    await user.click(screen.getByRole("button", { name: "addMacAddress" }));
+    await user.click(screen.getByRole("button", { name: "add" }));
     const macInput = screen.getByLabelText("macAddress 1");
     await user.type(macInput, "aabbccddeeff");
     expect(macInput).toHaveValue("AA:BB:CC:DD:EE:FF");
@@ -154,7 +154,7 @@ describe("<StockItemFormDialog /> create", () => {
 
   it("blocks submit when a MAC address is incomplete", async () => {
     const user = await openCreate();
-    await user.click(screen.getByRole("button", { name: "addMacAddress" }));
+    await user.click(screen.getByRole("button", { name: "add" }));
     await user.type(screen.getByLabelText("macAddress 1"), "AA:BB:CC");
     await user.click(screen.getByRole("button", { name: "createSubmit" }));
     expect(await screen.findByText(/errMacInvalid/)).toBeInTheDocument();
@@ -184,9 +184,9 @@ describe("<StockItemFormDialog /> edit", () => {
 
   it("submits every MAC address in the list", async () => {
     const user = await openEdit();
-    await user.click(screen.getByRole("button", { name: "addMacAddress" }));
+    await user.click(screen.getByRole("button", { name: "add" }));
     await user.type(screen.getByLabelText("macAddress 1"), "AA:BB:CC:DD:EE:FF");
-    await user.click(screen.getByRole("button", { name: "addMacAddress" }));
+    await user.click(screen.getByRole("button", { name: "add" }));
     await user.type(screen.getByLabelText("macAddress 2"), "11-22-33-44-55-66");
     await user.click(screen.getByRole("button", { name: "updateSubmit" }));
     await waitFor(() =>

@@ -212,9 +212,6 @@
     "serialPlaceholder": "SN-XXXX",
     "hostnamePlaceholder": "device.example.com",
     "invoicePlaceholder": "INV-XXXX",
-    "macPlaceholder": "AA:BB:CC:DD:EE:FF",
-    "addMacAddress": "MAC-adres toevoegen",
-    "removeMacAddress": "Verwijderen",
     "addCustomField": "Veld toevoegen",
     "fieldNamePlaceholder": "Veldnaam",
     "fieldValuePlaceholder": "Waarde",
@@ -232,8 +229,6 @@
     "noneManufacturer": "— Selecteer een fabrikant —",
     "vaultUnknown": "Onbekend resultaat",
     "vaultNetworkError": "Verzoek mislukt — controleer uw netwerk.",
-    "macLabel": "MAC {n}:",
-    "removeMacAriaLabel": "MAC-adres {n} verwijderen",
     "errTypeRequired": "Type is verplicht",
     "errManufacturerRequired": "Fabrikant is verplicht",
     "errModelRequired": "Model is verplicht",
@@ -370,10 +365,6 @@
     "errQuantitySerial": "Hoeveelheid moet 1 zijn als er een serienummer is ingesteld.",
     "errMacInvalid": "Ongeldig MAC-adres (verwacht AA:BB:CC:DD:EE:FF)",
     "errMacRequired": "MAC-adres is verplicht",
-    "addMacAddress": "MAC-adres toevoegen",
-    "macPlaceholder": "AA:BB:CC:DD:EE:FF",
-    "macLabel": "MAC {n}:",
-    "removeMacAriaLabel": "MAC-adres {n} verwijderen",
     "location": "Opslaglocatie",
     "unassigned": "Niet toegewezen",
     "selectLocation": "Opslaglocatie selecteren…",
@@ -1088,5 +1079,11 @@
     "deleted": "Leverancier verwijderd",
     "deleteConfirmTitle": "Leverancier verwijderen?",
     "deleteConfirmDescription": "Dit kan alleen als geen assets deze leverancier gebruiken."
+  },
+  "macAddressFields": {
+    "add": "MAC-adres toevoegen",
+    "placeholder": "AA:BB:CC:DD:EE:FF",
+    "entryLabel": "MAC {n}:",
+    "removeAriaLabel": "MAC-adres {n} verwijderen"
   }
 }

@@ -212,9 +212,6 @@
     "serialPlaceholder": "SN-XXXX",
     "hostnamePlaceholder": "device.example.com",
     "invoicePlaceholder": "INV-XXXX",
-    "macPlaceholder": "AA:BB:CC:DD:EE:FF",
-    "addMacAddress": "Add MAC address",
-    "removeMacAddress": "Remove",
     "addCustomField": "Add custom field",
     "fieldNamePlaceholder": "Field name",
     "fieldValuePlaceholder": "Value",
@@ -232,8 +229,6 @@
     "noneManufacturer": "— Select a manufacturer —",
     "vaultUnknown": "Unknown result",
     "vaultNetworkError": "Request failed — check your network.",
-    "macLabel": "MAC {n}:",
-    "removeMacAriaLabel": "Remove MAC address {n}",
     "errTypeRequired": "Type is required",
     "errManufacturerRequired": "Manufacturer is required",
     "errModelRequired": "Model is required",
@@ -370,10 +365,6 @@
     "errQuantitySerial": "Quantity must be 1 when a serial number is set.",
     "errMacInvalid": "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
     "errMacRequired": "MAC address is required",
-    "addMacAddress": "Add MAC address",
-    "macPlaceholder": "AA:BB:CC:DD:EE:FF",
-    "macLabel": "MAC {n}:",
-    "removeMacAriaLabel": "Remove MAC address {n}",
     "location": "Storage location",
     "unassigned": "Unassigned",
     "selectLocation": "Select storage location…",
@@ -1088,5 +1079,11 @@
     "deleted": "Supplier deleted",
     "deleteConfirmTitle": "Delete supplier?",
     "deleteConfirmDescription": "This is only allowed if no assets use this supplier."
+  },
+  "macAddressFields": {
+    "add": "Add MAC address",
+    "placeholder": "AA:BB:CC:DD:EE:FF",
+    "entryLabel": "MAC {n}:",
+    "removeAriaLabel": "Remove MAC address {n}"
   }
 }

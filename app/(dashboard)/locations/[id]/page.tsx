@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { readSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/location-path";
@@ -11,10 +12,7 @@ async function getUrlTemplates(): Promise<{
   macAddressUrlTemplate: string | null;
   locationUrlTemplate: string | null;
 }> {
-  const settings = await prisma.appSetting.findMany({
-    where: { key: { in: ["hostname.urlTemplate", "macAddress.urlTemplate", "location.urlTemplate"] } },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const map = await readSettings(["hostname.urlTemplate", "macAddress.urlTemplate", "location.urlTemplate"]);
   return {
     hostnameUrlTemplate: map["hostname.urlTemplate"] || null,
     macAddressUrlTemplate: map["macAddress.urlTemplate"] || null,

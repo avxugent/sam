@@ -3,6 +3,7 @@
  * the dashboard can show what needs fixing without a follow-up query.
  */
 import { prisma } from "@/lib/prisma";
+import { readSettings } from "@/lib/app-settings";
 import { runLocationReport } from "@/lib/reports/engine";
 import { isSyslogConfigured } from "@/lib/syslog";
 import type { Prisma } from "@/generated/prisma/client";
@@ -69,10 +70,7 @@ async function assetStat(where: Prisma.AssetWhereInput): Promise<{ count: number
 }
 
 async function locationsMissingReview(): Promise<Nis2ComplianceResult["locationsMissingReview"]> {
-  const settings = await prisma.appSetting.findMany({
-    where: { key: { in: ["compliance.reviewWorkLogItemId", "compliance.reviewPeriodMonths"] } },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const map = await readSettings(["compliance.reviewWorkLogItemId", "compliance.reviewPeriodMonths"]);
   const itemId = map["compliance.reviewWorkLogItemId"];
   if (!itemId) return { configured: false };
 

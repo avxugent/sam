@@ -5,13 +5,10 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppBackground } from "@/components/layout/app-background";
-import { prisma } from "@/lib/prisma";
+import { readSettings } from "@/lib/app-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.appSetting.findMany({
-    where: { key: { in: ["app.title", "branding.faviconStorageKey"] } },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const map = await readSettings(["app.title", "branding.faviconStorageKey"]);
   const appTitle = map["app.title"] || "SAM";
   const hasFavicon = !!map["branding.faviconStorageKey"];
 
@@ -38,10 +35,7 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
 
-  const bgSetting = await prisma.appSetting.findUnique({
-    where: { key: "branding.backgroundMode" },
-  });
-  const backgroundMode = bgSetting?.value ?? "";
+  const { "branding.backgroundMode": backgroundMode = "" } = await readSettings(["branding.backgroundMode"]);
 
   return (
     <html lang={locale} translate="no" className="h-full" suppressHydrationWarning>

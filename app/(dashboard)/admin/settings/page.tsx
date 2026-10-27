@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
+import { readSettings } from "@/lib/app-settings";
 import { GeneralSettingsClient } from "@/components/admin/general-settings-client";
 import { BrandingSettingsClient } from "@/components/admin/branding-settings-client";
 import { ComplianceSettingsClient } from "@/components/admin/compliance-settings-client";
@@ -15,28 +16,21 @@ export default async function SettingsPage() {
 
   const t = await getTranslations("adminPages");
 
-  const settings = await prisma.appSetting.findMany({
-    where: {
-      key: {
-        in: [
-          "hostname.urlTemplate",
-          "macAddress.urlTemplate",
-          "location.urlTemplate",
-          "app.title",
-          "branding.logoStorageKey",
-          "branding.faviconStorageKey",
-          "branding.backgroundMode",
-          "branding.backgroundStorageKey",
-          "security.requireTwoFactor",
-          "audit.retentionDays",
-          "assets.defaultOwnerId",
-          "compliance.reviewWorkLogItemId",
-          "compliance.reviewPeriodMonths",
-        ],
-      },
-    },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const map = await readSettings([
+    "hostname.urlTemplate",
+    "macAddress.urlTemplate",
+    "location.urlTemplate",
+    "app.title",
+    "branding.logoStorageKey",
+    "branding.faviconStorageKey",
+    "branding.backgroundMode",
+    "branding.backgroundStorageKey",
+    "security.requireTwoFactor",
+    "audit.retentionDays",
+    "assets.defaultOwnerId",
+    "compliance.reviewWorkLogItemId",
+    "compliance.reviewPeriodMonths",
+  ]);
 
   const workLogItems = await prisma.workLogItem.findMany({
     orderBy: [{ order: "asc" }, { name: "asc" }],

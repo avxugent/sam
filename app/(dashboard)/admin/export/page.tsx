@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/prisma";
+import { readSettings } from "@/lib/app-settings";
 import { ExportClient } from "@/components/admin/export-client";
 import { isAdmin } from "@/lib/permissions";
 
@@ -11,10 +11,7 @@ export default async function ExportPage() {
 
   const t = await getTranslations("adminPages");
 
-  const settings = await prisma.appSetting.findMany({
-    where: { key: { in: ["export.cronExpression", "export.outputDir", "export.enabled"] } },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const map = await readSettings(["export.cronExpression", "export.outputDir", "export.enabled"]);
 
   return (
     <div className="max-w-2xl">

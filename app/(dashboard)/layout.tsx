@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { readSettings } from "@/lib/app-settings";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
@@ -51,7 +52,7 @@ export default async function DashboardLayout({
 
   const assetCountMap = await getRecursiveAssetCounts();
 
-  const [stockItemCount, decommissionedCount, inRepairCount, stockTypes, brandingSettings] = await Promise.all([
+  const [stockItemCount, decommissionedCount, inRepairCount, stockTypes, brandingMap] = await Promise.all([
     prisma.stockItem.count().catch(() => 0),
     prisma.asset.count({ where: { status: "DECOMMISSIONED" } }).catch(() => 0),
     prisma.asset.count({ where: { status: "IN_REPAIR" } }).catch(() => 0),
@@ -60,12 +61,9 @@ export default async function DashboardLayout({
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }).catch(() => [] as { id: string; name: string }[]),
-    prisma.appSetting.findMany({
-      where: { key: { in: ["app.title", "branding.logoStorageKey"] } },
-    }).catch(() => []),
+    readSettings(["app.title", "branding.logoStorageKey"]).catch(() => ({} as Record<string, string>)),
   ]);
 
-  const brandingMap = Object.fromEntries(brandingSettings.map((s) => [s.key, s.value]));
   const appTitle = brandingMap["app.title"] || "SAM";
   const logoUrl = brandingMap["branding.logoStorageKey"] ? "/api/branding/logo" : null;
 

@@ -1,12 +1,9 @@
 import { LoginClient } from "@/components/auth/login-client";
 import { ssoEnabled } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { readSettings } from "@/lib/app-settings";
 
 export default async function LoginPage() {
-  const settings = await prisma.appSetting.findMany({
-    where: { key: { in: ["app.title", "branding.logoStorageKey"] } },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const map = await readSettings(["app.title", "branding.logoStorageKey"]);
   const appTitle = map["app.title"] || "SAM";
   const logoUrl = map["branding.logoStorageKey"] ? "/api/branding/logo" : null;
 

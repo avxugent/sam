@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { readSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
 import { locationBreadcrumbs } from "@/lib/location-path";
@@ -13,10 +14,7 @@ export default async function AssetPage({
   const session = await auth();
   const { id: locationId, assetId } = await params;
 
-  const templateSettings = await prisma.appSetting.findMany({
-    where: { key: { in: ["hostname.urlTemplate", "macAddress.urlTemplate"] } },
-  });
-  const templateMap = Object.fromEntries(templateSettings.map((s) => [s.key, s.value]));
+  const templateMap = await readSettings(["hostname.urlTemplate", "macAddress.urlTemplate"]);
   const hostnameUrlTemplate = templateMap["hostname.urlTemplate"] || null;
   const macAddressUrlTemplate = templateMap["macAddress.urlTemplate"] || null;
 

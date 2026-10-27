@@ -5,6 +5,7 @@ import { LocationBrowserClient } from "@/components/locations/location-browser-c
 import type { LocationNode } from "@/components/locations/location-browser-client";
 import type { Prisma } from "@/generated/prisma/client";
 import { getRecursiveAssetCounts } from "@/lib/location-path";
+import { PageHeader } from "@/components/layout/page-header";
 
 type DbLocation = Prisma.LocationGetPayload<{
   include: {
@@ -68,19 +69,11 @@ export default async function AllLocationsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-          <MapPin className="h-4 w-4 text-[#1e64c8]" />
-        </div>
-        <div>
-          <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">
-            {tNav("locations")}
-          </h1>
-          <p className="text-[13px] text-[#64748b] mt-0.5">
-            {totalAssets} asset{totalAssets !== 1 ? "s" : ""}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={MapPin}
+        title={tNav("locations")}
+        subtitle={`${totalAssets} asset${totalAssets !== 1 ? "s" : ""}`}
+      />
 
       <LocationBrowserClient
         locationTree={locationTree}

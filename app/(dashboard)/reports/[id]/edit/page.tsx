@@ -4,9 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { buildLocationPathsFromRows } from "@/lib/location-path";
 import { reportDefinitionSchema } from "@/lib/schemas/report";
 import { ReportBuilder } from "@/components/reports/report-builder";
-import { BarChart2, ChevronLeft } from "lucide-react";
-import Link from "next/link";
+import { BarChart2 } from "lucide-react";
 import { canEdit } from "@/lib/permissions";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function EditReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,20 +33,7 @@ export default async function EditReportPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-          <BarChart2 className="h-4 w-4 text-[#1e64c8]" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <Link href={`/reports/${id}`} className="text-[12px] text-[#64748b] hover:text-[#1e64c8] flex items-center gap-0.5">
-              <ChevronLeft className="h-3 w-3" />
-              {report.name}
-            </Link>
-          </div>
-          <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">Edit Report</h1>
-        </div>
-      </div>
+      <PageHeader icon={BarChart2} title="Edit Report" back={{ href: `/reports/${id}`, label: report.name }} />
 
       <ReportBuilder
         reportId={id}

@@ -8,6 +8,7 @@ import { StockLocationFilter } from "@/components/stock/stock-location-filter";
 import { Button } from "@/components/ui/button";
 import { buildLocationPathsFromRows } from "@/lib/location-path";
 import * as permissions from "@/lib/permissions";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -67,18 +68,11 @@ export default async function StockPage({
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-            <Package className="h-4 w-4 text-[#1e64c8]" />
-          </div>
-          <div>
-            <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">{title}</h1>
-            <p className="text-[13px] text-[#64748b] mt-0.5">
-              {allItems.length} {itemsLabel}
-              {allItems.length > 0 && ` · ${totalUnits} ${unitsLabel} ${t("totalSuffix")}`}
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Package}
+          title={title}
+          subtitle={`${allItems.length} ${itemsLabel}${allItems.length > 0 ? ` · ${totalUnits} ${unitsLabel} ${t("totalSuffix")}` : ""}`}
+        />
         <div className="flex items-center gap-2">
           <StockLocationFilter locations={locationOptions} />
           {canEdit && (

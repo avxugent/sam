@@ -5,6 +5,7 @@ import { buildLocationPathsFromRows } from "@/lib/location-path";
 import { ReportBuilder } from "@/components/reports/report-builder";
 import { BarChart2 } from "lucide-react";
 import { canEdit } from "@/lib/permissions";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata = { title: "New Report – SAM" };
 
@@ -26,15 +27,7 @@ export default async function NewReportPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-          <BarChart2 className="h-4 w-4 text-[#1e64c8]" />
-        </div>
-        <div>
-          <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">New Report</h1>
-          <p className="text-[13px] text-[#64748b] mt-0.5">Define filters, grouping, and columns</p>
-        </div>
-      </div>
+      <PageHeader icon={BarChart2} title="New Report" subtitle="Define filters, grouping, and columns" />
 
       <ReportBuilder
         assetTypes={assetTypes}

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ReportsListClient } from "@/components/reports/reports-list-client";
 import { BarChart2 } from "lucide-react";
 import { canEdit, isAdmin } from "@/lib/permissions";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata = { title: "Reports – SAM" };
 
@@ -17,17 +18,11 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-          <BarChart2 className="h-4 w-4 text-[#1e64c8]" />
-        </div>
-        <div>
-          <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">Reports</h1>
-          <p className="text-[13px] text-[#64748b] mt-0.5">
-            {reports.length} saved report{reports.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={BarChart2}
+        title="Reports"
+        subtitle={`${reports.length} saved report${reports.length !== 1 ? "s" : ""}`}
+      />
 
       <ReportsListClient reports={reports} canEdit={canEdit(session?.user?.role)} isAdmin={isAdmin(session?.user?.role)} />
     </div>

@@ -112,21 +112,27 @@ export function SearchResults() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const doSearch = useCallback(async (query: string, pg: number) => {
+  const doSearch = useCallback(async (query: string, pg: number, signal: AbortSignal) => {
     if (query.length < 2) { setResults(null); return; }
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&page=${pg}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&page=${pg}`, { signal });
       if (!res.ok) throw new Error("Search failed");
       setResults(await res.json());
     } catch {
+      // An aborted request was superseded by a newer query or page
+      if (signal.aborted) return;
       setError("Search failed. Please try again.");
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => { doSearch(q, page); }, [q, page, doSearch]);
+  useEffect(() => {
+    const controller = new AbortController();
+    doSearch(q, page, controller.signal);
+    return () => controller.abort();
+  }, [q, page, doSearch]);
 
   function goToPage(newPage: number) {
     const params = new URLSearchParams(searchParams.toString());

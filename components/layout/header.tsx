@@ -99,11 +99,11 @@ function SearchBar() {
     return () => document.removeEventListener("mousedown", onOutside);
   }, []);
 
-  const fetchQuick = useCallback(async (q: string) => {
+  const fetchQuick = useCallback(async (q: string, signal: AbortSignal) => {
     if (q.length < 2) { setQuickResults([]); setOpen(false); return; }
     setLoading(true);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal });
       if (!res.ok) return;
       const data = await res.json();
       const results: QuickResult[] = [];
@@ -129,14 +129,21 @@ function SearchBar() {
 
       setQuickResults(results);
       setOpen(results.length > 0);
+    } catch (err) {
+      // Aborted because a newer query superseded this one
+      if (!signal.aborted) throw err;
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }, [tAsset]);
 
   useEffect(() => {
-    const t = setTimeout(() => fetchQuick(query), 250);
-    return () => clearTimeout(t);
+    const controller = new AbortController();
+    const t = setTimeout(() => fetchQuick(query, controller.signal), 250);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
   }, [query, fetchQuick]);
 
   // Reset highlight when results list changes

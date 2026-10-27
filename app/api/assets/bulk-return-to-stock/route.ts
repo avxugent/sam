@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { logAudit } from "@/lib/audit";
-import type { Prisma } from "@/generated/prisma/client";
-import { AssetLifecycleError, assertReturnableToStock, buildReturnToStockStockItemData } from "@/lib/asset-lifecycle";
+import { assertReturnableToStock } from "@/lib/asset-lifecycle";
+import { RETURN_TO_STOCK_INCLUDE, lifecycleViolationCode, returnAssetToStock } from "@/lib/asset-transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
@@ -18,11 +17,8 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await readJsonBody(req);
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    return invalidInput(parsed.error);
-  }
+  const parsed = schema.safeParse(await readJsonBody(req));
+  if (!parsed.success) return invalidInput(parsed.error);
   const { ids, locationId } = parsed.data;
 
   const location = await prisma.location.findUnique({ where: { id: locationId }, select: { id: true } });
@@ -32,58 +28,13 @@ export async function POST(req: NextRequest) {
   const failed: { id: string; reason: string }[] = [];
 
   for (const id of ids) {
-    const asset = await prisma.asset.findUnique({
-      where: { id },
-      include: {
-        location: { select: { name: true } },
-        model: { select: { name: true } },
-        macAddresses: { select: { address: true } },
-        customFields: { select: { key: true, value: true } },
-      },
-    });
-    if (!asset) {
-      failed.push({ id, reason: "NOT_FOUND" });
+    const asset = await prisma.asset.findUnique({ where: { id }, include: RETURN_TO_STOCK_INCLUDE });
+    const reason = asset ? lifecycleViolationCode(() => assertReturnableToStock(asset)) : "NOT_FOUND";
+    if (!asset || reason) {
+      failed.push({ id, reason: reason ?? "NOT_FOUND" });
       continue;
     }
-    try {
-      assertReturnableToStock(asset);
-    } catch (err) {
-      if (err instanceof AssetLifecycleError) {
-        failed.push({ id, reason: err.code });
-        continue;
-      }
-      throw err;
-    }
-
-    const stockItem = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const item = await tx.stockItem.create({ data: buildReturnToStockStockItemData(asset, locationId) });
-      await tx.asset.delete({ where: { id } });
-      return item;
-    });
-
-    await Promise.all([
-      logAudit({
-        session,
-        req,
-        action: "DELETE",
-        entityType: "Asset",
-        entityId: id,
-        entityName: asset.model?.name ?? undefined,
-        detail: { snapshot: { "Returned to stock": asset.model?.name ?? null, "From location": asset.location.name } },
-        lineageId: asset.lineageId,
-      }),
-      logAudit({
-        session,
-        req,
-        action: "CREATE",
-        entityType: "StockItem",
-        entityId: stockItem.id,
-        entityName: asset.model?.name,
-        detail: { snapshot: { "Returned from asset at": asset.location.name } },
-        lineageId: stockItem.lineageId,
-      }),
-    ]);
-
+    await returnAssetToStock(req, session, asset, locationId);
     succeeded.push(id);
   }
 

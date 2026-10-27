@@ -11,8 +11,10 @@ import { Package, ArchiveX, Trash2, ChevronRight, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
 import { StockLocationPicker } from "@/components/stock/stock-location-picker";
+import { DisposalMethod } from "@/generated/prisma/enums";
 
-export const DISPOSAL_METHODS = ["WIPED", "DESTROYED", "RETURNED", "RESOLD", "OTHER"] as const;
+/** Disposal evidence options, in the order the Prisma enum defines them. */
+export const DISPOSAL_METHODS = Object.values(DisposalMethod);
 
 type RemoveAction = "stock" | "decommission" | "delete" | "repair";
 type Step = "choose" | RemoveAction;

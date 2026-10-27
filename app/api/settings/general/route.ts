@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { readSettings, writeSettings } from "@/lib/app-settings";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
@@ -22,11 +22,7 @@ export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const settings = await prisma.appSetting.findMany({
-    where: { key: { in: [...GENERAL_KEYS] } },
-  });
-
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const map = await readSettings(GENERAL_KEYS);
   return NextResponse.json({
     hostnameUrlTemplate: map["hostname.urlTemplate"] ?? "",
     macAddressUrlTemplate: map["macAddress.urlTemplate"] ?? "",
@@ -45,23 +41,12 @@ export async function PUT(req: NextRequest) {
 
   const { hostnameUrlTemplate, macAddressUrlTemplate, locationUrlTemplate } = parsed.data;
 
-  await Promise.all([
-    prisma.appSetting.upsert({
-      where: { key: "hostname.urlTemplate" },
-      update: { value: hostnameUrlTemplate ?? "" },
-      create: { key: "hostname.urlTemplate", value: hostnameUrlTemplate ?? "" },
-    }),
-    prisma.appSetting.upsert({
-      where: { key: "macAddress.urlTemplate" },
-      update: { value: macAddressUrlTemplate ?? "" },
-      create: { key: "macAddress.urlTemplate", value: macAddressUrlTemplate ?? "" },
-    }),
-    prisma.appSetting.upsert({
-      where: { key: "location.urlTemplate" },
-      update: { value: locationUrlTemplate ?? "" },
-      create: { key: "location.urlTemplate", value: locationUrlTemplate ?? "" },
-    }),
-  ]);
+  // All three templates are always written; an omitted one is cleared.
+  const written = await writeSettings({
+    "hostname.urlTemplate": hostnameUrlTemplate ?? "",
+    "macAddress.urlTemplate": macAddressUrlTemplate ?? "",
+    "location.urlTemplate": locationUrlTemplate ?? "",
+  });
 
   await logAudit({
     session,
@@ -69,11 +54,7 @@ export async function PUT(req: NextRequest) {
     action: "UPDATE",
     entityType: "Setting",
     entityName: "General settings",
-    detail: {
-      "hostname.urlTemplate": hostnameUrlTemplate ?? "",
-      "macAddress.urlTemplate": macAddressUrlTemplate ?? "",
-      "location.urlTemplate": locationUrlTemplate ?? "",
-    },
+    detail: written,
   });
 
   return NextResponse.json({ ok: true });

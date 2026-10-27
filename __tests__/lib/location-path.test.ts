@@ -13,6 +13,7 @@ import {
   getAllDescendantLocationIds,
   getRecursiveAssetCounts,
   ancestorChain,
+  locationBreadcrumbs,
   resolveLocationPath,
   resolveAncestorChainsBatch,
   buildLocationPathsFromRows,
@@ -269,5 +270,18 @@ describe("ancestorChain()", () => {
       ["b", { id: "b", parentId: "a" }],
     ]);
     expect(ancestorChain("a", cyclic).map((r) => r.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("locationBreadcrumbs()", () => {
+  it("returns id/name pairs root → leaf from the ancestor query", async () => {
+    mockQueryRaw.mockResolvedValueOnce([
+      { id: "c", name: "Campus", fiNumber: null, depth: 1 },
+      { id: "r", name: "Room", fiNumber: "14.10.100.013", depth: 0 },
+    ] as never);
+    expect(await locationBreadcrumbs("r")).toEqual([
+      { id: "c", name: "Campus" },
+      { id: "r", name: "Room" },
+    ]);
   });
 });

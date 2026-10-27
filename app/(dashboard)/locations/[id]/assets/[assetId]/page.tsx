@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
+import { locationBreadcrumbs } from "@/lib/location-path";
+
 
 export default async function AssetPage({
   params,
@@ -37,7 +39,7 @@ export default async function AssetPage({
 
   if (!asset || asset.locationId !== locationId) notFound();
 
-  const breadcrumbs = await buildBreadcrumbs(locationId);
+  const breadcrumbs = await locationBreadcrumbs(locationId);
 
   // Owner / decommissioned-by are soft refs (no FK) — resolve names here so
   // deleted users degrade to a "(deleted user)" label client-side.
@@ -61,17 +63,6 @@ export default async function AssetPage({
       sentForRepairByName={asset.sentForRepairById ? nameById.get(asset.sentForRepairById) ?? null : null}
     />
   );
-}
-
-async function buildBreadcrumbs(locationId: string): Promise<{ id: string; name: string }[]> {
-  const location = await prisma.location.findUnique({
-    where: { id: locationId },
-    select: { id: true, name: true, parentId: true },
-  });
-  if (!location) return [];
-  if (!location.parentId) return [{ id: location.id, name: location.name }];
-  const parents = await buildBreadcrumbs(location.parentId);
-  return [...parents, { id: location.id, name: location.name }];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; assetId: string }> }) {

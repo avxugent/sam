@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { readSettings, writeSettings } from "@/lib/app-settings";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
@@ -15,20 +16,13 @@ export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const settings = await prisma.appSetting.findMany({
-    where: {
-      key: {
-        in: [
-          "app.title",
-          "branding.logoStorageKey",
-          "branding.faviconStorageKey",
-          "branding.backgroundMode",
-          "branding.backgroundStorageKey",
-        ],
-      },
-    },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const map = await readSettings([
+    "app.title",
+    "branding.logoStorageKey",
+    "branding.faviconStorageKey",
+    "branding.backgroundMode",
+    "branding.backgroundStorageKey",
+  ]);
 
   return NextResponse.json({
     appTitle: map["app.title"] ?? "SAM",
@@ -48,33 +42,12 @@ export async function PUT(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return invalidInput(parsed.error);
 
-  const ops: Promise<unknown>[] = [];
-
-  if (parsed.data.appTitle !== undefined) {
-    ops.push(
-      prisma.appSetting.upsert({
-        where: { key: "app.title" },
-        update: { value: parsed.data.appTitle },
-        create: { key: "app.title", value: parsed.data.appTitle },
-      })
-    );
-  }
-
-  if (parsed.data.backgroundMode !== undefined) {
-    if (parsed.data.backgroundMode === "") {
-      ops.push(prisma.appSetting.deleteMany({ where: { key: "branding.backgroundMode" } }));
-    } else {
-      ops.push(
-        prisma.appSetting.upsert({
-          where: { key: "branding.backgroundMode" },
-          update: { value: parsed.data.backgroundMode },
-          create: { key: "branding.backgroundMode", value: parsed.data.backgroundMode },
-        })
-      );
-    }
-  }
-
-  await Promise.all(ops);
+  const { appTitle, backgroundMode } = parsed.data;
+  // An empty background mode means "default": the setting is removed rather than stored.
+  await Promise.all([
+    writeSettings({ "app.title": appTitle, "branding.backgroundMode": backgroundMode || undefined }),
+    backgroundMode === "" ? prisma.appSetting.deleteMany({ where: { key: "branding.backgroundMode" } }) : null,
+  ]);
 
   const detail: Record<string, unknown> = {};
   if (parsed.data.appTitle !== undefined) detail["app.title"] = parsed.data.appTitle;

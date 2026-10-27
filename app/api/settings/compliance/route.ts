@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { readSettings, writeSettings } from "@/lib/app-settings";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
@@ -27,10 +27,7 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const settings = await prisma.appSetting.findMany({
-    where: { key: { in: [...KEYS] } },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const map = await readSettings(KEYS);
 
   return NextResponse.json({
     requireTwoFactor: map["security.requireTwoFactor"] === "true",
@@ -50,30 +47,14 @@ export async function PUT(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return invalidInput(parsed.error);
 
-  const entries: Array<{ key: string; value: string }> = [];
-  if (parsed.data.requireTwoFactor !== undefined) {
-    entries.push({ key: "security.requireTwoFactor", value: String(parsed.data.requireTwoFactor) });
-  }
-  if (parsed.data.auditRetentionDays !== undefined) {
-    entries.push({ key: "audit.retentionDays", value: String(parsed.data.auditRetentionDays) });
-  }
-  if (parsed.data.defaultOwnerId !== undefined) {
-    entries.push({ key: "assets.defaultOwnerId", value: parsed.data.defaultOwnerId ?? "" });
-  }
-  if (parsed.data.reviewWorkLogItemId !== undefined) {
-    entries.push({ key: "compliance.reviewWorkLogItemId", value: parsed.data.reviewWorkLogItemId ?? "" });
-  }
-  if (parsed.data.reviewPeriodMonths !== undefined) {
-    entries.push({ key: "compliance.reviewPeriodMonths", value: String(parsed.data.reviewPeriodMonths) });
-  }
-
-  for (const { key, value } of entries) {
-    await prisma.appSetting.upsert({
-      where: { key },
-      update: { value },
-      create: { key, value },
-    });
-  }
+  const d = parsed.data;
+  const written = await writeSettings({
+    "security.requireTwoFactor": d.requireTwoFactor === undefined ? undefined : String(d.requireTwoFactor),
+    "audit.retentionDays": d.auditRetentionDays === undefined ? undefined : String(d.auditRetentionDays),
+    "assets.defaultOwnerId": d.defaultOwnerId === undefined ? undefined : d.defaultOwnerId ?? "",
+    "compliance.reviewWorkLogItemId": d.reviewWorkLogItemId === undefined ? undefined : d.reviewWorkLogItemId ?? "",
+    "compliance.reviewPeriodMonths": d.reviewPeriodMonths === undefined ? undefined : String(d.reviewPeriodMonths),
+  });
 
   await logAudit({
     session,
@@ -81,7 +62,7 @@ export async function PUT(req: NextRequest) {
     action: "UPDATE",
     entityType: "Setting",
     entityName: "Compliance settings",
-    detail: Object.fromEntries(entries.map((e) => [e.key, e.value])),
+    detail: written,
   });
 
   return NextResponse.json({ ok: true });

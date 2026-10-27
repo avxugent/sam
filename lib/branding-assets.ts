@@ -3,6 +3,7 @@ import type { Session } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { getStorageDriver, StorageNotFoundError } from "@/lib/storage";
 import { logAudit } from "@/lib/audit";
+import { writeSettings } from "@/lib/app-settings";
 
 /**
  * Logo, favicon and background image share one lifecycle: an admin uploads a file,
@@ -121,11 +122,7 @@ export async function uploadBrandingAsset(req: Request, session: Session, asset:
     [keys.contentType]: file.type,
     ...config.extraSettings,
   };
-  await Promise.all(
-    Object.entries(settings).map(([key, value]) =>
-      prisma.appSetting.upsert({ where: { key }, update: { value }, create: { key, value } })
-    )
-  );
+  await writeSettings(settings);
 
   await logAudit({
     session,

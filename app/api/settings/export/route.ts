@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { readSettings, writeSettings } from "@/lib/app-settings";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
@@ -17,10 +17,7 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const settings = await prisma.appSetting.findMany({
-    where: { key: { in: ["export.cronExpression", "export.outputDir", "export.enabled"] } },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const map = await readSettings(["export.cronExpression", "export.outputDir", "export.enabled"]);
 
   return NextResponse.json({
     cronExpression: map["export.cronExpression"] ?? "0 2 * * *",
@@ -38,24 +35,12 @@ export async function PUT(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return invalidInput(parsed.error);
 
-  const entries: Array<{ key: string; value: string }> = [];
-  if (parsed.data.cronExpression !== undefined) {
-    entries.push({ key: "export.cronExpression", value: parsed.data.cronExpression ?? "" });
-  }
-  if (parsed.data.outputDir !== undefined) {
-    entries.push({ key: "export.outputDir", value: parsed.data.outputDir ?? "" });
-  }
-  if (parsed.data.enabled !== undefined) {
-    entries.push({ key: "export.enabled", value: String(parsed.data.enabled) });
-  }
-
-  for (const { key, value } of entries) {
-    await prisma.appSetting.upsert({
-      where: { key },
-      update: { value },
-      create: { key, value },
-    });
-  }
+  const { cronExpression, outputDir, enabled } = parsed.data;
+  const written = await writeSettings({
+    "export.cronExpression": cronExpression === undefined ? undefined : cronExpression ?? "",
+    "export.outputDir": outputDir === undefined ? undefined : outputDir ?? "",
+    "export.enabled": enabled === undefined ? undefined : String(enabled),
+  });
 
   await logAudit({
     session,
@@ -63,7 +48,7 @@ export async function PUT(req: NextRequest) {
     action: "UPDATE",
     entityType: "Setting",
     entityName: "Export settings",
-    detail: Object.fromEntries(entries.map((e) => [e.key, e.value])),
+    detail: written,
   });
 
   return NextResponse.json({ ok: true });

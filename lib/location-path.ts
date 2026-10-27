@@ -39,6 +39,11 @@ export async function resolveLocationPath(
   }));
 }
 
+/** Root → leaf `{ id, name }` crumbs for a location page header. */
+export async function locationBreadcrumbs(locationId: string): Promise<{ id: string; name: string }[]> {
+  return (await resolveLocationPath(locationId)).map(({ id, name }) => ({ id, name }));
+}
+
 /**
  * Parses a FI number string (CC.BB.FFF.RR(R)) into its four segments.
  * The last (room) segment may be 2 or 3 digits. Returns null if it doesn't match.

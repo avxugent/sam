@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
-import { getAllDescendantLocationIds } from "@/lib/location-path";
+import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/location-path";
 import { isJiraConfigured } from "@/lib/jira";
+
 
 async function getUrlTemplates(): Promise<{
   hostnameUrlTemplate: string | null;
@@ -56,7 +57,7 @@ export default async function LocationPage({
 
   if (!location) notFound();
 
-  const breadcrumbs = await buildBreadcrumbs(id);
+  const breadcrumbs = await locationBreadcrumbs(id);
 
   const hasChildren = location._count.children > 0;
   const defaultTab = hasChildren && locationDefaultTab === "sublocations" ? "sublocations" : "assets";
@@ -159,17 +160,6 @@ export default async function LocationPage({
       jiraBaseUrl={process.env.JIRA_BASE_URL ?? null}
     />
   );
-}
-
-async function buildBreadcrumbs(locationId: string): Promise<{ id: string; name: string }[]> {
-  const location = await prisma.location.findUnique({
-    where: { id: locationId },
-    select: { id: true, name: true, parentId: true },
-  });
-  if (!location) return [];
-  if (!location.parentId) return [{ id: location.id, name: location.name }];
-  const parents = await buildBreadcrumbs(location.parentId);
-  return [...parents, { id: location.id, name: location.name }];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {

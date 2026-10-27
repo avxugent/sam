@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody, readMergeRequest } from "@/lib/route-helpers";
+import { csvDownload, invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody, readMergeRequest } from "@/lib/route-helpers";
 
 describe("readJsonBody()", () => {
   it("returns the parsed body", async () => {
@@ -66,5 +66,15 @@ describe("readMergeRequest()", () => {
     if (!("error" in result)) throw new Error("expected an error");
     expect(result.error.status).toBe(status);
     expect((await result.error.json()).error).toBe(message);
+  });
+});
+
+describe("csvDownload()", () => {
+  it("serves an uncached CSV attachment", async () => {
+    const res = csvDownload("a;b", "x.csv");
+    expect(res.headers.get("Content-Type")).toBe("text/csv; charset=utf-8");
+    expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="x.csv"');
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
+    expect(await res.text()).toBe("a;b");
   });
 });

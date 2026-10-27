@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { runReport } from "@/lib/reports/engine";
 import { parseReportDefinition } from "@/lib/schemas/report";
+import { csvDownload } from "@/lib/route-helpers";
 import { isLocationReport } from "@/lib/reports/types";
 import type { ColumnKey } from "@/lib/reports/types";
 import { escapeCsvCell } from "@/lib/csv";
@@ -69,10 +70,5 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     csv = "";
   }
 
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${report.name.replace(/[^a-z0-9]/gi, "_")}.csv"`,
-    },
-  });
+  return csvDownload(csv, `${report.name.replace(/[^a-z0-9]/gi, "_")}.csv`);
 }

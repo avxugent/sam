@@ -5,6 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { escapeCsvCell } from "@/lib/csv";
 import { toIsoDay } from "@/lib/utils";
+import { csvDownload } from "@/lib/route-helpers";
 
 const COLUMNS = ["TYPE", "PATTERN", "HOSTNAME", "MODEL", "SERIAL", "LOCATION", "FI_NUMBER"];
 
@@ -43,11 +44,5 @@ export async function GET(req: NextRequest) {
     detail: { filename, report: "hostname" },
   });
 
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`,
-      "Cache-Control": "no-store",
-    },
-  });
+  return csvDownload(csv, filename);
 }

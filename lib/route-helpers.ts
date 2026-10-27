@@ -64,3 +64,14 @@ export async function readMergeRequest<T>(
   if (!target) return { error: NextResponse.json({ error: `Target ${noun.name} not found.` }, { status: 404 }) };
   return { source, target, targetId };
 }
+
+/** CSV file download response; never cached, since exports reflect live data. */
+export function csvDownload(csv: string, filename: string) {
+  return new NextResponse(csv, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}

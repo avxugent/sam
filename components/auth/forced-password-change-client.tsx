@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -11,20 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Monitor, Loader2, ShieldAlert } from "lucide-react";
-
-const schema = z
-  .object({
-    currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z.string().min(8, "Password must be at least 8 characters").max(128),
-    confirmPassword: z.string(),
-  })
-  .superRefine(({ newPassword, confirmPassword }, ctx) => {
-    if (newPassword !== confirmPassword) {
-      ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: "Passwords do not match." });
-    }
-  });
-
-type PasswordChangeValues = z.infer<typeof schema>;
+import { passwordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
 
 export function ForcedPasswordChangeClient() {
   const t = useTranslations("auth");
@@ -35,7 +21,7 @@ export function ForcedPasswordChangeClient() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<PasswordChangeValues>({ resolver: zodResolver(schema) });
+  } = useForm<PasswordChangeValues>({ resolver: zodResolver(passwordChangeSchema) });
 
   async function onSubmit(data: PasswordChangeValues) {
     setServerError("");

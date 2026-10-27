@@ -12,6 +12,7 @@ import { generateUsersCsv } from "@/lib/csv-export";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { toIsoDay } from "@/lib/utils";
+import { csvDownload } from "@/lib/route-helpers";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -43,10 +44,5 @@ export async function GET(req: NextRequest) {
   });
 
   const date = toIsoDay(new Date());
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="sam-users-${date}.csv"`,
-    },
-  });
+  return csvDownload(csv, `sam-users-${date}.csv`);
 }

@@ -14,23 +14,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Sun, Moon, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme, type Theme } from "@/components/theme-provider";
+import { passwordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
 
 const nameSchema = z.object({
   name: z.string().min(1, "Name is required.").max(128, "Name is too long."),
 });
 
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required."),
-  newPassword: z.string().min(8, "Password must be at least 8 characters.").max(128),
-  confirmPassword: z.string().min(1, "Please confirm your new password."),
-}).superRefine(({ newPassword, confirmPassword }, ctx) => {
-  if (newPassword !== confirmPassword) {
-    ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: "Passwords do not match." });
-  }
-});
-
 type NameForm = z.infer<typeof nameSchema>;
-type PasswordForm = z.infer<typeof passwordSchema>;
 
 type Props = {
   name: string;
@@ -92,7 +82,7 @@ export function ProfileClient({
     handleSubmit: handlePwSubmit,
     formState: { errors: pwErrors },
     reset: resetPw,
-  } = useForm<PasswordForm>({ resolver: zodResolver(passwordSchema) });
+  } = useForm<PasswordChangeValues>({ resolver: zodResolver(passwordChangeSchema) });
 
   const [pwSaving, setPwSaving] = useState(false);
 
@@ -150,7 +140,7 @@ export function ProfileClient({
     }
   }
 
-  async function onPasswordSubmit(data: PasswordForm) {
+  async function onPasswordSubmit(data: PasswordChangeValues) {
     setPwSaving(true);
     try {
       const res = await fetch("/api/users/me", {

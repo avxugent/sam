@@ -138,6 +138,19 @@ describe("GET /api/prometheus/metrics — per-asset info series", () => {
     expect(body).toContain('sam_location_path="Campus A / Building 10 / Store room"');
   });
 
+  it("counts campus and missing-FI assets by the inherited FI number", async () => {
+    vi.mocked(prisma.asset.groupBy).mockImplementation((async (args: { by: string[] }) =>
+      args.by[0] === "locationId"
+        ? [
+            { locationId: "noFi", _count: { id: 3 } },
+            { locationId: "campus", _count: { id: 2 } },
+          ]
+        : []) as never);
+    const body = await (await GET(req())).text();
+    expect(body).toContain('sam_assets_by_campus{campus="14"} 3');
+    expect(body).toContain("sam_assets_without_fi_number_total 2");
+  });
+
   it("emits empty labels rather than dropping them when metadata is missing", async () => {
     vi.mocked(prisma.asset.findMany).mockResolvedValue([
       asset({

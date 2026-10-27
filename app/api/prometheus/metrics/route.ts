@@ -153,15 +153,19 @@ export async function GET(req: NextRequest) {
   });
   const mfrMap = new Map(mfrNames.map((m) => [m.id, m.name]));
 
-  // Build campus-level asset counts using FI number segments
-  // locationId → campus code
-  const locationFiMap = new Map(
-    allLocations.map((l) => [l.id, l.fiNumber])
-  );
+  const locationsById = new Map(allLocations.map((l) => [l.id, l]));
 
+  /** Nearest FI number walking leaf → root, same rule as /api/prometheus/sd. */
+  const inheritedFiNumber = (locationId: string) =>
+    findFiNumber(ancestorChain(locationId, locationsById));
+
+  // Campus-level asset counts from the (inherited) FI number's campus segment
   const campusCounts = new Map<string, number>();
+  let assetsWithoutFiNumber = 0;
   for (const row of assetsByLocation) {
-    const fiNumber = locationFiMap.get(row.locationId) ?? null;
+    const fiNumber = inheritedFiNumber(row.locationId);
+    // No FI number anywhere in the location's chain
+    if (!fiNumber) assetsWithoutFiNumber += row._count.id;
     const parts = parseFiNumber(fiNumber);
     if (parts) {
       campusCounts.set(
@@ -170,12 +174,6 @@ export async function GET(req: NextRequest) {
       );
     }
   }
-
-  // Assets in locations without any FI number in their chain
-  // (simple approximation: direct location has no fiNumber)
-  const assetsWithoutFiNumber = assetsByLocation
-    .filter((row) => !locationFiMap.get(row.locationId))
-    .reduce((sum, row) => sum + row._count.id, 0);
 
   // ─── Build the Prometheus text output ──────────────────────────────────────
 
@@ -329,16 +327,10 @@ export async function GET(req: NextRequest) {
   // Every label is always emitted (empty when unknown) so the series shape
   // stays stable and `count by (sam_fi_number)` never silently splits.
 
-  const locationsById = new Map(allLocations.map((l) => [l.id, l]));
-
   // Root → leaf name path per location, e.g. "Campus A / Building 10 / Room
   // 013" — same separator as buildLocationPathString() in /api/prometheus/sd
   // so sam_location_path reads identically wherever it's emitted.
   const locationPaths = buildLocationPathsFromRows(allLocations, " / ");
-
-  /** Nearest FI number walking leaf → root, same rule as /api/prometheus/sd. */
-  const inheritedFiNumber = (locationId: string) =>
-    findFiNumber(ancestorChain(locationId, locationsById));
 
   const infoSamples: Array<{ labels: Record<string, string>; value: number }> = [];
   const maintenanceSamples: Array<{ labels: Record<string, string>; value: number }> = [];

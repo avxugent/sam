@@ -105,10 +105,10 @@ scrape_configs:
 | `sam_assets_total` | gauge | Total assets |
 | `sam_locations_total` | gauge | Total locations |
 | `sam_assets_without_hostname_total` | gauge | Assets with no hostname (monitoring gap) |
-| `sam_assets_without_fi_number_total` | gauge | Assets in locations missing an FI number |
+| `sam_assets_without_fi_number_total` | gauge | Assets with no FI number on their location or any ancestor |
 | `sam_assets_by_type{type="…"}` | gauge | Assets per asset type |
 | `sam_assets_by_manufacturer{manufacturer="…"}` | gauge | Assets per manufacturer |
-| `sam_assets_by_campus{campus="…"}` | gauge | Assets per campus code |
+| `sam_assets_by_campus{campus="…"}` | gauge | Assets per campus code (from the nearest FI number, inherited from ancestors) |
 | `sam_locations_without_fi_number_total` | gauge | Locations with no FI number |
 | `sam_assets_missing_owner` | gauge | Installed assets without a responsible owner (NIS2) |
 | `sam_assets_missing_criticality` | gauge | Installed assets without an effective criticality (NIS2) |

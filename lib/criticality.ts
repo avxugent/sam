@@ -1,6 +1,12 @@
-import type { Criticality } from "@/generated/prisma/client";
+import { Criticality } from "@/generated/prisma/enums";
 
-export const CRITICALITY_VALUES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
+/** Criticality levels in ascending order (the Prisma enum's declaration order). */
+export const CRITICALITY_VALUES = Object.values(Criticality);
+
+/** `value` as a Criticality level, or null when it is not one. */
+export function parseCriticality(value: string): Criticality | null {
+  return CRITICALITY_VALUES.find((level) => level === value) ?? null;
+}
 
 /**
  * Effective criticality of an asset: the per-asset override wins, otherwise

@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Plus, Merge, TriangleAlert } from "lucide-react";
+import type { AssetStatus } from "@/generated/prisma/enums";
 
 type NameOption = { id: string; name: string };
 
@@ -49,7 +50,7 @@ type Model = {
 
 type ClusterItem = { id: string; model: string; count: number; typeName: string; manufacturerName: string | null };
 
-type DrilldownAsset = { id: string; serialNumber: string | null; hostname: string | null; status: string; location: { id: string; name: string } | null };
+type DrilldownAsset = { id: string; serialNumber: string | null; hostname: string | null; status: AssetStatus; location: { id: string; name: string } | null };
 type DrilldownStockItem = { id: string; serialNumber: string | null; quantity: number; location: { id: string; name: string } | null };
 
 type MergeConflict = {

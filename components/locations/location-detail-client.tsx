@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 import { MoveLocationDialog } from "@/components/locations/move-location-dialog";
-import { AssetTable } from "@/components/assets/asset-table";
+import { AssetTable, type AssetRow } from "@/components/assets/asset-table";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { AttachmentGallery, type Attachment } from "@/components/attachments/attachment-gallery";
 import { CoverImagePicker } from "@/components/locations/cover-image-picker";
@@ -58,21 +58,6 @@ type LocationChild = {
   coverImageId?: string | null;
   inMaintenance?: boolean;
   _count: { assets: number; children: number };
-};
-
-type Asset = {
-  id: string;
-  status: string;
-  model?: { id: string; name: string } | null;
-  serialNumber?: string | null;
-  hostname?: string | null;
-  quantity: number;
-  installationDate?: Date | string | null;
-  type?: { id: string; name: string } | null;
-  manufacturer?: { id: string; name: string } | null;
-  macAddresses: { id: string; address: string }[];
-  location?: { id: string; name: string } | null;
-  _count: { attachments: number };
 };
 
 type Location = {
@@ -112,7 +97,7 @@ export function LocationDetailClient({
   jiraBaseUrl = null,
 }: {
   location: Location;
-  assets: Asset[];
+  assets: AssetRow[];
   subtreeAssetCount?: number;
   breadcrumbs: Breadcrumb[];
   userRole: Role;

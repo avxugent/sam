@@ -13,7 +13,7 @@
 
 import { csvValue as v, parseDate, type CsvRow } from "@/lib/csv";
 import { normalizeMacAddress } from "@/lib/mac-address";
-import { CRITICALITY_VALUES } from "@/lib/criticality";
+import { CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
 import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
 import type { Criticality } from "@/generated/prisma/enums";
 
@@ -75,10 +75,8 @@ export function parseImportRow(row: CsvRow, userIdByEmail: Map<string, string>):
   const criticalityRaw = v(row, "CRITICALITY");
   let criticality: Criticality | null = null;
   if (criticalityRaw) {
-    const upper = criticalityRaw.toUpperCase();
-    if ((CRITICALITY_VALUES as readonly string[]).includes(upper)) {
-      criticality = upper as Criticality;
-    } else {
+    criticality = parseCriticality(criticalityRaw.toUpperCase());
+    if (!criticality) {
       warnings.push(`CRITICALITY "${criticalityRaw}" is not one of ${CRITICALITY_VALUES.join("/")}, ignored.`);
     }
   }

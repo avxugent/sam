@@ -1,4 +1,4 @@
-import type { DisposalMethod, Prisma } from "@/generated/prisma/client";
+import type { AssetStatus, DisposalMethod, Prisma } from "@/generated/prisma/client";
 import { serializeStockMetadata } from "@/lib/stock-metadata";
 
 /**
@@ -20,13 +20,13 @@ export class AssetLifecycleError extends Error {
   }
 }
 
-export function assertDecommissionable(asset: { status: string }): void {
+export function assertDecommissionable(asset: { status: AssetStatus }): void {
   if (asset.status === "DECOMMISSIONED") {
     throw new AssetLifecycleError("ALREADY_DECOMMISSIONED", "Asset is already decommissioned.");
   }
 }
 
-export function assertRepairable(asset: { status: string }): void {
+export function assertRepairable(asset: { status: AssetStatus }): void {
   if (asset.status === "DECOMMISSIONED") {
     throw new AssetLifecycleError(
       "ALREADY_DECOMMISSIONED",
@@ -39,7 +39,7 @@ export function assertRepairable(asset: { status: string }): void {
 }
 
 export function assertReturnableToStock(asset: {
-  status: string;
+  status: AssetStatus;
   typeId: string | null;
   modelId: string | null;
 }): void {

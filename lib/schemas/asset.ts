@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CRITICALITY_VALUES } from "@/lib/criticality";
+import { Criticality } from "@/generated/prisma/enums";
 import { MAX_MAC_ADDRESSES, macAddressField } from "@/lib/mac-address";
 
 /**
@@ -28,7 +28,7 @@ const assetFields = z.object({
   notes: z.string().max(5000).optional().nullable(),
   vaultPath: z.string().max(500).optional().nullable(),
   ownerId: z.string().max(64).optional().nullable(),
-  criticality: z.enum(CRITICALITY_VALUES).optional().nullable(),
+  criticality: z.enum(Criticality).optional().nullable(),
   endOfSupportDate: z.string().optional().nullable(),
   supplierId: z.string().max(64).optional().nullable(),
   macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),

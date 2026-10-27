@@ -6,10 +6,11 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { SELECTABLE_BACKGROUND_MODES } from "@/lib/background-mode";
 
 const schema = z.object({
   appTitle: z.string().min(1).max(100).optional(),
-  backgroundMode: z.enum(["", "preset:testing"]).optional(),
+  backgroundMode: z.enum(SELECTABLE_BACKGROUND_MODES).optional(),
 });
 
 export async function GET() {

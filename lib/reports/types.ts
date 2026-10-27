@@ -1,98 +1,22 @@
-export type FilterOp =
-  | "eq"
-  | "neq"
-  | "contains"
-  | "isNull"
-  | "isNotNull"
-  | "before"
-  | "after"
-  | "olderThanYears"
-  | "newerThanYears"
-  | "newerThanDays"
-  | "olderThanDays"
-  | "hasItem"
-  | "notHasItem";
+import type { LocationReportDefinition, ReportDefinition } from "@/lib/schemas/report";
 
-export type ReportFilterField =
-  | "typeId"
-  | "manufacturerId"
-  | "locationId"
-  | "status"
-  | "model"
-  | "serialNumber"
-  | "hostname"
-  | "installationDate"
-  | "invoiceDate"
-  | "lastChanged"
-  | "workLogItem"
-  | "locationWorkLogItem"
-  | "supplierId"
-  | "criticality"
-  | "endOfSupportDate";
-
-export type ReportFilter = {
-  field: ReportFilterField;
-  op: FilterOp;
-  value?: string;
-};
-
-export type GroupByField =
-  | "type"
-  | "manufacturer"
-  | "location"
-  | "installationYear"
-  | "none";
-
-export type ColumnKey =
-  | "model"
-  | "serialNumber"
-  | "hostname"
-  | "type"
-  | "manufacturer"
-  | "location"
-  | "installationDate"
-  | "invoiceDate"
-  | "invoiceNumber"
-  | "notes"
-  | "lastChanged"
-  | "supplier"
-  | "criticality"
-  | "endOfSupportDate";
+// Definition types are inferred from the Zod schemas in lib/schemas/report.ts.
+export type {
+  FilterOp,
+  ReportFilterField,
+  ReportFilter,
+  GroupByField,
+  ColumnKey,
+  AssetReportDefinition,
+  LocationReportDefinition,
+  ReportDefinition,
+} from "@/lib/schemas/report";
 
 export type ReportSource = "asset" | "location";
 
-// Asset report — the original report shape. `source` is optional so existing
-// saved reports (which predate the location report type) still parse as asset.
-export type AssetReportDefinition = {
-  source?: "asset";
-  filters: ReportFilter[];
-  groupBy: GroupByField;
-  columns: ColumnKey[];
-};
+export type LocationReportStatus = LocationReportDefinition["status"];
 
-// Location report — a per-location coverage matrix over fixed work-log items.
-// Each selected item becomes a column showing whether the leaf location has
-// that item filled in (i.e. at least one work-log entry with that item).
-export type LocationReportStatus = "all" | "filled" | "notFilled";
-
-export type LocationReportPeriodUnit = "days" | "months" | "years";
-
-export type LocationReportDefinition = {
-  source: "location";
-  itemIds: string[];
-  status: LocationReportStatus;
-  // Optional time window. When set, an item only counts as "filled" if its
-  // most recent entry falls within the window (e.g. 1 year). Combined with
-  // status "notFilled" this answers "not reviewed in the last year".
-  periodCount?: number;
-  periodUnit?: LocationReportPeriodUnit;
-  // Optional scope: location ids (any tree level — campus, building, floor,
-  // room). When set, only leaf locations under one of these ids are included.
-  // Empty/omitted means all locations.
-  locationIds?: string[];
-};
-
-export type ReportDefinition = AssetReportDefinition | LocationReportDefinition;
+export type LocationReportPeriodUnit = NonNullable<LocationReportDefinition["periodUnit"]>;
 
 export function isLocationReport(def: ReportDefinition): def is LocationReportDefinition {
   return def.source === "location";

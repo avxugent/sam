@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, Upload, Trash2, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { BackgroundMode } from "@/lib/background-mode";
 
-type BackgroundMode = "" | "preset:testing" | "custom";
 
 export function BrandingSettingsClient({
   initialAppTitle,
@@ -22,7 +22,7 @@ export function BrandingSettingsClient({
   initialAppTitle: string;
   initialHasLogo: boolean;
   initialHasFavicon: boolean;
-  initialBackgroundMode: string;
+  initialBackgroundMode: BackgroundMode;
   initialHasCustomBackground: boolean;
 }) {
   const t = useTranslations("settings");
@@ -33,7 +33,7 @@ export function BrandingSettingsClient({
   const [appTitle, setAppTitle] = useState(initialAppTitle);
   const [hasLogo, setHasLogo] = useState(initialHasLogo);
   const [hasFavicon, setHasFavicon] = useState(initialHasFavicon);
-  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(initialBackgroundMode as BackgroundMode);
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(initialBackgroundMode);
   const [hasCustomBackground, setHasCustomBackground] = useState(initialHasCustomBackground);
 
   const [savingTitle, setSavingTitle] = useState(false);
@@ -308,10 +308,10 @@ export function BrandingSettingsClient({
         <div className="flex flex-wrap gap-2">
           {(
             [
-              { value: "" as BackgroundMode, label: t("backgroundNone") },
-              { value: "preset:testing" as BackgroundMode, label: t("backgroundPresetTesting") },
-              { value: "custom" as BackgroundMode, label: t("backgroundCustom") },
-            ] as { value: BackgroundMode; label: string }[]
+              { value: "", label: t("backgroundNone") },
+              { value: "preset:testing", label: t("backgroundPresetTesting") },
+              { value: "custom", label: t("backgroundCustom") },
+            ] satisfies { value: BackgroundMode; label: string }[]
           ).map(({ value, label }) => (
             <button
               key={value}

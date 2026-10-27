@@ -6,7 +6,7 @@ import { validateTemplate } from "@/lib/scrape-template";
 import { validateHostnamePattern } from "@/lib/hostname/pattern";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit-diff";
-import { CRITICALITY_VALUES } from "@/lib/criticality";
+import { Criticality } from "@/generated/prisma/enums";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
@@ -15,7 +15,7 @@ const schema = z.object({
   scrapeTargetTemplate: z.string().max(10000).optional().nullable(),
   prometheusExposed: z.boolean().optional(),
   hostnamePattern: z.string().max(500).optional().nullable(),
-  defaultCriticality: z.enum(CRITICALITY_VALUES).optional().nullable(),
+  defaultCriticality: z.enum(Criticality).optional().nullable(),
 });
 
 export async function PUT(

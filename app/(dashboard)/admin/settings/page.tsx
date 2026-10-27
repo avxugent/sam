@@ -7,6 +7,7 @@ import { BrandingSettingsClient } from "@/components/admin/branding-settings-cli
 import { ComplianceSettingsClient } from "@/components/admin/compliance-settings-client";
 import { WorkLogItemsManager } from "@/components/admin/work-log-items-manager";
 import { isAdmin } from "@/lib/permissions";
+import { parseBackgroundMode } from "@/lib/background-mode";
 
 export default async function SettingsPage() {
   const session = await auth();
@@ -66,7 +67,7 @@ export default async function SettingsPage() {
           initialAppTitle={map["app.title"] ?? "SAM"}
           initialHasLogo={!!map["branding.logoStorageKey"]}
           initialHasFavicon={!!map["branding.faviconStorageKey"]}
-          initialBackgroundMode={map["branding.backgroundMode"] ?? ""}
+          initialBackgroundMode={parseBackgroundMode(map["branding.backgroundMode"])}
           initialHasCustomBackground={!!map["branding.backgroundStorageKey"]}
         />
       </div>

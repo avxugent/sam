@@ -45,6 +45,7 @@ import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
 import { AssetHistoryTimeline } from "@/components/assets/asset-history-timeline";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
+import type { AssetStatus, Criticality } from "@/generated/prisma/enums";
 
 type Asset = {
   id: string;
@@ -60,10 +61,10 @@ type Asset = {
   notes?: string | null;
   vaultPath?: string | null;
   ownerId?: string | null;
-  criticality?: string | null;
+  criticality?: Criticality | null;
   endOfSupportDate?: Date | string | null;
   supplierId?: string | null;
-  status: string;
+  status: AssetStatus;
   decommissionedAt?: Date | string | null;
   decommissionNote?: string | null;
   disposalMethod?: string | null;

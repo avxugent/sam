@@ -24,15 +24,17 @@ import {
 } from "@/components/ui/select";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
+import type { AssetStatus } from "@/generated/prisma/enums";
 import { escapeCsvCell } from "@/lib/csv";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
-type Asset = {
+/** A row as the location and asset-type pages pass it in. */
+export type AssetRow = {
   id: string;
-  status: string;
+  status: AssetStatus;
   model?: { id: string; name: string } | null;
   serialNumber?: string | null;
   hostname?: string | null;
@@ -47,7 +49,7 @@ type Asset = {
 
 type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "hostname" | "installationDate" | "location";
 
-function exportToCsv(assets: Asset[], filename: string, headers: string[]) {
+function exportToCsv(assets: AssetRow[], filename: string, headers: string[]) {
   const rows = assets.map((a) => [
     a.type?.name,
     a.manufacturer?.name,
@@ -76,7 +78,7 @@ export function AssetTable({
   showLocation = false,
   hostnameUrlTemplate,
 }: {
-  assets: Asset[];
+  assets: AssetRow[];
   locationId: string;
   userRole: Role;
   showLocation?: boolean;

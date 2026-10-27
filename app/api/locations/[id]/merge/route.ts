@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import type { Prisma } from "@/generated/prisma/client";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
-
-const mergeSchema = z.object({
-  targetId: z.string().min(1),
-});
+import { readMergeRequest } from "@/lib/route-helpers";
 
 /**
  * Merge the location identified by [id] (the source) into another location
@@ -29,25 +24,12 @@ export async function POST(
   if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await readJsonBody(req);
-  const parsed = mergeSchema.safeParse(body);
-  if (!parsed.success) {
-    return invalidInput(parsed.error);
-  }
-  const { targetId } = parsed.data;
+  const merge = await readMergeRequest(req, id, { article: "a", name: "location" }, (locationId) =>
+    prisma.location.findUnique({ where: { id: locationId }, select: { id: true, name: true, parentId: true } })
+  );
+  if ("error" in merge) return merge.error;
+  const { source, target, targetId } = merge;
 
-  if (targetId === id) {
-    return NextResponse.json({ error: "A location cannot be merged into itself." }, { status: 400 });
-  }
-
-  const [source, target] = await Promise.all([
-    prisma.location.findUnique({ where: { id }, select: { id: true, name: true, parentId: true } }),
-    prisma.location.findUnique({ where: { id: targetId }, select: { id: true, name: true, parentId: true } }),
-  ]);
-
-  if (!source || !target) {
-    return NextResponse.json({ error: "Location not found." }, { status: 404 });
-  }
   if (source.parentId !== target.parentId) {
     return NextResponse.json(
       { error: "Only locations under the same parent can be merged." },
@@ -74,5 +56,5 @@ export async function POST(
     detail: { mergedInto: target.name, movedAssets, movedSublocations },
   });
 
-  return NextResponse.json({ id: target.id, movedAssets, movedSublocations });
+  return NextResponse.json({ ok: true, id: target.id, movedAssets, movedSublocations });
 }

@@ -91,7 +91,7 @@ describe("POST /api/locations/[id]/merge", () => {
 
     const res = await POST(post({ targetId: "loc2" }), { params: params() });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ id: "loc2", movedAssets: 3, movedSublocations: 2 });
+    expect(await res.json()).toEqual({ ok: true, id: "loc2", movedAssets: 3, movedSublocations: 2 });
 
     expect(tx.asset.updateMany).toHaveBeenCalledWith({ where: { locationId: "loc1" }, data: { locationId: "loc2" } });
     expect(tx.location.updateMany).toHaveBeenCalledWith({ where: { parentId: "loc1" }, data: { parentId: "loc2" } });

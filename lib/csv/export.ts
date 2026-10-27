@@ -106,16 +106,20 @@ function csvLine(cells: string[]): string {
   return cells.map((cell) => escapeCsvCell(cell)).join(";");
 }
 
-export async function generateExportCsv(includeDecommissioned = false): Promise<string> {
+/**
+ * Import-compatible inventory export of installed assets only: in-repair and
+ * decommissioned assets are not current inventory for re-import purposes and
+ * have their own pages (decommissioned also its own export).
+ */
+export async function generateExportCsv(): Promise<string> {
   // Fetch all locations into a map for hierarchy lookup
   const allLocations = await prisma.location.findMany({
     select: { id: true, name: true, fiNumber: true, parentId: true },
   });
   const locationMap = new Map<string, LocationRow>(allLocations.map((l) => [l.id, l]));
 
-  // Fetch assets — decommissioned excluded by default
   const assets = await prisma.asset.findMany({
-    where: includeDecommissioned ? {} : { status: "INSTALLED" },
+    where: { status: "INSTALLED" },
     include: ASSET_EXPORT_INCLUDE,
     orderBy: [{ locationId: "asc" }, { createdAt: "asc" }],
   });

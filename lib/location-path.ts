@@ -169,15 +169,11 @@ export async function resolveAncestorChainsBatch(
   return result;
 }
 
-// CUID format used by Prisma @default(cuid())
-const CUID_REGEX = /^[0-9a-z]{25}$/;
-
 /**
- * Returns all descendant location IDs (not including the root itself).
- * Uses a single recursive CTE to avoid N+1 round-trips.
+ * Returns all descendant location IDs (not including the root itself); an
+ * unknown id has none. Uses a single recursive CTE to avoid N+1 round-trips.
  */
 export async function getAllDescendantLocationIds(locationId: string): Promise<string[]> {
-  if (!CUID_REGEX.test(locationId)) return [];
   type Row = { id: string };
   const rows = await prisma.$queryRaw<Row[]>`
     WITH RECURSIVE loc_tree AS (

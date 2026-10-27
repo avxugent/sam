@@ -8,6 +8,7 @@ import { resolveAssetCreationDefaults } from "@/lib/assets/defaults";
 import { canEdit } from "@/lib/permissions";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { assetListStatusFilter } from "@/lib/assets/list-status";
 
 export async function GET(
   req: NextRequest,
@@ -19,11 +20,7 @@ export async function GET(
   const { id } = await params;
   const { searchParams } = new URL(req.url);
   const recursive = searchParams.get("recursive") === "true";
-  const statusParam = searchParams.get("status");
-  const statusFilter =
-    statusParam === "DECOMMISSIONED"
-      ? { status: "DECOMMISSIONED" as const }
-      : { status: "INSTALLED" as const };
+  const statusFilter = assetListStatusFilter(searchParams.get("status"));
 
   if (recursive) {
     const ids = await getAllDescendantLocationIds(id);

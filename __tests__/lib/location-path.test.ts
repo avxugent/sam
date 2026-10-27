@@ -146,10 +146,9 @@ describe("findFiNumber()", () => {
 // ── getAllDescendantLocationIds ────────────────────────────────────────────────
 
 describe("getAllDescendantLocationIds()", () => {
-  it("returns empty array for non-CUID input", async () => {
-    await expect(getAllDescendantLocationIds("not-a-cuid")).resolves.toEqual([]);
-    await expect(getAllDescendantLocationIds("")).resolves.toEqual([]);
-    await expect(getAllDescendantLocationIds("short")).resolves.toEqual([]);
+  it("queries ids of any shape instead of short-circuiting (the move-cycle guard relies on it)", async () => {
+    mockQueryRaw.mockResolvedValueOnce([{ id: "child-1" }] as never);
+    await expect(getAllDescendantLocationIds("seed-location-1")).resolves.toEqual(["child-1"]);
   });
 
   it("returns descendant ids from the database", async () => {

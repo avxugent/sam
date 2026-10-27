@@ -90,14 +90,11 @@ describe("generateExportCsv()", () => {
     expect(row[8]).toBe("12");
   });
 
-  it("excludes decommissioned by default; includes them when asked", async () => {
+  it("exports installed assets only", async () => {
     await generateExportCsv();
     expect(mockAssetFind).toHaveBeenCalledWith(
       expect.objectContaining({ where: { status: "INSTALLED" } })
     );
-    mockAssetFind.mockClear();
-    await generateExportCsv(true);
-    expect(mockAssetFind).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
   });
 
   it("escapes cells containing the delimiter, quotes, or newlines", async () => {

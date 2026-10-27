@@ -28,11 +28,26 @@ function createAdapter(): PrismaMariaDb {
   });
 }
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    adapter: createAdapter(),
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
+function getClient(): PrismaClient {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = new PrismaClient({
+      adapter: createAdapter(),
+      log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    });
+  }
+  return globalForPrisma.prisma;
+}
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+/**
+ * The shared PrismaClient, created on first use rather than at import time, so
+ * importing this module (e.g. while `next build` collects routes) needs no
+ * DB_* environment. A missing variable still fails loudly on the first query.
+ * The singleton lives on globalThis so dev hot-reloads reuse one connection pool.
+ */
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getClient();
+    const value = Reflect.get(client, prop, client);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});

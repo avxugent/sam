@@ -80,13 +80,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-          # Build-time environment variables (dummy values — no real DB needed)
+          # Build-time environment variables (placeholders — no DB needed)
           build-args: |
-            DB_HOST=localhost
-            DB_PORT=3306
-            DB_NAME=samdb
-            DB_USER=sam
-            DB_PASSWORD=build
             NEXTAUTH_SECRET=build-time-placeholder-not-used-at-runtime
             NEXTAUTH_URL=http://localhost:3000
             NEXT_TELEMETRY_DISABLED=1

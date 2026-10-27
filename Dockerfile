@@ -62,21 +62,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build-time arguments — only used during `next build`, never baked into the
-# runtime image. Dummy DB values are sufficient; the app does NOT connect to
-# the database at build time.
-ARG DB_HOST=localhost
-ARG DB_PORT=3306
-ARG DB_NAME=samdb
-ARG DB_USER=sam
-ARG DB_PASSWORD=build
+# runtime image. No DB_* values are needed: lib/prisma.ts creates the client
+# on first query, and nothing queries the database at build time.
 ARG NEXTAUTH_SECRET=build-time-placeholder
 ARG NEXTAUTH_URL=http://localhost:3000
 
-ENV DB_HOST=$DB_HOST
-ENV DB_PORT=$DB_PORT
-ENV DB_NAME=$DB_NAME
-ENV DB_USER=$DB_USER
-ENV DB_PASSWORD=$DB_PASSWORD
 ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
 ENV NEXTAUTH_URL=$NEXTAUTH_URL
 ENV NEXT_TELEMETRY_DISABLED=1

@@ -18,7 +18,7 @@ vi.mock("@/lib/prisma", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { POST } from "@/app/api/import/route";
+import { POST, PUT } from "@/app/api/import/route";
 
 const mockAuth = vi.mocked(auth);
 const mockAssetCreate = vi.mocked(prisma.asset.create);
@@ -107,5 +107,60 @@ describe("POST /api/import — FI NUMMER-based location match", () => {
     expect(res.status).toBe(200);
     expect(body.created).toBe(1);
     expect(mockLocationCreate).toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/import — FI NUMMER applied to an existing room", () => {
+  const existing = [
+    { id: "campus", name: "Campus", parentId: null, fiNumber: null },
+    { id: "bldg", name: "Bldg", parentId: "campus", fiNumber: null },
+    { id: "room-a", name: "Room A", parentId: "bldg", fiNumber: "14.10.100.001" },
+  ];
+
+  it("does not route later rows to a room whose own FI number blocked the update", async () => {
+    vi.mocked(prisma.location.findMany).mockResolvedValue(existing as never);
+    vi.mocked(prisma.location.updateMany).mockResolvedValue({ count: 0 } as never); // room already has an FI number
+    const csv = [
+      HEADER,
+      "Campus;Bldg;Room A;14.10.100.002;Laptop;;;;;;;;;;;;",
+      "Other;Annex;Room B;14.10.100.002;Laptop;;;;;;;;;;;;",
+    ].join("\n");
+    await POST(importReq(csv));
+    const locationIds = mockAssetCreate.mock.calls.map(([arg]) => (arg as { data: { locationId: string } }).data.locationId);
+    expect(locationIds[0]).toBe("room-a");
+    // Second row must get its own room, not be merged into Room A via a phantom FI mapping.
+    expect(locationIds[1]).toBe("loc-Room B");
+    expect(mockLocationCreate).toHaveBeenCalledWith({ data: { name: "Room B", parentId: "loc-Annex", fiNumber: "14.10.100.002" } });
+  });
+
+  it("records the FI number when the update applied", async () => {
+    vi.mocked(prisma.location.findMany).mockResolvedValue(
+      existing.map((l) => (l.id === "room-a" ? { ...l, fiNumber: null } : l)) as never
+    );
+    vi.mocked(prisma.location.updateMany).mockResolvedValue({ count: 1 } as never);
+    const csv = [
+      HEADER,
+      "Campus;Bldg;Room A;14.10.100.002;Laptop;;;;;;;;;;;;",
+      "Renamed;Elsewhere;Room X;14.10.100.002;Laptop;;;;;;;;;;;;",
+    ].join("\n");
+    await POST(importReq(csv));
+    const locationIds = mockAssetCreate.mock.calls.map(([arg]) => (arg as { data: { locationId: string } }).data.locationId);
+    expect(locationIds).toEqual(["room-a", "room-a"]);
+  });
+});
+
+describe("PUT /api/import (preview)", () => {
+  it("is admin-only like the import itself", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR"));
+    expect((await PUT(importReq(`${HEADER}\n`))).status).toBe(403);
+  });
+
+  it("returns the column names and at most five preview rows", async () => {
+    const rows = Array.from({ length: 7 }, (_, i) => `C;B;Room ${i};;;;;;;;;;;;;;`);
+    const res = await PUT(importReq([HEADER, ...rows].join("\n")));
+    const body = await res.json();
+    expect(body.totalRows).toBe(7);
+    expect(body.preview).toHaveLength(5);
+    expect(body.columns).toContain("LOKAAL");
   });
 });

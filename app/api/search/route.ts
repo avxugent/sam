@@ -11,8 +11,10 @@
  * Also searches locations independently:
  *   - name, description, fiNumber, address, city
  *
- * Returns paginated results (50 assets / 20 locations per page), ordered by
- * relevance (number of matching fields, most specific first).
+ * Returns paginated results (50 assets / 20 locations per page). Pages are cut
+ * from the matches ordered by most recently updated; assets within a page are
+ * then ranked by relevance (weighted matching fields, most specific first).
+ * Ranking globally would require loading every match, so it is page-local.
  *
  * Authentication: standard NextAuth session.
  */
@@ -119,7 +121,7 @@ export async function GET(req: NextRequest) {
     }),
   ]);
 
-  // Score each asset by how many fields matched — puts the most relevant results first
+  // Score each asset on this page by which fields matched — the most relevant results of the page come first
   const ql = q.toLowerCase();
 
   function scoreAsset(a: typeof assets[number]): number {
@@ -150,14 +152,10 @@ export async function GET(req: NextRequest) {
     if (a.serialNumber?.toLowerCase().includes(ql)) parts.push(`S/N: ${a.serialNumber}`);
     if (a.hostname?.toLowerCase().includes(ql)) parts.push(`Host: ${a.hostname}`);
     if (a.invoiceNumber?.toLowerCase().includes(ql)) parts.push(`Invoice: ${a.invoiceNumber}`);
-    if (a.macAddresses.some((m) => m.address.toLowerCase().includes(ql))) {
-      const mac = a.macAddresses.find((m) => m.address.toLowerCase().includes(ql));
-      if (mac) parts.push(`MAC: ${mac.address}`);
-    }
-    if (a.customFields.some((f) => f.value.toLowerCase().includes(ql))) {
-      const cf = a.customFields.find((f) => f.value.toLowerCase().includes(ql));
-      if (cf) parts.push(`${cf.key}: ${cf.value}`);
-    }
+    const mac = a.macAddresses.find((m) => m.address.toLowerCase().includes(ql));
+    if (mac) parts.push(`MAC: ${mac.address}`);
+    const cf = a.customFields.find((f) => f.value.toLowerCase().includes(ql));
+    if (cf) parts.push(`${cf.key}: ${cf.value}`);
     if (a.notes?.toLowerCase().includes(ql)) {
       const idx = a.notes.toLowerCase().indexOf(ql);
       const start = Math.max(0, idx - 30);

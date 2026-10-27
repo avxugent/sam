@@ -36,7 +36,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { formatDate, getInitials } from "@/lib/utils";
+import { formatDate, getInitials, toIsoDay } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Loader2, ShieldOff, Download } from "lucide-react";
 import { SortableTh } from "@/components/ui/sortable-th";
@@ -222,7 +222,7 @@ export function UsersClient({
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `sam-users-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.download = `sam-users-${toIsoDay(new Date())}.csv`;
             a.click();
             URL.revokeObjectURL(url);
           }}

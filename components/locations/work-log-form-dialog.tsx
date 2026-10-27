@@ -28,6 +28,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { createWorkLogSchema } from "@/lib/schemas/work-log";
 import { z } from "zod";
+import { toIsoDay } from "@/lib/utils";
 
 type WorkLogFormValues = z.infer<typeof createWorkLogSchema>;
 
@@ -74,7 +75,7 @@ const NO_ASSET = "__none__";
 const NO_ITEM = "__none__";
 
 function todayIsoDate(): string {
-  return new Date().toISOString().split("T")[0];
+  return toIsoDay(new Date());
 }
 
 export function WorkLogFormDialog({

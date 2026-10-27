@@ -5,6 +5,7 @@ import { z } from "zod";
 import { validateTemplate } from "@/lib/scrape-template";
 import { validateHostnamePattern } from "@/lib/hostname/pattern";
 import { logAudit } from "@/lib/audit";
+import { auditChanges } from "@/lib/audit-diff";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
@@ -83,19 +84,16 @@ export async function PUT(
       },
     });
 
-    const changes: Record<string, { from: unknown; to: unknown }> = {};
-    if (before) {
-      if (parsed.data.name !== undefined && parsed.data.name !== before.name)
-        changes["Name"] = { from: before.name, to: parsed.data.name };
-      if (parsed.data.scrapeTargetTemplate !== undefined && parsed.data.scrapeTargetTemplate !== before.scrapeTargetTemplate)
-        changes["Scrape template"] = { from: before.scrapeTargetTemplate ?? null, to: parsed.data.scrapeTargetTemplate ?? null };
-      if (parsed.data.prometheusExposed !== undefined && parsed.data.prometheusExposed !== before.prometheusExposed)
-        changes["Prometheus exposed"] = { from: before.prometheusExposed, to: parsed.data.prometheusExposed };
-      if (parsed.data.hostnamePattern !== undefined && parsed.data.hostnamePattern !== before.hostnamePattern)
-        changes["Hostname pattern"] = { from: before.hostnamePattern ?? null, to: parsed.data.hostnamePattern ?? null };
-      if (parsed.data.defaultCriticality !== undefined && parsed.data.defaultCriticality !== before.defaultCriticality)
-        changes["Default criticality"] = { from: before.defaultCriticality ?? null, to: parsed.data.defaultCriticality ?? null };
-    }
+    const d = parsed.data;
+    const changes = before
+      ? auditChanges([
+          d.name !== undefined && { label: "Name", before: before.name, after: d.name },
+          d.scrapeTargetTemplate !== undefined && { label: "Scrape template", before: before.scrapeTargetTemplate, after: d.scrapeTargetTemplate ?? null },
+          d.prometheusExposed !== undefined && { label: "Prometheus exposed", before: before.prometheusExposed, after: d.prometheusExposed },
+          d.hostnamePattern !== undefined && { label: "Hostname pattern", before: before.hostnamePattern, after: d.hostnamePattern ?? null },
+          d.defaultCriticality !== undefined && { label: "Default criticality", before: before.defaultCriticality, after: d.defaultCriticality ?? null },
+        ])
+      : {};
 
     await logAudit({
       session,

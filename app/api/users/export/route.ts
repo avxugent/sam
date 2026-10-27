@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { generateUsersCsv } from "@/lib/csv-export";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
+import { toIsoDay } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
     detail: { count: users.length },
   });
 
-  const date = new Date().toISOString().slice(0, 10);
+  const date = toIsoDay(new Date());
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

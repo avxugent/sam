@@ -4,6 +4,7 @@ import { computeHostnameCompliance } from "@/lib/hostname/compliance";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { escapeCsvCell } from "@/lib/csv";
+import { toIsoDay } from "@/lib/utils";
 
 const COLUMNS = ["TYPE", "PATTERN", "HOSTNAME", "MODEL", "SERIAL", "LOCATION", "FI_NUMBER"];
 
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
   }
   const csv = rows.join("\r\n");
 
-  const date = new Date().toISOString().slice(0, 10);
+  const date = toIsoDay(new Date());
   const filename = `sam-hostname-noncompliant-${date}.csv`;
 
   await logAudit({

@@ -100,6 +100,7 @@ describe("PUT /api/assets/[id] — MAC address normalization", () => {
   const params = Promise.resolve({ id: "asset-1" });
   const EXISTING = {
     id: "asset-1",
+    quantity: 1,
     typeId: "t1",
     hostname: null,
     macAddresses: [],

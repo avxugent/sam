@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { auditChanges } from "@/lib/audit-diff";
 import { isAdmin, Role } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
@@ -71,18 +72,15 @@ export async function PUT(
     throw err;
   }
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
   const d = parsed.data;
-  if (d.name !== undefined && d.name !== target.name)
-    changes["Name"] = { from: target.name, to: d.name };
-  if (d.email !== undefined && d.email !== target.email)
-    changes["Email"] = { from: target.email, to: d.email };
-  if (d.role !== undefined && d.role !== target.role)
-    changes["Role"] = { from: target.role, to: d.role };
-  if (d.twoFactorRequired !== undefined && d.twoFactorRequired !== target.twoFactorRequired)
-    changes["2FA required"] = { from: target.twoFactorRequired, to: d.twoFactorRequired };
-  if (password)
-    changes["Password"] = { from: "•••", to: "•••" };
+  const changes = auditChanges([
+    d.name !== undefined && { label: "Name", before: target.name, after: d.name },
+    d.email !== undefined && { label: "Email", before: target.email, after: d.email },
+    d.role !== undefined && { label: "Role", before: target.role, after: d.role },
+    d.twoFactorRequired !== undefined && { label: "2FA required", before: target.twoFactorRequired, after: d.twoFactorRequired },
+    // A new password always counts as a change; never record password material.
+    !!password && { label: "Password", before: false, after: true, display: ["•••", "•••"] },
+  ]);
 
   await logAudit({
     session,

@@ -5,8 +5,10 @@ import type { Prisma } from "@/generated/prisma/client";
 import { isHostnameCompliant } from "@/lib/hostname/pattern";
 import { updateAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
+import { auditChanges, type FieldChange } from "@/lib/audit-diff";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { toIsoDay } from "@/lib/utils";
 
 export async function GET(
   _req: NextRequest,
@@ -35,6 +37,23 @@ export async function GET(
 
   if (!asset) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(asset);
+}
+
+/** Prisma value for an optional date field: undefined leaves it, "" or null clears it. */
+function toDateUpdate(value: string | null | undefined): Date | null | undefined {
+  if (value === undefined) return undefined;
+  return value ? new Date(value) : null;
+}
+
+/** One diff entry per custom field key that was added, removed or changed. */
+function customFieldChanges(before: { key: string; value: string }[], after: { key: string; value: string }[]): FieldChange[] {
+  const fromMap = new Map(before.map((f) => [f.key, f.value]));
+  const toMap = new Map(after.filter((f) => f.key).map((f) => [f.key, f.value]));
+  return [...new Set([...fromMap.keys(), ...toMap.keys()])].map((key) => ({
+    label: `Custom field: ${key}`,
+    before: fromMap.get(key) ?? null,
+    after: toMap.get(key) ?? null,
+  }));
 }
 
 export async function PUT(
@@ -74,52 +93,46 @@ export async function PUT(
     },
   });
 
+  if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Values the asset will have after this (possibly partial) update.
+  const effective = {
+    hostname: (assetData.hostname !== undefined ? assetData.hostname : before.hostname)?.trim() || null,
+    serialNumber: (assetData.serialNumber !== undefined ? assetData.serialNumber : before.serialNumber)?.trim() || null,
+    typeId: assetData.typeId !== undefined ? assetData.typeId : before.typeId,
+    macCount: macAddresses !== undefined ? macAddresses.length : before.macAddresses.length,
+    quantity: assetData.quantity !== undefined ? assetData.quantity : before.quantity,
+  };
+
   // Only re-validate hostname format when hostname and/or typeId are part of
   // this update — an unrelated field edit must never fail because a type's
   // pattern was tightened after the asset's hostname was originally set.
-  if (assetData.hostname !== undefined || assetData.typeId !== undefined) {
-    const effectiveHostname = (
-      assetData.hostname !== undefined ? assetData.hostname : before?.hostname
-    )?.trim();
-    if (effectiveHostname) {
-      const effectiveTypeId = assetData.typeId !== undefined ? assetData.typeId : before?.typeId;
-      const assetType = effectiveTypeId
-        ? await prisma.assetType.findUnique({ where: { id: effectiveTypeId }, select: { hostnamePattern: true } })
-        : null;
-      const isValidHostname = isHostnameCompliant(effectiveHostname, assetType?.hostnamePattern);
-      if (!isValidHostname) {
-        return NextResponse.json(
-          { error: "Hostname does not match the required format for this asset type." },
-          { status: 400 }
-        );
-      }
+  if ((assetData.hostname !== undefined || assetData.typeId !== undefined) && effective.hostname) {
+    const assetType = effective.typeId
+      ? await prisma.assetType.findUnique({ where: { id: effective.typeId }, select: { hostnamePattern: true } })
+      : null;
+    if (!isHostnameCompliant(effective.hostname, assetType?.hostnamePattern)) {
+      return NextResponse.json(
+        { error: "Hostname does not match the required format for this asset type." },
+        { status: 400 }
+      );
     }
   }
 
   // Quantity > 1 only makes sense for bulk items with no individual identity.
-  // Re-derive the effective serial/hostname/MAC/quantity against `before` so a
-  // partial update that omits identity fields can't sneak past the check.
-  if (
+  // Checked against the effective values so a partial update that omits
+  // identity fields can't sneak past it.
+  const touchesIdentity =
     assetData.quantity !== undefined ||
     assetData.serialNumber !== undefined ||
     assetData.hostname !== undefined ||
-    macAddresses !== undefined
-  ) {
-    const effectiveSerial = (
-      assetData.serialNumber !== undefined ? assetData.serialNumber : before?.serialNumber
-    )?.trim();
-    const effectiveHostname = (
-      assetData.hostname !== undefined ? assetData.hostname : before?.hostname
-    )?.trim();
-    const effectiveMacCount = macAddresses !== undefined ? macAddresses.length : (before?.macAddresses.length ?? 0);
-    const effectiveQuantity = assetData.quantity !== undefined ? assetData.quantity : (before?.quantity ?? 1);
-    const hasIdentity = !!effectiveSerial || !!effectiveHostname || effectiveMacCount > 0;
-    if (hasIdentity && effectiveQuantity !== 1) {
-      return NextResponse.json(
-        { error: "Quantity must be 1 when a serial number, hostname, or MAC address is set." },
-        { status: 400 }
-      );
-    }
+    macAddresses !== undefined;
+  const hasIdentity = !!effective.serialNumber || !!effective.hostname || effective.macCount > 0;
+  if (touchesIdentity && hasIdentity && effective.quantity !== 1) {
+    return NextResponse.json(
+      { error: "Quantity must be 1 when a serial number, hostname, or MAC address is set." },
+      { status: 400 }
+    );
   }
 
   let asset;
@@ -148,15 +161,9 @@ export async function PUT(
         data: {
           ...assetData,
           ...(assetData.hostname !== undefined && { hostname: assetData.hostname?.trim() || null }),
-          installationDate: installationDate !== undefined
-            ? installationDate ? new Date(installationDate) : null
-            : undefined,
-          invoiceDate: invoiceDate !== undefined
-            ? invoiceDate ? new Date(invoiceDate) : null
-            : undefined,
-          endOfSupportDate: endOfSupportDate !== undefined
-            ? endOfSupportDate ? new Date(endOfSupportDate) : null
-            : undefined,
+          installationDate: toDateUpdate(installationDate),
+          invoiceDate: toDateUpdate(invoiceDate),
+          endOfSupportDate: toDateUpdate(endOfSupportDate),
         },
         include: {
           type: true,
@@ -179,67 +186,28 @@ export async function PUT(
     throw err;
   }
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
-  if (before) {
-    const d = parsed.data;
-    if (d.modelId !== undefined && d.modelId !== before.modelId)
-      changes["Model"] = { from: before.model?.name ?? null, to: asset.model?.name ?? null };
-    if (d.quantity !== undefined && d.quantity !== before.quantity)
-      changes["Quantity"] = { from: before.quantity, to: d.quantity };
-    if (d.serialNumber !== undefined && d.serialNumber !== before.serialNumber)
-      changes["Serial number"] = { from: before.serialNumber ?? null, to: d.serialNumber ?? null };
-    if (d.hostname !== undefined && (d.hostname?.trim() ?? null) !== before.hostname)
-      changes["Hostname"] = { from: before.hostname ?? null, to: d.hostname ?? null };
-    if (d.invoiceNumber !== undefined && d.invoiceNumber !== before.invoiceNumber)
-      changes["Invoice number"] = { from: before.invoiceNumber ?? null, to: d.invoiceNumber ?? null };
-    if (d.notes !== undefined && d.notes !== before.notes)
-      changes["Notes"] = { from: before.notes ?? null, to: d.notes ?? null };
-    if (d.vaultPath !== undefined && d.vaultPath !== before.vaultPath)
-      changes["Vault path"] = { from: before.vaultPath ?? null, to: d.vaultPath ?? null };
-    if (d.typeId !== undefined && d.typeId !== before.typeId)
-      changes["Type"] = { from: before.type?.name ?? before.typeId, to: asset.type?.name ?? d.typeId };
-    if (d.manufacturerId !== undefined && d.manufacturerId !== before.manufacturerId)
-      changes["Manufacturer"] = { from: before.manufacturer?.name ?? before.manufacturerId, to: asset.manufacturer?.name ?? d.manufacturerId };
-    if (d.locationId !== undefined && d.locationId !== before.locationId)
-      changes["Location"] = { from: before.location?.name ?? null, to: asset.location?.name ?? null };
-    if (d.ownerId !== undefined && d.ownerId !== before.ownerId)
-      changes["Owner"] = { from: before.ownerId ?? null, to: d.ownerId ?? null };
-    if (d.criticality !== undefined && d.criticality !== before.criticality)
-      changes["Criticality"] = { from: before.criticality ?? null, to: d.criticality ?? null };
-    if (d.supplierId !== undefined && d.supplierId !== before.supplierId)
-      changes["Supplier"] = { from: before.supplier?.name ?? before.supplierId ?? null, to: asset.supplier?.name ?? d.supplierId ?? null };
-    if (endOfSupportDate !== undefined) {
-      const fromDate = before.endOfSupportDate ? before.endOfSupportDate.toISOString().split("T")[0] : null;
-      if (fromDate !== endOfSupportDate)
-        changes["End of support"] = { from: fromDate, to: endOfSupportDate };
-    }
-    if (installationDate !== undefined) {
-      const fromDate = before.installationDate ? before.installationDate.toISOString().split("T")[0] : null;
-      if (fromDate !== installationDate)
-        changes["Installation date"] = { from: fromDate, to: installationDate };
-    }
-    if (invoiceDate !== undefined) {
-      const fromDate = before.invoiceDate ? before.invoiceDate.toISOString().split("T")[0] : null;
-      if (fromDate !== invoiceDate)
-        changes["Invoice date"] = { from: fromDate, to: invoiceDate };
-    }
-    if (macAddresses !== undefined) {
-      const fromMacs = [...before.macAddresses.map((m) => m.address)].sort().join(", ") || null;
-      const toMacs = [...macAddresses].sort().join(", ") || null;
-      if (fromMacs !== toMacs)
-        changes["MAC addresses"] = { from: fromMacs, to: toMacs };
-    }
-    if (customFields !== undefined) {
-      const fromMap = Object.fromEntries(before.customFields.map((f) => [f.key, f.value]));
-      const toMap = Object.fromEntries(customFields.filter((f) => f.key).map((f) => [f.key, f.value]));
-      for (const key of new Set([...Object.keys(fromMap), ...Object.keys(toMap)])) {
-        const fromVal = fromMap[key] ?? null;
-        const toVal = toMap[key] ?? null;
-        if (fromVal !== toVal)
-          changes[`Custom field: ${key}`] = { from: fromVal, to: toVal };
-      }
-    }
-  }
+  const d = parsed.data;
+  const sortedMacs = (list: string[]) => [...list].sort().join(", ") || null;
+  const changes = auditChanges([
+    d.modelId !== undefined && { label: "Model", before: before.modelId, after: d.modelId, display: [before.model?.name, asset.model?.name] },
+    d.quantity !== undefined && { label: "Quantity", before: before.quantity, after: d.quantity },
+    d.serialNumber !== undefined && { label: "Serial number", before: before.serialNumber, after: d.serialNumber },
+    d.hostname !== undefined && { label: "Hostname", before: before.hostname, after: d.hostname?.trim() || null },
+    d.invoiceNumber !== undefined && { label: "Invoice number", before: before.invoiceNumber, after: d.invoiceNumber },
+    d.notes !== undefined && { label: "Notes", before: before.notes, after: d.notes },
+    d.vaultPath !== undefined && { label: "Vault path", before: before.vaultPath, after: d.vaultPath },
+    d.typeId !== undefined && { label: "Type", before: before.typeId, after: d.typeId, display: [before.type?.name ?? before.typeId, asset.type?.name ?? d.typeId] },
+    d.manufacturerId !== undefined && { label: "Manufacturer", before: before.manufacturerId, after: d.manufacturerId, display: [before.manufacturer?.name ?? before.manufacturerId, asset.manufacturer?.name ?? d.manufacturerId] },
+    d.locationId !== undefined && { label: "Location", before: before.locationId, after: d.locationId, display: [before.location?.name, asset.location?.name] },
+    d.ownerId !== undefined && { label: "Owner", before: before.ownerId, after: d.ownerId },
+    d.criticality !== undefined && { label: "Criticality", before: before.criticality, after: d.criticality },
+    d.supplierId !== undefined && { label: "Supplier", before: before.supplierId, after: d.supplierId, display: [before.supplier?.name ?? before.supplierId, asset.supplier?.name ?? d.supplierId] },
+    endOfSupportDate !== undefined && { label: "End of support", before: toIsoDay(before.endOfSupportDate), after: endOfSupportDate || null },
+    installationDate !== undefined && { label: "Installation date", before: toIsoDay(before.installationDate), after: installationDate || null },
+    invoiceDate !== undefined && { label: "Invoice date", before: toIsoDay(before.invoiceDate), after: invoiceDate || null },
+    macAddresses !== undefined && { label: "MAC addresses", before: sortedMacs(before.macAddresses.map((m) => m.address)), after: sortedMacs(macAddresses) },
+    ...(customFields !== undefined ? customFieldChanges(before.customFields, customFields) : []),
+  ]);
 
   await logAudit({
     session,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkPrometheusAuth } from "@/lib/prometheus-auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import { toIsoDay } from "@/lib/utils";
 
 type AdhocFilter = {
   key: string;
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
             a.type?.name ?? null,
             a.manufacturer?.name ?? null,
             a.location?.name ?? null,
-            a.installationDate ? a.installationDate.toISOString().split("T")[0] : null,
+            toIsoDay(a.installationDate),
           ])
         );
       }

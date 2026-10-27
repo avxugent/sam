@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { auditChanges } from "@/lib/audit-diff";
 import { supplierSchema, findConflictingWindows } from "@/lib/schemas/supplier";
 import { canManageCatalog } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { toIsoDay } from "@/lib/utils";
 
 function dateCell(d: Date | null): string {
-  return d ? d.toISOString().slice(0, 10) : "";
+  return toIsoDay(d) ?? "";
 }
 
 export async function PUT(
@@ -49,20 +51,14 @@ export async function PUT(
       },
     });
 
-    const changes: Record<string, { from: string; to: string }> = {};
-    if (current.name !== supplier.name) changes["Name"] = { from: current.name, to: supplier.name };
-    if ((current.contractReference ?? "") !== (supplier.contractReference ?? "")) {
-      changes["Contract reference"] = { from: current.contractReference ?? "", to: supplier.contractReference ?? "" };
-    }
-    if ((current.contactInfo ?? "") !== (supplier.contactInfo ?? "")) {
-      changes["Contact info"] = { from: current.contactInfo ?? "", to: supplier.contactInfo ?? "" };
-    }
-    if (dateCell(current.defaultFrom) !== dateCell(supplier.defaultFrom)) {
-      changes["Default from"] = { from: dateCell(current.defaultFrom), to: dateCell(supplier.defaultFrom) };
-    }
-    if (dateCell(current.defaultUntil) !== dateCell(supplier.defaultUntil)) {
-      changes["Default until"] = { from: dateCell(current.defaultUntil), to: dateCell(supplier.defaultUntil) };
-    }
+    // Empty and missing values both read as "" in the supplier audit trail.
+    const changes = auditChanges([
+      { label: "Name", before: current.name, after: supplier.name },
+      { label: "Contract reference", before: current.contractReference ?? "", after: supplier.contractReference ?? "" },
+      { label: "Contact info", before: current.contactInfo ?? "", after: supplier.contactInfo ?? "" },
+      { label: "Default from", before: dateCell(current.defaultFrom), after: dateCell(supplier.defaultFrom) },
+      { label: "Default until", before: dateCell(current.defaultUntil), after: dateCell(supplier.defaultUntil) },
+    ]);
 
     await logAudit({
       session,

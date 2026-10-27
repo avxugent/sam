@@ -4,6 +4,7 @@ import { generateExportCsv } from "@/lib/csv-export";
 import { logAudit } from "@/lib/audit";
 import { checkExportToken } from "@/lib/export-token";
 import { isAdmin } from "@/lib/permissions";
+import { toIsoDay } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   const csv = await generateExportCsv();
 
-  const date = new Date().toISOString().slice(0, 10);
+  const date = toIsoDay(new Date());
   const filename = `sam-export-${date}.csv`;
 
   await logAudit({

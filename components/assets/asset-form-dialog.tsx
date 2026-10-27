@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/model-autocomplete";
-import { cn } from "@/lib/utils";
+import { cn, toIsoDay } from "@/lib/utils";
 import { isHostnameCompliant } from "@/lib/hostname/pattern";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { isWindowActive } from "@/lib/supplier-window";
@@ -230,18 +230,18 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       hostname: asset.hostname || "",
       quantity: asset.quantity ?? 1,
       installationDate: asset.installationDate
-        ? new Date(asset.installationDate).toISOString().split("T")[0]
+        ? toIsoDay(asset.installationDate)
         : "",
       invoiceNumber: asset.invoiceNumber || "",
       invoiceDate: asset.invoiceDate
-        ? new Date(asset.invoiceDate).toISOString().split("T")[0]
+        ? toIsoDay(asset.invoiceDate)
         : "",
       notes: asset.notes || "",
       vaultPath: asset.vaultPath || "",
       ownerId: asset.ownerId || "",
       criticality: asset.criticality || "",
       endOfSupportDate: asset.endOfSupportDate
-        ? new Date(asset.endOfSupportDate).toISOString().split("T")[0]
+        ? toIsoDay(asset.endOfSupportDate)
         : "",
       supplierId: asset.supplierId || "",
       macAddresses: asset.macAddresses.map((m: { address: string }) => ({

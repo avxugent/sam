@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { auditChanges } from "@/lib/audit-diff";
 import { canManageCatalog } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
@@ -53,11 +54,12 @@ export async function PUT(
 
   const model = await prisma.model.update({ where: { id }, data: { typeId, manufacturerId, name, documentationUrl } });
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
-  if (current.typeId !== typeId) changes["Asset type"] = { from: current.typeId, to: typeId };
-  if (current.manufacturerId !== manufacturerId) changes["Manufacturer"] = { from: current.manufacturerId, to: manufacturerId };
-  if (current.name !== name) changes["Name"] = { from: current.name, to: name };
-  if (current.documentationUrl !== documentationUrl) changes["Documentation URL"] = { from: current.documentationUrl, to: documentationUrl };
+  const changes = auditChanges([
+    { label: "Asset type", before: current.typeId, after: typeId },
+    { label: "Manufacturer", before: current.manufacturerId, after: manufacturerId },
+    { label: "Name", before: current.name, after: name },
+    { label: "Documentation URL", before: current.documentationUrl, after: documentationUrl },
+  ]);
 
   await logAudit({
     session,

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { auditChanges } from "@/lib/audit-diff";
 import { MAX_MAC_ADDRESSES, macAddressField } from "@/lib/mac-address";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
@@ -106,18 +107,14 @@ export async function PUT(
     include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
   });
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
   const d = parsed.data;
-  if (d.modelId !== undefined && d.modelId !== existing.modelId)
-    changes["Model"] = { from: existing.model?.name ?? null, to: item.model?.name ?? null };
-  if (d.serialNumber !== undefined && d.serialNumber !== existing.serialNumber)
-    changes["Serial number"] = { from: existing.serialNumber ?? null, to: d.serialNumber ?? null };
-  if (d.quantity !== undefined && d.quantity !== existing.quantity)
-    changes["Quantity"] = { from: existing.quantity, to: d.quantity };
-  if (d.notes !== undefined && d.notes !== existing.notes)
-    changes["Notes"] = { from: existing.notes ?? null, to: d.notes ?? null };
-  if (d.invoiceNumber !== undefined && d.invoiceNumber !== existing.invoiceNumber)
-    changes["Invoice number"] = { from: existing.invoiceNumber ?? null, to: d.invoiceNumber ?? null };
+  const changes = auditChanges([
+    d.modelId !== undefined && { label: "Model", before: existing.modelId, after: d.modelId, display: [existing.model?.name, item.model?.name] },
+    d.serialNumber !== undefined && { label: "Serial number", before: existing.serialNumber, after: d.serialNumber },
+    d.quantity !== undefined && { label: "Quantity", before: existing.quantity, after: d.quantity },
+    d.notes !== undefined && { label: "Notes", before: existing.notes, after: d.notes },
+    d.invoiceNumber !== undefined && { label: "Invoice number", before: existing.invoiceNumber, after: d.invoiceNumber },
+  ]);
 
   await logAudit({
     session,

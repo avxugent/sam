@@ -4,7 +4,7 @@ import { Fragment, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, toIsoDay } from "@/lib/utils";
 import { ChevronDown, ChevronUp, Download, Loader2 } from "lucide-react";
 import type { HostnameComplianceResult, TypeCompliance } from "@/lib/hostname/compliance";
 
@@ -40,7 +40,7 @@ export function HostnameComplianceClient({ result }: { result: HostnameComplianc
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const date = new Date().toISOString().slice(0, 10);
+      const date = toIsoDay(new Date());
       a.href = url;
       a.download = `sam-hostname-noncompliant-${date}.csv`;
       a.click();

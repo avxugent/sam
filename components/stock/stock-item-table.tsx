@@ -39,6 +39,7 @@ import {
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { SortableTh } from "@/components/ui/sortable-th";
+import { toIsoDay } from "@/lib/utils";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
@@ -303,7 +304,7 @@ export function StockItemTable({
                               : null,
                             invoiceNumber: item.invoiceNumber ?? null,
                             invoiceDate: item.invoiceDate
-                              ? new Date(item.invoiceDate).toISOString().slice(0, 10)
+                              ? toIsoDay(item.invoiceDate)
                               : null,
                             macAddresses: macsFromMetadata(item.metadata),
                           } satisfies StockItemInitialData}

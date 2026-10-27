@@ -15,6 +15,7 @@ import type {
   LocationReportRow,
 } from "@/lib/reports/types";
 import { isLocationReport } from "@/lib/reports/types";
+import { toIsoDay } from "@/lib/utils";
 
 function yearsAgo(n: number): Date {
   return new Date(Date.now() - n * 365.25 * 24 * 60 * 60 * 1000);
@@ -212,14 +213,14 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
     manufacturer: a.manufacturer?.name ?? null,
     location: a.locationId ? (locationPathMap.get(a.locationId) ?? a.location?.name ?? null) : null,
     locationId: a.locationId,
-    installationDate: a.installationDate ? a.installationDate.toISOString().split("T")[0] : null,
-    invoiceDate: a.invoiceDate ? a.invoiceDate.toISOString().split("T")[0] : null,
+    installationDate: toIsoDay(a.installationDate),
+    invoiceDate: toIsoDay(a.invoiceDate),
     invoiceNumber: a.invoiceNumber,
     notes: a.notes,
-    lastChanged: a.updatedAt ? a.updatedAt.toISOString().split("T")[0] : null,
+    lastChanged: toIsoDay(a.updatedAt),
     supplier: a.supplier?.name ?? null,
     criticality: effectiveCriticality(a.criticality, a.type?.defaultCriticality),
-    endOfSupportDate: a.endOfSupportDate ? a.endOfSupportDate.toISOString().split("T")[0] : null,
+    endOfSupportDate: toIsoDay(a.endOfSupportDate),
   }));
 
   let groups: GroupCount[] = [];
@@ -357,7 +358,7 @@ export async function runLocationReport(
       const filled = !!hit && (!cutoff || hit.performedAt >= cutoff);
       itemsStatus[col.id] = {
         filled,
-        date: hit ? hit.performedAt.toISOString().split("T")[0] : null,
+        date: hit ? toIsoDay(hit.performedAt) : null,
         performedBy: hit?.performedBy ?? null,
       };
     }

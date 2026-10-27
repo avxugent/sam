@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { auditChanges } from "@/lib/audit-diff";
 import { getStorageDriver, StorageNotFoundError } from "@/lib/storage";
 import { z } from "zod";
 import { canEdit } from "@/lib/permissions";
@@ -58,13 +59,12 @@ export async function PATCH(
     include: { uploadedBy: { select: { id: true, name: true } } },
   });
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
-  if (parsed.data.displayName !== undefined && parsed.data.displayName !== attachment.displayName)
-    changes["Display name"] = { from: attachment.displayName ?? null, to: parsed.data.displayName ?? null };
-  if (parsed.data.description !== undefined && parsed.data.description !== attachment.description)
-    changes["Description"] = { from: attachment.description ?? null, to: parsed.data.description ?? null };
-  if (parsed.data.url !== undefined && parsed.data.url !== attachment.url)
-    changes["URL"] = { from: attachment.url ?? null, to: parsed.data.url ?? null };
+  const d = parsed.data;
+  const changes = auditChanges([
+    d.displayName !== undefined && { label: "Display name", before: attachment.displayName, after: d.displayName },
+    d.description !== undefined && { label: "Description", before: attachment.description, after: d.description },
+    d.url !== undefined && { label: "URL", before: attachment.url, after: d.url },
+  ]);
 
   await logAudit({
     session,

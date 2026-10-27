@@ -20,7 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Plus, Loader2, Trash2, ChevronDown, ChevronUp, Save } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, toIsoDay } from "@/lib/utils";
 
 export type SupplierRow = {
   id: string;
@@ -34,7 +34,7 @@ export type SupplierRow = {
 
 function toDateInput(d: Date | string | null): string {
   if (!d) return "";
-  return new Date(d).toISOString().slice(0, 10);
+  return toIsoDay(d);
 }
 
 export function SuppliersClient({ initialSuppliers }: { initialSuppliers: SupplierRow[] }) {

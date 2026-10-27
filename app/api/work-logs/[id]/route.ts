@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { auditChanges } from "@/lib/audit-diff";
 import { updateWorkLogSchema } from "@/lib/schemas/work-log";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { toIsoDay } from "@/lib/utils";
 
 export async function GET(
   _req: NextRequest,
@@ -84,17 +86,11 @@ export async function PUT(
     },
   });
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
-  if (data.description !== undefined && data.description !== existing.description)
-    changes["Description"] = { from: existing.description, to: data.description };
-  if (data.jiraIssueKey !== undefined && (data.jiraIssueKey || null) !== existing.jiraIssueKey)
-    changes["JIRA issue"] = { from: existing.jiraIssueKey ?? null, to: data.jiraIssueKey || null };
-  if (data.performedAt !== undefined) {
-    const fromDate = existing.performedAt.toISOString().split("T")[0];
-    const toDate = data.performedAt.split("T")[0];
-    if (fromDate !== toDate)
-      changes["Performed at"] = { from: fromDate, to: toDate };
-  }
+  const changes = auditChanges([
+    data.description !== undefined && { label: "Description", before: existing.description, after: data.description },
+    data.jiraIssueKey !== undefined && { label: "JIRA issue", before: existing.jiraIssueKey, after: data.jiraIssueKey || null },
+    data.performedAt !== undefined && { label: "Performed at", before: toIsoDay(existing.performedAt), after: data.performedAt.split("T")[0] },
+  ]);
 
   await logAudit({
     session,
@@ -136,7 +132,7 @@ export async function DELETE(
     detail: {
       snapshot: {
         "Description": existing.description,
-        "Performed at": existing.performedAt.toISOString().split("T")[0],
+        "Performed at": toIsoDay(existing.performedAt),
         ...(existing.jiraIssueKey ? { "JIRA issue": existing.jiraIssueKey } : {}),
       },
     },

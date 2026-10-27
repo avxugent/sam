@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cn, formatDate, formatFileSize, getInitials } from "@/lib/utils";
+import { cn, formatDate, formatFileSize, getInitials, toIsoDay } from "@/lib/utils";
 
 describe("cn()", () => {
   it("merges class names", () => {
@@ -81,5 +81,18 @@ describe("getInitials()", () => {
     [undefined, undefined, "U"],
   ])("%s / %s → %s", (name, email, expected) => {
     expect(getInitials(name, email)).toBe(expected);
+  });
+});
+
+describe("toIsoDay()", () => {
+  it("formats dates, ISO strings and timestamps as the UTC day", () => {
+    expect(toIsoDay(new Date("2024-03-09T23:30:00Z"))).toBe("2024-03-09");
+    expect(toIsoDay("2024-03-09T10:00:00.000Z")).toBe("2024-03-09");
+    expect(toIsoDay(Date.UTC(2024, 0, 31))).toBe("2024-01-31");
+  });
+
+  it("passes null and undefined through as null", () => {
+    expect(toIsoDay(null)).toBeNull();
+    expect(toIsoDay(undefined)).toBeNull();
   });
 });

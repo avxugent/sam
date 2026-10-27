@@ -42,6 +42,7 @@ import {
   findFiNumber,
   parseFiNumber,
 } from "@/lib/location-path";
+import { toIsoDay } from "@/lib/utils";
 
 /** Check either session cookie OR Bearer token */
 async function checkAuth(req: NextRequest): Promise<boolean> {
@@ -106,9 +107,7 @@ export async function GET(req: NextRequest) {
         hostname: asset.hostname,
         model: asset.model?.name ?? null,
         serialNumber: asset.serialNumber,
-        installationDate: asset.installationDate
-          ? asset.installationDate.toISOString().split("T")[0]
-          : null,
+        installationDate: toIsoDay(asset.installationDate),
         invoiceNumber: asset.invoiceNumber,
         notes: asset.notes,
         type: asset.type,

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Download, Loader2, Save, Calendar } from "lucide-react";
+import { toIsoDay } from "@/lib/utils";
 
 export function ExportClient({
   initialCronExpression,
@@ -37,7 +38,7 @@ export function ExportClient({
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const date = new Date().toISOString().slice(0, 10);
+      const date = toIsoDay(new Date());
       a.href = url;
       a.download = `${prefix}-${date}.csv`;
       a.click();

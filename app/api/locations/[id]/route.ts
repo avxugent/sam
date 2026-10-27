@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { auditChanges } from "@/lib/audit-diff";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
@@ -164,30 +165,21 @@ export async function PUT(
     throw err;
   }
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
-  if (before) {
-    const d = parsed.data;
-    if (d.name !== undefined && d.name !== before.name)
-      changes["Name"] = { from: before.name, to: d.name };
-    if (d.description !== undefined && d.description !== before.description)
-      changes["Description"] = { from: before.description ?? null, to: d.description ?? null };
-    if (d.fiNumber !== undefined && d.fiNumber !== before.fiNumber)
-      changes["FI number"] = { from: before.fiNumber ?? null, to: d.fiNumber ?? null };
-    if (d.address !== undefined && d.address !== before.address)
-      changes["Address"] = { from: before.address ?? null, to: d.address ?? null };
-    if (d.city !== undefined && d.city !== before.city)
-      changes["City"] = { from: before.city ?? null, to: d.city ?? null };
-    if (d.country !== undefined && d.country !== before.country)
-      changes["Country"] = { from: before.country ?? null, to: d.country ?? null };
-    if (d.parentId !== undefined && d.parentId !== before.parentId)
-      changes["Parent"] = { from: before.parent?.name ?? null, to: location.parent?.name ?? null };
-    if (d.latitude !== undefined && d.latitude !== before.latitude)
-      changes["Latitude"] = { from: before.latitude ?? null, to: d.latitude ?? null };
-    if (d.longitude !== undefined && d.longitude !== before.longitude)
-      changes["Longitude"] = { from: before.longitude ?? null, to: d.longitude ?? null };
-    if (d.inMaintenance !== undefined && d.inMaintenance !== before.inMaintenance)
-      changes["In maintenance"] = { from: before.inMaintenance, to: d.inMaintenance };
-  }
+  const d = parsed.data;
+  const changes = before
+    ? auditChanges([
+        d.name !== undefined && { label: "Name", before: before.name, after: d.name },
+        d.description !== undefined && { label: "Description", before: before.description, after: d.description },
+        d.fiNumber !== undefined && { label: "FI number", before: before.fiNumber, after: d.fiNumber },
+        d.address !== undefined && { label: "Address", before: before.address, after: d.address },
+        d.city !== undefined && { label: "City", before: before.city, after: d.city },
+        d.country !== undefined && { label: "Country", before: before.country, after: d.country },
+        d.parentId !== undefined && { label: "Parent", before: before.parentId, after: d.parentId, display: [before.parent?.name, location.parent?.name] },
+        d.latitude !== undefined && { label: "Latitude", before: before.latitude, after: d.latitude },
+        d.longitude !== undefined && { label: "Longitude", before: before.longitude, after: d.longitude },
+        d.inMaintenance !== undefined && { label: "In maintenance", before: before.inMaintenance, after: d.inMaintenance },
+      ])
+    : {};
 
   await logAudit({
     session,

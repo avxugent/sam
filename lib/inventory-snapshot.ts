@@ -4,6 +4,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { effectiveCriticality } from "@/lib/criticality";
+import { toIsoDay } from "@/lib/utils";
 
 export type InventorySnapshot = {
   generatedAt: string;
@@ -44,10 +45,6 @@ export type InventorySnapshot = {
   }>;
 };
 
-function dateStr(d: Date | null): string | null {
-  return d ? d.toISOString().slice(0, 10) : null;
-}
-
 export async function buildInventorySnapshot(): Promise<InventorySnapshot> {
   const [assets, suppliers, locations] = await Promise.all([
     prisma.asset.findMany({
@@ -83,13 +80,13 @@ export async function buildInventorySnapshot(): Promise<InventorySnapshot> {
       hostname: a.hostname,
       macAddresses: a.macAddresses.map((m) => m.address),
       locationId: a.locationId,
-      installationDate: dateStr(a.installationDate),
+      installationDate: toIsoDay(a.installationDate),
       invoiceNumber: a.invoiceNumber,
-      invoiceDate: dateStr(a.invoiceDate),
+      invoiceDate: toIsoDay(a.invoiceDate),
       ownerId: a.ownerId,
       criticality: a.criticality,
       effectiveCriticality: effectiveCriticality(a.criticality, a.type?.defaultCriticality),
-      endOfSupportDate: dateStr(a.endOfSupportDate),
+      endOfSupportDate: toIsoDay(a.endOfSupportDate),
       supplierId: a.supplierId,
       disposalMethod: a.disposalMethod,
       decommissionedAt: a.decommissionedAt ? a.decommissionedAt.toISOString() : null,
@@ -98,8 +95,8 @@ export async function buildInventorySnapshot(): Promise<InventorySnapshot> {
       id: s.id,
       name: s.name,
       contractReference: s.contractReference,
-      defaultFrom: dateStr(s.defaultFrom),
-      defaultUntil: dateStr(s.defaultUntil),
+      defaultFrom: toIsoDay(s.defaultFrom),
+      defaultUntil: toIsoDay(s.defaultUntil),
     })),
     locations,
   };

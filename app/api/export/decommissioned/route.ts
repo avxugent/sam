@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { generateDecommissionedCsv } from "@/lib/csv-export";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
+import { toIsoDay } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   const csv = await generateDecommissionedCsv();
 
-  const date = new Date().toISOString().slice(0, 10);
+  const date = toIsoDay(new Date());
   const filename = `sam-decommissioned-${date}.csv`;
 
   await logAudit({

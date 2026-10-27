@@ -29,3 +29,10 @@ export function getInitials(name?: string | null, email?: string | null): string
   }
   return (email?.[0] ?? "U").toUpperCase();
 }
+
+/** UTC calendar day as YYYY-MM-DD — the format of date inputs, CSV exports and audit diffs. */
+export function toIsoDay(date: Date | string | number): string;
+export function toIsoDay(date: Date | string | number | null | undefined): string | null;
+export function toIsoDay(date: Date | string | number | null | undefined): string | null {
+  return date == null ? null : new Date(date).toISOString().slice(0, 10);
+}

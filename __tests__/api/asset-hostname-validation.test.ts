@@ -120,6 +120,7 @@ describe("PUT /api/assets/[id] — hostname format & uniqueness", () => {
   const params = Promise.resolve({ id: "asset-1" });
   const EXISTING = {
     id: "asset-1",
+    quantity: 1,
     typeId: "t1",
     hostname: "old.example.com",
     macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }],

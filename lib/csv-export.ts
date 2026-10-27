@@ -7,6 +7,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ancestorChain, resolveLocationPathsBatch } from "@/lib/location-path";
 import { escapeCsvCell } from "@/lib/csv";
+import { toIsoDay } from "@/lib/utils";
 
 const CUSTOM_FIELD_COLUMNS = [
   "GUID", "DIAGONAL", "WIDTH", "HEIGHT",
@@ -36,8 +37,7 @@ async function buildOwnerEmailMap(ownerIds: Array<string | null>): Promise<Map<s
 }
 
 function formatDateCell(date: Date | null | undefined): string {
-  if (!date) return "";
-  return date.toISOString().slice(0, 10); // YYYY-MM-DD
+  return toIsoDay(date) ?? "";
 }
 
 type LocationRow = {

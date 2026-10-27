@@ -5,6 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { getStorageDriver, StorageNotFoundError } from "@/lib/storage";
 import { z } from "zod";
 import { canEdit } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const updateSchema = z.object({
   displayName: z.string().max(255).nullable().optional(),
@@ -39,9 +40,9 @@ export async function PATCH(
   const attachment = await prisma.attachment.findUnique({ where: { id } });
   if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   if (parsed.data.url !== undefined && attachment.attachmentType !== "link") {
     return NextResponse.json({ error: "Cannot set URL on file attachments." }, { status: 400 });

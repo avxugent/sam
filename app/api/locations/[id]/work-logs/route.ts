@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { createWorkLogSchema } from "@/lib/work-log-schema";
 import { canEdit } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET(
   _req: NextRequest,
@@ -43,10 +44,10 @@ export async function POST(
   if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id: locationId } = await params;
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = createWorkLogSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   // Verify location exists

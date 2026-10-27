@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({ name: z.string().min(1).max(255) });
 
@@ -23,9 +24,9 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   try {
     const type = await prisma.assetType.create({ data: { name: parsed.data.name } });
@@ -38,7 +39,10 @@ export async function POST(req: NextRequest) {
       entityName: type.name,
     });
     return NextResponse.json(type, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Name already exists." }, { status: 400 });
+  } catch (err) {
+    if (isUniqueConstraintError(err)) {
+      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+    }
+    throw err;
   }
 }

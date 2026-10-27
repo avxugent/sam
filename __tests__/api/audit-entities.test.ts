@@ -60,9 +60,9 @@ describe("audit — asset type create", () => {
 
   it("does not log when name conflicts", async () => {
     mockAuth.mockResolvedValue(session() as never);
-    vi.mocked(prisma.assetType.create).mockRejectedValue(new Error("dup"));
+    vi.mocked(prisma.assetType.create).mockRejectedValue(Object.assign(new Error("dup"), { code: "P2002" }));
     const res = await createAssetType(req("http://localhost/api/asset-types", { name: "Monitor" }));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(409);
     expect(mockLogAudit).not.toHaveBeenCalled();
   });
 });
@@ -161,7 +161,8 @@ describe("audit — report CRUD", () => {
       req("http://localhost/api/reports/r1", undefined, "DELETE"),
       { params: Promise.resolve({ id: "r1" }) }
     );
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "DELETE", entityType: "Report", entityId: "r1", entityName: "Q1" })
     );

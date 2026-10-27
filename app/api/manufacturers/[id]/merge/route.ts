@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({ targetId: z.string().min(1) });
 
@@ -17,9 +18,9 @@ export async function POST(
   if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const { targetId } = parsed.data;
 

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { validateTemplate } from "@/lib/scrape-template";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 const createSchema = z.object({
   manufacturerId: z.string().min(1),
@@ -55,10 +56,10 @@ export async function POST(
   const type = await prisma.assetType.findUnique({ where: { id: typeId }, select: { id: true, name: true } });
   if (!type) return NextResponse.json({ error: "Asset type not found" }, { status: 404 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const templateErrors = validateTemplate(parsed.data.scrapeTargetTemplate);
@@ -105,7 +106,7 @@ export async function POST(
       { status: 201 }
     );
   } catch (err: unknown) {
-    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return NextResponse.json(
         { error: `${manufacturer.name} / ${parsed.data.model} already has a scrape template override for this asset type.` },
         { status: 409 }

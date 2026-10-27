@@ -7,6 +7,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { getStorageDriver } from "@/lib/storage";
 import { canEdit } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
 const ALLOWED_TYPES = new Set([
@@ -113,9 +114,9 @@ export async function POST(req: NextRequest) {
 
   // ── Link attachment (JSON body) ──────────────────────────────────────────
   if (contentType.includes("application/json")) {
-    const body = await req.json();
+    const body = await readJsonBody(req);
     const parsed = linkSchema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+    if (!parsed.success) return invalidInput(parsed.error);
     const { url, label, description, locationId, assetId } = parsed.data;
     if (!locationId && !assetId) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
 

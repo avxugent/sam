@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin, Role } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const createSchema = z.object({
   name: z.string().min(1).max(128),
@@ -45,12 +46,12 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = createSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const exists = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-  if (exists) return NextResponse.json({ error: "Email already in use." }, { status: 400 });
+  if (exists) return NextResponse.json({ error: "Email already in use." }, { status: 409 });
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 13);
   const user = await prisma.user.create({

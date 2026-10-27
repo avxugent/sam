@@ -6,6 +6,7 @@ import { logAudit } from "@/lib/audit";
 import type { Prisma } from "@/generated/prisma/client";
 import { AssetLifecycleError, assertReturnableToStock, buildReturnToStockStockItemData } from "@/lib/asset-lifecycle";
 import { canEdit } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({
   locationId: z.string().min(1),
@@ -19,10 +20,10 @@ export async function POST(
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
   const { locationId } = parsed.data;
 

@@ -18,6 +18,7 @@ import { verifyTotpCode } from "@/lib/totp";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 import { isAdmin } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({
   userId: z.string().optional(),
@@ -28,9 +29,9 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const targetId = parsed.data.userId ?? session.user.id;
   const isSelf = targetId === session.user.id;

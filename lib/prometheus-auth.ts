@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hasBearerToken } from "@/lib/bearer-token";
 
 /**
  * Validates the Bearer token for Prometheus / monitoring endpoints.
@@ -22,10 +23,7 @@ export function checkPrometheusAuth(req: NextRequest): NextResponse | null {
     );
   }
 
-  const authHeader = req.headers.get("authorization") ?? "";
-  const [scheme, provided] = authHeader.split(" ");
-
-  if (scheme?.toLowerCase() !== "bearer" || provided !== token) {
+  if (!hasBearerToken(req, token)) {
     return new NextResponse(
       JSON.stringify({ error: "Unauthorized. Provide a valid Bearer token." }),
       {

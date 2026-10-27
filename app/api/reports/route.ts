@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createReportSchema } from "@/lib/report-schema";
 import { logAudit } from "@/lib/audit";
 import { canEdit } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET() {
   const session = await auth();
@@ -22,10 +23,10 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = createReportSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const { name, description, definition } = parsed.data;

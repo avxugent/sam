@@ -193,14 +193,15 @@ describe("DELETE /api/asset-types/manufacturer-templates/[id]", () => {
     expect(res.status).toBe(404);
   });
 
-  it("204 deletes and audits DELETE", async () => {
+  it("200 deletes and audits DELETE", async () => {
     mockAuth.mockResolvedValue(session() as never);
     vi.mocked(prisma.assetTypeManufacturerTemplate.findUnique).mockResolvedValue({
       id: "o1", type: { name: "T" }, manufacturer: { name: "Epson" },
     } as never);
     vi.mocked(prisma.assetTypeManufacturerTemplate.delete).mockResolvedValue({ id: "o1" } as never);
     const res = await deleteOverride(jreq("http://x", undefined, "DELETE"), { params: params("o1") });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "DELETE", entityType: "AssetTypeManufacturerTemplate", entityId: "o1" })
     );

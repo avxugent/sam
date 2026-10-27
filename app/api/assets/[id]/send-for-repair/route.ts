@@ -5,6 +5,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { AssetLifecycleError, assertRepairable, buildSendForRepairUpdateData } from "@/lib/asset-lifecycle";
 import { canEdit } from "@/lib/permissions";
+import { invalidInput } from "@/lib/route-helpers";
 
 const schema = z.object({
   note: z.string().max(500).optional().nullable(),
@@ -36,7 +37,7 @@ export async function POST(
   const body = await req.json().catch(() => ({}));
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const asset = await prisma.asset.update({

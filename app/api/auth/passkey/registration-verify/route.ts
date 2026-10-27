@@ -17,6 +17,7 @@ import { logAudit } from "@/lib/audit";
 import { verifyRegistration, readChallengeCookie, clearChallengeCookie } from "@/lib/webauthn";
 import type { RegistrationResponseJSON } from "@simplewebauthn/server";
 import { z } from "zod";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({
   response: z.record(z.string(), z.unknown()),
@@ -27,9 +28,9 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const challenge = await readChallengeCookie(req, session.user.id, "registration");
   if (!challenge) {

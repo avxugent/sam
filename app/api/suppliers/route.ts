@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { supplierSchema, findConflictingWindows } from "@/lib/supplier-schema";
 import { canManageCatalog } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET() {
   const session = await auth();
@@ -21,9 +22,9 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = supplierSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const conflicts = await findConflictingWindows({
     defaultFrom: parsed.data.defaultFrom ?? null,
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(supplier, { status: 201 });
   } catch (err) {
-    if ((err as { code?: string }).code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return NextResponse.json({ error: "Name already exists." }, { status: 409 });
     }
     throw err;

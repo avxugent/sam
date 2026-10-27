@@ -5,6 +5,7 @@ import { z } from "zod";
 import { validateTemplate } from "@/lib/scrape-template";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const updateSchema = z.object({
   scrapeTargetTemplate: z.string().min(1).max(10000),
@@ -25,10 +26,10 @@ export async function PUT(
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const templateErrors = validateTemplate(parsed.data.scrapeTargetTemplate);
@@ -87,5 +88,5 @@ export async function DELETE(
     entityName: `${existing.type.name} / ${existing.manufacturer.name} / ${existing.model}`,
   });
 
-  return new NextResponse(null, { status: 204 });
+  return NextResponse.json({ ok: true });
 }

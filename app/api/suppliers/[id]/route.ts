@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { supplierSchema, findConflictingWindows } from "@/lib/supplier-schema";
 import { canManageCatalog } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 function dateCell(d: Date | null): string {
   return d ? d.toISOString().slice(0, 10) : "";
@@ -18,9 +19,9 @@ export async function PUT(
   if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = supplierSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const current = await prisma.supplier.findUnique({ where: { id } });
   if (!current) return NextResponse.json({ error: "Supplier not found." }, { status: 404 });
@@ -74,7 +75,7 @@ export async function PUT(
     });
     return NextResponse.json(supplier);
   } catch (err) {
-    if ((err as { code?: string }).code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return NextResponse.json({ error: "Name already exists." }, { status: 409 });
     }
     throw err;

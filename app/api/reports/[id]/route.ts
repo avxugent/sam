@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { updateReportSchema } from "@/lib/report-schema";
 import { logAudit } from "@/lib/audit";
 import { canEdit, isAdmin } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -25,10 +26,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const report = await prisma.report.findUnique({ where: { id } });
   if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = updateReportSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const { name, description, definition } = parsed.data;
@@ -76,5 +77,5 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     entityName: report.name,
   });
 
-  return new NextResponse(null, { status: 204 });
+  return NextResponse.json({ ok: true });
 }

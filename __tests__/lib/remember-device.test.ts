@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { jwtVerify } from "jose";
 import { NextResponse } from "next/server";
-import { signRememberMeToken, setRememberMeCookie, REMEMBER_ME_COOKIE } from "@/lib/remember-device";
+import { signRememberMeToken, setRememberMeCookie, verifyRememberMeToken, REMEMBER_ME_COOKIE } from "@/lib/remember-device";
 
 beforeEach(() => {
   process.env.NEXTAUTH_SECRET = "test-secret-at-least-32-bytes-long-0000";
@@ -39,5 +39,20 @@ describe("setRememberMeCookie", () => {
     const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
     const { payload } = await jwtVerify(cookie!.value, secret);
     expect(payload.sub).toBe("user-1");
+  });
+});
+
+describe("verifyRememberMeToken", () => {
+  it("accepts a token issued for the same user", async () => {
+    expect(await verifyRememberMeToken(await signRememberMeToken("user-1"), "user-1")).toBe(true);
+  });
+
+  it("rejects a token issued for another user", async () => {
+    expect(await verifyRememberMeToken(await signRememberMeToken("user-2"), "user-1")).toBe(false);
+  });
+
+  it("rejects a missing or garbage token", async () => {
+    expect(await verifyRememberMeToken(undefined, "user-1")).toBe(false);
+    expect(await verifyRememberMeToken("not-a-jwt", "user-1")).toBe(false);
   });
 });

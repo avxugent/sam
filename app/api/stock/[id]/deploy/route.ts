@@ -6,6 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
 import type { Prisma } from "@/generated/prisma/client";
 import { canEdit } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 const deploySchema = z
   .object({
@@ -32,10 +33,10 @@ export async function POST(
   if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = deploySchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const { locationId, quantity, serialNumbers } = parsed.data;
@@ -136,7 +137,7 @@ export async function POST(
       return assets;
     });
   } catch (err: unknown) {
-    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return NextResponse.json(
         { error: "This hostname is already assigned to another asset." },
         { status: 409 }

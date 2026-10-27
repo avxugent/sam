@@ -6,6 +6,7 @@ import { createAssetSchema } from "@/lib/asset-schema";
 import { logAudit } from "@/lib/audit";
 import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
 import { canEdit } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET(
   req: NextRequest,
@@ -69,10 +70,10 @@ export async function POST(
   if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = createAssetSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const { macAddresses, customFields, installationDate, invoiceDate, endOfSupportDate, ownerId, supplierId, ...assetData } = parsed.data;
@@ -129,7 +130,7 @@ export async function POST(
       },
     });
   } catch (err: unknown) {
-    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return NextResponse.json(
         { error: "This hostname is already assigned to another asset." },
         { status: 409 }

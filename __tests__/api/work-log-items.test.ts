@@ -82,8 +82,14 @@ describe("POST /api/work-log-items", () => {
 
   it("409 on duplicate name", async () => {
     mockAuth.mockResolvedValue(admin() as never);
-    mockCreate.mockRejectedValue(new Error("unique"));
+    mockCreate.mockRejectedValue(Object.assign(new Error("unique"), { code: "P2002" }));
     expect((await POST(req("POST", { name: "dup" }))).status).toBe(409);
+  });
+
+  it("rethrows non-constraint database errors instead of reporting a duplicate", async () => {
+    mockAuth.mockResolvedValue(admin() as never);
+    mockCreate.mockRejectedValue(new Error("connection lost"));
+    await expect(POST(req("POST", { name: "x" }))).rejects.toThrow("connection lost");
   });
 });
 

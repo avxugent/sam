@@ -232,23 +232,25 @@ describe("DELETE /api/work-logs/[id] — edit policy", () => {
     expect(res.status).toBe(403);
   });
 
-  it("204 when admin", async () => {
+  it("200 when admin", async () => {
     mockAuth.mockResolvedValue(adminSession() as never);
     mockWlFindUnique.mockResolvedValue(SAMPLE_LOG as never);
     mockWlDelete.mockResolvedValue(SAMPLE_LOG as never);
     const res = await itemDelete(makeReq("http://x/api/work-logs/wl-1", "DELETE"), {
       params: Promise.resolve({ id: "wl-1" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
   });
 
-  it("204 when author deletes own entry", async () => {
+  it("200 when author deletes own entry", async () => {
     mockAuth.mockResolvedValue(editorSession("ed-1") as never);
     mockWlFindUnique.mockResolvedValue(SAMPLE_LOG as never);
     mockWlDelete.mockResolvedValue(SAMPLE_LOG as never);
     const res = await itemDelete(makeReq("http://x/api/work-logs/wl-1", "DELETE"), {
       params: Promise.resolve({ id: "wl-1" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
   });
 });

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const setupSchema = z.object({
   name: z.string().min(1),
@@ -21,10 +22,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await readJsonBody(req);
     const parsed = setupSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+      return invalidInput(parsed.error);
     }
 
     const { name, email, password } = parsed.data;

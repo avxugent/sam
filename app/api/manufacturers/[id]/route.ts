@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({ name: z.string().min(1).max(255) });
 
@@ -16,9 +17,9 @@ export async function PUT(
   if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const [existing, current] = await Promise.all([
     prisma.manufacturer.findFirst({
@@ -48,8 +49,14 @@ export async function PUT(
         : undefined,
     });
     return NextResponse.json(manufacturer);
-  } catch {
-    return NextResponse.json({ error: "Manufacturer not found." }, { status: 404 });
+  } catch (err) {
+    if (isRecordNotFoundError(err)) {
+      return NextResponse.json({ error: "Manufacturer not found." }, { status: 404 });
+    }
+    if (isUniqueConstraintError(err)) {
+      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+    }
+    throw err;
   }
 }
 
@@ -62,6 +69,9 @@ export async function DELETE(
   if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
+  const manufacturer = await prisma.manufacturer.findUnique({ where: { id }, select: { name: true } });
+  if (!manufacturer) return NextResponse.json({ error: "Manufacturer not found." }, { status: 404 });
+
   const count = await prisma.asset.count({ where: { manufacturerId: id } });
   if (count > 0) {
     return NextResponse.json(
@@ -77,7 +87,6 @@ export async function DELETE(
     );
   }
 
-  const manufacturer = await prisma.manufacturer.findUnique({ where: { id }, select: { name: true } });
   await prisma.manufacturer.delete({ where: { id } });
   await logAudit({
     session,
@@ -85,7 +94,7 @@ export async function DELETE(
     action: "DELETE",
     entityType: "Manufacturer",
     entityId: id,
-    entityName: manufacturer?.name,
+    entityName: manufacturer.name,
   });
   return NextResponse.json({ ok: true });
 }

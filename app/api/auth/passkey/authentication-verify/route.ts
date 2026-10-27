@@ -18,6 +18,7 @@ import { setRememberMeCookie } from "@/lib/remember-device";
 import { verifyAuthentication, readChallengeCookie, clearChallengeCookie } from "@/lib/webauthn";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { z } from "zod";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({
   response: z.record(z.string(), z.unknown()),
@@ -55,9 +56,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const challenge = await readChallengeCookie(req, session.user.id, "authentication");
   if (!challenge) {

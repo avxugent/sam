@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { createWorkLogItemSchema } from "@/lib/work-log-item-schema";
 import { isAdmin } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET() {
   const session = await auth();
@@ -21,10 +22,10 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = createWorkLogItemSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   try {
@@ -40,7 +41,10 @@ export async function POST(req: NextRequest) {
       entityName: item.name,
     });
     return NextResponse.json(item, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+  } catch (err) {
+    if (isUniqueConstraintError(err)) {
+      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+    }
+    throw err;
   }
 }

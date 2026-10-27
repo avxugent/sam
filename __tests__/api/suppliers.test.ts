@@ -208,3 +208,17 @@ describe("DELETE /api/suppliers/[id]", () => {
     expect(mockLogAudit).toHaveBeenCalledWith(expect.objectContaining({ action: "DELETE", entityType: "Supplier" }));
   });
 });
+
+describe("malformed JSON body", () => {
+  it("POST returns 400 instead of throwing", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN"));
+    const req = new NextRequest("http://localhost/api/suppliers", {
+      method: "POST",
+      body: "{oops",
+      headers: { "content-type": "application/json" },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+});

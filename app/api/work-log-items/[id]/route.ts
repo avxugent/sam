@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { updateWorkLogItemSchema } from "@/lib/work-log-item-schema";
 import { isAdmin } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 export async function PUT(
   req: NextRequest,
@@ -14,10 +15,10 @@ export async function PUT(
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = updateWorkLogItemSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const current = await prisma.workLogItem.findUnique({ where: { id }, select: { name: true } });
@@ -43,8 +44,11 @@ export async function PUT(
         : undefined,
     });
     return NextResponse.json(item);
-  } catch {
-    return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+  } catch (err) {
+    if (isUniqueConstraintError(err)) {
+      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+    }
+    throw err;
   }
 }
 

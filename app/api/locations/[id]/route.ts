@@ -5,6 +5,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { canEdit } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 // FI number format: CC.BB.FFF.RR(R)  e.g. "14.10.100.13" or "14.10.100.013"
 // Last (room) segment may be 2 or 3 digits.
@@ -64,10 +65,10 @@ export async function PUT(
   if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   // Validate coverImageId: must be an image attachment belonging to this location
@@ -154,13 +155,7 @@ export async function PUT(
       include: { parent: { select: { name: true } } },
     });
   } catch (err: unknown) {
-    // P2002 = unique constraint violation (duplicate fiNumber)
-    if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code: string }).code === "P2002"
-    ) {
+    if (isUniqueConstraintError(err)) {
       return NextResponse.json(
         { error: "This FI number is already assigned to another location." },
         { status: 409 }

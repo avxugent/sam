@@ -88,7 +88,8 @@ describe("DELETE /api/work-logs/[id]", () => {
     vi.mocked(prisma.workLog.findUnique).mockResolvedValue({ ...EXISTING, jiraIssueKey: "AVT-9" } as never);
     vi.mocked(prisma.workLog.delete).mockResolvedValue({} as never);
     const res = await DELETE(del(), { params: params() });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "DELETE", entityType: "WorkLog", detail: { snapshot: expect.objectContaining({ "JIRA issue": "AVT-9" }) } })
     );

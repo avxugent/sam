@@ -146,7 +146,8 @@ describe("PUT/DELETE /api/asset-types/presets/[id]", () => {
     vi.mocked(prisma.maintenancePreset.findUnique).mockResolvedValue({ id: "p1", name: "P" } as never);
     vi.mocked(prisma.maintenancePreset.delete).mockResolvedValue({ id: "p1" } as never);
     const res = await deletePreset(jreq("http://x", undefined, "DELETE"), { params: params("p1") });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
     expect(mockLogAudit).toHaveBeenCalledWith(expect.objectContaining({ action: "DELETE", entityType: "MaintenancePreset", entityId: "p1" }));
   });
 });

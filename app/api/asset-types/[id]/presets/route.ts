@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { createPresetSchema } from "@/lib/work-log-schema";
 import { isAdmin } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET(
   _req: NextRequest,
@@ -32,10 +33,10 @@ export async function POST(
   const type = await prisma.assetType.findUnique({ where: { id: assetTypeId }, select: { id: true, name: true } });
   if (!type) return NextResponse.json({ error: "Asset type not found" }, { status: 404 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = createPresetSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const created = await prisma.maintenancePreset.create({

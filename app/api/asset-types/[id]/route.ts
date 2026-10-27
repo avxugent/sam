@@ -7,6 +7,7 @@ import { validateHostnamePattern } from "@/lib/hostname-pattern";
 import { logAudit } from "@/lib/audit";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { isAdmin } from "@/lib/permissions";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({
   name: z.string().min(1).max(255).optional(),
@@ -25,9 +26,9 @@ export async function PUT(
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   // Validate template syntax if provided
   if (parsed.data.scrapeTargetTemplate) {
@@ -106,8 +107,14 @@ export async function PUT(
       detail: Object.keys(changes).length > 0 ? { changes } : undefined,
     });
     return NextResponse.json(type);
-  } catch {
-    return NextResponse.json({ error: "Asset type not found." }, { status: 404 });
+  } catch (err) {
+    if (isRecordNotFoundError(err)) {
+      return NextResponse.json({ error: "Asset type not found." }, { status: 404 });
+    }
+    if (isUniqueConstraintError(err)) {
+      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+    }
+    throw err;
   }
 }
 

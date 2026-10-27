@@ -5,6 +5,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { MAX_MAC_ADDRESSES, macAddressField } from "@/lib/mac-address";
 import { canEdit } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const updateSchema = z
   .object({
@@ -72,10 +73,10 @@ export async function PUT(
   const existing = await prisma.stockItem.findUnique({ where: { id }, include: { model: { select: { name: true } } } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const { invoiceDate, macAddresses, ...rest } = parsed.data;

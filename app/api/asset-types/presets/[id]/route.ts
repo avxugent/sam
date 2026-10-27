@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { updatePresetSchema } from "@/lib/work-log-schema";
 import { isAdmin } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 export async function PUT(
   req: NextRequest,
@@ -17,10 +18,10 @@ export async function PUT(
   const existing = await prisma.maintenancePreset.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = updatePresetSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const updated = await prisma.maintenancePreset.update({
@@ -65,5 +66,5 @@ export async function DELETE(
     entityName: existing.name,
   });
 
-  return new NextResponse(null, { status: 204 });
+  return NextResponse.json({ ok: true });
 }

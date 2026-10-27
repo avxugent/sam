@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 const createSchema = z.object({
   typeId: z.string().min(1),
@@ -58,9 +59,9 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = createSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const { typeId, name } = parsed.data;
   const manufacturerId = parsed.data.manufacturerId || null;
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(model, { status: 201 });
   } catch (err: unknown) {
-    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return NextResponse.json({ error: `"${name}" already exists for this type/manufacturer.` }, { status: 409 });
     }
     throw err;

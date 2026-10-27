@@ -4,13 +4,17 @@
  * 2FA prompts on the same browser for 30 days.
  */
 import { NextResponse } from "next/server";
-import { SignJWT } from "jose";
+import { SignJWT, jwtVerify } from "jose";
 
 export const REMEMBER_ME_COOKIE = "sam_2fa_rm";
 const REMEMBER_DAYS = 30;
 
+function signingSecret() {
+  return new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
+}
+
 export async function signRememberMeToken(userId: string): Promise<string> {
-  const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
+  const secret = signingSecret();
   return new SignJWT({ sub: userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -28,4 +32,15 @@ export async function setRememberMeCookie(response: NextResponse, userId: string
     maxAge: REMEMBER_DAYS * 24 * 60 * 60,
     secure: process.env.NODE_ENV === "production",
   });
+}
+
+/** Whether `token` is a valid, unexpired remember-me token issued for `userId`. */
+export async function verifyRememberMeToken(token: string | undefined, userId: string): Promise<boolean> {
+  if (!token) return false;
+  try {
+    const { payload } = await jwtVerify(token, signingSecret());
+    return payload.sub === userId;
+  } catch {
+    return false;
+  }
 }

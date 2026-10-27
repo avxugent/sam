@@ -33,20 +33,16 @@ export default defineConfig({
         // Infrastructure / config — tested indirectly
         "lib/prisma.ts",
         "lib/auth.ts",
-        // API routes that are covered through mocks at route level are excluded
-        // from per-file thresholds; only lib/* must meet 80%
+        // API routes not yet held to the threshold. Remove an entry once the
+        // route has tests that keep the totals above 80%.
         "app/api/attachments/**",
         "app/api/import/**",
         "app/api/locations/*/assets/**",
         "app/api/locations/*/attachments/**",
-        "app/api/manufacturers/**",
         "app/api/models/**",
         "app/api/prometheus/**",
         "app/api/search/**",
-        "app/api/users/**",
         "app/api/vault/**",
-        "app/api/auth/2fa/**",
-        "app/api/assets/by-hostname/**",
         // Bracket dir names ([id], [...nextauth]) are read as glob char-classes,
         // so use single-segment wildcards to match the dynamic route folders.
         "app/api/assets/*/**",

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { updateWorkLogSchema } from "@/lib/work-log-schema";
 import { isAdmin } from "@/lib/permissions";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET(
   _req: NextRequest,
@@ -51,10 +52,10 @@ export async function PUT(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = updateWorkLogSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const data = parsed.data;
@@ -141,5 +142,5 @@ export async function DELETE(
     },
   });
 
-  return new NextResponse(null, { status: 204 });
+  return NextResponse.json({ ok: true });
 }

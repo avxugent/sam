@@ -35,6 +35,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { hasBearerToken } from "@/lib/bearer-token";
 import {
   resolveLocationPath,
   buildLocationPathString,
@@ -49,14 +50,7 @@ async function checkAuth(req: NextRequest): Promise<boolean> {
   if (session?.user) return true;
 
   // Option 2: Prometheus bearer token (allows Grafana server-side queries)
-  const token = process.env.PROMETHEUS_SD_TOKEN;
-  if (token) {
-    const authHeader = req.headers.get("authorization") ?? "";
-    const [scheme, provided] = authHeader.split(" ");
-    if (scheme?.toLowerCase() === "bearer" && provided === token) return true;
-  }
-
-  return false;
+  return hasBearerToken(req, process.env.PROMETHEUS_SD_TOKEN);
 }
 
 export async function GET(req: NextRequest) {

@@ -194,7 +194,8 @@ describe("DELETE /api/reports/[id]", () => {
     mockFindUnique.mockResolvedValue(SAMPLE_REPORT as never);
     mockDelete.mockResolvedValue(SAMPLE_REPORT as never);
     const res = await DELETE(makeReq("http://localhost/api/reports/r1", "DELETE"), { params: Promise.resolve({ id: "r1" }) });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
   });
 });
 

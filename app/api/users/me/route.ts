@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({
   name: z.string().min(1).max(128).optional(),
@@ -35,10 +36,10 @@ export async function PATCH(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const { name, currentPassword, newPassword, locationDefaultTab, theme } = parsed.data;

@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
 import { StockLocationPicker } from "@/components/stock/stock-location-picker";
-
-type BulkResult = { succeeded: string[]; failed: { id: string; reason: string }[] };
+import { BulkResultSummary, type BulkResult } from "@/components/assets/bulk-result-summary";
 
 type Props = {
   open: boolean;
@@ -71,23 +70,13 @@ export function BulkReturnToStockDialog({ open, onOpenChange, assetIds, onComple
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent>
         {result ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>{t("bulkReturnToStockResultsTitle")}</DialogTitle>
-            </DialogHeader>
-            <p className="text-[13px] text-[#64748b]">{tDecom("bulkSkippedSummary", { count: result.failed.length })}</p>
-            <ul className="text-[12.5px] text-[#64748b] space-y-1 max-h-48 overflow-y-auto">
-              {result.failed.map((f) => (
-                <li key={f.id} className="flex justify-between gap-2 border-b border-[#f1f5f9] py-1">
-                  <span className="font-mono text-[11.5px]">{f.id}</span>
-                  <span>{tDecom(`bulkSkipReason.${f.reason}`)}</span>
-                </li>
-              ))}
-            </ul>
-            <DialogFooter>
-              <Button size="sm" onClick={handleClose}>{tCommon("close")}</Button>
-            </DialogFooter>
-          </>
+          <BulkResultSummary
+            title={t("bulkReturnToStockResultsTitle")}
+            summary={tDecom("bulkSkippedSummary", { count: result.failed.length })}
+            failed={result.failed}
+            reasonLabel={(reason) => tDecom(`bulkSkipReason.${reason}`)}
+            onClose={handleClose}
+          />
         ) : (
           <>
             <DialogHeader>

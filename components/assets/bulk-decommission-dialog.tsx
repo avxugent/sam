@@ -15,8 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { DISPOSAL_METHODS } from "@/components/assets/remove-asset-dialog";
-
-type BulkResult = { succeeded: string[]; failed: { id: string; reason: string }[] };
+import { BulkResultSummary, type BulkResult } from "@/components/assets/bulk-result-summary";
 
 type Props = {
   open: boolean;
@@ -71,23 +70,13 @@ export function BulkDecommissionDialog({ open, onOpenChange, assetIds, onComplet
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent>
         {result ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>{t("bulkDecommissionResultsTitle")}</DialogTitle>
-            </DialogHeader>
-            <p className="text-[13px] text-[#64748b]">{t("bulkSkippedSummary", { count: result.failed.length })}</p>
-            <ul className="text-[12.5px] text-[#64748b] space-y-1 max-h-48 overflow-y-auto">
-              {result.failed.map((f) => (
-                <li key={f.id} className="flex justify-between gap-2 border-b border-[#f1f5f9] py-1">
-                  <span className="font-mono text-[11.5px]">{f.id}</span>
-                  <span>{t(`bulkSkipReason.${f.reason}`)}</span>
-                </li>
-              ))}
-            </ul>
-            <DialogFooter>
-              <Button size="sm" onClick={handleClose}>{tCommon("close")}</Button>
-            </DialogFooter>
-          </>
+          <BulkResultSummary
+            title={t("bulkDecommissionResultsTitle")}
+            summary={t("bulkSkippedSummary", { count: result.failed.length })}
+            failed={result.failed}
+            reasonLabel={(reason) => t(`bulkSkipReason.${reason}`)}
+            onClose={handleClose}
+          />
         ) : (
           <>
             <DialogHeader>

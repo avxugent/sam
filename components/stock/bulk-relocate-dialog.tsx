@@ -8,17 +8,13 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
 import { StockLocationPicker } from "@/components/stock/stock-location-picker";
-
-type BulkRelocateResult = {
-  succeeded: string[];
-  failed: { id: string; reason: string }[];
-};
+import { BulkResultSummary, type BulkResult } from "@/components/assets/bulk-result-summary";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   itemIds: string[];
-  onComplete: (result: BulkRelocateResult) => void;
+  onComplete: (result: BulkResult) => void;
 };
 
 export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: Props) {
@@ -29,7 +25,7 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
   const [locations, setLocations] = useState<FlatLocation[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<BulkRelocateResult | null>(null);
+  const [result, setResult] = useState<BulkResult | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -59,7 +55,7 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
       return;
     }
 
-    const data = (await res.json()) as BulkRelocateResult;
+    const data = (await res.json()) as BulkResult;
     onComplete(data);
     if (data.failed.length === 0) {
       handleClose();
@@ -72,23 +68,13 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent className="max-w-md">
         {result ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>{t("bulkRelocateResultsTitle")}</DialogTitle>
-            </DialogHeader>
-            <p className="text-[13px] text-[#64748b]">{t("bulkRelocateSkipped", { count: result.failed.length })}</p>
-            <ul className="text-[12.5px] text-[#64748b] space-y-1 max-h-48 overflow-y-auto">
-              {result.failed.map((f) => (
-                <li key={f.id} className="flex justify-between gap-2 border-b border-[#f1f5f9] py-1">
-                  <span className="font-mono text-[11.5px]">{f.id}</span>
-                  <span>{f.reason}</span>
-                </li>
-              ))}
-            </ul>
-            <DialogFooter>
-              <Button size="sm" onClick={handleClose}>{tCommon("close")}</Button>
-            </DialogFooter>
-          </>
+          <BulkResultSummary
+            title={t("bulkRelocateResultsTitle")}
+            summary={t("bulkRelocateSkipped", { count: result.failed.length })}
+            failed={result.failed}
+            reasonLabel={(reason) => reason}
+            onClose={handleClose}
+          />
         ) : (
           <>
             <DialogHeader>

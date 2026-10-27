@@ -4,10 +4,9 @@ import { Fragment, useState, useMemo } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
-import { Download, Pencil, Search, ExternalLink, Check, X } from "lucide-react";
+import { ExternalLink, Check, X } from "lucide-react";
 import type { LocationReportResult } from "@/lib/reports/types";
+import { ReportToolbar } from "@/components/reports/report-toolbar";
 
 type Props = {
   reportId: string;
@@ -17,7 +16,6 @@ type Props = {
 };
 
 export function LocationReportViewer({ reportId, reportName, result, canEdit }: Props) {
-  const { toast } = useToast();
   const t = useTranslations("report");
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
@@ -34,63 +32,28 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
     );
   }, [result.rows, search]);
 
-  async function handleExport() {
-    const res = await fetch(`/api/reports/${reportId}/export`);
-    if (!res.ok) {
-      toast({ title: tCommon("error"), variant: "destructive" });
-      return;
-    }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${reportName.replace(/[^a-z0-9]/gi, "_")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   return (
     <div className="space-y-5">
-      {/* Summary bar */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[13px] text-[#64748b]">{t("resultCount", { count: result.total })}</span>
-          <span className="inline-flex items-center gap-1 text-[11px] bg-[#dcfce7] text-[#166534] px-2 py-0.5 rounded-full">
-            <Check className="h-3 w-3" />
-            {t("filledCount", { count: result.filledCount })}
-          </span>
-          <span className="inline-flex items-center gap-1 text-[11px] bg-[#fee2e2] text-[#991b1b] px-2 py-0.5 rounded-full">
-            <X className="h-3 w-3" />
-            {t("notFilledCount", { count: result.notFilledCount })}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {canEdit && (
-            <Button variant="outline" size="sm" className="h-[34px] text-[12.5px] gap-1.5" asChild>
-              <Link href={`/reports/${reportId}/edit`}>
-                <Pencil className="h-3.5 w-3.5" />
-                {tCommon("edit")}
-              </Link>
-            </Button>
-          )}
-          <Button size="sm" className="h-[34px] text-[12.5px] gap-1.5" onClick={handleExport}>
-            <Download className="h-3.5 w-3.5" />
-            {t("exportCsv")}
-          </Button>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={t("filterResults")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 h-[36px] text-[13px] rounded-[8px]"
-        />
-      </div>
+      <ReportToolbar
+        reportId={reportId}
+        reportName={reportName}
+        canEdit={canEdit}
+        search={search}
+        onSearchChange={setSearch}
+        summary={
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[13px] text-[#64748b]">{t("resultCount", { count: result.total })}</span>
+            <span className="inline-flex items-center gap-1 text-[11px] bg-[#dcfce7] text-[#166534] px-2 py-0.5 rounded-full">
+              <Check className="h-3 w-3" />
+              {t("filledCount", { count: result.filledCount })}
+            </span>
+            <span className="inline-flex items-center gap-1 text-[11px] bg-[#fee2e2] text-[#991b1b] px-2 py-0.5 rounded-full">
+              <X className="h-3 w-3" />
+              {t("notFilledCount", { count: result.notFilledCount })}
+            </span>
+          </div>
+        }
+      />
 
       {/* Table */}
       <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">

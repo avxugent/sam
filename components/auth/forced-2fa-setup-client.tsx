@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Monitor, Loader2, ShieldCheck, Fingerprint } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { startRegistration } from "@simplewebauthn/browser";
+import { confirmTotpSetup, normalizeTotpCode, registerPasskey, requestTotpSetup } from "@/lib/two-factor/enrollment-client";
 
 type Step = "intro" | "scanning" | "passkey-setup" | "done";
 
@@ -28,14 +28,12 @@ export function Forced2FASetupClient() {
 
   async function handleStartSetup() {
     setLoading(true);
-    const res = await fetch("/api/auth/2fa/setup", { method: "POST" });
+    const data = await requestTotpSetup();
     setLoading(false);
-    if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+    if (!data.ok) {
+      toast({ title: tCommon("error"), description: data.error, variant: "destructive" });
       return;
     }
-    const data = await res.json();
     setQrCode(data.qrCodeDataUrl);
     setSecret(data.secret);
     setCode("");
@@ -44,20 +42,14 @@ export function Forced2FASetupClient() {
 
   async function handleEnable(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = code.replace(/\s/g, "");
-    if (trimmed.length !== 6) return;
+    if (normalizeTotpCode(code).length !== 6) return;
 
     setLoading(true);
-    const res = await fetch("/api/auth/2fa/enable", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: trimmed }),
-    });
+    const result = await confirmTotpSetup(code);
     setLoading(false);
 
-    if (!res.ok) {
-      const err = await res.json();
-      toast({ title: t("twoFactorInvalid"), description: err.error, variant: "destructive" });
+    if (!result.ok) {
+      toast({ title: t("twoFactorInvalid"), description: result.error, variant: "destructive" });
       setCode("");
       return;
     }
@@ -70,40 +62,15 @@ export function Forced2FASetupClient() {
   async function handlePasskeySetup() {
     setPasskeyError("");
     setLoading(true);
-    try {
-      const optionsRes = await fetch("/api/auth/passkey/registration-options", { method: "POST" });
-      const optionsData = await optionsRes.json();
-      if (!optionsRes.ok) {
-        setPasskeyError(optionsData.error || t("passkeyRegisterFailed"));
-        setLoading(false);
-        return;
-      }
-
-      const attestation = await startRegistration({ optionsJSON: optionsData.options });
-
-      const verifyRes = await fetch("/api/auth/passkey/registration-verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ response: attestation }),
-      });
-      const verifyData = await verifyRes.json();
-      if (!verifyRes.ok) {
-        setPasskeyError(verifyData.error || t("passkeyRegisterFailed"));
-        setLoading(false);
-        return;
-      }
-
-      // Session cookie re-issued by the verify route — full navigation picks it up.
-      setStep("done");
-      window.location.href = "/";
-    } catch (err) {
-      setPasskeyError(
-        err instanceof Error && err.name === "NotAllowedError"
-          ? t("passkeyCancelled")
-          : t("passkeyRegisterFailed")
-      );
+    const result = await registerPasskey();
+    if (!result.ok) {
+      setPasskeyError(result.cancelled ? t("passkeyCancelled") : result.error || t("passkeyRegisterFailed"));
       setLoading(false);
+      return;
     }
+    // Session cookie re-issued by the verify route — full navigation picks it up.
+    setStep("done");
+    window.location.href = "/";
   }
 
   if (step === "done") {

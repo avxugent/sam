@@ -22,7 +22,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Fingerprint, Loader2, Trash2, Info } from "lucide-react";
-import { startRegistration } from "@simplewebauthn/browser";
+import { registerPasskey } from "@/lib/two-factor/enrollment-client";
 
 export type PasskeySummary = {
   id: string;
@@ -54,40 +54,20 @@ export function PasskeySettings({ provider, passkeys: initialPasskeys }: Props) 
 
   async function handleAdd() {
     setLoading(true);
-    try {
-      const optionsRes = await fetch("/api/auth/passkey/registration-options", { method: "POST" });
-      const optionsData = await optionsRes.json();
-      if (!optionsRes.ok) {
-        toast({ title: tCommon("error"), description: optionsData.error, variant: "destructive" });
-        return;
-      }
-
-      const attestation = await startRegistration({ optionsJSON: optionsData.options });
-
-      const verifyRes = await fetch("/api/auth/passkey/registration-verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ response: attestation, label: label.trim() || undefined }),
-      });
-      const verifyData = await verifyRes.json();
-      if (!verifyRes.ok) {
-        toast({ title: tCommon("error"), description: verifyData.error, variant: "destructive" });
-        return;
-      }
-
-      toast({ title: t("passkeyAdd") });
-      setAdding(false);
-      setLabel("");
-      router.refresh();
-    } catch (err) {
+    const result = await registerPasskey(label);
+    setLoading(false);
+    if (!result.ok) {
       toast({
         title: tCommon("error"),
-        description: err instanceof Error && err.name === "NotAllowedError" ? t("passkeyCancelled") : t("passkeyRegisterFailed"),
+        description: result.cancelled ? t("passkeyCancelled") : result.error || t("passkeyRegisterFailed"),
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+      return;
     }
+    toast({ title: t("passkeyAdd") });
+    setAdding(false);
+    setLabel("");
+    router.refresh();
   }
 
   async function handleRemove(id: string) {

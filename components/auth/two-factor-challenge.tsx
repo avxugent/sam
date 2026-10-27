@@ -10,6 +10,7 @@ import { Monitor, Loader2, ShieldCheck, LogOut, Fingerprint } from "lucide-react
 import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { startAuthentication } from "@simplewebauthn/browser";
+import { normalizeTotpCode } from "@/lib/two-factor/enrollment-client";
 
 export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolean }) {
   const t = useTranslations("auth");
@@ -26,7 +27,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
 
   const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
-    const trimmed = code.replace(/\s/g, "");
+    const trimmed = normalizeTotpCode(code);
     if (trimmed.length !== 6) return;
 
     setLoading(true);
@@ -122,7 +123,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
                   onChange={(e) => {
                     // Only allow digits and spaces
                     const v = e.target.value.replace(/[^\d\s]/g, "");
-                    if (v.replace(/\s/g, "").length <= 6) setCode(v);
+                    if (normalizeTotpCode(v).length <= 6) setCode(v);
                   }}
                   placeholder="000000"
                   className="text-center text-2xl tracking-[0.4em] font-mono h-14"
@@ -150,7 +151,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
               <Button
                 type="submit"
                 className="w-full"
-                disabled={loading || code.replace(/\s/g, "").length !== 6}
+                disabled={loading || normalizeTotpCode(code).length !== 6}
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t("twoFactorVerify")}

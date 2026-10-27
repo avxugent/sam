@@ -29,6 +29,7 @@ import {
   Info,
   RefreshCw,
 } from "lucide-react";
+import { confirmTotpSetup, normalizeTotpCode, requestTotpSetup } from "@/lib/two-factor/enrollment-client";
 
 type Props = {
   provider: string;
@@ -71,14 +72,12 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
 
   async function handleStartSetup() {
     setLoading(true);
-    const res = await fetch("/api/auth/2fa/setup", { method: "POST" });
+    const data = await requestTotpSetup();
     setLoading(false);
-    if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+    if (!data.ok) {
+      toast({ title: tCommon("error"), description: data.error, variant: "destructive" });
       return;
     }
-    const data = await res.json();
     setQrCode(data.qrCodeDataUrl);
     setSecret(data.secret);
     setEnableCode("");
@@ -87,20 +86,14 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
 
   async function handleEnable(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = enableCode.replace(/\s/g, "");
-    if (trimmed.length !== 6) return;
+    if (normalizeTotpCode(enableCode).length !== 6) return;
 
     setLoading(true);
-    const res = await fetch("/api/auth/2fa/enable", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: trimmed }),
-    });
+    const result = await confirmTotpSetup(enableCode);
     setLoading(false);
 
-    const data = await res.json();
-    if (!res.ok) {
-      toast({ title: t("twoFactorInvalid"), description: data.error, variant: "destructive" });
+    if (!result.ok) {
+      toast({ title: t("twoFactorInvalid"), description: result.error, variant: "destructive" });
       setEnableCode("");
       return;
     }
@@ -112,7 +105,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
   }
 
   async function handleDisable() {
-    const trimmed = disableCode.replace(/\s/g, "");
+    const trimmed = normalizeTotpCode(disableCode);
     if (trimmed.length !== 6) return;
 
     setLoading(true);

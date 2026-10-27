@@ -20,7 +20,7 @@ import { Plus, Search, Pencil, Trash2, Wrench, Package } from "lucide-react";
 import { WorkLogFormDialog, type WorkLogAssetOption, type WorkLogUserOption, type WorkLogItemOption } from "@/components/locations/work-log-form-dialog";
 import { JiraIssueBadge } from "@/components/locations/jira-issue-badge";
 import { useTranslations } from "next-intl";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getInitials } from "@/lib/utils";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 
@@ -50,15 +50,6 @@ type Props = {
   userRole: Role;
   jiraBaseUrl: string | null;
 };
-
-function getInitials(name: string | null | undefined, email: string): string {
-  if (name) {
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return (email[0] ?? "U").toUpperCase();
-}
 
 function assetLabel(asset: WorkLogEntry["asset"]): string {
   if (!asset) return "";

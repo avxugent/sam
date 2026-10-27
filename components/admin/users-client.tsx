@@ -36,9 +36,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getInitials } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Trash2, Loader2, ShieldOff, ChevronUp, ChevronDown, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ShieldOff, Download } from "lucide-react";
+import { SortableTh } from "@/components/ui/sortable-th";
 
 const createSchema = z.object({
   name: z.string().min(1).max(128),
@@ -71,45 +72,6 @@ type User = {
 };
 
 type SortCol = "name" | "email" | "role" | "twoFactor" | "lastLoginAt" | "createdAt";
-
-function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
-  if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
-  return dir === "asc"
-    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
-    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
-}
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return parts[0].slice(0, 2).toUpperCase();
-}
-
-function Th({ col, label, sortCol, sortDir, onSort }: {
-  col: SortCol;
-  label: string;
-  sortCol: SortCol;
-  sortDir: "asc" | "desc";
-  onSort: (col: SortCol) => void;
-}) {
-  const active = sortCol === col;
-  const ariaSort: "ascending" | "descending" | "none" = active
-    ? sortDir === "asc" ? "ascending" : "descending"
-    : "none";
-  return (
-    <th
-      scope="col"
-      aria-sort={ariaSort}
-      className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap cursor-pointer select-none hover:bg-[#f1f5f9]"
-      onClick={() => onSort(col)}
-    >
-      <div className="flex items-center gap-1">
-        {label}
-        <SortIcon active={active} dir={sortDir} />
-      </div>
-    </th>
-  );
-}
 
 function RolePill({ role }: { role: Role }) {
   if (role === "ADMIN") {
@@ -355,13 +317,13 @@ export function UsersClient({
           <caption className="sr-only">{t("title")}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <Th col="name" label={t("name")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="email" label={t("email")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="role" label={t("role")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="name" label={t("name")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="email" label={t("email")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="role" label={t("role")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("provider")}</th>
-              <Th col="twoFactor" label={t("twoFactor")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="lastLoginAt" label={t("lastLogin")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="createdAt" label={tField("created")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="twoFactor" label={t("twoFactor")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="lastLoginAt" label={t("lastLogin")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="createdAt" label={tField("created")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{tCommon("actions")}</th>
             </tr>
           </thead>

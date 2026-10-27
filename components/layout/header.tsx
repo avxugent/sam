@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import {
   LogOut,
   Search,
@@ -75,15 +75,6 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/compliance", labelKey: "compliance", icon: <ShieldCheck className="h-4 w-4" />, minRole: "ADMIN" },
   { href: "/admin/settings", labelKey: "settings", icon: <Settings className="h-4 w-4" />, minRole: "ADMIN" },
 ];
-
-function getInitials(name?: string | null, email?: string | null): string {
-  if (name) {
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return (email?.[0] ?? "U").toUpperCase();
-}
 
 function SearchBar() {
   const t = useTranslations("nav");

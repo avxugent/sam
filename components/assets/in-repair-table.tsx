@@ -4,41 +4,11 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronUp, ChevronDown } from "lucide-react";
+import { Search } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { SortableTh } from "@/components/ui/sortable-th";
 
 type SortCol = "type" | "model" | "serialNumber" | "location" | "repairStartedAt";
-
-function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
-  if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
-  return dir === "asc"
-    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
-    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
-}
-
-function Th({ col, label, sortCol, sortDir, onSort }: {
-  col: SortCol; label: string;
-  sortCol: SortCol | null; sortDir: "asc" | "desc";
-  onSort: (col: SortCol) => void;
-}) {
-  const active = sortCol === col;
-  const ariaSort: "ascending" | "descending" | "none" = active
-    ? sortDir === "asc" ? "ascending" : "descending"
-    : "none";
-  return (
-    <th
-      scope="col"
-      aria-sort={ariaSort}
-      className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide cursor-pointer select-none hover:bg-[#f1f5f9]"
-      onClick={() => onSort(col)}
-    >
-      <div className="flex items-center gap-1">
-        {label}
-        <SortIcon active={active} dir={sortDir} />
-      </div>
-    </th>
-  );
-}
 
 export type InRepairAsset = {
   id: string;
@@ -107,11 +77,11 @@ export function InRepairTable({ assets }: { assets: InRepairAsset[] }) {
         <table className="w-full text-[13px]">
           <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
             <tr>
-              <Th col="type" label={tStock("type")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="model" label={tStock("model")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="serialNumber" label={tStock("serial")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="location" label={t("lastLocation")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="repairStartedAt" label={t("repairStartedAt")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh variant="compact" col="type" label={tStock("type")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh variant="compact" col="model" label={tStock("model")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh variant="compact" col="serialNumber" label={tStock("serial")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh variant="compact" col="location" label={t("lastLocation")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh variant="compact" col="repairStartedAt" label={t("repairStartedAt")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{t("note")}</th>
             </tr>
           </thead>

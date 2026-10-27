@@ -35,26 +35,12 @@ export function findCurrentDefaultSupplier<T extends SupplierWindow>(
 }
 
 /**
- * Returns the ids of the first pair of suppliers whose windows overlap,
- * or null when no windows overlap. Windows without defaultFrom are inactive
- * and never overlap; a null defaultUntil extends to infinity.
+ * Whether two windows share at least one day. A window without defaultFrom is
+ * inactive and never overlaps; a null defaultUntil extends to infinity.
  */
-export function findWindowOverlap(
-  windows: Array<SupplierWindow & { id: string }>
-): [string, string] | null {
-  const active = windows.filter((w) => w.defaultFrom);
-  for (let i = 0; i < active.length; i++) {
-    for (let j = i + 1; j < active.length; j++) {
-      const a = active[i];
-      const b = active[j];
-      const aFrom = dayValue(a.defaultFrom!);
-      const aUntil = a.defaultUntil ? dayValue(a.defaultUntil) : Infinity;
-      const bFrom = dayValue(b.defaultFrom!);
-      const bUntil = b.defaultUntil ? dayValue(b.defaultUntil) : Infinity;
-      if (aFrom <= bUntil && bFrom <= aUntil) {
-        return [a.id, b.id];
-      }
-    }
-  }
-  return null;
+export function windowsOverlap(a: SupplierWindow, b: SupplierWindow): boolean {
+  if (!a.defaultFrom || !b.defaultFrom) return false;
+  const aUntil = a.defaultUntil ? dayValue(a.defaultUntil) : Infinity;
+  const bUntil = b.defaultUntil ? dayValue(b.defaultUntil) : Infinity;
+  return dayValue(a.defaultFrom) <= bUntil && dayValue(b.defaultFrom) <= aUntil;
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
@@ -43,10 +43,14 @@ describe("<InRepairTable />", () => {
   it("sorts by each column header and toggles direction", async () => {
     const user = userEvent.setup();
     renderTable();
-    const headers = screen.getAllByRole("columnheader");
+    // each sortable header holds a button; aria-sort on the cell reflects the state
+    const headers = screen.getAllByRole("columnheader").filter((h) => within(h).queryByRole("button"));
+    expect(headers.length).toBeGreaterThan(0);
     for (const h of headers) {
-      await user.click(h);
-      await user.click(h);
+      await user.click(within(h).getByRole("button")); // set / asc
+      expect(h).toHaveAttribute("aria-sort", "ascending");
+      await user.click(within(h).getByRole("button")); // toggle desc
+      expect(h).toHaveAttribute("aria-sort", "descending");
     }
     expect(screen.getByText("Laptop")).toBeInTheDocument();
     expect(screen.getByText("Monitor")).toBeInTheDocument();

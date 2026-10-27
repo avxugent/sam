@@ -15,31 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Loader2, MapPin, Search, ChevronRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-
-type LocationNode = {
-  id: string;
-  name: string;
-  parentId: string | null;
-  children?: LocationNode[];
-  _count?: { stockItems: number };
-};
-
-type FlatLocation = { id: string; name: string; breadcrumb: string; hasStock: boolean };
-
-function flattenLocations(nodes: LocationNode[], ancestors: string[] = []): FlatLocation[] {
-  const result: FlatLocation[] = [];
-  for (const node of nodes) {
-    const path = [...ancestors, node.name];
-    result.push({
-      id: node.id,
-      name: node.name,
-      breadcrumb: path.join(" › "),
-      hasStock: (node._count?.stockItems ?? 0) > 0,
-    });
-    if (node.children?.length) result.push(...flattenLocations(node.children, path));
-  }
-  return result;
-}
+import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
 
 type BulkRelocateResult = {
   succeeded: string[];
@@ -69,7 +45,7 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
     if (!open) return;
     fetch("/api/locations")
       .then((r) => r.json())
-      .then((tree: LocationNode[]) => setLocations(flattenLocations(tree)));
+      .then((tree: LocationTreeNode[]) => setLocations(flattenLocations(tree)));
   }, [open]);
 
   function handleClose() {

@@ -18,36 +18,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { Package, ArchiveX, Trash2, ChevronRight, MapPin, Search, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
 
 export const DISPOSAL_METHODS = ["WIPED", "DESTROYED", "RETURNED", "RESOLD", "OTHER"] as const;
 
 type RemoveAction = "stock" | "decommission" | "delete" | "repair";
 type Step = "choose" | RemoveAction;
-
-type LocationNode = {
-  id: string;
-  name: string;
-  parentId: string | null;
-  children?: LocationNode[];
-  _count?: { stockItems: number };
-};
-
-type FlatLocation = { id: string; name: string; breadcrumb: string; hasStock: boolean };
-
-function flattenLocations(nodes: LocationNode[], ancestors: string[] = []): FlatLocation[] {
-  const result: FlatLocation[] = [];
-  for (const node of nodes) {
-    const path = [...ancestors, node.name];
-    result.push({
-      id: node.id,
-      name: node.name,
-      breadcrumb: path.join(" › "),
-      hasStock: (node._count?.stockItems ?? 0) > 0,
-    });
-    if (node.children?.length) result.push(...flattenLocations(node.children, path));
-  }
-  return result;
-}
 
 type Props = {
   assetId: string;
@@ -137,7 +113,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
     if (step !== "stock" || locations.length > 0) return;
     fetch("/api/locations")
       .then((r) => r.json())
-      .then((tree: LocationNode[]) => setLocations(flattenLocations(tree)));
+      .then((tree: LocationTreeNode[]) => setLocations(flattenLocations(tree)));
   }, [step, locations.length]);
 
   function finish(action: RemoveAction) {

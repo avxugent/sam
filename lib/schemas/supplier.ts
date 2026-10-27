@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { findWindowOverlap } from "@/lib/supplier-window";
+import { windowsOverlap } from "@/lib/supplier-window";
 
 const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -47,11 +47,6 @@ export async function findConflictingWindows(
     },
     select: { id: true, name: true, defaultFrom: true, defaultUntil: true },
   });
-  const overlap = findWindowOverlap([
-    ...others,
-    { id: "__candidate__", defaultFrom: candidate.defaultFrom, defaultUntil: candidate.defaultUntil },
-  ]);
-  if (!overlap) return null;
-  const conflicting = others.filter((o) => overlap.includes(o.id));
-  return conflicting.map((c) => c.name);
+  const conflicting = others.filter((o) => windowsOverlap(o, candidate));
+  return conflicting.length > 0 ? conflicting.map((c) => c.name) : null;
 }

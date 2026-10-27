@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
+import { SortableTh } from "@/components/ui/sortable-th";
 
 type AuditLog = {
   id: string;
@@ -33,42 +34,11 @@ const ACTION_COLORS: Record<string, string> = {
 
 type SortCol = "timestamp" | "user" | "action" | "entity";
 
-function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
-  if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
-  return dir === "asc"
-    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
-    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
-}
-
 function ActionBadge({ action }: { action: string }) {
   return (
     <span className={cn("inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-[5px]", ACTION_COLORS[action] ?? "bg-[#f1f5f9] text-[#64748b]")}>
       {action}
     </span>
-  );
-}
-
-function Th({ col, label, className, sortCol, sortDir, onSort }: {
-  col: SortCol; label: string; className?: string;
-  sortCol: SortCol; sortDir: "asc" | "desc";
-  onSort: (col: SortCol) => void;
-}) {
-  const active = sortCol === col;
-  const ariaSort: "ascending" | "descending" | "none" = active
-    ? sortDir === "asc" ? "ascending" : "descending"
-    : "none";
-  return (
-    <th
-      scope="col"
-      aria-sort={ariaSort}
-      className={cn("text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap cursor-pointer select-none hover:bg-[#f1f5f9]", className)}
-      onClick={() => onSort(col)}
-    >
-      <div className="flex items-center gap-1">
-        {label}
-        <SortIcon active={active} dir={sortDir} />
-      </div>
-    </th>
   );
 }
 
@@ -198,10 +168,10 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
           <caption className="sr-only">{t("title")}</caption>
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              <Th col="timestamp" label={t("timestamp")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="user" label={t("user")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="action" label={t("action")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="entity" label={t("entity")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="timestamp" label={t("timestamp")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="user" label={t("user")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="action" label={t("action")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="entity" label={t("entity")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap hidden md:table-cell">{t("ip")}</th>
               <th scope="col" className="px-4 py-[10px]"><span className="sr-only">{t("details")}</span></th>
             </tr>

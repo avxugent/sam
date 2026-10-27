@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
 import { Loader2, MapPin, Search, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
 
 type StockItemFormValues = {
   typeId: string;
@@ -46,31 +47,6 @@ type StockItemFormValues = {
 
 type AssetType = { id: string; name: string };
 type Manufacturer = { id: string; name: string };
-
-type LocationNode = {
-  id: string;
-  name: string;
-  parentId: string | null;
-  children?: LocationNode[];
-  _count?: { stockItems: number };
-};
-
-type FlatLocation = { id: string; name: string; breadcrumb: string; hasStock: boolean };
-
-function flattenLocations(nodes: LocationNode[], ancestors: string[] = []): FlatLocation[] {
-  const result: FlatLocation[] = [];
-  for (const node of nodes) {
-    const path = [...ancestors, node.name];
-    result.push({
-      id: node.id,
-      name: node.name,
-      breadcrumb: path.join(" › "),
-      hasStock: (node._count?.stockItems ?? 0) > 0,
-    });
-    if (node.children?.length) result.push(...flattenLocations(node.children, path));
-  }
-  return result;
-}
 
 export type StockItemInitialData = {
   typeId: string;
@@ -193,7 +169,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
       fetch("/api/locations").then((r) => r.json()),
     ]).then(([types, locTree]) => {
       setAssetTypes(types as AssetType[]);
-      setLocations(flattenLocations(locTree as LocationNode[]));
+      setLocations(flattenLocations(locTree as LocationTreeNode[]));
     });
   }, [open]);
 

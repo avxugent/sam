@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isWindowActive, findCurrentDefaultSupplier, findWindowOverlap } from "@/lib/supplier-window";
+import { isWindowActive, findCurrentDefaultSupplier, windowsOverlap } from "@/lib/supplier-window";
 
 const day = (s: string) => new Date(`${s}T12:00:00Z`);
 
@@ -45,40 +45,37 @@ describe("findCurrentDefaultSupplier()", () => {
   });
 });
 
-describe("findWindowOverlap()", () => {
-  it("returns null for disjoint windows", () => {
+describe("windowsOverlap()", () => {
+  it("is false for disjoint windows", () => {
     expect(
-      findWindowOverlap([
-        { id: "a", defaultFrom: "2026-01-01", defaultUntil: "2026-06-30" },
-        { id: "b", defaultFrom: "2026-07-01", defaultUntil: "2026-12-31" },
-      ])
-    ).toBeNull();
+      windowsOverlap(
+        { defaultFrom: "2026-01-01", defaultUntil: "2026-06-30" },
+        { defaultFrom: "2026-07-01", defaultUntil: "2026-12-31" }
+      )
+    ).toBe(false);
   });
 
-  it("detects overlapping bounded windows (shared boundary day counts)", () => {
+  it("counts a shared boundary day as overlap", () => {
     expect(
-      findWindowOverlap([
-        { id: "a", defaultFrom: "2026-01-01", defaultUntil: "2026-07-01" },
-        { id: "b", defaultFrom: "2026-07-01", defaultUntil: "2026-12-31" },
-      ])
-    ).toEqual(["a", "b"]);
+      windowsOverlap(
+        { defaultFrom: "2026-01-01", defaultUntil: "2026-07-01" },
+        { defaultFrom: "2026-07-01", defaultUntil: "2026-12-31" }
+      )
+    ).toBe(true);
   });
 
-  it("detects overlap with an open-ended window", () => {
+  it("treats a null defaultUntil as open-ended", () => {
     expect(
-      findWindowOverlap([
-        { id: "a", defaultFrom: "2026-01-01", defaultUntil: null },
-        { id: "b", defaultFrom: "2027-05-01", defaultUntil: "2027-06-01" },
-      ])
-    ).toEqual(["a", "b"]);
+      windowsOverlap(
+        { defaultFrom: "2026-01-01", defaultUntil: null },
+        { defaultFrom: "2027-05-01", defaultUntil: "2027-06-01" }
+      )
+    ).toBe(true);
   });
 
-  it("ignores windows without defaultFrom", () => {
+  it("never overlaps an inactive window", () => {
     expect(
-      findWindowOverlap([
-        { id: "a", defaultFrom: null, defaultUntil: null },
-        { id: "b", defaultFrom: "2026-01-01", defaultUntil: null },
-      ])
-    ).toBeNull();
+      windowsOverlap({ defaultFrom: null, defaultUntil: null }, { defaultFrom: "2026-01-01", defaultUntil: null })
+    ).toBe(false);
   });
 });

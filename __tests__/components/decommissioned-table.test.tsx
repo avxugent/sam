@@ -77,11 +77,14 @@ describe("<DecommissionedTable />", () => {
   it("sorts by each column header and toggles direction", async () => {
     const user = userEvent.setup();
     renderTable();
-    // column headers are clickable <th> cells (role columnheader)
-    const headers = screen.getAllByRole("columnheader");
+    // each sortable header holds a button; aria-sort on the cell reflects the state
+    const headers = screen.getAllByRole("columnheader").filter((h) => within(h).queryByRole("button"));
+    expect(headers.length).toBeGreaterThan(0);
     for (const h of headers) {
-      await user.click(h); // set / asc
-      await user.click(h); // toggle desc
+      await user.click(within(h).getByRole("button")); // set / asc
+      expect(h).toHaveAttribute("aria-sort", "ascending");
+      await user.click(within(h).getByRole("button")); // toggle desc
+      expect(h).toHaveAttribute("aria-sort", "descending");
     }
     expect(screen.getByText("Laptop")).toBeInTheDocument();
     expect(screen.getByText("Monitor")).toBeInTheDocument();

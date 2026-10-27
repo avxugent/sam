@@ -25,54 +25,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { MapPin, Search, Loader2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type LocationNode = {
-  id: string;
-  name: string;
-  parentId: string | null;
-  children?: LocationNode[];
-};
-
-type FlatLocation = {
-  id: string;
-  name: string;
-  breadcrumb: string; // "Campus > Building > Room"
-};
-
-function flatten(
-  nodes: LocationNode[],
-  pruneIds: Set<string>,
-  hideIds: Set<string>,
-  ancestors: string[] = []
-): FlatLocation[] {
-  const result: FlatLocation[] = [];
-  for (const node of nodes) {
-    // Prune the moved location and its whole subtree — invalid targets (cycle).
-    if (pruneIds.has(node.id)) continue;
-    const path = [...ancestors, node.name];
-    // Hide a single node (the current parent — moving there is a no-op) but
-    // keep its other descendants in the list.
-    if (!hideIds.has(node.id)) {
-      result.push({ id: node.id, name: node.name, breadcrumb: path.join(" › ") });
-    }
-    if (node.children?.length) {
-      result.push(...flatten(node.children, pruneIds, hideIds, path));
-    }
-  }
-  return result;
-}
-
-// Collect the moved location plus every descendant id — these are invalid targets.
-function collectSubtreeIds(nodes: LocationNode[], rootId: string): Set<string> {
-  const ids = new Set<string>();
-  const walk = (node: LocationNode, inSubtree: boolean) => {
-    const within = inSubtree || node.id === rootId;
-    if (within) ids.add(node.id);
-    node.children?.forEach((c) => walk(c, within));
-  };
-  nodes.forEach((n) => walk(n, false));
-  return ids;
-}
+import { flattenLocations, type LocationTreeNode, collectSubtreeIds, type FlatLocation } from "@/lib/location-tree";
 
 type Props = {
   open: boolean;
@@ -111,10 +64,10 @@ export function MoveLocationDialog({
     setLoading(true);
     fetch("/api/locations")
       .then((r) => r.json())
-      .then((tree: LocationNode[]) => {
+      .then((tree: LocationTreeNode[]) => {
         const pruneIds = collectSubtreeIds(tree, locationId);
         const hideIds = new Set<string>(currentParentId ? [currentParentId] : []);
-        setLocations(flatten(tree, pruneIds, hideIds));
+        setLocations(flattenLocations(tree, { prune: pruneIds, hide: hideIds }));
       })
       .catch(() => toast({ title: tCommon("error"), variant: "destructive" }))
       .finally(() => setLoading(false));

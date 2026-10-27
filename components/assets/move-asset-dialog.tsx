@@ -15,31 +15,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { MapPin, Search, Loader2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type LocationNode = {
-  id: string;
-  name: string;
-  parentId: string | null;
-  children?: LocationNode[];
-};
-
-type FlatLocation = {
-  id: string;
-  name: string;
-  breadcrumb: string; // "Campus > Building > Room"
-};
-
-function flatten(nodes: LocationNode[], ancestors: string[] = []): FlatLocation[] {
-  const result: FlatLocation[] = [];
-  for (const node of nodes) {
-    const path = [...ancestors, node.name];
-    result.push({ id: node.id, name: node.name, breadcrumb: path.join(" › ") });
-    if (node.children?.length) {
-      result.push(...flatten(node.children, path));
-    }
-  }
-  return result;
-}
+import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
 
 type Props = {
   open: boolean;
@@ -77,7 +53,7 @@ export function MoveAssetDialog({
     setLoading(true);
     fetch("/api/locations")
       .then((r) => r.json())
-      .then((tree: LocationNode[]) => setLocations(flatten(tree)))
+      .then((tree: LocationTreeNode[]) => setLocations(flattenLocations(tree)))
       .catch(() => toast({ title: tCommon("error"), variant: "destructive" }))
       .finally(() => setLoading(false));
   }, [open, toast, tCommon]);

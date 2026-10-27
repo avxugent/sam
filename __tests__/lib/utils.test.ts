@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cn, formatDate, formatFileSize } from "@/lib/utils";
+import { cn, formatDate, formatFileSize, getInitials } from "@/lib/utils";
 
 describe("cn()", () => {
   it("merges class names", () => {
@@ -68,5 +68,18 @@ describe("formatFileSize()", () => {
 
   it("formats 0 bytes", () => {
     expect(formatFileSize(0)).toBe("0 B");
+  });
+});
+
+describe("getInitials()", () => {
+  it.each([
+    ["Ada Lovelace", null, "AL"],
+    ["Grace Brewster Hopper", null, "GH"],
+    ["plato", null, "PL"],
+    [null, "zed@x.com", "Z"],
+    ["   ", "bob@x.com", "B"],
+    [undefined, undefined, "U"],
+  ])("%s / %s → %s", (name, email, expected) => {
+    expect(getInitials(name, email)).toBe(expected);
   });
 });

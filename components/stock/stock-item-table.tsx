@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
+import { SortableTh } from "@/components/ui/sortable-th";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
@@ -72,32 +73,6 @@ function macsFromMetadata(metadata: string | null): string[] {
 }
 
 type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "quantity";
-
-function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
-  if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
-  return dir === "asc"
-    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
-    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
-}
-
-function Th({ col, label, sortCol, sortDir, onSort }: {
-  col: SortCol; label: string;
-  sortCol: SortCol; sortDir: "asc" | "desc";
-  onSort: (col: SortCol) => void;
-}) {
-  return (
-    <th className="px-3 py-2.5 text-left">
-      <button
-        type="button"
-        onClick={() => onSort(col)}
-        className="flex items-center gap-1 text-[11px] font-semibold text-[#64748b] uppercase tracking-wide hover:text-[#0f172a] transition-colors"
-      >
-        {label}
-        <SortIcon active={sortCol === col} dir={sortDir} />
-      </button>
-    </th>
-  );
-}
 
 export function StockItemTable({
   items: initialItems,
@@ -248,11 +223,11 @@ export function StockItemTable({
                   />
                 </th>
               )}
-              <Th col="type" label={t("type")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
-              <Th col="manufacturer" label={t("manufacturer")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
-              <Th col="model" label={t("model")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
-              <Th col="serialNumber" label={t("serial")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
-              <Th col="quantity" label={t("qty")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh variant="compact" col="type" label={t("type")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh variant="compact" col="manufacturer" label={t("manufacturer")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh variant="compact" col="model" label={t("model")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh variant="compact" col="serialNumber" label={t("serial")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh variant="compact" col="quantity" label={t("qty")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">
                 {t("location")}
               </th>

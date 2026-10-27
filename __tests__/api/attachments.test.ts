@@ -6,6 +6,7 @@ vi.mock("@/lib/prisma", () => ({
     attachment: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
       delete: vi.fn(),
     },
     auditLog: { create: vi.fn() },
@@ -30,12 +31,13 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getStorageDriver, StorageNotFoundError } from "@/lib/storage";
 import { POST } from "@/app/api/attachments/route";
-import { GET, DELETE } from "@/app/api/attachments/[id]/route";
+import { GET, DELETE, PATCH } from "@/app/api/attachments/[id]/route";
 
 const mockAuth = vi.mocked(auth);
 const mockFindUnique = vi.mocked(prisma.attachment.findUnique);
 const mockCreate = vi.mocked(prisma.attachment.create);
 const mockDelete = vi.mocked(prisma.attachment.delete);
+const mockUpdate = vi.mocked(prisma.attachment.update);
 const mockGetDriver = vi.mocked(getStorageDriver);
 
 const putObject = vi.fn().mockResolvedValue(undefined);
@@ -195,6 +197,44 @@ describe("GET /api/attachments/[id]", () => {
   });
 });
 
+// ── PATCH /api/attachments/[id] ──────────────────────────────────────────────
+
+describe("PATCH /api/attachments/[id]", () => {
+  function patch(body: object) {
+    return PATCH(
+      new NextRequest("http://x/api/attachments/a", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ id: "a" }) }
+    );
+  }
+
+  beforeEach(() => {
+    mockAuth.mockResolvedValue(editorSession() as never);
+    mockFindUnique.mockResolvedValue({
+      id: "a", attachmentType: "file", originalName: "y.png", displayName: "Old name", description: "Old text", url: null,
+    } as never);
+    mockUpdate.mockResolvedValue({ id: "a", displayName: "New name", originalName: "y.png" } as never);
+  });
+
+  it("only updates the fields that were sent", async () => {
+    expect((await patch({ displayName: "New name" })).status).toBe(200);
+    expect(mockUpdate.mock.calls[0][0].data).toEqual({ displayName: "New name" });
+  });
+
+  it("clears a field sent as null", async () => {
+    await patch({ description: null });
+    expect(mockUpdate.mock.calls[0][0].data).toEqual({ description: null });
+  });
+
+  it("rejects a URL on a file attachment", async () => {
+    expect((await patch({ url: "https://example.com" })).status).toBe(400);
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+});
+
 // ── DELETE /api/attachments/[id] ─────────────────────────────────────────────
 
 describe("DELETE /api/attachments/[id]", () => {
@@ -214,19 +254,19 @@ describe("DELETE /api/attachments/[id]", () => {
     expect(res.status).toBe(403);
   });
 
-  it("idempotent on storage error: still deletes DB row and returns 200", async () => {
+  it("keeps the DB row and answers 502 when storage deletion fails", async () => {
     mockAuth.mockResolvedValue(adminSession() as never);
     mockFindUnique.mockResolvedValue({
       id: "a", attachmentType: "file", path: "x/y.png", originalName: "y.png", mimeType: "image/png",
     } as never);
     deleteObject.mockRejectedValueOnce(new Error("storage went away"));
-    mockDelete.mockResolvedValue({ id: "a" } as never);
+    vi.spyOn(console, "error").mockImplementation(() => {});
 
     const res = await DELETE(new NextRequest("http://x/api/attachments/a", { method: "DELETE" }), {
       params: Promise.resolve({ id: "a" }),
     });
-    expect(res.status).toBe(200);
-    expect(mockDelete).toHaveBeenCalledOnce();
+    expect(res.status).toBe(502);
+    expect(mockDelete).not.toHaveBeenCalled();
   });
 
   it("happy path: calls storage.deleteObject and removes DB row", async () => {

@@ -12,6 +12,7 @@ function dateCell(d: Date | null): string {
   return toIsoDay(d) ?? "";
 }
 
+/** Replaces the supplier: optional fields left out of the body are cleared. */
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

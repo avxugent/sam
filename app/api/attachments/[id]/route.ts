@@ -51,9 +51,10 @@ export async function PATCH(
 
   const updated = await prisma.attachment.update({
     where: { id },
+    // PATCH semantics: omitted fields keep their value, null clears them.
     data: {
-      displayName: parsed.data.displayName ?? null,
-      description: parsed.data.description ?? null,
+      ...(parsed.data.displayName !== undefined && { displayName: parsed.data.displayName }),
+      ...(parsed.data.description !== undefined && { description: parsed.data.description }),
       ...(parsed.data.url !== undefined && { url: parsed.data.url }),
     },
     include: { uploadedBy: { select: { id: true, name: true } } },
@@ -92,10 +93,17 @@ export async function DELETE(
   if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   if (attachment.attachmentType !== "link" && attachment.path) {
+    // Drivers already treat a missing file as deleted. Any other storage
+    // failure keeps the row, so the delete can be retried instead of leaving
+    // an orphaned file nothing points at.
     try {
       await getStorageDriver().deleteObject(attachment.path);
-    } catch {
-      // File may already be gone — continue with DB cleanup
+    } catch (err) {
+      console.error("[attachments] storage delete failed", err);
+      return NextResponse.json(
+        { error: "Could not delete the stored file. The attachment was kept; please try again." },
+        { status: 502 }
+      );
     }
   }
 

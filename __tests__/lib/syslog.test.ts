@@ -313,6 +313,17 @@ describe("forwardAuditBatch() — TCP transport with octet-counting framing", ()
     expect(sock.written[2].toString()).toMatch(/^\d+ $/);
     expect(sock.ended).toBe(true);
   });
+
+  it("gives up after SYSLOG_TIMEOUT_MS when the host never accepts the connection", async () => {
+    vi.stubEnv("SYSLOG_TIMEOUT_MS", "20");
+    const Ctor = FakeTcp as unknown as new () => { destroyed: boolean };
+    let sock: { destroyed: boolean } | undefined;
+    vi.mocked(net.connect).mockImplementationOnce((() => (sock = new Ctor())) as never);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(await forwardAuditEntry(baseEntry)).toBe(false);
+    expect(sock?.destroyed).toBe(true);
+  });
 });
 
 describe("forwardAuditBatch() — TLS transport", () => {

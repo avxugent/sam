@@ -52,31 +52,22 @@ function parseTransport(): "udp" | "tcp" | "tls" {
   return "udp";
 }
 
+/** Integer env var within [min, max], or `fallback` when unset or out of range. */
+function envInt(name: string, min: number, max: number, fallback: number): number {
+  const n = parseInt(process.env[name] ?? "", 10);
+  return !isNaN(n) && n >= min && n <= max ? n : fallback;
+}
+
 function getPort(): number {
-  const fromEnv = process.env.SYSLOG_PORT;
-  if (fromEnv) {
-    const n = parseInt(fromEnv, 10);
-    if (!isNaN(n) && n > 0 && n < 65536) return n;
-  }
-  return parseTransport() === "tls" ? DEFAULT_TLS_PORT : DEFAULT_PORT;
+  return envInt("SYSLOG_PORT", 1, 65535, parseTransport() === "tls" ? DEFAULT_TLS_PORT : DEFAULT_PORT);
 }
 
 function getFacility(): number {
-  const fromEnv = process.env.SYSLOG_FACILITY;
-  if (fromEnv) {
-    const n = parseInt(fromEnv, 10);
-    if (!isNaN(n) && n >= 0 && n <= 23) return n;
-  }
-  return DEFAULT_FACILITY;
+  return envInt("SYSLOG_FACILITY", 0, 23, DEFAULT_FACILITY);
 }
 
 function getTimeoutMs(): number {
-  const fromEnv = process.env.SYSLOG_TIMEOUT_MS;
-  if (fromEnv) {
-    const n = parseInt(fromEnv, 10);
-    if (!isNaN(n) && n > 0) return n;
-  }
-  return DEFAULT_TIMEOUT_MS;
+  return envInt("SYSLOG_TIMEOUT_MS", 1, Number.MAX_SAFE_INTEGER, DEFAULT_TIMEOUT_MS);
 }
 
 export function isSyslogConfigured(): boolean {
@@ -168,18 +159,12 @@ async function sendStream(
   timeoutMs: number
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    let timer: NodeJS.Timeout | null = null;
     let settled = false;
-    const armTimer = () => {
-      timer = setTimeout(() => {
-        socket.destroy(new Error(`${kind.toUpperCase()} send timed out`));
-      }, timeoutMs);
-    };
 
     const finish = (err?: Error) => {
       if (settled) return;
       settled = true;
-      if (timer) clearTimeout(timer);
+      clearTimeout(timer);
       try { socket.end(); } catch { /* already closed */ }
       if (err) reject(err); else resolve();
     };
@@ -202,9 +187,14 @@ async function sendStream(
         ? tlsConnect(tlsOpts!)
         : netConnect({ host, port });
 
+    // One deadline for connect + send, so an unreachable host fails after
+    // timeoutMs instead of the OS connect timeout.
+    const timer = setTimeout(() => {
+      socket.destroy(new Error(`${kind.toUpperCase()} connect/send timed out`));
+    }, timeoutMs);
+
     socket.once("error", (err) => finish(err));
     socket.once(kind === "tls" ? "secureConnect" : "connect", () => {
-      armTimer();
       // RFC 6587 octet-counting framing: "<length> <message>"
       // Works for both plain TCP and TLS rsyslog.
       let pending = payloads.length;

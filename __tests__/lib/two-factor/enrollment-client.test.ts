@@ -23,6 +23,13 @@ describe("enrollment client", () => {
     expect(await requestTotpSetup()).toEqual({ ok: false, error: "SSO account" });
   });
 
+  it("returns a failure instead of throwing on a network error", async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    expect(await requestTotpSetup()).toEqual({ ok: false, error: null });
+    mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    expect(await confirmTotpSetup("123456")).toEqual({ ok: false, error: null });
+  });
+
   it("sends the normalized code to enable", async () => {
     mockFetch.mockResolvedValueOnce(json({ ok: true }));
     expect(await confirmTotpSetup("123 456")).toEqual({ ok: true });

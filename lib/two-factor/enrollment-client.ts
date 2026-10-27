@@ -20,20 +20,28 @@ async function errorOf(res: Response): Promise<string | null> {
 
 /** Starts TOTP enrollment: a fresh (pending) secret and its QR code. */
 export async function requestTotpSetup(): Promise<{ ok: true; qrCodeDataUrl: string; secret: string } | Failure> {
-  const res = await fetch("/api/auth/2fa/setup", { method: "POST" });
-  if (!res.ok) return { ok: false, error: await errorOf(res) };
-  const data = await res.json();
-  return { ok: true, qrCodeDataUrl: data.qrCodeDataUrl, secret: data.secret };
+  try {
+    const res = await fetch("/api/auth/2fa/setup", { method: "POST" });
+    if (!res.ok) return { ok: false, error: await errorOf(res) };
+    const data = await res.json();
+    return { ok: true, qrCodeDataUrl: data.qrCodeDataUrl, secret: data.secret };
+  } catch {
+    return { ok: false, error: null };
+  }
 }
 
 /** Confirms TOTP enrollment with the first code from the authenticator app. */
 export async function confirmTotpSetup(code: string): Promise<{ ok: true } | Failure> {
-  const res = await fetch("/api/auth/2fa/enable", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code: normalizeTotpCode(code) }),
-  });
-  return res.ok ? { ok: true } : { ok: false, error: await errorOf(res) };
+  try {
+    const res = await fetch("/api/auth/2fa/enable", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: normalizeTotpCode(code) }),
+    });
+    return res.ok ? { ok: true } : { ok: false, error: await errorOf(res) };
+  } catch {
+    return { ok: false, error: null };
+  }
 }
 
 /** Registers a passkey on this device; `cancelled` is set when the user dismissed the browser prompt. */

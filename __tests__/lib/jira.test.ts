@@ -127,20 +127,26 @@ describe("fetchJiraIssue()", () => {
 
   it("returns null on 404", async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 404 } as never);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const result = await fetchJiraIssue("AVT-999");
     expect(result).toBeNull();
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("returns null on auth failure (401)", async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401 } as never);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const result = await fetchJiraIssue("AVT-1");
     expect(result).toBeNull();
+    expect(warn).toHaveBeenCalledWith("[jira] HTTP 401 fetching AVT-1");
   });
 
   it("returns null on network error", async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("ECONNREFUSED")) as never;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const result = await fetchJiraIssue("AVT-1");
     expect(result).toBeNull();
+    expect(warn).toHaveBeenCalledWith("[jira] request for AVT-1 failed:", "ECONNREFUSED");
   });
 
   it("caches successful responses", async () => {

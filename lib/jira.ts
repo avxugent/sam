@@ -97,6 +97,9 @@ export async function fetchJiraIssue(key: string): Promise<JiraIssue | null> {
     });
 
     if (!res.ok) {
+      // 404 is an unknown key; anything else (401 bad token, 5xx) is an
+      // operator problem that would otherwise look the same.
+      if (res.status !== 404) console.warn(`[jira] HTTP ${res.status} fetching ${key}`);
       cache.set(key, { value: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
@@ -118,7 +121,8 @@ export async function fetchJiraIssue(key: string): Promise<JiraIssue | null> {
 
     cache.set(key, { value: issue, expiresAt: Date.now() + CACHE_TTL_MS });
     return issue;
-  } catch {
+  } catch (err) {
+    console.warn(`[jira] request for ${key} failed:`, err instanceof Error ? err.message : err);
     cache.set(key, { value: null, expiresAt: Date.now() + CACHE_TTL_MS });
     return null;
   }

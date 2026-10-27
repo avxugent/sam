@@ -503,7 +503,7 @@ export function UsersClient({
                                       u.id === user.id ? { ...u, totpEnabled: false } : u
                                     )
                                   );
-                                  toast({ title: "2FA disabled for " + user.name });
+                                  toast({ title: t("twoFactorDisabledFor", { name: user.name }) });
                                 }
                               }}
                             >

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -11,6 +12,7 @@ import { PageHeader } from "@/components/layout/page-header";
 export default async function EditReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
+  const t = await getTranslations("report");
   if (!session?.user) redirect("/login");
   if (!canEdit(session.user.role)) redirect(`/reports/${id}`);
 
@@ -32,7 +34,7 @@ export default async function EditReportPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <PageHeader icon={BarChart2} title="Edit Report" back={{ href: `/reports/${id}`, label: report.name }} />
+      <PageHeader icon={BarChart2} title={t("editReport")} back={{ href: `/reports/${id}`, label: report.name }} />
 
       <ReportBuilder
         reportId={id}

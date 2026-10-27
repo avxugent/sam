@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { GeneralSettingsClient } from "@/components/admin/general-settings-client";
 import { BrandingSettingsClient } from "@/components/admin/branding-settings-client";
@@ -10,6 +11,8 @@ import { isAdmin } from "@/lib/permissions";
 export default async function SettingsPage() {
   const session = await auth();
   if (!session?.user || !isAdmin(session.user.role)) redirect("/");
+
+  const t = await getTranslations("adminPages");
 
   const settings = await prisma.appSetting.findMany({
     where: {
@@ -48,8 +51,8 @@ export default async function SettingsPage() {
     <div className="max-w-2xl space-y-10">
       <div>
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-muted-foreground mt-1">General application configuration.</p>
+          <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("settings.subtitle")}</p>
         </div>
         <GeneralSettingsClient
           initialHostnameUrlTemplate={map["hostname.urlTemplate"] ?? ""}
@@ -82,11 +85,8 @@ export default async function SettingsPage() {
 
       <div>
         <div className="mb-6">
-          <h2 className="text-xl font-bold">Work log items</h2>
-          <p className="text-muted-foreground mt-1">
-            Fixed work log items technicians can select on a location&apos;s work log (e.g. &quot;Review asset
-            list&quot;). Track and report which locations have each item filled in.
-          </p>
+          <h2 className="text-xl font-bold">{t("workLogItems.title")}</h2>
+          <p className="text-muted-foreground mt-1">{t("workLogItems.subtitle")}</p>
         </div>
         <WorkLogItemsManager initialItems={workLogItems} />
       </div>

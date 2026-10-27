@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { getModelClusters } from "@/lib/model-clusters";
 import { ModelsClient } from "@/components/admin/models-client";
@@ -12,6 +13,8 @@ export default async function ModelsPage({
 }) {
   const session = await auth();
   if (!session?.user || !canManageCatalog(session.user.role)) redirect("/");
+
+  const t = await getTranslations("adminPages");
 
   const { typeId, manufacturerId } = await searchParams;
 
@@ -40,10 +43,8 @@ export default async function ModelsPage({
   return (
     <div className="max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Models</h1>
-        <p className="text-muted-foreground mt-1">
-          Fixed list of hardware models, scoped by asset type and manufacturer.
-        </p>
+        <h1 className="text-2xl font-bold">{t("models.title")}</h1>
+        <p className="text-muted-foreground mt-1">{t("models.subtitle")}</p>
       </div>
       <ModelsClient
         initialModels={models}

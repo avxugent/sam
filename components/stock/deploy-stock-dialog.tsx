@@ -63,7 +63,7 @@ export function DeployStockDialog({
     fetch("/api/locations")
       .then((r) => r.json())
       .then((tree: LocationTreeNode[]) => setLocations(flattenLocations(tree)))
-      .catch(() => toast({ title: "Failed to load locations", variant: "destructive" }))
+      .catch(() => toast({ title: tCommon("loadLocationsFailed"), variant: "destructive" }))
       .finally(() => setLoadingLocations(false));
   }, [open, isSerialized, toast]);
 

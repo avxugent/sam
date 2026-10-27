@@ -49,7 +49,12 @@
       "MEDIUM": "Medium",
       "HIGH": "High",
       "CRITICAL": "Critical"
-    }
+    },
+    "renameItem": "Rename {name}",
+    "deleteItem": "Delete {name}",
+    "saveName": "Save name",
+    "cancelRename": "Cancel rename",
+    "loadLocationsFailed": "Failed to load locations"
   },
   "nav": {
     "locations": "Locations",
@@ -300,7 +305,10 @@
     "mergeButton": "Merge",
     "locationMerged": "Locations merged",
     "monitoring": "Monitoring",
-    "deleteHasStock": "Cannot delete a location that still holds stock. Move or unassign the stock first."
+    "deleteHasStock": "Cannot delete a location that still holds stock. Move or unassign the stock first.",
+    "assetCount": "{count} {count, plural, =1 {asset} other {assets}}",
+    "geocodeNoResults": "No results found",
+    "geocodeNoResultsHint": "Try a more specific address."
   },
   "locationForm": {
     "createTitle": "Add location",
@@ -597,7 +605,8 @@
     "rolesViewer": "Viewer",
     "providerCredentials": "Email & password",
     "providerEntra": "Microsoft Entra ID",
-    "exportCsv": "Export CSV"
+    "exportCsv": "Export CSV",
+    "twoFactorDisabledFor": "2FA disabled for {name}"
   },
   "assetTypes": {
     "title": "Asset Types",
@@ -656,7 +665,11 @@
     "noModelOverridesYet": "No model overrides yet",
     "modelOverrideAdded": "Model override added",
     "modelOverrideUpdated": "Model override updated",
-    "modelOverrideDeleted": "Model override removed"
+    "modelOverrideDeleted": "Model override removed",
+    "viewAssetsOfType": "View {count} {count, plural, =1 {asset} other {assets}} of type {name}",
+    "editOverrideFor": "Edit override for {name}",
+    "deleteOverrideFor": "Delete override for {name}",
+    "deletePresetNamed": "Delete preset {name}"
   },
   "manufacturers": {
     "title": "Manufacturers",
@@ -676,7 +689,8 @@
     "manufacturerUpdated": "Manufacturer updated",
     "manufacturerDeleted": "Manufacturer deleted",
     "manufacturerMerged": "Manufacturers merged",
-    "addNewManufacturer": "Add new manufacturer..."
+    "addNewManufacturer": "Add new manufacturer...",
+    "viewAssetsFrom": "View {count} {count, plural, =1 {asset} other {assets}} from {name}"
   },
   "models": {
     "title": "Models",
@@ -758,7 +772,8 @@
     "downloadDecommissioned": "Download decommissioned CSV",
     "downloadStock": "Download stock CSV",
     "includeDecommissioned": "Include decommissioned assets",
-    "exportComplete": "Export downloaded"
+    "exportComplete": "Export downloaded",
+    "scheduleSaved": "Schedule settings saved"
   },
   "compliance": {
     "title": "Hostname compliance",
@@ -957,7 +972,10 @@
     "overdue": "Last done outside the time window",
     "locationScope": "Location scope",
     "locationScopeHelp": "Limit the report to specific campuses, buildings, or rooms. Leave empty to include all locations.",
-    "removeScopeLocation": "Remove {name} from scope"
+    "removeScopeLocation": "Remove {name} from scope",
+    "savedCount": "{count} saved {count, plural, =1 {report} other {reports}}",
+    "newSubtitle": "Define filters, grouping, and columns",
+    "invalidDefinition": "Report definition is invalid. Please edit and re-save this report."
   },
   "workLog": {
     "title": "Work Log",
@@ -1085,5 +1103,70 @@
     "placeholder": "AA:BB:CC:DD:EE:FF",
     "entryLabel": "MAC {n}:",
     "removeAriaLabel": "Remove MAC address {n}"
+  },
+  "adminPages": {
+    "users": {
+      "title": "Users",
+      "subtitle": "Manage user accounts and their roles."
+    },
+    "assetTypes": {
+      "title": "Asset Types",
+      "subtitle": "Manage asset types and configure Prometheus scrape templates for exporter-based monitoring."
+    },
+    "manufacturers": {
+      "title": "Manufacturers",
+      "subtitle": "Manage the list of hardware manufacturers."
+    },
+    "models": {
+      "title": "Models",
+      "subtitle": "Fixed list of hardware models, scoped by asset type and manufacturer."
+    },
+    "import": {
+      "title": "Import from CSV",
+      "subtitle": "Import assets from a legacy CSV export. Locations, asset types and manufacturers are created automatically if they don't exist yet."
+    },
+    "export": {
+      "title": "Export CSV",
+      "subtitle": "Download a full CSV export or configure automated backups."
+    },
+    "audit": {
+      "title": "Audit Log",
+      "subtitle": "All administrative actions for NIS2 compliance. Showing last 500 entries."
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "General application configuration."
+    },
+    "workLogItems": {
+      "title": "Work log items",
+      "subtitle": "Fixed work log items technicians can select on a location's work log (e.g. \"Review asset list\"). Track and report which locations have each item filled in."
+    }
+  },
+  "workLogItems": {
+    "added": "Work log item added",
+    "updated": "Work log item updated",
+    "deleted": "Work log item deleted",
+    "namePlaceholder": "Item name, e.g. Review asset list",
+    "descriptionPlaceholder": "Optional description",
+    "empty": "No work log items yet",
+    "entryCount": "{count} {count, plural, =1 {entry} other {entries}}",
+    "editAriaLabel": "Edit {name}",
+    "deleteAriaLabel": "Delete {name}",
+    "deleteTitle": "Delete \"{name}\"?",
+    "deleteUsed": "This item is used by {count} work log {count, plural, =1 {entry} other {entries}}. Deleting it keeps those entries but clears the item from them.",
+    "deleteUnused": "This will permanently delete this work log item."
+  },
+  "scrapeTemplate": {
+    "formatTitle": "Template format",
+    "formatHelp": "One <code>key=value</code> pair per line. Keys become Prometheus <code>__labels__</code>.",
+    "variablesTitle": "Available variables:",
+    "varHostname": "Asset hostname as stored",
+    "varSerial": "Serial number",
+    "varModel": "Model",
+    "varManufacturer": "Manufacturer",
+    "varFiNumber": "FI number (14.10.100.013)",
+    "varVaultPath": "Vault path reference (not the secret)",
+    "exampleLabel": "Pearl example:",
+    "syntaxValid": "Template syntax is valid"
   }
 }

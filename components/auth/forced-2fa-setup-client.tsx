@@ -32,7 +32,7 @@ export function Forced2FASetupClient() {
     setLoading(false);
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const data = await res.json();
@@ -57,7 +57,7 @@ export function Forced2FASetupClient() {
 
     if (!res.ok) {
       const err = await res.json();
-      toast({ title: "Invalid code", description: err.error, variant: "destructive" });
+      toast({ title: t("twoFactorInvalid"), description: err.error, variant: "destructive" });
       setCode("");
       return;
     }

@@ -78,7 +78,7 @@ export function LocationMap({
       const data: NominatimResult[] = await res.json();
       setSearchResults(data);
       if (data.length === 0) {
-        toast({ title: "No results found", description: "Try a more specific address." });
+        toast({ title: t("geocodeNoResults"), description: t("geocodeNoResultsHint") });
       }
     } catch {
       toast({ title: tCommon("error"), description: "Could not reach geocoding service.", variant: "destructive" });

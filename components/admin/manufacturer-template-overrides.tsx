@@ -159,7 +159,7 @@ export function ManufacturerTemplateOverrides({
               <Button
                 size="icon"
                 variant="ghost"
-                aria-label={`Edit override for ${o.manufacturerName}`}
+                aria-label={t("editOverrideFor", { name: o.manufacturerName })}
                 className="h-7 w-7 text-muted-foreground hover:text-foreground flex-shrink-0"
                 onClick={() => openEditDialog(o)}
               >
@@ -168,7 +168,7 @@ export function ManufacturerTemplateOverrides({
               <Button
                 size="icon"
                 variant="ghost"
-                aria-label={`Delete override for ${o.manufacturerName}`}
+                aria-label={t("deleteOverrideFor", { name: o.manufacturerName })}
                 className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
                 onClick={() => handleDelete(o)}
               >

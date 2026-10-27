@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -11,6 +12,7 @@ export const metadata = { title: "New Report – SAM" };
 
 export default async function NewReportPage() {
   const session = await auth();
+  const t = await getTranslations("report");
   if (!session?.user) redirect("/login");
   if (!canEdit(session.user.role)) redirect("/reports");
 
@@ -27,7 +29,7 @@ export default async function NewReportPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <PageHeader icon={BarChart2} title="New Report" subtitle="Define filters, grouping, and columns" />
+      <PageHeader icon={BarChart2} title={t("newReport")} subtitle={t("newSubtitle")} />
 
       <ReportBuilder
         assetTypes={assetTypes}

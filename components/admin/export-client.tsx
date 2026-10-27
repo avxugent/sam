@@ -60,7 +60,7 @@ export function ExportClient({
       toast({ title: tCommon("error"), variant: "destructive" });
       return;
     }
-    toast({ title: "Schedule settings saved" });
+    toast({ title: t("scheduleSaved") });
   }
 
   return (

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { ExportClient } from "@/components/admin/export-client";
 import { isAdmin } from "@/lib/permissions";
@@ -7,6 +8,8 @@ import { isAdmin } from "@/lib/permissions";
 export default async function ExportPage() {
   const session = await auth();
   if (!session?.user || !isAdmin(session.user.role)) redirect("/");
+
+  const t = await getTranslations("adminPages");
 
   const settings = await prisma.appSetting.findMany({
     where: { key: { in: ["export.cronExpression", "export.outputDir", "export.enabled"] } },
@@ -16,10 +19,8 @@ export default async function ExportPage() {
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Export CSV</h1>
-        <p className="text-muted-foreground mt-1">
-          Download a full CSV export or configure automated backups.
-        </p>
+        <h1 className="text-2xl font-bold">{t("export.title")}</h1>
+        <p className="text-muted-foreground mt-1">{t("export.subtitle")}</p>
       </div>
       <ExportClient
         initialCronExpression={map["export.cronExpression"] ?? "0 2 * * *"}

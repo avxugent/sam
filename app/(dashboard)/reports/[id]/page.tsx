@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -13,6 +14,7 @@ import { PageHeader } from "@/components/layout/page-header";
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
+  const t = await getTranslations("report");
 
   const report = await prisma.report.findUnique({ where: { id } });
   if (!report) notFound();
@@ -21,7 +23,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   if (!definition) {
     return (
       <div className="p-6 text-destructive text-sm">
-        Report definition is invalid. Please edit and re-save this report.
+        {t("invalidDefinition")}
       </div>
     );
   }
@@ -38,7 +40,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         icon={BarChart2}
         title={report.name}
         subtitle={report.description}
-        back={{ href: "/reports", label: "Reports" }}
+        back={{ href: "/reports", label: t("title") }}
       />
 
       {isLocationReport(definition) ? (

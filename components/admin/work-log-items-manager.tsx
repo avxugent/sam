@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +31,8 @@ const API = "/api/work-log-items";
 
 export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogItem[] }) {
   const { toast } = useToast();
+  const t = useTranslations("workLogItems");
+  const tCommon = useTranslations("common");
   const [items, setItems] = useState(initialItems);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -49,7 +52,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
     setAdding(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const item = await res.json();
@@ -58,7 +61,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
     );
     setNewName("");
     setNewDescription("");
-    toast({ title: "Work log item added" });
+    toast({ title: t("added") });
   }
 
   function startEdit(item: WorkLogItem) {
@@ -76,7 +79,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     const updated = await res.json();
@@ -86,18 +89,18 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
         .sort((a, b) => a.name.localeCompare(b.name))
     );
     setEditingId(null);
-    toast({ title: "Work log item updated" });
+    toast({ title: t("updated") });
   }
 
   async function handleDelete(id: string) {
     const res = await fetch(`${API}/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: "Error", description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));
-    toast({ title: "Work log item deleted" });
+    toast({ title: t("deleted") });
   }
 
   return (
@@ -106,13 +109,13 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
         <div className="flex-1 space-y-2">
           <Input
-            placeholder="Item name, e.g. Review asset list"
+            placeholder={t("namePlaceholder")}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             className="max-w-md"
           />
           <Textarea
-            placeholder="Optional description"
+            placeholder={t("descriptionPlaceholder")}
             value={newDescription}
             onChange={(e) => setNewDescription(e.target.value)}
             rows={2}
@@ -121,14 +124,14 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
         </div>
         <Button onClick={handleAdd} disabled={adding || !newName.trim()}>
           {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          Add
+          {tCommon("add")}
         </Button>
       </div>
 
       {/* List */}
       <div className="border rounded-lg divide-y">
         {items.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">No work log items yet</div>
+          <div className="text-center py-8 text-muted-foreground">{t("empty")}</div>
         ) : (
           items.map((item) => (
             <div key={item.id} className="px-4 py-3">
@@ -145,14 +148,14 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
                     onChange={(e) => setEditDescription(e.target.value)}
                     rows={2}
                     className="max-w-md text-sm"
-                    placeholder="Optional description"
+                    placeholder={t("descriptionPlaceholder")}
                   />
                   <div className="flex gap-2">
                     <Button size="sm" variant="ghost" className="h-8" onClick={() => handleEdit(item.id)}>
-                      <Check className="h-4 w-4 text-green-600" /> Save
+                      <Check className="h-4 w-4 text-green-600" /> {tCommon("save")}
                     </Button>
                     <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditingId(null)}>
-                      <X className="h-4 w-4" /> Cancel
+                      <X className="h-4 w-4" /> {tCommon("cancel")}
                     </Button>
                   </div>
                 </div>
@@ -163,7 +166,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
                       <span className="text-sm font-medium">{item.name}</span>
                       {item._count.workLogs > 0 && (
                         <Badge variant="secondary" className="text-xs">
-                          {item._count.workLogs} {item._count.workLogs !== 1 ? "entries" : "entry"}
+                          {t("entryCount", { count: item._count.workLogs })}
                         </Badge>
                       )}
                     </div>
@@ -174,7 +177,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
                   <Button
                     size="icon"
                     variant="ghost"
-                    aria-label={`Edit ${item.name}`}
+                    aria-label={t("editAriaLabel", { name: item.name })}
                     className="h-8 w-8"
                     onClick={() => startEdit(item)}
                   >
@@ -185,7 +188,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
                       <Button
                         size="icon"
                         variant="ghost"
-                        aria-label={`Delete ${item.name}`}
+                        aria-label={t("deleteAriaLabel", { name: item.name })}
                         className="h-8 w-8 text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -193,20 +196,20 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete &quot;{item.name}&quot;?</AlertDialogTitle>
+                        <AlertDialogTitle>{t("deleteTitle", { name: item.name })}</AlertDialogTitle>
                         <AlertDialogDescription>
                           {item._count.workLogs > 0
-                            ? `This item is used by ${item._count.workLogs} work log entr${item._count.workLogs !== 1 ? "ies" : "y"}. Deleting it keeps those entries but clears the item from them.`
-                            : "This will permanently delete this work log item."}
+                            ? t("deleteUsed", { count: item._count.workLogs })
+                            : t("deleteUnused")}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDelete(item.id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                          Delete
+                          {tCommon("delete")}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

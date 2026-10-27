@@ -49,7 +49,12 @@
       "MEDIUM": "Middel",
       "HIGH": "Hoog",
       "CRITICAL": "Kritiek"
-    }
+    },
+    "renameItem": "{name} hernoemen",
+    "deleteItem": "{name} verwijderen",
+    "saveName": "Naam opslaan",
+    "cancelRename": "Hernoemen annuleren",
+    "loadLocationsFailed": "Locaties laden mislukt"
   },
   "nav": {
     "locations": "Locaties",
@@ -300,7 +305,10 @@
     "mergeButton": "Samenvoegen",
     "locationMerged": "Locaties samengevoegd",
     "monitoring": "Monitoring",
-    "deleteHasStock": "Kan een locatie met voorraad niet verwijderen. Verplaats of ontkoppel de voorraad eerst."
+    "deleteHasStock": "Kan een locatie met voorraad niet verwijderen. Verplaats of ontkoppel de voorraad eerst.",
+    "assetCount": "{count} {count, plural, =1 {asset} other {assets}}",
+    "geocodeNoResults": "Geen resultaten gevonden",
+    "geocodeNoResultsHint": "Probeer een specifieker adres."
   },
   "locationForm": {
     "createTitle": "Locatie toevoegen",
@@ -597,7 +605,8 @@
     "rolesViewer": "Viewer",
     "providerCredentials": "E-mail & wachtwoord",
     "providerEntra": "Microsoft Entra ID",
-    "exportCsv": "Exporteer CSV"
+    "exportCsv": "Exporteer CSV",
+    "twoFactorDisabledFor": "2FA uitgeschakeld voor {name}"
   },
   "assetTypes": {
     "title": "Asset-types",
@@ -656,7 +665,11 @@
     "noModelOverridesYet": "Nog geen model-overrides",
     "modelOverrideAdded": "Model-override toegevoegd",
     "modelOverrideUpdated": "Model-override bijgewerkt",
-    "modelOverrideDeleted": "Model-override verwijderd"
+    "modelOverrideDeleted": "Model-override verwijderd",
+    "viewAssetsOfType": "{count} {count, plural, =1 {asset} other {assets}} van type {name} bekijken",
+    "editOverrideFor": "Override voor {name} bewerken",
+    "deleteOverrideFor": "Override voor {name} verwijderen",
+    "deletePresetNamed": "Preset {name} verwijderen"
   },
   "manufacturers": {
     "title": "Fabrikanten",
@@ -676,7 +689,8 @@
     "manufacturerUpdated": "Fabrikant bijgewerkt",
     "manufacturerDeleted": "Fabrikant verwijderd",
     "manufacturerMerged": "Fabrikanten samengevoegd",
-    "addNewManufacturer": "Nieuwe fabrikant toevoegen..."
+    "addNewManufacturer": "Nieuwe fabrikant toevoegen...",
+    "viewAssetsFrom": "{count} {count, plural, =1 {asset} other {assets}} van {name} bekijken"
   },
   "models": {
     "title": "Modellen",
@@ -758,7 +772,8 @@
     "downloadDecommissioned": "Buiten dienst gestelde CSV downloaden",
     "downloadStock": "Voorraad-CSV downloaden",
     "includeDecommissioned": "Buiten dienst gestelde assets meenemen",
-    "exportComplete": "Export gedownload"
+    "exportComplete": "Export gedownload",
+    "scheduleSaved": "Planningsinstellingen opgeslagen"
   },
   "compliance": {
     "title": "Hostnaam-compliance",
@@ -957,7 +972,10 @@
     "overdue": "Laatst gedaan buiten het tijdsvenster",
     "locationScope": "Locatiebereik",
     "locationScopeHelp": "Beperk het rapport tot specifieke campussen, gebouwen of ruimtes. Laat leeg om alle locaties op te nemen.",
-    "removeScopeLocation": "{name} verwijderen uit bereik"
+    "removeScopeLocation": "{name} verwijderen uit bereik",
+    "savedCount": "{count} {count, plural, =1 {opgeslagen rapport} other {opgeslagen rapporten}}",
+    "newSubtitle": "Stel filters, groepering en kolommen in",
+    "invalidDefinition": "De rapportdefinitie is ongeldig. Bewerk dit rapport en sla het opnieuw op."
   },
   "workLog": {
     "title": "Werklog",
@@ -1085,5 +1103,70 @@
     "placeholder": "AA:BB:CC:DD:EE:FF",
     "entryLabel": "MAC {n}:",
     "removeAriaLabel": "MAC-adres {n} verwijderen"
+  },
+  "adminPages": {
+    "users": {
+      "title": "Gebruikers",
+      "subtitle": "Beheer gebruikersaccounts en hun rollen."
+    },
+    "assetTypes": {
+      "title": "Asset-types",
+      "subtitle": "Beheer asset-types en configureer Prometheus-scrapetemplates voor monitoring via exporters."
+    },
+    "manufacturers": {
+      "title": "Fabrikanten",
+      "subtitle": "Beheer de lijst van hardwarefabrikanten."
+    },
+    "models": {
+      "title": "Modellen",
+      "subtitle": "Vaste lijst van hardwaremodellen, per asset-type en fabrikant."
+    },
+    "import": {
+      "title": "Importeren uit CSV",
+      "subtitle": "Importeer assets uit een CSV-export. Locaties, asset-types en fabrikanten worden automatisch aangemaakt als ze nog niet bestaan."
+    },
+    "export": {
+      "title": "CSV exporteren",
+      "subtitle": "Download een volledige CSV-export of stel automatische back-ups in."
+    },
+    "audit": {
+      "title": "Audit-log",
+      "subtitle": "Alle beheeracties voor NIS2-compliance. De laatste 500 items worden getoond."
+    },
+    "settings": {
+      "title": "Instellingen",
+      "subtitle": "Algemene configuratie van de applicatie."
+    },
+    "workLogItems": {
+      "title": "Werklog-items",
+      "subtitle": "Vaste werklog-items die technici kunnen kiezen in het werklog van een locatie (bv. \"Assetlijst nakijken\"). Volg en rapporteer welke locaties elk item ingevuld hebben."
+    }
+  },
+  "workLogItems": {
+    "added": "Werklog-item toegevoegd",
+    "updated": "Werklog-item bijgewerkt",
+    "deleted": "Werklog-item verwijderd",
+    "namePlaceholder": "Naam van het item, bv. Assetlijst nakijken",
+    "descriptionPlaceholder": "Optionele beschrijving",
+    "empty": "Nog geen werklog-items",
+    "entryCount": "{count} {count, plural, =1 {invoer} other {invoeren}}",
+    "editAriaLabel": "{name} bewerken",
+    "deleteAriaLabel": "{name} verwijderen",
+    "deleteTitle": "\"{name}\" verwijderen?",
+    "deleteUsed": "Dit item wordt gebruikt door {count} {count, plural, =1 {werklog-invoer} other {werklog-invoeren}}. Bij verwijderen blijven die invoeren bestaan, maar wordt het item eruit gewist.",
+    "deleteUnused": "Dit werklog-item wordt definitief verwijderd."
+  },
+  "scrapeTemplate": {
+    "formatTitle": "Templateformaat",
+    "formatHelp": "Eén <code>key=value</code>-paar per regel. Sleutels worden Prometheus-<code>__labels__</code>.",
+    "variablesTitle": "Beschikbare variabelen:",
+    "varHostname": "Hostname van de asset zoals opgeslagen",
+    "varSerial": "Serienummer",
+    "varModel": "Model",
+    "varManufacturer": "Fabrikant",
+    "varFiNumber": "FI-nummer (14.10.100.013)",
+    "varVaultPath": "Verwijzing naar het Vault-pad (niet het geheim)",
+    "exampleLabel": "Pearl-voorbeeld:",
+    "syntaxValid": "Templatesyntaxis is geldig"
   }
 }

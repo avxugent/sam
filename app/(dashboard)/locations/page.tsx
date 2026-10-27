@@ -33,8 +33,9 @@ function toNode(loc: DbLocation): LocationNode {
 }
 
 export default async function AllLocationsPage() {
-  const [tNav, assetCountMap, rawTree, totalAssetQuantity] = await Promise.all([
+  const [tNav, tLocation, assetCountMap, rawTree, totalAssetQuantity] = await Promise.all([
     getTranslations("nav"),
+    getTranslations("location"),
     getRecursiveAssetCounts(),
     prisma.location.findMany({
       where: { parentId: null },
@@ -72,7 +73,7 @@ export default async function AllLocationsPage() {
       <PageHeader
         icon={MapPin}
         title={tNav("locations")}
-        subtitle={`${totalAssets} asset${totalAssets !== 1 ? "s" : ""}`}
+        subtitle={tLocation("assetCount", { count: totalAssets })}
       />
 
       <LocationBrowserClient

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Check, X } from "lucide-react";
@@ -17,6 +18,7 @@ export const TEMPLATE_PLACEHOLDER = `# Lines starting with # are comments.
 # __param_vault_path={vault_path}`;
 
 export function TemplatePreview({ template }: { template: string }) {
+  const t = useTranslations("scrapeTemplate");
   if (!template.trim()) return null;
   const errors = validateTemplate(template);
   const { standard } = getUsedVariables(template);
@@ -36,7 +38,7 @@ export function TemplatePreview({ template }: { template: string }) {
       {errors.length === 0 && (
         <div className="rounded-md border border-green-200 bg-green-50 p-3 flex items-start gap-2">
           <Check className="h-3.5 w-3.5 text-green-600 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-green-700">Template syntax is valid</p>
+          <p className="text-xs text-green-700">{t("syntaxValid")}</p>
         </div>
       )}
       {standard.length > 0 && (
@@ -63,20 +65,22 @@ export function ScrapeTemplateFields({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const t = useTranslations("scrapeTemplate");
+  const code = (chunks: React.ReactNode) => <code className="bg-muted px-1 rounded">{chunks}</code>;
   return (
     <div className="space-y-4">
       <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1.5">
-        <p className="font-semibold text-foreground">Template format</p>
-        <p>One <code className="bg-muted px-1 rounded">key=value</code> pair per line. Keys become Prometheus <code className="bg-muted px-1 rounded">__labels__</code>.</p>
-        <p className="font-medium text-foreground mt-1">Available variables:</p>
+        <p className="font-semibold text-foreground">{t("formatTitle")}</p>
+        <p>{t.rich("formatHelp", { code })}</p>
+        <p className="font-medium text-foreground mt-1">{t("variablesTitle")}</p>
         <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
           {[
-            ["{hostname_fqdn}", "Asset hostname as stored"],
-            ["{serial}", "Serial number"],
-            ["{model}", "Model"],
-            ["{manufacturer}", "Manufacturer"],
-            ["{fi_number}", "FI number (14.10.100.013)"],
-            ["{vault_path}", "Vault path reference (not the secret)"],
+            ["{hostname_fqdn}", t("varHostname")],
+            ["{serial}", t("varSerial")],
+            ["{model}", t("varModel")],
+            ["{manufacturer}", t("varManufacturer")],
+            ["{fi_number}", t("varFiNumber")],
+            ["{vault_path}", t("varVaultPath")],
           ].map(([v, desc]) => (
             <div key={v} className="flex items-baseline gap-1.5">
               <code className="text-blue-700 bg-blue-50 px-1 rounded shrink-0">{v}</code>
@@ -85,7 +89,7 @@ export function ScrapeTemplateFields({
           ))}
         </div>
         <p className="mt-1.5 text-xs">
-          <span className="font-medium text-foreground">Pearl example:</span>{" "}
+          <span className="font-medium text-foreground">{t("exampleLabel")}</span>{" "}
           <code className="bg-muted px-1 rounded">__address__=https://pearlexporter.example.com</code>{" "}
           <code className="bg-muted px-1 rounded">__metrics_path__=/probe</code>{" "}
           <code className="bg-muted px-1 rounded">__param_target=https://&#123;hostname_fqdn&#125;</code>

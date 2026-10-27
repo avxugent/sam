@@ -2,19 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { isAdmin, Role } from "@/lib/permissions";
+import { isAdmin } from "@/lib/permissions";
+import { createUserSchema } from "@/lib/schemas/user";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
-
-const createSchema = z.object({
-  name: z.string().min(1).max(128),
-  email: z.email().max(255),
-  password: z.string().min(8).max(128),
-  role: z.enum(Role),
-  mustChangePassword: z.boolean().optional().default(true),
-  twoFactorRequired: z.boolean().optional().default(false),
-});
 
 const USER_SELECT = {
   id: true,
@@ -47,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await readJsonBody(req);
-  const parsed = createSchema.safeParse(body);
+  const parsed = createUserSchema.safeParse(body);
   if (!parsed.success) return invalidInput(parsed.error);
 
   const exists = await prisma.user.findUnique({ where: { email: parsed.data.email } });

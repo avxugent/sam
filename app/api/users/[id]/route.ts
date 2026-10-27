@@ -2,19 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
-import { isAdmin, Role } from "@/lib/permissions";
+import { isAdmin } from "@/lib/permissions";
+import { updateUserSchema } from "@/lib/schemas/user";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
-
-const updateSchema = z.object({
-  name: z.string().min(1).max(128).optional(),
-  email: z.email().max(255).optional(),
-  password: z.string().min(8).max(128).optional(),
-  role: z.enum(Role).optional(),
-  twoFactorRequired: z.boolean().optional(),
-});
 
 export async function PUT(
   req: NextRequest,
@@ -26,7 +18,7 @@ export async function PUT(
 
   const { id } = await params;
   const body = await readJsonBody(req);
-  const parsed = updateSchema.safeParse(body);
+  const parsed = updateUserSchema.safeParse(body);
   if (!parsed.success) return invalidInput(parsed.error);
 
   const target = await prisma.user.findUnique({

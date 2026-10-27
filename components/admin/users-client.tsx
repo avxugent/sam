@@ -36,27 +36,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { formatDate, getInitials, toIsoDay } from "@/lib/utils";
+import { cn, formatDate, getInitials, toIsoDay } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Loader2, ShieldOff, Download } from "lucide-react";
 import { SortableTh } from "@/components/ui/sortable-th";
-
-const createSchema = z.object({
-  name: z.string().min(1).max(128),
-  email: z.email().max(255),
-  password: z.string().min(8).max(128),
-  role: z.enum(Role),
-  mustChangePassword: z.boolean().default(true),
-  twoFactorRequired: z.boolean().default(false),
-});
-
-const editSchema = z.object({
-  name: z.string().min(1).max(128),
-  email: z.email().max(255),
-  password: z.string().max(128).optional(),
-  role: z.enum(Role),
-  twoFactorRequired: z.boolean().optional(),
-});
+import { createUserSchema, editUserFormSchema } from "@/lib/schemas/user";
 
 type User = {
   id: string;
@@ -112,6 +96,7 @@ export function UsersClient({
   const t = useTranslations("users");
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
+  const tAuth = useTranslations("auth");
   const { toast } = useToast();
   const [users, setUsers] = useState(initialUsers);
   useEffect(() => { setUsers(initialUsers); }, [initialUsers]);
@@ -139,10 +124,10 @@ export function UsersClient({
   }, [users, sortCol, sortDir]);
 
   const createForm = useForm({
-    resolver: zodResolver(createSchema),
+    resolver: zodResolver(createUserSchema),
     defaultValues: { role: "VIEWER" as const, mustChangePassword: true, twoFactorRequired: false },
   });
-  const editForm = useForm({ resolver: zodResolver(editSchema) });
+  const editForm = useForm({ resolver: zodResolver(editUserFormSchema) });
 
   const createRole = useWatch({ control: createForm.control, name: "role" });
   const createMustChangePassword = useWatch({ control: createForm.control, name: "mustChangePassword" });
@@ -150,7 +135,7 @@ export function UsersClient({
   const editRole = useWatch({ control: editForm.control, name: "role" });
   const editTwoFactorRequired = useWatch({ control: editForm.control, name: "twoFactorRequired" });
 
-  async function handleCreate(data: z.infer<typeof createSchema>) {
+  async function handleCreate(data: z.output<typeof createUserSchema>) {
     const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -168,7 +153,7 @@ export function UsersClient({
     toast({ title: t("userCreated") });
   }
 
-  async function handleEdit(data: z.infer<typeof editSchema>) {
+  async function handleEdit(data: z.output<typeof editUserFormSchema>) {
     if (!editUser) return;
     const payload: Record<string, unknown> = { name: data.name, email: data.email, role: data.role };
     if (data.password) payload.password = data.password;
@@ -258,7 +243,19 @@ export function UsersClient({
                 <Label htmlFor="user-create-password">
                   {tField("password")} <span aria-hidden="true" className="text-destructive">*</span>
                 </Label>
-                <Input id="user-create-password" required aria-required="true" autoComplete="new-password" {...createForm.register("password")} type="password" placeholder={t("passwordPlaceholder")} />
+                <Input
+                  id="user-create-password"
+                  required
+                  aria-required="true"
+                  autoComplete="new-password"
+                  {...createForm.register("password")}
+                  type="password"
+                  placeholder={t("passwordPlaceholder")}
+                  className={cn(createForm.formState.errors.password && "border-destructive")}
+                />
+                {createForm.formState.errors.password && (
+                  <p className="text-xs text-destructive">{tAuth("passwordTooShort")}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="user-create-role">{tField("role")}</Label>
@@ -414,7 +411,11 @@ export function UsersClient({
                                 {...editForm.register("password")}
                                 type="password"
                                 placeholder={t("passwordPlaceholder")}
+                                className={cn(editForm.formState.errors.password && "border-destructive")}
                               />
+                              {editForm.formState.errors.password && (
+                                <p className="text-xs text-destructive">{tAuth("passwordTooShort")}</p>
+                              )}
                             </div>
                           )}
                           {user.provider !== "credentials" && (

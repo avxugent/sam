@@ -1,35 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkPrometheusAuth } from "@/lib/prometheus-auth";
 import { prisma } from "@/lib/prisma";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { grafanaTagValuesSchema, type AdhocFilterKey } from "@/lib/schemas/grafana";
+
+/** Selectable values per ad-hoc filter key, as Grafana { text } entries. */
+const TAG_VALUES: Record<AdhocFilterKey, () => Promise<string[]>> = {
+  type: async () =>
+    (await prisma.assetType.findMany({ select: { name: true }, orderBy: { name: "asc" } })).map((t) => t.name),
+  manufacturer: async () =>
+    (await prisma.manufacturer.findMany({ select: { name: true }, orderBy: { name: "asc" } })).map((m) => m.name),
+  location: async () =>
+    (await prisma.location.findMany({ select: { name: true }, orderBy: { name: "asc" } })).map((l) => l.name),
+  hostname: async () =>
+    (
+      await prisma.asset.findMany({
+        // Decommissioned assets are historical, not current inventory — their
+        // hostnames are excluded from this Grafana variable dropdown.
+        where: { status: "INSTALLED", hostname: { not: null } },
+        select: { hostname: true },
+        orderBy: { hostname: "asc" },
+      })
+    ).map((a) => a.hostname!),
+};
 
 export async function POST(req: NextRequest) {
   const authError = checkPrometheusAuth(req);
   if (authError) return authError;
 
-  const body = await req.json().catch(() => ({}));
-  const key: string = body?.key ?? "";
+  const parsed = grafanaTagValuesSchema.safeParse(await readJsonBody(req));
+  if (!parsed.success) return invalidInput(parsed.error);
+  const { key } = parsed.data;
 
-  if (key === "type") {
-    const types = await prisma.assetType.findMany({ select: { name: true }, orderBy: { name: "asc" } });
-    return NextResponse.json(types.map((t) => ({ text: t.name })));
-  }
-  if (key === "manufacturer") {
-    const mfs = await prisma.manufacturer.findMany({ select: { name: true }, orderBy: { name: "asc" } });
-    return NextResponse.json(mfs.map((m) => ({ text: m.name })));
-  }
-  if (key === "location") {
-    const locs = await prisma.location.findMany({ select: { name: true }, orderBy: { name: "asc" } });
-    return NextResponse.json(locs.map((l) => ({ text: l.name })));
-  }
-  if (key === "hostname") {
-    const assets = await prisma.asset.findMany({
-      // Decommissioned assets are historical, not current inventory — their
-      // hostnames are excluded from this Grafana variable dropdown.
-      where: { status: "INSTALLED", hostname: { not: null } },
-      select: { hostname: true },
-      orderBy: { hostname: "asc" },
-    });
-    return NextResponse.json(assets.map((a) => ({ text: a.hostname! })));
+  if (Object.hasOwn(TAG_VALUES, key)) {
+    const values = await TAG_VALUES[key as AdhocFilterKey]();
+    return NextResponse.json(values.map((text) => ({ text })));
   }
 
   return NextResponse.json([]);

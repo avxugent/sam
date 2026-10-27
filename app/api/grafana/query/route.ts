@@ -3,16 +3,15 @@ import { checkPrometheusAuth } from "@/lib/prometheus-auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { toIsoDay } from "@/lib/utils";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { grafanaQuerySchema, type AdhocFilter, type AdhocFilterKey } from "@/lib/schemas/grafana";
 
-type AdhocFilter = {
-  key: string;
-  operator: string;
-  value: string;
-};
-
-type GrafanaTarget = {
-  target: string;
-  type?: string;
+/** Where clause each ad-hoc filter key applies for an "=" filter. */
+const ADHOC_WHERE: Record<AdhocFilterKey, (value: string) => Prisma.AssetWhereInput> = {
+  hostname: (value) => ({ hostname: value }),
+  type: (value) => ({ type: { name: value } }),
+  manufacturer: (value) => ({ manufacturer: { name: value } }),
+  location: (value) => ({ location: { name: value } }),
 };
 
 function buildWhereFromAdhoc(filters: AdhocFilter[]): Prisma.AssetWhereInput {
@@ -20,17 +19,11 @@ function buildWhereFromAdhoc(filters: AdhocFilter[]): Prisma.AssetWhereInput {
   // from every Grafana target below (there is no adhoc filter to opt back in).
   const conditions: Prisma.AssetWhereInput[] = [{ status: "INSTALLED" }];
   for (const f of filters) {
-    if (f.key === "hostname" && f.operator === "=") {
-      conditions.push({ hostname: f.value });
-    } else if (f.key === "type" && f.operator === "=") {
-      conditions.push({ type: { name: f.value } });
-    } else if (f.key === "manufacturer" && f.operator === "=") {
-      conditions.push({ manufacturer: { name: f.value } });
-    } else if (f.key === "location" && f.operator === "=") {
-      conditions.push({ location: { name: f.value } });
+    if (f.operator === "=" && Object.hasOwn(ADHOC_WHERE, f.key)) {
+      conditions.push(ADHOC_WHERE[f.key as AdhocFilterKey](f.value));
     }
   }
-  return conditions.length ? { AND: conditions } : {};
+  return { AND: conditions };
 }
 
 function tableResponse(columns: { text: string; type: string }[], rows: (string | number | null)[][]) {
@@ -41,9 +34,9 @@ export async function POST(req: NextRequest) {
   const authError = checkPrometheusAuth(req);
   if (authError) return authError;
 
-  const body = await req.json().catch(() => ({}));
-  const targets: GrafanaTarget[] = body?.targets ?? [];
-  const adhocFilters: AdhocFilter[] = body?.adhocFilters ?? [];
+  const parsed = grafanaQuerySchema.safeParse(await readJsonBody(req));
+  if (!parsed.success) return invalidInput(parsed.error);
+  const { targets, adhocFilters } = parsed.data;
   const adhocWhere = buildWhereFromAdhoc(adhocFilters);
 
   const results = await Promise.all(

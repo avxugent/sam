@@ -132,6 +132,15 @@ describe("POST /api/grafana/query", () => {
     const data = await res.json();
     expect(data[0].rows).toEqual([]);
   });
+
+  it.each([
+    ["targets is not an array", { targets: "assets_table" }],
+    ["a target has no name", { targets: [{}] }],
+    ["an ad-hoc filter has no value", { targets: [], adhocFilters: [{ key: "type", operator: "=" }] }],
+  ])("returns 400 when %s", async (_label, body) => {
+    const res = await queryPost(makeReq("http://localhost/api/grafana/query", "POST", body, VALID_TOKEN));
+    expect(res.status).toBe(400);
+  });
 });
 
 // ── Tag keys ─────────────────────────────────────────────────────────────────
@@ -172,5 +181,12 @@ describe("POST /api/grafana/tag-values", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data).toEqual([]);
+  });
+
+  it("returns 400 when key is missing or not a string", async () => {
+    const missing = await tagValuesPost(makeReq("http://localhost/api/grafana/tag-values", "POST", {}, VALID_TOKEN));
+    const numeric = await tagValuesPost(makeReq("http://localhost/api/grafana/tag-values", "POST", { key: 1 }, VALID_TOKEN));
+    expect(missing.status).toBe(400);
+    expect(numeric.status).toBe(400);
   });
 });

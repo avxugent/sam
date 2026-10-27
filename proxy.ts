@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import { REMEMBER_ME_COOKIE, verifyRememberMeToken } from "@/lib/two-factor/remember-device";
+import { REMEMBER_ME_COOKIE } from "@/lib/two-factor/remember-device";
+import { pendingSignInStep } from "@/lib/two-factor/sign-in-steps";
 
 export const proxy = auth(async (req) => {
   const { pathname } = req.nextUrl;
@@ -46,42 +47,23 @@ export const proxy = auth(async (req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  const session = req.auth;
+  const step = await pendingSignInStep(req.auth, req.cookies.get(REMEMBER_ME_COOKIE)?.value);
 
   // ── Forced password change ───────────────────────────────────────────────
-  const needsPasswordChange = session.needsPasswordChange === true;
   const isChangePasswordRoute =
     pathname === "/login/change-password" ||
-    pathname.startsWith("/api/users/me") ||
-    pathname.startsWith("/api/auth");
-
-  if (needsPasswordChange && !isChangePasswordRoute) {
+    pathname.startsWith("/api/users/me");
+  if (step === "password-change" && !isChangePasswordRoute) {
     return NextResponse.redirect(new URL("/login/change-password", req.url));
   }
 
   // ── Forced 2FA setup ─────────────────────────────────────────────────────
-  const needs2FASetup = session.needs2FASetup === true;
-  const is2FASetupRoute =
-    pathname === "/login/setup-2fa" ||
-    pathname.startsWith("/api/auth/2fa");
-
-  if (needs2FASetup && !is2FASetupRoute) {
+  if (step === "2fa-setup" && pathname !== "/login/setup-2fa") {
     return NextResponse.redirect(new URL("/login/setup-2fa", req.url));
   }
 
-  // ── 2FA pending: password verified but TOTP code not yet entered ────────
-  // Allow through: the 2FA challenge page itself and its API endpoint.
-  const is2faRoute =
-    pathname === "/login/2fa" ||
-    pathname.startsWith("/api/auth/2fa/verify");
-
-  const needs2FA = session.needs2FA === true;
-
-  if (needs2FA && !is2faRoute) {
-    const userId = session.user?.id ?? "";
-    if (userId && await verifyRememberMeToken(req.cookies.get(REMEMBER_ME_COOKIE)?.value, userId)) {
-      return NextResponse.next();
-    }
+  // ── 2FA pending: password verified but second factor not yet entered ────
+  if (step === "2fa" && pathname !== "/login/2fa") {
     return NextResponse.redirect(new URL("/login/2fa", req.url));
   }
 

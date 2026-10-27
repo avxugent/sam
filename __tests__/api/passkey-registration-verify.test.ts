@@ -4,7 +4,8 @@ import { NextRequest } from "next/server";
 vi.mock("@/lib/prisma", () => ({
   prisma: { passkey: { create: vi.fn() } },
 }));
-vi.mock("@/lib/auth", () => ({ auth: vi.fn(), signIn: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/two-factor/session-upgrade", () => ({ upgradeSession: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/two-factor/webauthn", () => ({
   verifyRegistration: vi.fn(),
@@ -13,13 +14,14 @@ vi.mock("@/lib/two-factor/webauthn", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { auth, signIn } from "@/lib/auth";
+import { auth } from "@/lib/auth";
+import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { logAudit } from "@/lib/audit";
 import { verifyRegistration, readChallengeCookie, clearChallengeCookie } from "@/lib/two-factor/webauthn";
 import { POST } from "@/app/api/auth/passkey/registration-verify/route";
 
 const mockAuth = vi.mocked(auth);
-const mockSignIn = vi.mocked(signIn);
+const mockUpgrade = vi.mocked(upgradeSession);
 const mockCreate = vi.mocked(prisma.passkey.create);
 const mockLogAudit = vi.mocked(logAudit);
 const mockVerify = vi.mocked(verifyRegistration);
@@ -40,6 +42,7 @@ function session(extra: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(upgradeSession).mockResolvedValue(true);
   mockReadChallenge.mockResolvedValue("the-challenge");
   mockCreate.mockResolvedValue({} as never);
 });
@@ -93,7 +96,7 @@ describe("POST /api/auth/passkey/registration-verify", () => {
       expect.objectContaining({ action: "CREATE", entityType: "User" })
     );
     expect(mockClearChallenge).toHaveBeenCalled();
-    expect(mockSignIn).not.toHaveBeenCalled();
+    expect(mockUpgrade).not.toHaveBeenCalled();
   });
 
   it("defaults the label when none is provided", async () => {
@@ -113,7 +116,7 @@ describe("POST /api/auth/passkey/registration-verify", () => {
     });
   });
 
-  it("re-signs in via credentials-2fa-verified when the session needed forced 2FA setup", async () => {
+  it("re-upgrades the session when the session needed forced 2FA setup", async () => {
     mockAuth.mockResolvedValue(session({ needs2FASetup: true }));
     mockVerify.mockResolvedValue({
       credentialId: "cred1",
@@ -125,10 +128,6 @@ describe("POST /api/auth/passkey/registration-verify", () => {
     });
 
     await POST(req({ response: {} }));
-    expect(mockSignIn).toHaveBeenCalledWith("credentials-2fa-verified", {
-      userId: "u1",
-      method: "passkey",
-      redirect: false,
-    });
+    expect(mockUpgrade).toHaveBeenCalledWith("u1", "passkey");
   });
 });

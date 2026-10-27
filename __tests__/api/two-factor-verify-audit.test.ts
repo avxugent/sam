@@ -6,13 +6,15 @@ vi.mock("@/lib/prisma", () => ({
     user: { findUnique: vi.fn() },
   },
 }));
-vi.mock("@/lib/auth", () => ({ __esModule: true, auth: vi.fn(), signIn: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ __esModule: true, auth: vi.fn() }));
+vi.mock("@/lib/two-factor/session-upgrade", () => ({ upgradeSession: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ __esModule: true, logAudit: vi.fn() }));
 vi.mock("@/lib/two-factor/totp", () => ({ __esModule: true, verifyTotpCode: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ __esModule: true, checkRateLimit: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { logAudit } from "@/lib/audit";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -39,6 +41,7 @@ function req(code = "123456") {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(upgradeSession).mockResolvedValue(true);
   mockRateLimit.mockReturnValue({ allowed: true, retryAfterMs: 0 });
   mockFindUnique.mockResolvedValue({ totpSecret: "SECRET", totpEnabled: true } as never);
 });
@@ -80,5 +83,14 @@ describe("POST /api/auth/2fa/verify — audit logging", () => {
     const res = await POST(req());
     expect(res.status).toBe(200);
     expect(mockLogAudit).not.toHaveBeenCalled();
+  });
+
+  it("401 when the session upgrade is refused (e.g. the account changed since login)", async () => {
+    mockAuth.mockResolvedValue(pendingSession());
+    mockVerify.mockReturnValue(true);
+    vi.mocked(upgradeSession).mockResolvedValue(false);
+
+    const res = await POST(req());
+    expect(res.status).toBe(401);
   });
 });

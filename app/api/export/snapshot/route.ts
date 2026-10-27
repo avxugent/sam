@@ -7,6 +7,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { buildInventorySnapshot } from "@/lib/inventory-snapshot";
 import { checkExportToken } from "@/lib/export-token";
 import { logAudit } from "@/lib/audit";
@@ -16,8 +17,10 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   const hasToken = checkExportToken(req);
 
-  if (!session?.user && !hasToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasToken) {
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const incomplete = await signInIncompleteResponse(session);
+    if (incomplete) return incomplete;
   }
 
   const snapshot = await buildInventorySnapshot();

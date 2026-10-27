@@ -9,6 +9,7 @@ import { clientIp } from "@/lib/request-limits";
 import { logAudit } from "@/lib/audit";
 import { auditLoginFailure } from "@/lib/login-audit";
 import { isTwoFactorSetupRequired } from "@/lib/two-factor/policy";
+import { verifyUpgradeProof } from "@/lib/two-factor/upgrade-proof";
 
 const loginSchema = z.object({
   email: z.email().max(255),
@@ -125,6 +126,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Which second factor was used — audit-log detail only, never
         // affects authorization.
         method: { label: "Method", type: "text" },
+        // Server-signed proof from upgradeSession(); this provider is also
+        // reachable over HTTP, so a bare userId must never be enough.
+        proof: { label: "Proof", type: "text" },
       },
       async authorize(credentials) {
         const userId =
@@ -132,6 +136,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             ? credentials.userId
             : null;
         if (!userId) return null;
+        if (!(await verifyUpgradeProof(credentials?.proof, userId))) return null;
 
         const user = await prisma.user.findUnique({
           where: { id: userId },

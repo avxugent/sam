@@ -7,7 +7,8 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-vi.mock("@/lib/auth", () => ({ auth: vi.fn(), signIn: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/two-factor/session-upgrade", () => ({ upgradeSession: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/two-factor/totp", () => ({ verifyTotpCode: vi.fn() }));
 vi.mock("bcryptjs", () => ({
@@ -18,6 +19,7 @@ vi.mock("bcryptjs", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { logAudit } from "@/lib/audit";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
 import bcrypt from "bcryptjs";
@@ -44,6 +46,7 @@ function req(url: string, body?: object, method = "POST") {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(upgradeSession).mockResolvedValue(true);
   vi.mocked(prisma.user.update).mockResolvedValue({ id: "u1", email: "t@test.com" } as never);
 });
 

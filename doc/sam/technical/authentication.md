@@ -67,6 +67,12 @@ Two second-factor methods are supported, either of which satisfies the same `nee
 
 Both paths converge on the same internal NextAuth `credentials-2fa-verified` provider (`lib/auth.ts`), which re-issues a clean session without the `needs2FA` claim — `proxy.ts` and the `jwt`/`session` callbacks don't need to know which method was used.
 
+The route handlers reach that provider only through `upgradeSession()` (`lib/two-factor/session-upgrade.ts`). Like every NextAuth credentials provider it is also reachable over HTTP at `/api/auth/callback/credentials-2fa-verified`, so it never trusts a bare `userId`: `authorize` requires a 60-second, server-signed upgrade proof (`lib/two-factor/upgrade-proof.ts`, HS256 with `NEXTAUTH_SECRET`, its own audience so a remember-device token cannot stand in) that `upgradeSession()` mints and that never leaves the server. If the provider refuses (e.g. the account was deleted or became SSO-only since login), the verify/enable routes answer `401` instead of reporting success.
+
+### Partly signed-in sessions
+
+A session can still owe a login step: `needsPasswordChange`, `needs2FASetup`, or `needs2FA` (waived on a browser with a valid remember-device cookie). `pendingSignInStep()` (`lib/two-factor/sign-in-steps.ts`) decides which, for both `proxy.ts` (redirects) and the route handlers the proxy lets through without those redirects — `/api/auth/2fa/*`, `/api/auth/passkey/*`, `/api/export/*` and `/api/assets/by-hostname`. Those handlers call `signInIncompleteResponse(session, allowed)` and answer `403` while a step is pending; the 2FA setup/enable and passkey registration routes allow `"2fa-setup"`, since forced enrollment is what they are for. by-hostname treats such a session as absent and falls back to the Bearer token.
+
 ### Admin enforcement
 
 Admins can set `twoFactorRequired = true` on any user. On their next login, `isTwoFactorSetupRequired()` (`lib/two-factor/policy.ts`) checks whether they already have TOTP enabled **or** at least one registered passkey; if neither, they're redirected through `/login/setup-2fa`, where they can set up either method.
@@ -162,4 +168,4 @@ If `PROMETHEUS_SD_TOKEN` is not set, the endpoints return HTTP 503.
 
 ## Export Endpoints
 
-`/api/export/*` accept a session (ADMIN for the CSV exports; any role for the JSON snapshot) **or** `Bearer EXPORT_TOKEN` (checked via `checkExportToken(req)` in each handler) so external tooling can pull exports. They are likewise exempted from the session proxy; without valid credentials the handlers return HTTP 401.
+`/api/export/*` accept a session (ADMIN for the CSV exports; any role for the JSON snapshot) **or** `Bearer EXPORT_TOKEN` (checked via `checkExportToken(req)` in each handler) so external tooling can pull exports. They are likewise exempted from the session proxy; without valid credentials the handlers return HTTP 401. A session that has not finished signing in (see [Partly signed-in sessions](#partly-signed-in-sessions)) gets HTTP 403.

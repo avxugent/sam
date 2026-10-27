@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { generateExportCsv } from "@/lib/csv-export";
 import { logAudit } from "@/lib/audit";
 import { checkExportToken } from "@/lib/export-token";
@@ -13,6 +14,8 @@ export async function GET(req: NextRequest) {
 
   if (!hasToken) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const incomplete = await signInIncompleteResponse(session);
+    if (incomplete) return incomplete;
     if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

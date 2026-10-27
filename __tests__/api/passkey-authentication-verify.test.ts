@@ -4,7 +4,8 @@ import { NextRequest } from "next/server";
 vi.mock("@/lib/prisma", () => ({
   prisma: { passkey: { findUnique: vi.fn(), update: vi.fn() } },
 }));
-vi.mock("@/lib/auth", () => ({ auth: vi.fn(), signIn: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/two-factor/session-upgrade", () => ({ upgradeSession: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn() }));
 vi.mock("@/lib/two-factor/remember-device", () => ({ setRememberMeCookie: vi.fn() }));
@@ -15,7 +16,8 @@ vi.mock("@/lib/two-factor/webauthn", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { auth, signIn } from "@/lib/auth";
+import { auth } from "@/lib/auth";
+import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { logAudit } from "@/lib/audit";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { setRememberMeCookie } from "@/lib/two-factor/remember-device";
@@ -23,7 +25,7 @@ import { verifyAuthentication, readChallengeCookie, clearChallengeCookie } from 
 import { POST } from "@/app/api/auth/passkey/authentication-verify/route";
 
 const mockAuth = vi.mocked(auth);
-const mockSignIn = vi.mocked(signIn);
+const mockUpgrade = vi.mocked(upgradeSession);
 const mockFindUnique = vi.mocked(prisma.passkey.findUnique);
 const mockUpdate = vi.mocked(prisma.passkey.update);
 const mockLogAudit = vi.mocked(logAudit);
@@ -49,6 +51,7 @@ const STORED_PASSKEY = { id: "pk1", userId: "u1", credentialId: "cred1", publicK
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(upgradeSession).mockResolvedValue(true);
   mockRateLimit.mockReturnValue({ allowed: true, retryAfterMs: 0 });
   mockReadChallenge.mockResolvedValue("the-challenge");
   mockFindUnique.mockResolvedValue(STORED_PASSKEY as never);
@@ -66,7 +69,7 @@ describe("POST /api/auth/passkey/authentication-verify", () => {
     mockAuth.mockResolvedValue({ user: { id: "u1" } } as never);
     const res = await POST(req({ response: { id: "cred1" } }));
     expect(res.status).toBe(200);
-    expect(mockSignIn).not.toHaveBeenCalled();
+    expect(mockUpgrade).not.toHaveBeenCalled();
   });
 
   it("returns 429 when rate-limited and logs LOGIN_FAILED", async () => {
@@ -91,7 +94,7 @@ describe("POST /api/auth/passkey/authentication-verify", () => {
     const res = await POST(req({ response: { id: "cred1" } }));
     expect(res.status).toBe(400);
     expect(mockClearChallenge).toHaveBeenCalled();
-    expect(mockSignIn).not.toHaveBeenCalled();
+    expect(mockUpgrade).not.toHaveBeenCalled();
   });
 
   it("returns 400 when the credential is not found", async () => {
@@ -116,13 +119,13 @@ describe("POST /api/auth/passkey/authentication-verify", () => {
     mockVerify.mockResolvedValue({ verified: false, newCounter: 0 });
     const res = await POST(req({ response: { id: "cred1" } }));
     expect(res.status).toBe(400);
-    expect(mockSignIn).not.toHaveBeenCalled();
+    expect(mockUpgrade).not.toHaveBeenCalled();
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({ detail: { stage: "passkey", reason: "invalid_signature" } })
     );
   });
 
-  it("on success: bumps the counter, signs in via credentials-2fa-verified, and clears the challenge", async () => {
+  it("on success: bumps the counter, upgrades the session, and clears the challenge", async () => {
     mockAuth.mockResolvedValue(pendingSession());
     mockVerify.mockResolvedValue({ verified: true, newCounter: 9 });
 
@@ -132,11 +135,7 @@ describe("POST /api/auth/passkey/authentication-verify", () => {
       where: { id: "pk1" },
       data: expect.objectContaining({ counter: 9 }),
     });
-    expect(mockSignIn).toHaveBeenCalledWith("credentials-2fa-verified", {
-      userId: "u1",
-      method: "passkey",
-      redirect: false,
-    });
+    expect(mockUpgrade).toHaveBeenCalledWith("u1", "passkey");
     expect(mockClearChallenge).toHaveBeenCalled();
     expect(mockSetRememberMe).not.toHaveBeenCalled();
   });

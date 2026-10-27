@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({ prisma: { asset: { findMany: vi.fn() } } }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
 vi.mock("@/lib/location-path", () => ({
   resolveLocationPath: vi.fn(async () => [
     { id: "root", name: "Campus", fiNumber: null },
@@ -68,6 +69,11 @@ describe("GET /api/assets/by-hostname", () => {
     mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" } } as never);
     findMany.mockResolvedValue([] as never);
     expect((await GET(req("?hostname=x"))).status).toBe(200);
+  });
+
+  it("401 for a session that still owes its second factor", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" }, needs2FA: true } as never);
+    expect((await GET(req("?hostname=x"))).status).toBe(401);
   });
 
   it("400 without a hostname", async () => {

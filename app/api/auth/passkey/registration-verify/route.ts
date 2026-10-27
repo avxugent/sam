@@ -11,7 +11,9 @@
  * Body: { response: RegistrationResponseJSON, label?: string }
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth, signIn } from "@/lib/auth";
+import { auth } from "@/lib/auth";
+import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
+import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { verifyRegistration, readChallengeCookie, clearChallengeCookie } from "@/lib/two-factor/webauthn";
@@ -27,6 +29,8 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const incomplete = await signInIncompleteResponse(session, ["2fa-setup"]);
+  if (incomplete) return incomplete;
 
   const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
@@ -82,16 +86,8 @@ export async function POST(req: NextRequest) {
 
   // When this is a forced-setup session, re-issue a clean session so the
   // proxy no longer redirects to /login/setup-2fa. Mirrors /api/auth/2fa/enable.
-  if (session.needs2FASetup) {
-    try {
-      await signIn("credentials-2fa-verified", {
-        userId: session.user.id,
-        method: "passkey",
-        redirect: false,
-      });
-    } catch {
-      // NextAuth may throw a NEXT_REDIRECT — that is expected and fine.
-    }
+  if (session.needs2FASetup && !(await upgradeSession(session.user.id, "passkey"))) {
+    return NextResponse.json({ error: "Session state mismatch. Please log in again." }, { status: 401 });
   }
 
   const response = NextResponse.json({ ok: true });

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@/lib/auth", () => ({ __esModule: true, auth: vi.fn() }));
+vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
 vi.mock("@/lib/audit", () => ({ __esModule: true, logAudit: vi.fn() }));
 vi.mock("@/lib/inventory-snapshot", () => ({
   __esModule: true,
@@ -48,6 +49,12 @@ describe("GET /api/export/snapshot", () => {
   it("401 without session or token", async () => {
     mockAuth.mockResolvedValue(null as never);
     expect((await GET(req())).status).toBe(401);
+  });
+
+  it("403 for a session that still owes its second factor", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" }, needs2FA: true } as never);
+    expect((await GET(req())).status).toBe(403);
+    expect(mockBuild).not.toHaveBeenCalled();
   });
 
   it("200 with a session; logs an EXPORT audit entry with counts", async () => {

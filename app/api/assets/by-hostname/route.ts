@@ -35,6 +35,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { hasBearerToken } from "@/lib/bearer-token";
 import {
   resolveLocationPath,
@@ -47,8 +48,9 @@ import { toIsoDay } from "@/lib/utils";
 /** Check either session cookie OR Bearer token */
 async function checkAuth(req: NextRequest): Promise<boolean> {
   // Option 1: valid NextAuth session
+  // (a partly signed-in session, still owing a login step, does not count)
   const session = await auth();
-  if (session?.user) return true;
+  if (session?.user && !(await signInIncompleteResponse(session))) return true;
 
   // Option 2: Prometheus bearer token (allows Grafana server-side queries)
   return hasBearerToken(req, process.env.PROMETHEUS_SD_TOKEN);

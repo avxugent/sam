@@ -7,7 +7,9 @@
  * Body: { code: string }
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth, signIn } from "@/lib/auth";
+import { auth } from "@/lib/auth";
+import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
+import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { logAudit } from "@/lib/audit";
@@ -19,6 +21,8 @@ const schema = z.object({ code: z.string().min(6).max(6) });
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const incomplete = await signInIncompleteResponse(session, ["2fa-setup"]);
+  if (incomplete) return incomplete;
 
   const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
@@ -70,15 +74,8 @@ export async function POST(req: NextRequest) {
   // When this is a forced-setup session (needs2FASetup=true in JWT), re-issue a
   // clean session so the proxy no longer redirects to /login/setup-2fa.
   // Mirrors what /api/auth/2fa/verify does for the needs2FA flag.
-  if (session.needs2FASetup) {
-    try {
-      await signIn("credentials-2fa-verified", {
-        userId: session.user.id,
-        redirect: false,
-      });
-    } catch {
-      // next-auth may throw NEXT_REDIRECT internally — safe to ignore.
-    }
+  if (session.needs2FASetup && !(await upgradeSession(session.user.id, "totp"))) {
+    return NextResponse.json({ error: "Session state mismatch. Please log in again." }, { status: 401 });
   }
 
   return NextResponse.json({ ok: true, message: "2FA has been enabled." });

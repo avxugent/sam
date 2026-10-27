@@ -12,7 +12,8 @@
  *           pick up the updated session cookie.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth, signIn } from "@/lib/auth";
+import { auth } from "@/lib/auth";
+import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -71,18 +72,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Issue a clean session by signing in via the internal upgrade provider.
-  // NextAuth v5 signIn() with redirect:false returns undefined (not a Response),
-  // so we wrap it to suppress the expected redirect behaviour.
-  try {
-    await signIn("credentials-2fa-verified", {
-      userId: session.user.id,
-      method: "totp",
-      redirect: false,
-    });
-  } catch {
-    // NextAuth may throw a NEXT_REDIRECT — that is expected and fine.
-    // The Set-Cookie header is set as a side effect regardless.
+  if (!(await upgradeSession(session.user.id, "totp"))) {
+    return NextResponse.json({ error: "Session state mismatch. Please log in again." }, { status: 401 });
   }
 
   const response = NextResponse.json({ ok: true });

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({ prisma: { user: { findUnique: vi.fn(), update: vi.fn() } } }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
 vi.mock("@/lib/two-factor/totp", () => ({
   generateTotpSecret: vi.fn(() => ({ base32: "BASE32SECRET", otpauthUrl: "otpauth://totp/x" })),
   generateQrCodeDataUrl: vi.fn(async () => "data:image/png;base64,QR"),
@@ -32,6 +33,18 @@ describe("POST /api/auth/2fa/setup", () => {
     expect((await setup()).status).toBe(404);
   });
 
+  it("403 while the session still owes its second factor", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", email: "me@x.com", role: "VIEWER" }, needs2FA: true } as never);
+    expect((await setup()).status).toBe(403);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("allows a forced 2FA setup session", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", email: "me@x.com", role: "VIEWER" }, needs2FASetup: true } as never);
+    findUser.mockResolvedValue({ provider: "credentials", email: "me@x.com", totpEnabled: false } as never);
+    expect((await setup()).status).toBe(200);
+  });
+
   it("400 for SSO accounts", async () => {
     findUser.mockResolvedValue({ provider: "microsoft-entra-id", email: "me@x.com", totpEnabled: false } as never);
     expect((await setup()).status).toBe(400);
@@ -55,6 +68,11 @@ describe("GET /api/auth/2fa/status", () => {
   it("401 without a session", async () => {
     mockAuth.mockResolvedValue(null as never);
     expect((await status()).status).toBe(401);
+  });
+
+  it("403 while the session still owes its second factor", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", email: "me@x.com", role: "VIEWER" }, needs2FA: true } as never);
+    expect((await status()).status).toBe(403);
   });
 
   it("404 when the user row is gone", async () => {

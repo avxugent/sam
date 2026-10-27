@@ -10,7 +10,8 @@
  * Body: { response: AuthenticationResponseJSON, rememberMe?: boolean }
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth, signIn } from "@/lib/auth";
+import { auth } from "@/lib/auth";
+import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIp, tooManyAttempts } from "@/lib/request-limits";
@@ -90,15 +91,8 @@ export async function POST(req: NextRequest) {
     data: { counter: newCounter, lastUsedAt: new Date() },
   });
 
-  // Issue a clean session by signing in via the internal upgrade provider.
-  try {
-    await signIn("credentials-2fa-verified", {
-      userId: session.user.id,
-      method: "passkey",
-      redirect: false,
-    });
-  } catch {
-    // NextAuth may throw a NEXT_REDIRECT — that is expected and fine.
+  if (!(await upgradeSession(session.user.id, "passkey"))) {
+    return NextResponse.json({ error: "Session state mismatch. Please log in again." }, { status: 401 });
   }
 
   const response = NextResponse.json({ ok: true });

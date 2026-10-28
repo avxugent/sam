@@ -1,95 +1,72 @@
 import { describe, it, expect } from "vitest";
 import {
-  AssetLifecycleError,
-  assertDecommissionable,
-  assertRepairable,
-  assertReturnableToStock,
+  decommissionViolation,
+  repairViolation,
+  returnToStockViolation,
+  reinstateViolation,
+  buildReinstateUpdateData,
   buildStockItemFromReturn,
   buildDecommissionUpdateData,
   buildSendForRepairUpdateData,
 } from "@/lib/assets/lifecycle-rules";
 
-describe("assertDecommissionable", () => {
-  it("throws ALREADY_DECOMMISSIONED when already decommissioned", () => {
-    expect(() => assertDecommissionable({ status: "DECOMMISSIONED" })).toThrow(AssetLifecycleError);
-    try {
-      assertDecommissionable({ status: "DECOMMISSIONED" });
-    } catch (err) {
-      expect((err as AssetLifecycleError).code).toBe("ALREADY_DECOMMISSIONED");
-    }
+describe("decommissionViolation", () => {
+  it("is ALREADY_DECOMMISSIONED for a decommissioned asset", () => {
+    expect(decommissionViolation({ status: "DECOMMISSIONED" })?.code).toBe("ALREADY_DECOMMISSIONED");
   });
 
-  it("does not throw for an installed asset", () => {
-    expect(() => assertDecommissionable({ status: "INSTALLED" })).not.toThrow();
-  });
-
-  it("does not throw for an asset in repair", () => {
-    expect(() => assertDecommissionable({ status: "IN_REPAIR" })).not.toThrow();
+  it("is null for installed and in-repair assets", () => {
+    expect(decommissionViolation({ status: "INSTALLED" })).toBeNull();
+    expect(decommissionViolation({ status: "IN_REPAIR" })).toBeNull();
   });
 });
 
-describe("assertRepairable", () => {
-  it("throws ALREADY_DECOMMISSIONED when already decommissioned", () => {
-    try {
-      assertRepairable({ status: "DECOMMISSIONED" });
-      expect.unreachable();
-    } catch (err) {
-      expect((err as AssetLifecycleError).code).toBe("ALREADY_DECOMMISSIONED");
-    }
+describe("repairViolation", () => {
+  it("refuses decommissioned and already-in-repair assets", () => {
+    expect(repairViolation({ status: "DECOMMISSIONED" })?.code).toBe("ALREADY_DECOMMISSIONED");
+    expect(repairViolation({ status: "IN_REPAIR" })).toEqual({
+      code: "ALREADY_IN_REPAIR",
+      message: "Asset is already sent for repair.",
+    });
   });
 
-  it("throws ALREADY_IN_REPAIR when already in repair", () => {
-    try {
-      assertRepairable({ status: "IN_REPAIR" });
-      expect.unreachable();
-    } catch (err) {
-      expect((err as AssetLifecycleError).code).toBe("ALREADY_IN_REPAIR");
-    }
-  });
-
-  it("does not throw for an installed asset", () => {
-    expect(() => assertRepairable({ status: "INSTALLED" })).not.toThrow();
+  it("is null for an installed asset", () => {
+    expect(repairViolation({ status: "INSTALLED" })).toBeNull();
   });
 });
 
-describe("assertReturnableToStock", () => {
-  it("throws ALREADY_DECOMMISSIONED first, even if type/model are also missing", () => {
-    try {
-      assertReturnableToStock({ status: "DECOMMISSIONED", typeId: null, modelId: null });
-      expect.unreachable();
-    } catch (err) {
-      expect((err as AssetLifecycleError).code).toBe("ALREADY_DECOMMISSIONED");
-    }
+describe("returnToStockViolation", () => {
+  it("reports ALREADY_DECOMMISSIONED first, even if type/model are also missing", () => {
+    expect(returnToStockViolation({ status: "DECOMMISSIONED", typeId: null, modelId: null })?.code).toBe(
+      "ALREADY_DECOMMISSIONED"
+    );
   });
 
-  it("throws MISSING_TYPE when typeId is null", () => {
-    try {
-      assertReturnableToStock({ status: "INSTALLED", typeId: null, modelId: "model-1" });
-      expect.unreachable();
-    } catch (err) {
-      expect((err as AssetLifecycleError).code).toBe("MISSING_TYPE");
-    }
+  it("requires a type, then a model", () => {
+    expect(returnToStockViolation({ status: "INSTALLED", typeId: null, modelId: "model-1" })?.code).toBe("MISSING_TYPE");
+    expect(returnToStockViolation({ status: "INSTALLED", typeId: "t1", modelId: null })?.code).toBe("MISSING_MODEL");
   });
 
-  it("throws MISSING_MODEL when model is null", () => {
-    try {
-      assertReturnableToStock({ status: "INSTALLED", typeId: "t1", modelId: null });
-      expect.unreachable();
-    } catch (err) {
-      expect((err as AssetLifecycleError).code).toBe("MISSING_MODEL");
-    }
+  it("is null for valid installed and in-repair assets (repair -> stock is a valid exit)", () => {
+    expect(returnToStockViolation({ status: "INSTALLED", typeId: "t1", modelId: "model-1" })).toBeNull();
+    expect(returnToStockViolation({ status: "IN_REPAIR", typeId: "t1", modelId: "model-1" })).toBeNull();
+  });
+});
+
+describe("reinstateViolation / buildReinstateUpdateData", () => {
+  it("only reinstates decommissioned assets", () => {
+    expect(reinstateViolation({ status: "INSTALLED" })?.code).toBe("NOT_DECOMMISSIONED");
+    expect(reinstateViolation({ status: "DECOMMISSIONED" })).toBeNull();
   });
 
-  it("does not throw when status/type/model are all valid", () => {
-    expect(() =>
-      assertReturnableToStock({ status: "INSTALLED", typeId: "t1", modelId: "model-1" })
-    ).not.toThrow();
-  });
-
-  it("does not throw for an asset in repair (repair -> stock is a valid exit)", () => {
-    expect(() =>
-      assertReturnableToStock({ status: "IN_REPAIR", typeId: "t1", modelId: "model-1" })
-    ).not.toThrow();
+  it("clears the disposal evidence", () => {
+    expect(buildReinstateUpdateData()).toEqual({
+      status: "INSTALLED",
+      decommissionedAt: null,
+      decommissionNote: null,
+      disposalMethod: null,
+      decommissionedById: null,
+    });
   });
 });
 

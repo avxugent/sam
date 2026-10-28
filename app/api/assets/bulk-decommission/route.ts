@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { assertDecommissionable } from "@/lib/assets/lifecycle-rules";
-import { DECOMMISSION_SELECT, decommissionAsset, decommissionFields, lifecycleViolationCode } from "@/lib/assets/transitions";
+import { decommissionViolation } from "@/lib/assets/lifecycle-rules";
+import { DECOMMISSION_SELECT, decommissionAsset, decommissionFields } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
   for (const id of ids) {
     const existing = await prisma.asset.findUnique({ where: { id }, select: DECOMMISSION_SELECT });
-    const reason = existing ? lifecycleViolationCode(() => assertDecommissionable(existing)) : "NOT_FOUND";
+    const reason = existing ? (decommissionViolation(existing)?.code ?? null) : "NOT_FOUND";
     if (!existing || reason) {
       failed.push({ id, reason: reason ?? "NOT_FOUND" });
       continue;

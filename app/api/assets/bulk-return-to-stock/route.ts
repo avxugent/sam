@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { assertReturnableToStock } from "@/lib/assets/lifecycle-rules";
-import { RETURN_TO_STOCK_INCLUDE, lifecycleViolationCode, returnAssetToStock } from "@/lib/assets/transitions";
+import { returnToStockViolation } from "@/lib/assets/lifecycle-rules";
+import { RETURN_TO_STOCK_INCLUDE, returnAssetToStock } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
   for (const id of ids) {
     const asset = await prisma.asset.findUnique({ where: { id }, include: RETURN_TO_STOCK_INCLUDE });
-    const reason = asset ? lifecycleViolationCode(() => assertReturnableToStock(asset)) : "NOT_FOUND";
+    const reason = asset ? (returnToStockViolation(asset)?.code ?? null) : "NOT_FOUND";
     if (!asset || reason) {
       failed.push({ id, reason: reason ?? "NOT_FOUND" });
       continue;

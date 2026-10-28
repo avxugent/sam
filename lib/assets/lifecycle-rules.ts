@@ -10,53 +10,55 @@ import { serializeStockMetadata } from "@/lib/stock-metadata";
 export type AssetLifecycleErrorCode =
   | "ALREADY_DECOMMISSIONED"
   | "ALREADY_IN_REPAIR"
+  | "NOT_DECOMMISSIONED"
   | "MISSING_TYPE"
   | "MISSING_MODEL";
 
-export class AssetLifecycleError extends Error {
-  code: AssetLifecycleErrorCode;
+/** Why a transition is not allowed: `code` for bulk results, `message` for a 400. */
+export type LifecycleViolation = { code: AssetLifecycleErrorCode; message: string };
 
-  constructor(code: AssetLifecycleErrorCode, message: string) {
-    super(message);
-    this.code = code;
-  }
+const violation = (code: AssetLifecycleErrorCode, message: string): LifecycleViolation => ({ code, message });
+
+export function decommissionViolation(asset: { status: AssetStatus }): LifecycleViolation | null {
+  if (asset.status === "DECOMMISSIONED") return violation("ALREADY_DECOMMISSIONED", "Asset is already decommissioned.");
+  return null;
 }
 
-export function assertDecommissionable(asset: { status: AssetStatus }): void {
+export function repairViolation(asset: { status: AssetStatus }): LifecycleViolation | null {
   if (asset.status === "DECOMMISSIONED") {
-    throw new AssetLifecycleError("ALREADY_DECOMMISSIONED", "Asset is already decommissioned.");
+    return violation("ALREADY_DECOMMISSIONED", "Decommissioned assets cannot be sent for repair.");
   }
+  if (asset.status === "IN_REPAIR") return violation("ALREADY_IN_REPAIR", "Asset is already sent for repair.");
+  return null;
 }
 
-export function assertRepairable(asset: { status: AssetStatus }): void {
-  if (asset.status === "DECOMMISSIONED") {
-    throw new AssetLifecycleError(
-      "ALREADY_DECOMMISSIONED",
-      "Decommissioned assets cannot be sent for repair."
-    );
-  }
-  if (asset.status === "IN_REPAIR") {
-    throw new AssetLifecycleError("ALREADY_IN_REPAIR", "Asset is already sent for repair.");
-  }
-}
-
-export function assertReturnableToStock(asset: {
+export function returnToStockViolation(asset: {
   status: AssetStatus;
   typeId: string | null;
   modelId: string | null;
-}): void {
+}): LifecycleViolation | null {
   if (asset.status === "DECOMMISSIONED") {
-    throw new AssetLifecycleError(
-      "ALREADY_DECOMMISSIONED",
-      "Decommissioned assets cannot be returned to stock."
-    );
+    return violation("ALREADY_DECOMMISSIONED", "Decommissioned assets cannot be returned to stock.");
   }
-  if (!asset.typeId) {
-    throw new AssetLifecycleError("MISSING_TYPE", "Asset must have a type to be returned to stock.");
-  }
-  if (!asset.modelId) {
-    throw new AssetLifecycleError("MISSING_MODEL", "Asset must have a model to be returned to stock.");
-  }
+  if (!asset.typeId) return violation("MISSING_TYPE", "Asset must have a type to be returned to stock.");
+  if (!asset.modelId) return violation("MISSING_MODEL", "Asset must have a model to be returned to stock.");
+  return null;
+}
+
+export function reinstateViolation(asset: { status: AssetStatus }): LifecycleViolation | null {
+  if (asset.status !== "DECOMMISSIONED") return violation("NOT_DECOMMISSIONED", "Asset is not decommissioned.");
+  return null;
+}
+
+/** Undoes a decommission: back to installed, disposal evidence cleared. */
+export function buildReinstateUpdateData(): Prisma.AssetUpdateInput {
+  return {
+    status: "INSTALLED",
+    decommissionedAt: null,
+    decommissionNote: null,
+    disposalMethod: null,
+    decommissionedById: null,
+  };
 }
 
 type ReturnableAsset = {

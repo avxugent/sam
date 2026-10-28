@@ -6,10 +6,9 @@ import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import {
-  AssetLifecycleError,
   buildDecommissionUpdateData,
   buildStockItemFromReturn,
-  type AssetLifecycleErrorCode,
+  type LifecycleViolation,
 } from "@/lib/assets/lifecycle-rules";
 
 /**
@@ -20,24 +19,9 @@ import {
  * decide how a rule violation is reported (400 vs. a per-id failure entry).
  */
 
-/** Runs a lifecycle check; a violation becomes a 400 with its message. */
-export function lifecycleViolationResponse(check: () => void): NextResponse | null {
-  return withLifecycleError(check, (err) => NextResponse.json({ error: err.message }, { status: 400 }));
-}
-
-/** Runs a lifecycle check; a violation becomes its code, for bulk `failed` entries. */
-export function lifecycleViolationCode(check: () => void): AssetLifecycleErrorCode | null {
-  return withLifecycleError(check, (err) => err.code);
-}
-
-function withLifecycleError<T>(check: () => void, onViolation: (err: AssetLifecycleError) => T): T | null {
-  try {
-    check();
-    return null;
-  } catch (err) {
-    if (err instanceof AssetLifecycleError) return onViolation(err);
-    throw err;
-  }
+/** A lifecycle violation as the 400 a single-asset route sends back. */
+export function lifecycleViolationResponse(violation: LifecycleViolation | null): NextResponse | null {
+  return violation && NextResponse.json({ error: violation.message }, { status: 400 });
 }
 
 // ── Decommission ─────────────────────────────────────────────────────────────

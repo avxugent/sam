@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { assertRepairable, buildSendForRepairUpdateData } from "@/lib/assets/lifecycle-rules";
+import { buildSendForRepairUpdateData, repairViolation } from "@/lib/assets/lifecycle-rules";
 import { lifecycleViolationResponse } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
@@ -26,7 +26,7 @@ export async function POST(
     select: { model: { select: { name: true } }, status: true, lineageId: true },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const violation = lifecycleViolationResponse(() => assertRepairable(existing));
+  const violation = lifecycleViolationResponse(repairViolation(existing));
   if (violation) return violation;
 
   // The note is optional, so an empty or missing body is fine.

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
+import { buildReinstateUpdateData, reinstateViolation } from "@/lib/assets/lifecycle-rules";
+import { lifecycleViolationResponse } from "@/lib/assets/transitions";
 
 export async function POST(
   req: NextRequest,
@@ -18,20 +20,10 @@ export async function POST(
     select: { model: { select: { name: true } }, status: true, lineageId: true },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (existing.status !== "DECOMMISSIONED") {
-    return NextResponse.json({ error: "Asset is not decommissioned." }, { status: 400 });
-  }
+  const violation = lifecycleViolationResponse(reinstateViolation(existing));
+  if (violation) return violation;
 
-  const asset = await prisma.asset.update({
-    where: { id },
-    data: {
-      status: "INSTALLED",
-      decommissionedAt: null,
-      decommissionNote: null,
-      disposalMethod: null,
-      decommissionedById: null,
-    },
-  });
+  const asset = await prisma.asset.update({ where: { id }, data: buildReinstateUpdateData() });
 
   await logAudit({
     session,

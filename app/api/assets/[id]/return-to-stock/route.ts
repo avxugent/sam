@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { assertReturnableToStock } from "@/lib/assets/lifecycle-rules";
+import { returnToStockViolation } from "@/lib/assets/lifecycle-rules";
 import { RETURN_TO_STOCK_INCLUDE, lifecycleViolationResponse, returnAssetToStock } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
@@ -30,7 +30,7 @@ export async function POST(
 
   const asset = await prisma.asset.findUnique({ where: { id }, include: RETURN_TO_STOCK_INCLUDE });
   if (!asset) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const violation = lifecycleViolationResponse(() => assertReturnableToStock(asset));
+  const violation = lifecycleViolationResponse(returnToStockViolation(asset));
   if (violation) return violation;
 
   const stockItem = await returnAssetToStock(req, session, asset, locationId);

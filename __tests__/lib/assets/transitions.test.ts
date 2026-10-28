@@ -11,10 +11,8 @@ vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { AssetLifecycleError } from "@/lib/assets/lifecycle-rules";
 import {
   decommissionAsset,
-  lifecycleViolationCode,
   lifecycleViolationResponse,
   returnAssetToStock,
 } from "@/lib/assets/transitions";
@@ -27,22 +25,12 @@ beforeEach(() => {
   vi.mocked(prisma.$transaction).mockImplementation((async (fn: (tx: unknown) => unknown) => fn(prisma)) as never);
 });
 
-describe("lifecycle violation helpers", () => {
-  const violate = () => {
-    throw new AssetLifecycleError("ALREADY_DECOMMISSIONED", "Already decommissioned");
-  };
-
-  it("turn a rule violation into a 400 or its code", async () => {
-    const res = lifecycleViolationResponse(violate);
+describe("lifecycleViolationResponse()", () => {
+  it("turns a violation into a 400 with its message, and passes null through", async () => {
+    const res = lifecycleViolationResponse({ code: "ALREADY_DECOMMISSIONED", message: "Already decommissioned" });
     expect(res?.status).toBe(400);
     expect(await res?.json()).toEqual({ error: "Already decommissioned" });
-    expect(lifecycleViolationCode(violate)).toBe("ALREADY_DECOMMISSIONED");
-  });
-
-  it("return null when the check passes and rethrow unrelated errors", () => {
-    expect(lifecycleViolationResponse(() => {})).toBeNull();
-    expect(lifecycleViolationCode(() => {})).toBeNull();
-    expect(() => lifecycleViolationCode(() => { throw new Error("db"); })).toThrow("db");
+    expect(lifecycleViolationResponse(null)).toBeNull();
   });
 });
 

@@ -7,7 +7,8 @@ import { resolveAssetCreationDefaults } from "@/lib/assets/defaults";
 import type { Prisma } from "@/generated/prisma/client";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
-import { parseStockMetadata } from "@/lib/stock-metadata";
+import { buildDeployedAssetData } from "@/lib/assets/lifecycle-rules";
+import { hostnameTakenResponse } from "@/lib/assets/write";
 
 const deploySchema = z
   .object({
@@ -66,74 +67,36 @@ export async function POST(
     );
   }
 
-  // Identity carried in the metadata only applies when deploying a single unit.
-  const meta = stockItem.metadata && quantity === 1 ? parseStockMetadata(stockItem.metadata) : null;
-
   let createdAssets: { id: string; lineageId: string }[];
   try {
     createdAssets = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Owner/supplier defaults apply to every copy (deploy = creation).
       const defaults = await resolveAssetCreationDefaults(tx, {});
-      const newQuantity = stockItem.quantity - quantity;
+      const remainingQuantity = stockItem.quantity - quantity;
 
-      if (newQuantity === 0) {
+      if (remainingQuantity === 0) {
         await tx.stockItem.delete({ where: { id } });
       } else {
-        await tx.stockItem.update({ where: { id }, data: { quantity: newQuantity } });
+        await tx.stockItem.update({ where: { id }, data: { quantity: remainingQuantity } });
       }
 
-      // A fresh lineage is minted per row via the Prisma default in every
-      // case except one: this deploy consumes the stock item's entire
-      // remaining quantity as a single asset. That's the only case where the
-      // new Asset is genuinely "the same physical item" the StockItem row
-      // represented (e.g. the return-to-stock -> deploy round trip for a
-      // serialized item); a partial or multi-unit deploy splits a fungible
-      // batch into unrelated new units that shouldn't share one lineageId.
-      const isFullSingleUnitDeploy = newQuantity === 0 && quantity === 1;
-
-      const assets = await Promise.all(
+      return Promise.all(
         Array.from({ length: quantity }, (_, i) =>
           tx.asset.create({
-            data: {
+            data: buildDeployedAssetData(stockItem, {
               locationId,
-              ...(isFullSingleUnitDeploy && { lineageId: stockItem.lineageId }),
-              typeId: stockItem.typeId,
-              manufacturerId: stockItem.manufacturerId,
-              modelId: stockItem.modelId,
-              serialNumber:
-                stockItem.serialNumber ??
-                (serialNumbers ? serialNumbers[i] : null) ??
-                null,
-              invoiceNumber: stockItem.invoiceNumber,
-              invoiceDate: stockItem.invoiceDate,
-              ownerId: defaults.ownerId,
-              supplierId: defaults.supplierId,
-              ...(meta && {
-                hostname: meta.hostname ?? null,
-                warrantyMonths: meta.warrantyMonths ?? null,
-                vaultPath: meta.vaultPath ?? null,
-              }),
-              ...(meta?.macAddresses?.length && {
-                macAddresses: { create: meta.macAddresses.map((m) => ({ address: m.address })) },
-              }),
-              ...(meta?.customFields?.length && {
-                customFields: { create: meta.customFields.map((f) => ({ key: f.key, value: f.value })) },
-              }),
-            },
+              serialNumber: stockItem.serialNumber ?? serialNumbers?.[i] ?? null,
+              deployedQuantity: quantity,
+              remainingQuantity,
+              ...defaults,
+            }),
             select: { id: true, lineageId: true },
           })
         )
       );
-
-      return assets;
     });
   } catch (err: unknown) {
-    if (isUniqueConstraintError(err)) {
-      return NextResponse.json(
-        { error: "This hostname is already assigned to another asset." },
-        { status: 409 }
-      );
-    }
+    if (isUniqueConstraintError(err)) return hostnameTakenResponse();
     throw err;
   }
 

@@ -1,5 +1,5 @@
 import type { AssetStatus, DisposalMethod, Prisma } from "@/generated/prisma/client";
-import { serializeStockMetadata } from "@/lib/stock-metadata";
+import { parseStockMetadata, serializeStockMetadata } from "@/lib/stock-metadata";
 
 /**
  * Pure lifecycle rules: the checks and update-data builders shared by the
@@ -137,5 +137,63 @@ export function buildSendForRepairUpdateData(params: {
     repairStartedAt: new Date(),
     repairNote: params.note,
     sentForRepairById: params.actorId,
+  };
+}
+
+type DeployableStockItem = {
+  lineageId: string;
+  typeId: string | null;
+  manufacturerId: string | null;
+  modelId: string | null;
+  serialNumber: string | null;
+  invoiceNumber: string | null;
+  invoiceDate: Date | null;
+  metadata: string | null;
+};
+
+/**
+ * Create data for one asset deployed from `stockItem` — the inverse of
+ * buildStockItemFromReturn. The identity kept in the metadata (hostname,
+ * warranty, vault path, MACs, custom fields) only applies when a single unit
+ * is deployed. The lineage carries over only when this deploy consumes the
+ * whole remaining item as one asset: that is the one case where the new asset
+ * is the same physical item (e.g. the return-to-stock -> deploy round trip);
+ * splitting a fungible batch mints fresh lineages via the Prisma default.
+ */
+export function buildDeployedAssetData(
+  stockItem: DeployableStockItem,
+  params: {
+    locationId: string;
+    serialNumber: string | null;
+    deployedQuantity: number;
+    remainingQuantity: number;
+    ownerId: string | null;
+    supplierId: string | null;
+  }
+): Prisma.AssetUncheckedCreateInput {
+  const singleUnit = params.deployedQuantity === 1;
+  const meta = singleUnit && stockItem.metadata ? parseStockMetadata(stockItem.metadata) : null;
+  return {
+    locationId: params.locationId,
+    ...(singleUnit && params.remainingQuantity === 0 && { lineageId: stockItem.lineageId }),
+    typeId: stockItem.typeId,
+    manufacturerId: stockItem.manufacturerId,
+    modelId: stockItem.modelId,
+    serialNumber: params.serialNumber,
+    invoiceNumber: stockItem.invoiceNumber,
+    invoiceDate: stockItem.invoiceDate,
+    ownerId: params.ownerId,
+    supplierId: params.supplierId,
+    ...(meta && {
+      hostname: meta.hostname ?? null,
+      warrantyMonths: meta.warrantyMonths ?? null,
+      vaultPath: meta.vaultPath ?? null,
+    }),
+    ...(meta?.macAddresses?.length && {
+      macAddresses: { create: meta.macAddresses.map((m) => ({ address: m.address })) },
+    }),
+    ...(meta?.customFields?.length && {
+      customFields: { create: meta.customFields.map((f) => ({ key: f.key, value: f.value })) },
+    }),
   };
 }

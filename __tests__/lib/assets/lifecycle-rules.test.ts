@@ -5,6 +5,7 @@ import {
   returnToStockViolation,
   reinstateViolation,
   buildReinstateUpdateData,
+  buildDeployedAssetData,
   buildStockItemFromReturn,
   buildDecommissionUpdateData,
   buildSendForRepairUpdateData,
@@ -178,5 +179,45 @@ describe("buildSendForRepairUpdateData", () => {
   it("allows a null note", () => {
     const data = buildSendForRepairUpdateData({ note: null, actorId: "u1" });
     expect(data.repairNote).toBeNull();
+  });
+});
+
+describe("buildDeployedAssetData", () => {
+  const ITEM = {
+    lineageId: "lin-1",
+    typeId: "t1",
+    manufacturerId: "m1",
+    modelId: "md1",
+    serialNumber: null,
+    invoiceNumber: "INV-1",
+    invoiceDate: null,
+    metadata: JSON.stringify({ hostname: "rec01.example.org", macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }], customFields: [{ key: "rack", value: "R1" }] }),
+  };
+  const params = { locationId: "l1", serialNumber: "SN9", ownerId: "o1", supplierId: null };
+
+  it("carries lineage and stored identity when one unit consumes the whole item", () => {
+    const data = buildDeployedAssetData(ITEM, { ...params, deployedQuantity: 1, remainingQuantity: 0 });
+    expect(data).toMatchObject({
+      locationId: "l1",
+      lineageId: "lin-1",
+      serialNumber: "SN9",
+      hostname: "rec01.example.org",
+      ownerId: "o1",
+      macAddresses: { create: [{ address: "AA:BB:CC:DD:EE:FF" }] },
+      customFields: { create: [{ key: "rack", value: "R1" }] },
+    });
+  });
+
+  it("mints a fresh lineage for a partial single-unit deploy but keeps the identity", () => {
+    const data = buildDeployedAssetData(ITEM, { ...params, deployedQuantity: 1, remainingQuantity: 3 });
+    expect(data.lineageId).toBeUndefined();
+    expect(data.hostname).toBe("rec01.example.org");
+  });
+
+  it("drops the per-unit identity when several units are deployed", () => {
+    const data = buildDeployedAssetData(ITEM, { ...params, deployedQuantity: 2, remainingQuantity: 0 });
+    expect(data.lineageId).toBeUndefined();
+    expect(data.hostname).toBeUndefined();
+    expect(data.macAddresses).toBeUndefined();
   });
 });

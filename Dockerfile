@@ -23,33 +23,17 @@ RUN --mount=type=cache,target=/root/.npm \
 #
 # Installs only non-dev dependencies. Copied into the runner image
 # under scripts/node_modules/ so maintenance scripts can run in the
-# production container (required for Nomad Actions).
+# production container (required for Nomad Actions). This tree also
+# provides the Prisma CLI for `prisma migrate deploy` (prisma is a
+# runtime dependency), so the image carries a single copy of it.
+# openssl lets Prisma's postinstall pick the matching engine build.
 # ─────────────────────────────────────────────────────────────
 FROM base AS prod-deps
+RUN apk add --no-cache openssl
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --omit=dev
-
-# ─────────────────────────────────────────────────────────────
-# Stage 3: Prisma CLI — isolated install for running migrations
-#
-# Installs only the `prisma` package (+ its full transitive dep tree)
-# into a separate directory so that the runner stage can invoke
-# `prisma migrate deploy` without bundling the entire node_modules tree.
-# ─────────────────────────────────────────────────────────────
-FROM base AS prisma-cli
-RUN apk add --no-cache openssl
-WORKDIR /prisma-install
-
-# Read the prisma version from the project manifest and install it
-# in an isolated, minimal package.json so only prisma and its own
-# transitive deps are downloaded — nothing else from the app.
-COPY package.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    PRISMA_VER=$(node -p "require('./package.json').dependencies.prisma") \
- && echo "{\"name\":\"prisma-cli\",\"private\":true,\"dependencies\":{\"prisma\":\"${PRISMA_VER}\"}}" > package.json \
- && npm install --no-fund --loglevel=error
 
 # ─────────────────────────────────────────────────────────────
 # Stage 3: Build the application
@@ -109,13 +93,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 
-# Prisma CLI in its own isolated module tree (all transitive deps included).
-# Placed outside /app so it does not interfere with the standalone bundle.
-# /usr/local/bin/prisma is created before switching to the non-root user.
-COPY --from=prisma-cli /prisma-install/node_modules /prisma-cli/node_modules
-RUN ln -sf /prisma-cli/node_modules/.bin/prisma /usr/local/bin/prisma \
- && ln -sf /prisma-cli/node_modules/prisma /app/node_modules/prisma
-
 # Create uploads directory owned by the app user
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 
@@ -129,6 +106,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 # Production node_modules (no devDeps) give scripts access to @prisma/client,
 # @aws-sdk/client-s3, jsdom, and other runtime dependencies.
 COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./scripts/node_modules
+
+# The Prisma CLI for migrations comes from that same tree. prisma.config.ts
+# imports "prisma/config", resolved from /app/node_modules. Both links are
+# created before switching to the non-root user.
+RUN ln -sf /app/scripts/node_modules/.bin/prisma /usr/local/bin/prisma \
+ && ln -sf /app/scripts/node_modules/prisma /app/node_modules/prisma
 
 # Prisma 7 generates TypeScript source to generated/prisma/ (no longer in
 # node_modules/.prisma).  The _prisma.mjs helper registers tsx at runtime so

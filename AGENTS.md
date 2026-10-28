@@ -215,7 +215,7 @@ prisma/
 
 ## Docker
 
-- The `Dockerfile` uses a four-stage multi-stage build: `deps → prisma-cli → builder → runner`.
+- The `Dockerfile` uses a four-stage multi-stage build: `deps → prod-deps → builder → runner`. `prod-deps` (production-only `node_modules`) is copied to `scripts/node_modules` for the Nomad maintenance actions and also provides the Prisma CLI used by `prisma migrate deploy`.
 - The runner image runs as non-root user `nextjs` (uid 1001). Do not run as root.
 - `NEXT_TELEMETRY_DISABLED=1` is set at build time and runtime.
 - The standalone output (`next.config.ts`: `output: "standalone"`) is used. The entrypoint is `node server.js`.

@@ -18,6 +18,8 @@ import { TemplateOverridesEditor } from "@/components/admin/template-overrides-e
 import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";
 import { AssetDrilldownDialog } from "@/components/admin/asset-drilldown-dialog";
 import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
+import type { Criticality } from "@/generated/prisma/enums";
+import { CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
 
 type AssetType = {
   id: string;
@@ -25,13 +27,12 @@ type AssetType = {
   scrapeTargetTemplate: string | null;
   prometheusExposed: boolean;
   hostnamePattern: string | null;
-  defaultCriticality: string | null;
+  defaultCriticality: Criticality | null;
   _count: { assets: number };
 };
 
 type ManufacturerOption = { id: string; name: string };
 
-const CRITICALITY_OPTIONS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 
 export function AssetTypesClient({
   initialTypes,
@@ -212,7 +213,7 @@ export function AssetTypesClient({
   }
 
   async function handleSaveDefaultCriticality(id: string, value: string) {
-    if (!(await updateType(id, { defaultCriticality: value || null }))) return;
+    if (!(await updateType(id, { defaultCriticality: parseCriticality(value) }))) return;
     toast({ title: t("defaultCriticalitySaved") });
   }
 
@@ -425,7 +426,7 @@ export function AssetTypesClient({
                         className="h-8 px-2 rounded-md border border-input bg-transparent text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                       >
                         <option value="">{t("defaultCriticalityNone")}</option>
-                        {CRITICALITY_OPTIONS.map((level) => (
+                        {CRITICALITY_VALUES.map((level) => (
                           <option key={level} value={level}>{tCommon(`criticality.${level}`)}</option>
                         ))}
                       </select>

@@ -5,13 +5,14 @@
 import { prisma } from "@/lib/prisma";
 import { effectiveCriticality } from "@/lib/criticality";
 import { toIsoDay } from "@/lib/utils";
+import type { AssetStatus, Criticality, DisposalMethod } from "@/generated/prisma/enums";
 
 export type InventorySnapshot = {
   generatedAt: string;
   counts: { assets: number; locations: number; suppliers: number };
   assets: Array<{
     id: string;
-    status: string;
+    status: AssetStatus;
     typeName: string | null;
     manufacturerName: string | null;
     model: string | null;
@@ -23,11 +24,11 @@ export type InventorySnapshot = {
     invoiceNumber: string | null;
     invoiceDate: string | null;
     ownerId: string | null;
-    criticality: string | null;
-    effectiveCriticality: string | null;
+    criticality: Criticality | null;
+    effectiveCriticality: Criticality | null;
     endOfSupportDate: string | null;
     supplierId: string | null;
-    disposalMethod: string | null;
+    disposalMethod: DisposalMethod | null;
     decommissionedAt: string | null;
   }>;
   suppliers: Array<{

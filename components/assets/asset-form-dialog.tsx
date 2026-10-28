@@ -35,9 +35,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { MacAddressFields } from "@/components/inventory/mac-address-fields";
 import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
+import type { Criticality } from "@/generated/prisma/enums";
 
 
-type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: string | null };
+type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: Criticality | null };
 type Supplier = {
   id: string;
   name: string;

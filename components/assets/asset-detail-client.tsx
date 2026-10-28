@@ -45,7 +45,8 @@ import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
 import { AssetHistoryTimeline } from "@/components/assets/asset-history-timeline";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
-import type { AssetStatus, Criticality } from "@/generated/prisma/enums";
+import type { AssetStatus, Criticality, DisposalMethod } from "@/generated/prisma/enums";
+import { effectiveCriticality } from "@/lib/criticality";
 
 type Asset = {
   id: string;
@@ -67,14 +68,14 @@ type Asset = {
   status: AssetStatus;
   decommissionedAt?: Date | string | null;
   decommissionNote?: string | null;
-  disposalMethod?: string | null;
+  disposalMethod?: DisposalMethod | null;
   decommissionedById?: string | null;
   repairStartedAt?: Date | string | null;
   repairNote?: string | null;
   sentForRepairById?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
-  type?: { id: string; name: string; defaultCriticality?: string | null } | null;
+  type?: { id: string; name: string; defaultCriticality?: Criticality | null } | null;
   manufacturer?: { id: string; name: string } | null;
   supplier?: { id: string; name: string; contractReference?: string | null } | null;
   macAddresses: { id: string; address: string }[];
@@ -435,7 +436,7 @@ export function AssetDetailClient({
                 <FieldLabel>{tField("criticality")}</FieldLabel>
                 <FieldValue>
                   {(() => {
-                    const effective = asset.criticality ?? asset.type?.defaultCriticality ?? null;
+                    const effective = effectiveCriticality(asset.criticality, asset.type?.defaultCriticality);
                     if (!effective) return <span className="text-muted-foreground">{t("unclassified")}</span>;
                     return (
                       <>

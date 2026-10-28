@@ -1,4 +1,5 @@
 import type { LocationReportDefinition, ReportDefinition } from "@/lib/schemas/report";
+import type { Criticality } from "@/generated/prisma/enums";
 
 // Definition types are inferred from the Zod schemas in lib/schemas/report.ts.
 export type {
@@ -38,7 +39,7 @@ export type ReportRow = {
   lastChanged: string | null;
   supplier: string | null;
   // Effective value: asset override ?? type default ?? null
-  criticality: string | null;
+  criticality: Criticality | null;
   endOfSupportDate: string | null;
 };
 

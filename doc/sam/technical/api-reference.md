@@ -79,6 +79,7 @@ Key validated fields:
 | `GET` | `/api/asset-types/[id]` | VIEWER | Get detail |
 | `PUT` | `/api/asset-types/[id]` | ADMIN | Update (including scrape template, `hostnamePattern`, and `defaultCriticality`); renaming onto an existing name returns `409` with `code: "nameConflict"` and the existing type, so the client can offer a merge |
 | `DELETE` | `/api/asset-types/[id]` | ADMIN | Delete |
+| `POST` | `/api/asset-types/[id]/merge` | ADMIN | Merge into another asset type (`targetId`) — moves its assets, stock items and models (a model whose name already exists under the target is folded into it), drops its maintenance presets, then deletes it |
 | `GET` | `/api/asset-types/[id]/assets` | VIEWER | Active assets of this type. `?status=DECOMMISSIONED` lists decommissioned only; `?status=all` lists both |
 | `POST` | `/api/asset-types/[id]/presets` | ADMIN | Create maintenance preset |
 | `GET` | `/api/asset-types/presets/[id]` | VIEWER | Get preset |

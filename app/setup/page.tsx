@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Monitor, Loader2, CheckCircle } from "lucide-react";
+import { apiFetch, jsonBody } from "@/lib/api-client";
+import { apiErrorMessage } from "@/lib/utils";
 
 export default function SetupPage() {
   const router = useRouter();
@@ -36,17 +38,11 @@ export default function SetupPage() {
     }
 
     setLoading(true);
-    const res = await fetch("/api/setup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
-
-    const data = await res.json();
+    const res = await apiFetch("/api/setup", jsonBody("POST", { name, email, password }));
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error || "Setup failed.");
+      setError(apiErrorMessage(res.error, t("failed")));
     } else {
       setDone(true);
       setTimeout(() => router.push("/login"), 2000);

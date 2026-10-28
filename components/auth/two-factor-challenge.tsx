@@ -12,6 +12,7 @@ import { useTranslations } from "next-intl";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { normalizeTotpCode } from "@/lib/two-factor/enrollment-client";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolean }) {
   const t = useTranslations("auth");
@@ -34,7 +35,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
     setLoading(true);
     setError("");
 
-    const res = await fetch("/api/auth/2fa/verify", {
+    const res = await apiFetch("/api/auth/2fa/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: trimmed, rememberMe }),
@@ -43,8 +44,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
     setLoading(false);
 
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(apiErrorMessage(data, t("verificationFailed")));
+      setError(apiErrorMessage(res.error, t("verificationFailed")));
       setCode("");
       inputRef.current?.focus();
       return;
@@ -62,23 +62,20 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
     setError("");
 
     try {
-      const optionsRes = await fetch("/api/auth/passkey/authentication-options", { method: "POST" });
-      const optionsData = await optionsRes.json().catch(() => ({}));
-      if (!optionsRes.ok) {
-        setError(optionsData.error || t("passkeyFailed"));
+      const options = await apiFetch<{ options: Parameters<typeof startAuthentication>[0]["optionsJSON"] }>(
+        "/api/auth/passkey/authentication-options",
+        { method: "POST" }
+      );
+      if (!options.ok) {
+        setError(apiErrorMessage(options.error, t("passkeyFailed")));
         return;
       }
 
-      const assertion = await startAuthentication({ optionsJSON: optionsData.options });
+      const assertion = await startAuthentication({ optionsJSON: options.data.options });
 
-      const verifyRes = await fetch("/api/auth/passkey/authentication-verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ response: assertion, rememberMe }),
-      });
-      const verifyData = await verifyRes.json().catch(() => ({}));
-      if (!verifyRes.ok) {
-        setError(verifyData.error || t("passkeyFailed"));
+      const verify = await apiFetch("/api/auth/passkey/authentication-verify", jsonBody("POST", { response: assertion, rememberMe }));
+      if (!verify.ok) {
+        setError(apiErrorMessage(verify.error, t("passkeyFailed")));
         return;
       }
 

@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { cn, toIsoDay } from "@/lib/utils";
 import { ChevronDown, ChevronUp, Download, Loader2 } from "lucide-react";
 import type { HostnameComplianceResult, TypeCompliance } from "@/lib/compliance/hostname";
+import { downloadFile } from "@/lib/api-client";
 
 function formatRate(rate: number | null): string | null {
   if (rate === null) return null;
@@ -31,23 +32,9 @@ export function HostnameComplianceClient({ result }: { result: HostnameComplianc
 
   async function handleExport() {
     setDownloading(true);
-    try {
-      const res = await fetch("/api/compliance/hostname/export");
-      if (!res.ok) {
-        toast({ title: tCommon("error"), variant: "destructive" });
-        return;
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const date = toIsoDay(new Date());
-      a.href = url;
-      a.download = `sam-hostname-noncompliant-${date}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } finally {
-      setDownloading(false);
-    }
+    const ok = await downloadFile("/api/compliance/hostname/export", `sam-hostname-noncompliant-${toIsoDay(new Date())}.csv`);
+    setDownloading(false);
+    if (!ok) toast({ title: tCommon("error"), variant: "destructive" });
   }
 
   function bucketKey(row: TypeCompliance): string {

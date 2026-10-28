@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, ExternalLink } from "lucide-react";
 import { renderLocationUrl, renderMacAddressUrl } from "@/lib/url-templates";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 export function GeneralSettingsClient({
   initialHostnameUrlTemplate,
@@ -29,7 +30,7 @@ export function GeneralSettingsClient({
 
   async function handleSave() {
     setSaving(true);
-    const res = await fetch("/api/settings/general", {
+    const res = await apiFetch("/api/settings/general", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ hostnameUrlTemplate, macAddressUrlTemplate, locationUrlTemplate }),
@@ -37,8 +38,7 @@ export function GeneralSettingsClient({
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     toast({ title: t("saved") });

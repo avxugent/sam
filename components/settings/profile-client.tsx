@@ -16,6 +16,7 @@ import { cn, apiErrorMessage } from "@/lib/utils";
 import { useTheme, type Theme } from "@/components/theme-provider";
 import { LOCATION_TABS, toLocationTab, type LocationTab } from "@/lib/user-preferences";
 import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 const nameSchema = z.object({
   name: z.string().min(1, "Name is required.").max(128, "Name is too long."),
@@ -54,20 +55,10 @@ export function ProfileClient({
   /** PATCH /api/users/me with `saving` set meanwhile; toasts the error and returns false on failure. */
   async function patchMe(body: object, setSaving: (saving: boolean) => void): Promise<boolean> {
     setSaving(true);
-    try {
-      const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) return true;
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
-    } catch {
-      toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+    const res = await apiFetch("/api/users/me", jsonBody("PATCH", body));
+    setSaving(false);
+    if (res.ok) return true;
+    toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
     return false;
   }
 

@@ -20,6 +20,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 export type WorkLogItem = {
   id: string;
@@ -45,18 +46,17 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
   async function handleAdd() {
     if (!newName.trim()) return;
     setAdding(true);
-    const res = await fetch(API, {
+    const res = await apiFetch<WorkLogItem>(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newName.trim(), description: newDescription.trim() || null }),
     });
     setAdding(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
-    const item = await res.json();
+    const item = res.data;
     setItems((prev) =>
       [...prev, item].sort((a, b) => a.name.localeCompare(b.name))
     );
@@ -73,17 +73,16 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
 
   async function handleEdit(id: string) {
     if (!editName.trim()) return;
-    const res = await fetch(`${API}/${id}`, {
+    const res = await apiFetch<WorkLogItem>(`${API}/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: editName.trim(), description: editDescription.trim() || null }),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
-    const updated = await res.json();
+    const updated = res.data;
     setItems((prev) =>
       prev
         .map((i) => (i.id === id ? { ...i, name: updated.name, description: updated.description } : i))
@@ -94,10 +93,9 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`${API}/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`${API}/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));

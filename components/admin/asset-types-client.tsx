@@ -22,6 +22,7 @@ import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
 import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
 import type { Criticality } from "@/generated/prisma/enums";
 import { CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
+import { apiFetch } from "@/lib/api-client";
 
 type AssetType = {
   id: string;
@@ -80,18 +81,17 @@ export function AssetTypesClient({
   async function handleAdd() {
     if (!newName.trim()) return;
     setAdding(true);
-    const res = await fetch("/api/asset-types", {
+    const res = await apiFetch<AssetType>("/api/asset-types", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newName.trim() }),
     });
     setAdding(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
-    const item = await res.json();
+    const item = res.data;
     setTypes((prev) =>
       [...prev, item].sort(
         (a, b) => a.name.localeCompare(b.name)
@@ -110,19 +110,18 @@ export function AssetTypesClient({
     patch: Partial<AssetType>,
     onError?: (err: Parameters<typeof readMergeConflict>[0]) => boolean
   ): Promise<boolean> {
-    const res = await fetch(`/api/asset-types/${id}`, {
+    const res = await apiFetch<AssetType>(`/api/asset-types/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      if (!onError?.(err)) {
-        toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      if (!onError?.(res.error)) {
+        toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       }
       return false;
     }
-    const updated: AssetType = await res.json();
+    const updated: AssetType = res.data;
     const saved = Object.fromEntries(Object.keys(patch).map((key) => [key, updated[key as keyof AssetType]]));
     setTypes((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...saved } : item)).sort((a, b) => a.name.localeCompare(b.name))
@@ -194,10 +193,9 @@ export function AssetTypesClient({
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/asset-types/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/asset-types/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setTypes((prev) => prev.filter((i) => i.id !== id));

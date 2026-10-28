@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, MapPin, Search, Save, ExternalLink } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type Props = {
   locationId: string;
@@ -74,17 +75,16 @@ export function LocationMap({
     }
     setSearching(true);
     setSearchResults([]);
-    try {
-      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
-      const data: NominatimResult[] = await res.json();
-      setSearchResults(data);
-      if (data.length === 0) {
-        toast({ title: t("geocodeNoResults"), description: t("geocodeNoResultsHint") });
-      }
-    } catch {
-      toast({ title: tCommon("error"), description: "Could not reach geocoding service.", variant: "destructive" });
-    }
+    const res = await apiFetch<NominatimResult[]>(`/api/geocode?q=${encodeURIComponent(query)}`);
     setSearching(false);
+    if (!res.ok || !Array.isArray(res.data)) {
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.ok ? {} : res.error, t("geocodeFailed")), variant: "destructive" });
+      return;
+    }
+    setSearchResults(res.data);
+    if (res.data.length === 0) {
+      toast({ title: t("geocodeNoResults"), description: t("geocodeNoResultsHint") });
+    }
   }
 
   function applyResult(result: NominatimResult) {
@@ -104,7 +104,7 @@ export function LocationMap({
 
   async function handleSave() {
     setSaving(true);
-    const res = await fetch(`/api/locations/${locationId}`, {
+    const res = await apiFetch(`/api/locations/${locationId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -118,8 +118,7 @@ export function LocationMap({
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
 

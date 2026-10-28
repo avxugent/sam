@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 export function ComplianceSettingsClient({
   initialRequireTwoFactor,
@@ -50,7 +51,7 @@ export function ComplianceSettingsClient({
     }
 
     setSaving(true);
-    const res = await fetch("/api/settings/compliance", {
+    const res = await apiFetch("/api/settings/compliance", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -64,8 +65,7 @@ export function ComplianceSettingsClient({
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     toast({ title: t("saved") });

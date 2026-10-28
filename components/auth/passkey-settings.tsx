@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Fingerprint, Loader2, Trash2, Info } from "lucide-react";
 import { registerPasskey } from "@/lib/two-factor/enrollment-client";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 export type PasskeySummary = {
   id: string;
@@ -72,10 +73,9 @@ export function PasskeySettings({ provider, passkeys: initialPasskeys }: Props) 
   }
 
   async function handleRemove(id: string) {
-    const res = await fetch(`/api/auth/passkey/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/auth/passkey/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setPasskeys((prev) => prev.filter((p) => p.id !== id));

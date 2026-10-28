@@ -36,9 +36,31 @@ import { useTranslations } from "next-intl";
 import { MacAddressFields } from "@/components/inventory/mac-address-fields";
 import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
 import type { Criticality } from "@/generated/prisma/enums";
+import { apiFetch } from "@/lib/api-client";
 
 
 type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: Criticality | null };
+
+/** The fields of GET /api/assets/[id] the edit form loads. */
+type EditedAsset = {
+  typeId: string | null;
+  manufacturerId: string | null;
+  modelId: string | null;
+  serialNumber: string | null;
+  hostname: string | null;
+  quantity: number | null;
+  installationDate: string | null;
+  invoiceNumber: string | null;
+  invoiceDate: string | null;
+  notes: string | null;
+  vaultPath: string | null;
+  ownerId: string | null;
+  criticality: Criticality | null;
+  endOfSupportDate: string | null;
+  supplierId: string | null;
+  macAddresses: { address: string }[];
+  customFields: { key: string; value: string }[];
+};
 type Supplier = {
   id: string;
   name: string;
@@ -205,25 +227,22 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
   const fetchDropdowns = useCallback(async () => {
     const [typesRes, suppliersRes, usersRes] = await Promise.all([
-      fetch("/api/asset-types"),
-      fetch("/api/suppliers"),
-      fetch("/api/users/lite"),
+      apiFetch<AssetType[]>("/api/asset-types"),
+      apiFetch<Supplier[]>("/api/suppliers"),
+      apiFetch<UserLite[]>("/api/users/lite"),
     ]);
-    if (typesRes.ok) setAssetTypes(await typesRes.json());
-    let fetchedSuppliers: Supplier[] = [];
-    if (suppliersRes.ok) {
-      fetchedSuppliers = await suppliersRes.json();
-      setSuppliers(fetchedSuppliers);
-    }
-    if (usersRes.ok) setUsersLite(await usersRes.json());
+    if (typesRes.ok) setAssetTypes(typesRes.data);
+    const fetchedSuppliers = suppliersRes.ok ? suppliersRes.data : [];
+    if (suppliersRes.ok) setSuppliers(fetchedSuppliers);
+    if (usersRes.ok) setUsersLite(usersRes.data);
     return fetchedSuppliers;
   }, []);
 
   const fetchAsset = useCallback(async () => {
     if (mode !== "edit" || !assetId) return;
-    const res = await fetch(`/api/assets/${assetId}`);
+    const res = await apiFetch<EditedAsset>(`/api/assets/${assetId}`);
     if (!res.ok) return;
-    const asset = await res.json();
+    const asset = res.data;
     reset({
       typeId: asset.typeId || "",
       manufacturerId: asset.manufacturerId || "",
@@ -246,12 +265,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         ? toIsoDay(asset.endOfSupportDate)
         : "",
       supplierId: asset.supplierId || "",
-      macAddresses: asset.macAddresses.map((m: { address: string }) => ({
-        address: m.address,
-      })),
-      customFields: asset.customFields.map(
-        (f: { key: string; value: string }) => ({ key: f.key, value: f.value })
-      ),
+      macAddresses: asset.macAddresses.map((m) => ({ address: m.address })),
+      customFields: asset.customFields.map((f) => ({ key: f.key, value: f.value })),
     });
   }, [mode, assetId, reset]);
 
@@ -297,18 +312,17 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     if (!path) return;
     setVaultTesting(true);
     setVaultTestResult(null);
-    try {
-      const res = await fetch(`/api/vault/test?path=${encodeURIComponent(path)}`);
-      const data = await res.json().catch(() => ({}));
-      setVaultTestResult({
-        ok: data.ok === true,
-        message: data.message || data.error || t("vaultUnknown"),
-        keys: data.keys,
-      });
-    } catch {
-      setVaultTestResult({ ok: false, message: t("vaultNetworkError") });
-    }
+    const res = await apiFetch<{ message?: string; keys?: string[] }>(`/api/vault/test?path=${encodeURIComponent(path)}`);
     setVaultTesting(false);
+    if (res.ok) {
+      setVaultTestResult({ ok: true, message: res.data.message || t("vaultUnknown"), keys: res.data.keys });
+    } else {
+      setVaultTestResult({
+        ok: false,
+        // status 0: the request never reached the server
+        message: res.status === 0 ? t("vaultNetworkError") : res.error.error || t("vaultUnknown"),
+      });
+    }
   }
 
   async function onSubmit(data: AssetFormValues) {
@@ -338,17 +352,16 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         : `/api/assets/${assetId}`;
     const method = mode === "create" ? "POST" : "PUT";
 
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
       toast({
         title: tCommon("error"),
-        description: apiErrorMessage(err, tCommon("somethingWentWrong")),
+        description: apiErrorMessage(res.error, tCommon("somethingWentWrong")),
         variant: "destructive",
       });
       return;

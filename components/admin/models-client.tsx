@@ -38,6 +38,7 @@ import { apiErrorMessage } from "@/lib/utils";
 import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
 import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
 import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type NameOption = { id: string; name: string };
 
@@ -141,12 +142,11 @@ export function ModelsClient({
     setDrilldownAssets([]);
     setDrilldownStock([]);
     setDrilldownLoading(true);
-    const res = await fetch(`/api/models/${item.id}/usage`);
+    const res = await apiFetch<{ assets: DrilldownAsset[]; stockItems: DrilldownStockItem[] }>(`/api/models/${item.id}/usage`);
     setDrilldownLoading(false);
     if (res.ok) {
-      const data = await res.json();
-      setDrilldownAssets(data.assets);
-      setDrilldownStock(data.stockItems);
+      setDrilldownAssets(res.data.assets);
+      setDrilldownStock(res.data.stockItems);
     }
   }
 
@@ -160,26 +160,17 @@ export function ModelsClient({
       documentationUrl: formDocumentationUrl.trim() || null,
     };
     const res = editingId
-      ? await fetch(`/api/models/${editingId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      : await fetch("/api/models", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+      ? await apiFetch(`/api/models/${editingId}`, jsonBody("PUT", payload))
+      : await apiFetch("/api/models", jsonBody("POST", payload));
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const conflict = editingId ? readMergeConflict(err, editingId, formName.trim()) : null;
+      const conflict = editingId ? readMergeConflict(res.error, editingId, formName.trim()) : null;
       if (conflict) {
         setMergeConflict({ ...conflict, newTypeId: formTypeId, newManufacturerId: formManufacturerId || null });
         return;
       }
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
 
@@ -199,10 +190,9 @@ export function ModelsClient({
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/models/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/models/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setModels((prev) => prev.filter((m) => m.id !== id));

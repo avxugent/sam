@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { DISPOSAL_METHODS } from "@/components/assets/remove-asset-dialog";
 import { BulkResultSummary, type BulkResult } from "@/components/inventory/bulk-result-summary";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type Props = {
   open: boolean;
@@ -45,7 +46,7 @@ export function BulkDecommissionDialog({ open, onOpenChange, assetIds, onComplet
   async function handleSubmit() {
     if (!disposalMethod) return;
     setSubmitting(true);
-    const res = await fetch("/api/assets/bulk-decommission", {
+    const res = await apiFetch("/api/assets/bulk-decommission", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: assetIds, disposalMethod, note: note || null }),
@@ -53,12 +54,11 @@ export function BulkDecommissionDialog({ open, onOpenChange, assetIds, onComplet
     setSubmitting(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
 
-    const data = (await res.json()) as BulkResult;
+    const data = res.data as BulkResult;
     onComplete(data);
     if (data.failed.length === 0) {
       handleClose();

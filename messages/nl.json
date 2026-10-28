@@ -312,7 +312,8 @@
     "deleteHasStock": "Kan een locatie met voorraad niet verwijderen. Verplaats of ontkoppel de voorraad eerst.",
     "assetCount": "{count} {count, plural, =1 {asset} other {assets}}",
     "geocodeNoResults": "Geen resultaten gevonden",
-    "geocodeNoResultsHint": "Probeer een specifieker adres."
+    "geocodeNoResultsHint": "Probeer een specifieker adres.",
+    "geocodeFailed": "De geocodeerdienst is niet bereikbaar."
   },
   "locationForm": {
     "createTitle": "Locatie toevoegen",
@@ -1103,7 +1104,8 @@
     "submitting": "Account aanmaken…",
     "complete": "Setup voltooid. Meld u hieronder aan.",
     "alreadySetup": "Setup is al voltooid. U kunt zich aanmelden.",
-    "goToLogin": "Naar aanmelden"
+    "goToLogin": "Naar aanmelden",
+    "failed": "De installatie is mislukt."
   },
   "search": {
     "title": "Zoeken",

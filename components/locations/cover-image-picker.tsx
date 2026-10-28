@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Check, ImageOff, Loader2, Star } from "lucide-react";
 import { cn, apiErrorMessage } from "@/lib/utils";
 import type { Attachment as GalleryAttachment } from "@/components/attachments/attachment-gallery";
+import { apiFetch } from "@/lib/api-client";
 
 type Attachment = Pick<GalleryAttachment, "id" | "originalName" | "mimeType" | "size">;
 
@@ -33,7 +34,7 @@ export function CoverImagePicker({
 
   async function handleSave(id: string | null) {
     setSaving(true);
-    const res = await fetch(`/api/locations/${locationId}`, {
+    const res = await apiFetch(`/api/locations/${locationId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ coverImageId: id }),
@@ -41,8 +42,7 @@ export function CoverImagePicker({
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
 

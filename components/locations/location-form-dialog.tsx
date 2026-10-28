@@ -32,6 +32,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type LocationFormTranslator = ReturnType<typeof useTranslations<"locationForm">>;
 
@@ -155,23 +156,23 @@ export function LocationFormDialog({
       fiNumber: data.fiNumber || null,
     };
 
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
       // Renaming onto an existing sibling name — offer to merge instead of
       // creating a duplicate.
-      if (err.code === "locationNameExists" && err.existingId) {
-        setMergeTarget({ id: err.existingId, name: err.existingName });
+      const { code, existingId, existingName } = res.error;
+      if (code === "locationNameExists" && typeof existingId === "string") {
+        setMergeTarget({ id: existingId, name: String(existingName ?? "") });
         return;
       }
       toast({
         title: tCommon("error"),
-        description: apiErrorMessage(err, tCommon("somethingWentWrong")),
+        description: apiErrorMessage(res.error, tCommon("somethingWentWrong")),
         variant: "destructive",
       });
       return;
@@ -188,7 +189,7 @@ export function LocationFormDialog({
   async function handleMerge() {
     if (!mergeTarget) return;
     setMerging(true);
-    const res = await fetch(`/api/locations/${locationId}/merge`, {
+    const res = await apiFetch(`/api/locations/${locationId}/merge`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ targetId: mergeTarget.id }),
@@ -196,10 +197,9 @@ export function LocationFormDialog({
     setMerging(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
       toast({
         title: tCommon("error"),
-        description: apiErrorMessage(err, tCommon("somethingWentWrong")),
+        description: apiErrorMessage(res.error, tCommon("somethingWentWrong")),
         variant: "destructive",
       });
       return;

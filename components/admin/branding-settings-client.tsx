@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, Upload, Trash2, Image as ImageIcon } from "lucide-react";
 import { cn, apiErrorMessage } from "@/lib/utils";
 import type { BackgroundMode } from "@/lib/branding/background-mode";
+import { apiFetch } from "@/lib/api-client";
 
 
 export function BrandingSettingsClient({
@@ -56,15 +57,14 @@ export function BrandingSettingsClient({
   async function handleSaveTitle() {
     if (!appTitle.trim()) return;
     setSavingTitle(true);
-    const res = await fetch("/api/settings/branding", {
+    const res = await apiFetch("/api/settings/branding", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ appTitle: appTitle.trim() }),
     });
     setSavingTitle(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     toast({ title: t("saved") });
@@ -77,12 +77,11 @@ export function BrandingSettingsClient({
     setUploadingLogo(true);
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch("/api/settings/branding/logo", { method: "POST", body: fd });
+    const res = await apiFetch("/api/settings/branding/logo", { method: "POST", body: fd });
     setUploadingLogo(false);
     if (logoInputRef.current) logoInputRef.current.value = "";
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setHasLogo(true);
@@ -93,11 +92,10 @@ export function BrandingSettingsClient({
 
   async function handleRemoveLogo() {
     setRemovingLogo(true);
-    const res = await fetch("/api/settings/branding/logo", { method: "DELETE" });
+    const res = await apiFetch("/api/settings/branding/logo", { method: "DELETE" });
     setRemovingLogo(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setHasLogo(false);
@@ -112,12 +110,11 @@ export function BrandingSettingsClient({
     setUploadingFavicon(true);
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch("/api/settings/branding/favicon", { method: "POST", body: fd });
+    const res = await apiFetch("/api/settings/branding/favicon", { method: "POST", body: fd });
     setUploadingFavicon(false);
     if (faviconInputRef.current) faviconInputRef.current.value = "";
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setHasFavicon(true);
@@ -128,11 +125,10 @@ export function BrandingSettingsClient({
 
   async function handleRemoveFavicon() {
     setRemovingFavicon(true);
-    const res = await fetch("/api/settings/branding/favicon", { method: "DELETE" });
+    const res = await apiFetch("/api/settings/branding/favicon", { method: "DELETE" });
     setRemovingFavicon(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setHasFavicon(false);
@@ -147,15 +143,14 @@ export function BrandingSettingsClient({
       return;
     }
     setSavingBackground(true);
-    const res = await fetch("/api/settings/branding", {
+    const res = await apiFetch("/api/settings/branding", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ backgroundMode: mode }),
     });
     setSavingBackground(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setBackgroundMode(mode);
@@ -169,12 +164,11 @@ export function BrandingSettingsClient({
     setUploadingBackground(true);
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch("/api/settings/branding/background", { method: "POST", body: fd });
+    const res = await apiFetch("/api/settings/branding/background", { method: "POST", body: fd });
     setUploadingBackground(false);
     if (backgroundInputRef.current) backgroundInputRef.current.value = "";
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setBackgroundMode("custom");
@@ -186,11 +180,10 @@ export function BrandingSettingsClient({
 
   async function handleRemoveBackground() {
     setRemovingBackground(true);
-    const res = await fetch("/api/settings/branding/background", { method: "DELETE" });
+    const res = await apiFetch("/api/settings/branding/background", { method: "DELETE" });
     setRemovingBackground(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setBackgroundMode("");

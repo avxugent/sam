@@ -11,6 +11,7 @@ import { type FlatLocation } from "@/lib/locations/tree";
 import { LocationSearchList } from "@/components/inventory/location-search-list";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type Props = {
   open: boolean;
@@ -58,7 +59,7 @@ export function MoveAssetDialog({
   async function handleMove() {
     if (!selected) return;
     setSaving(true);
-    const res = await fetch(`/api/assets/${assetId}`, {
+    const res = await apiFetch(`/api/assets/${assetId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ locationId: selected.id }),
@@ -66,8 +67,7 @@ export function MoveAssetDialog({
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
 

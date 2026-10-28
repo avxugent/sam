@@ -21,6 +21,7 @@ import { AssetStateTable, type AssetStateRow } from "@/components/assets/asset-s
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 export type DecommissionedAsset = {
   id: string;
@@ -50,10 +51,9 @@ export function DecommissionedTable({
   const [assets, setAssets] = useState(initialAssets);
 
   async function handleReinstate(id: string) {
-    const res = await fetch(`/api/assets/${id}/reinstate`, { method: "POST" });
+    const res = await apiFetch(`/api/assets/${id}/reinstate`, { method: "POST" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setAssets((prev) => prev.filter((a) => a.id !== id));

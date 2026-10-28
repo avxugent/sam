@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { confirmTotpSetup, normalizeTotpCode, requestTotpSetup } from "@/lib/two-factor/enrollment-client";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type Props = {
   provider: string;
@@ -107,16 +108,11 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
     if (trimmed.length !== 6) return;
 
     setLoading(true);
-    const res = await fetch("/api/auth/2fa/disable", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: trimmed }),
-    });
+    const res = await apiFetch("/api/auth/2fa/disable", jsonBody("POST", { code: trimmed }));
     setLoading(false);
 
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast({ title: t("twoFactorInvalid"), description: apiErrorMessage(data), variant: "destructive" });
+      toast({ title: t("twoFactorInvalid"), description: apiErrorMessage(res.error), variant: "destructive" });
       setDisableCode("");
       return;
     }

@@ -17,6 +17,7 @@ import { validateTemplate } from "@/lib/prometheus/scrape-template";
 import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";
 import { apiErrorMessage } from "@/lib/utils";
 import type { TemplateOverride } from "@/lib/prometheus/template-overrides";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type ManufacturerOption = { id: string; name: string };
 type Kind = "manufacturer" | "model";
@@ -85,10 +86,10 @@ export function TemplateOverridesEditor({
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/asset-types/${assetTypeId}/${path}`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setOverrides(Array.isArray(data) ? data : []))
-      .finally(() => setLoading(false));
+    apiFetch<TemplateOverride[]>(`/api/asset-types/${assetTypeId}/${path}`).then((res) => {
+      setOverrides(res.ok && Array.isArray(res.data) ? res.data : []);
+      setLoading(false);
+    });
   }, [assetTypeId, path]);
 
   // A manufacturer can have one manufacturer-level override; model overrides allow many.
@@ -124,29 +125,23 @@ export function TemplateOverridesEditor({
 
     setSaving(true);
     const res = editing
-      ? await fetch(`/api/asset-types/${path}/${editing.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scrapeTargetTemplate: templateValue }),
-        })
-      : await fetch(`/api/asset-types/${assetTypeId}/${path}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+      ? await apiFetch<TemplateOverride>(`/api/asset-types/${path}/${editing.id}`, jsonBody("PUT", { scrapeTargetTemplate: templateValue }))
+      : await apiFetch<TemplateOverride>(
+          `/api/asset-types/${assetTypeId}/${path}`,
+          jsonBody("POST", {
             manufacturerId: selectedManufacturerId,
             ...(withModel && { model: modelValue.trim() }),
             scrapeTargetTemplate: templateValue,
-          }),
-        });
+          })
+        );
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
 
-    const saved: TemplateOverride = await res.json();
+    const saved = res.data;
     setOverrides((prev) =>
       editing
         ? prev.map((o) => (o.id === saved.id ? saved : o))
@@ -160,10 +155,9 @@ export function TemplateOverridesEditor({
   }
 
   async function handleDelete(override: TemplateOverride) {
-    const res = await fetch(`/api/asset-types/${path}/${override.id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/asset-types/${path}/${override.id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setOverrides((prev) => prev.filter((o) => o.id !== override.id));

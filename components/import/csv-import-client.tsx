@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type PreviewData = {
   totalRows: number;
@@ -83,15 +84,14 @@ export function CsvImportClient() {
     setPreviewLoading(true);
     const fd = new FormData();
     fd.append("file", f);
-    const res = await fetch("/api/import/preview", { method: "POST", body: fd });
+    const res = await apiFetch<PreviewData>("/api/import/preview", { method: "POST", body: fd });
     setPreviewLoading(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: t("previewFailed"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: t("previewFailed"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
-    setPreview(await res.json());
+    setPreview(res.data);
   }
 
   async function handleImport() {
@@ -101,17 +101,16 @@ export function CsvImportClient() {
 
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch("/api/import", { method: "POST", body: fd });
+    const res = await apiFetch<ImportResult>("/api/import", { method: "POST", body: fd });
     setImporting(false);
 
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast({ title: t("importFailed"), description: apiErrorMessage(data), variant: "destructive" });
+      toast({ title: t("importFailed"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
-    setResult(data);
-    if (data.created > 0) {
-      toast({ title: t("assetsCreated", { count: data.created }) });
+    setResult(res.data);
+    if (res.data.created > 0) {
+      toast({ title: t("assetsCreated", { count: res.data.created }) });
     }
   }
 

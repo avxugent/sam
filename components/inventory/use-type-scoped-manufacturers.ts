@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 export type ManufacturerOption = { id: string; name: string };
 
@@ -39,10 +40,9 @@ export function useTypeScopedManufacturers({
     (async () => {
       const params = new URLSearchParams();
       if (typeId) params.set("typeId", typeId);
-      const res = await fetch(`/api/manufacturers?${params}`);
+      const res = await apiFetch<ManufacturerOption[]>(`/api/manufacturers?${params}`);
       if (stale || !res.ok) return;
-      const list: ManufacturerOption[] = await res.json();
-      if (stale) return;
+      const list = res.data;
       setManufacturers(list);
       if (!isInitialLoadRef.current && manufacturerId && !list.some((m) => m.id === manufacturerId)) {
         reportInvalid();

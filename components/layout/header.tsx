@@ -122,16 +122,20 @@ function SearchBar() {
           id: l.id,
           kind: "location",
           title: l.name,
-          subtitle: [l.fiNumber, l._count.assets + " assets"].filter(Boolean).join(" · "),
+          subtitle: [l.fiNumber, tAsset("assetCount", { count: l._count.assets })].filter(Boolean).join(" · "),
           href: `/locations/${l.id}`,
         });
       }
 
       setQuickResults(results);
       setOpen(results.length > 0);
-    } catch (err) {
-      // Aborted because a newer query superseded this one
-      if (!signal.aborted) throw err;
+    } catch {
+      // Aborted because a newer query superseded this one, or the request
+      // failed: either way the dropdown simply shows no quick results.
+      if (!signal.aborted) {
+        setQuickResults([]);
+        setOpen(false);
+      }
     } finally {
       if (!signal.aborted) setLoading(false);
     }

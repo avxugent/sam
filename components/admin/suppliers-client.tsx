@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Loader2, Trash2, ChevronDown, ChevronUp, Save } from "lucide-react";
 import { apiErrorMessage, formatDate, toIsoDay } from "@/lib/utils";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 export type SupplierRow = {
   id: string;
@@ -66,17 +67,13 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
   async function handleAdd() {
     if (!newName.trim()) return;
     setAdding(true);
-    const res = await fetch("/api/suppliers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim() }),
-    });
+    const res = await apiFetch<SupplierRow>("/api/suppliers", jsonBody("POST", { name: newName.trim() }));
     setAdding(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: describeError(await res.json().catch(() => ({}))), variant: "destructive" });
+      toast({ title: tCommon("error"), description: describeError(res.error), variant: "destructive" });
       return;
     }
-    const created = await res.json();
+    const created = res.data;
     setSuppliers((prev) =>
       [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
     );
@@ -103,23 +100,22 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
   async function handleSave(id: string) {
     if (!draft || !draft.name.trim()) return;
     setSaving(true);
-    const res = await fetch(`/api/suppliers/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const res = await apiFetch<Partial<SupplierRow>>(
+      `/api/suppliers/${id}`,
+      jsonBody("PUT", {
         name: draft.name.trim(),
         contractReference: draft.contractReference.trim() || null,
         contactInfo: draft.contactInfo.trim() || null,
         defaultFrom: draft.defaultFrom || null,
         defaultUntil: draft.defaultUntil || null,
-      }),
-    });
+      })
+    );
     setSaving(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: describeError(await res.json().catch(() => ({}))), variant: "destructive" });
+      toast({ title: tCommon("error"), description: describeError(res.error), variant: "destructive" });
       return;
     }
-    const updated = await res.json();
+    const updated = res.data;
     setSuppliers((prev) =>
       prev
         .map((s) => (s.id === id ? { ...s, ...updated } : s))
@@ -132,9 +128,9 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/suppliers/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/suppliers/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(await res.json().catch(() => ({}))), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setSuppliers((prev) => prev.filter((s) => s.id !== id));

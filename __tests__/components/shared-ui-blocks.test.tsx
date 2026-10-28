@@ -80,7 +80,7 @@ describe("AssetDrilldownDialog", () => {
     render(<AssetDrilldownDialog source={{ name: "Laptops", url: "/api/asset-types/t/assets" }} column="manufacturer" onClose={() => {}} />);
     expect(await screen.findByText("XPS")).toBeInTheDocument();
     expect(screen.getByText("Dell")).toBeInTheDocument();
-    expect(mockFetch).toHaveBeenCalledWith("/api/asset-types/t/assets");
+    expect(mockFetch).toHaveBeenCalledWith("/api/asset-types/t/assets", undefined);
   });
 
   it("shows the empty state", async () => {

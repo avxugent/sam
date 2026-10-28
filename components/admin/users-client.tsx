@@ -41,6 +41,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Loader2, ShieldOff, Download } from "lucide-react";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { createUserSchema, editUserFormSchema } from "@/lib/schemas/user";
+import { apiFetch, jsonBody, downloadFile } from "@/lib/api-client";
 
 type User = {
   id: string;
@@ -136,17 +137,16 @@ export function UsersClient({
   const editTwoFactorRequired = useWatch({ control: editForm.control, name: "twoFactorRequired" });
 
   async function handleCreate(data: z.output<typeof createUserSchema>) {
-    const res = await fetch("/api/users", {
+    const res = await apiFetch<User>("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
-    const user = await res.json();
+    const user = res.data;
     setUsers((prev) => [...prev, user].sort((a, b) => a.name.localeCompare(b.name)));
     setCreateOpen(false);
     createForm.reset({ role: "VIEWER" });
@@ -159,27 +159,25 @@ export function UsersClient({
     if (data.password) payload.password = data.password;
     if (data.twoFactorRequired !== undefined) payload.twoFactorRequired = data.twoFactorRequired;
 
-    const res = await fetch(`/api/users/${editUser.id}`, {
+    const res = await apiFetch<User>(`/api/users/${editUser.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
-    const updated = await res.json();
+    const updated = res.data;
     setUsers((prev) => prev.map((u) => (u.id === editUser.id ? updated : u)));
     setEditUser(null);
     toast({ title: t("userUpdated") });
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/users/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setUsers((prev) => prev.filter((u) => u.id !== id));
@@ -198,18 +196,9 @@ export function UsersClient({
           variant="outline"
           className="h-[36px] px-4 rounded-[7px] text-[13px]"
           onClick={async () => {
-            const res = await fetch("/api/users/export");
-            if (!res.ok) {
+            if (!(await downloadFile("/api/users/export", `sam-users-${toIsoDay(new Date())}.csv`))) {
               toast({ title: tCommon("error"), variant: "destructive" });
-              return;
             }
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `sam-users-${toIsoDay(new Date())}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
           }}
         >
           <Download className="h-4 w-4 mr-1" />
@@ -485,14 +474,9 @@ export function UsersClient({
                             <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={async () => {
-                                const res = await fetch("/api/auth/2fa/disable", {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ userId: user.id }),
-                                });
-                                const data = await res.json().catch(() => ({}));
+                                const res = await apiFetch("/api/auth/2fa/disable", jsonBody("POST", { userId: user.id }));
                                 if (!res.ok) {
-                                  toast({ title: tCommon("error"), description: apiErrorMessage(data), variant: "destructive" });
+                                  toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
                                 } else {
                                   setUsers((prev) =>
                                     prev.map((u) =>

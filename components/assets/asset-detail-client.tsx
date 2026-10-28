@@ -47,6 +47,7 @@ import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import type { AssetStatus, Criticality, DisposalMethod } from "@/generated/prisma/enums";
 import { effectiveCriticality } from "@/lib/criticality";
+import { apiFetch } from "@/lib/api-client";
 
 type Asset = {
   id: string;
@@ -158,11 +159,10 @@ export function AssetDetailClient({
 
   async function handleReinstate() {
     setReinstating(true);
-    const res = await fetch(`/api/assets/${asset.id}/reinstate`, { method: "POST" });
+    const res = await apiFetch(`/api/assets/${asset.id}/reinstate`, { method: "POST" });
     setReinstating(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     toast({ title: tDecom("reinstated") });

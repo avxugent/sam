@@ -91,6 +91,7 @@ lib/               — shared code; modules importing next/server are route-hand
   stock-metadata.ts — StockItem.metadata JSON (an asset's identity while in stock); client-safe
   mac-address.ts   — canonical MAC address form + validation; client-safe
   url-templates.ts — hostname / MAC / location link templates
+  api-client.ts    — apiFetch / jsonBody / downloadFile for client components; client-safe
   inventory-snapshot.ts — JSON inventory snapshot (export route + backup script)
   work-log-include.ts — relations returned with every work-log entry
   assets/          — lifecycle rules (pure), state transitions (writes + audit), input checks + nested rows, shared response includes, creation defaults, type icons
@@ -157,7 +158,7 @@ prisma/
 - All handlers return `NextResponse.json(...)`.
 - Auth errors: `401` for unauthenticated, `403` for insufficient role.
 - Read request bodies with `readJsonBody(req)` (malformed JSON becomes a Zod 400, not a 500) and return Zod failures with `invalidInput(parsed.error)` — `400` with `{ error: "Invalid input", details }`.
-- Error bodies are `{ error, code?, details? }`: `error` is readable English, `code` a stable id for a case the client localizes, `details` either `string[]` or the Zod flatten object. Clients read error bodies with `await res.json().catch(() => ({}))` (a 500 may have no JSON body) and show them with `apiErrorMessage()` from `lib/utils.ts`.
+- Error bodies are `{ error, code?, details? }`: `error` is readable English, `code` a stable id for a case the client localizes, `details` either `string[]` or the Zod flatten object. Client components call the API through `apiFetch()` from `lib/api-client.ts` (it never throws: a network failure is `{ ok: false, status: 0 }`, a body-less 500 gives `error: {}`), show `res.error` with `apiErrorMessage()` from `lib/utils.ts`, and download CSV exports with `downloadFile()`. Only the abortable search requests use `fetch` directly.
 - Conflict (unique constraint): `409`. Detect it with `isUniqueConstraintError(err)`; never map every caught error to one status — rethrow what you don't handle.
 - `DELETE` handlers return `200` with `{ ok: true }`.
 - All write endpoints validate input with Zod before touching the database.

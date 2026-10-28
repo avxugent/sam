@@ -73,7 +73,7 @@ describe("<StockItemFormDialog /> create", () => {
 
   it("loads dropdown options from the API when opened", async () => {
     await openCreate();
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith("/api/asset-types"));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith("/api/asset-types", undefined));
     await waitFor(() =>
       expect(mockFetch.mock.calls.some(([url]) => (url as string).startsWith("/api/manufacturers"))).toBe(true)
     );

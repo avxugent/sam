@@ -48,6 +48,7 @@ import { renderLocationUrl } from "@/lib/url-templates";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type Breadcrumb = { id: string; name: string };
 
@@ -143,15 +144,14 @@ export function LocationDetailClient({
   // status; the API rejects setting it on a location with sub-locations.
   async function toggleMaintenance(targetId: string, current: boolean) {
     setMaintPendingId(targetId);
-    const res = await fetch(`/api/locations/${targetId}`, {
+    const res = await apiFetch(`/api/locations/${targetId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ inMaintenance: !current }),
     });
     setMaintPendingId(null);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     const next = !current;
@@ -167,14 +167,13 @@ export function LocationDetailClient({
     const url = hasSubLocations
       ? `/api/locations/${location.id}?cascade=true`
       : `/api/locations/${location.id}`;
-    const res = await fetch(url, { method: "DELETE" });
+    const res = await apiFetch(url, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const description = err.code === "hasSublocations"
+      const description = res.error.code === "hasSublocations"
         ? t("deleteHasSubLocations")
-        : err.code === "hasStock"
+        : res.error.code === "hasStock"
         ? t("deleteHasStock")
-        : apiErrorMessage(err);
+        : apiErrorMessage(res.error);
       toast({ title: tCommon("error"), description, variant: "destructive" });
       return;
     }

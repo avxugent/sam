@@ -31,7 +31,7 @@ describe("TemplateOverridesEditor", () => {
     mockFetch.mockResolvedValueOnce(json([{ id: "o1", manufacturerId: "m1", manufacturerName: "Dell", scrapeTargetTemplate: "a=b" }]));
     render(<TemplateOverridesEditor kind="manufacturer" assetTypeId="t1" manufacturers={manufacturers} />);
     expect(await screen.findByText("Dell")).toBeInTheDocument();
-    expect(mockFetch).toHaveBeenCalledWith("/api/asset-types/t1/manufacturer-templates");
+    expect(mockFetch).toHaveBeenCalledWith("/api/asset-types/t1/manufacturer-templates", undefined);
 
     await userEvent.click(screen.getByRole("button", { name: /addOverride/ }));
     const select = screen.getByLabelText("selectManufacturer");

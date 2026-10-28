@@ -7,6 +7,7 @@ import { Download, ExternalLink, Pencil, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { downloadFile } from "@/lib/api-client";
 
 /** Summary + edit/export actions + result filter shown above every report table. */
 export function ReportToolbar({
@@ -31,18 +32,8 @@ export function ReportToolbar({
   const { toast } = useToast();
 
   async function handleExport() {
-    const res = await fetch(`/api/reports/${reportId}/export`);
-    if (!res.ok) {
-      toast({ title: tCommon("error"), variant: "destructive" });
-      return;
-    }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${reportName.replace(/[^a-z0-9]/gi, "_")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const ok = await downloadFile(`/api/reports/${reportId}/export`, `${reportName.replace(/[^a-z0-9]/gi, "_")}.csv`);
+    if (!ok) toast({ title: tCommon("error"), variant: "destructive" });
   }
 
   return (

@@ -13,6 +13,7 @@ import { type FlatLocation } from "@/lib/locations/tree";
 import { LocationSearchList } from "@/components/inventory/location-search-list";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type Props = {
   open: boolean;
@@ -78,7 +79,7 @@ export function DeployStockDialog({
       body.serialNumbers = serialInputs.map((s) => s.trim());
     }
 
-    const res = await fetch(`/api/stock/${itemId}/deploy`, {
+    const res = await apiFetch(`/api/stock/${itemId}/deploy`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -86,8 +87,7 @@ export function DeployStockDialog({
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: t("deployFailed"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: t("deployFailed"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
 

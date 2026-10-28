@@ -29,6 +29,7 @@ import { useTranslations } from "next-intl";
 import { JIRA_KEY_REGEX, createWorkLogSchema } from "@/lib/schemas/work-log";
 import { z } from "zod";
 import { toIsoDay, apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type WorkLogFormValues = z.infer<typeof createWorkLogSchema>;
 
@@ -149,10 +150,10 @@ export function WorkLogFormDialog({
       return;
     }
     setPresetsLoading(true);
-    fetch(`/api/asset-types/${asset.typeId}/presets`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setPresets(Array.isArray(data) ? data : []))
-      .finally(() => setPresetsLoading(false));
+    apiFetch<Preset[]>(`/api/asset-types/${asset.typeId}/presets`).then((res) => {
+      setPresets(res.ok && Array.isArray(res.data) ? res.data : []);
+      setPresetsLoading(false);
+    });
   }, [assetIdValue, assets]);
 
   function applyPreset(preset: Preset) {
@@ -179,17 +180,16 @@ export function WorkLogFormDialog({
       jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null,
     };
 
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
       toast({
         title: tCommon("error"),
-        description: apiErrorMessage(err, tCommon("somethingWentWrong")),
+        description: apiErrorMessage(res.error, tCommon("somethingWentWrong")),
         variant: "destructive",
       });
       return;

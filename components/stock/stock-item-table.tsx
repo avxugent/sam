@@ -42,6 +42,7 @@ import { SortableTh } from "@/components/ui/sortable-th";
 import { toIsoDay, apiErrorMessage } from "@/lib/utils";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
 import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
+import { apiFetch } from "@/lib/api-client";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
@@ -131,10 +132,9 @@ export function StockItemTable({
   const someFilteredSelected = someSelectedIn(filtered);
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/stock/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/stock/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));

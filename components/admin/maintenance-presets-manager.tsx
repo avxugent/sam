@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Plus, Trash2, Wrench } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type Preset = {
   id: string;
@@ -27,27 +28,26 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/asset-types/${assetTypeId}/presets`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setPresets(Array.isArray(data) ? data : []))
-      .finally(() => setLoading(false));
+    apiFetch<Preset[]>(`/api/asset-types/${assetTypeId}/presets`).then((res) => {
+      setPresets(res.ok && Array.isArray(res.data) ? res.data : []);
+      setLoading(false);
+    });
   }, [assetTypeId]);
 
   async function handleAdd() {
     if (!newName.trim()) return;
     setAdding(true);
-    const res = await fetch(`/api/asset-types/${assetTypeId}/presets`, {
+    const res = await apiFetch<Preset>(`/api/asset-types/${assetTypeId}/presets`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newName.trim(), description: newDesc.trim() || null }),
     });
     setAdding(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
-    const created = await res.json();
+    const created = res.data;
     setPresets((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
     setNewName("");
     setNewDesc("");
@@ -55,10 +55,9 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/asset-types/presets/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/asset-types/presets/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
     setPresets((prev) => prev.filter((p) => p.id !== id));

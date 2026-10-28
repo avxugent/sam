@@ -13,6 +13,7 @@ import { apiErrorMessage } from "@/lib/utils";
 import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
 import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
 import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
+import { apiFetch } from "@/lib/api-client";
 
 type Manufacturer = {
   id: string;
@@ -49,18 +50,17 @@ export function ManufacturersClient({
   async function handleAdd() {
     if (!newName.trim()) return;
     setAdding(true);
-    const res = await fetch("/api/manufacturers", {
+    const res = await apiFetch<Manufacturer>("/api/manufacturers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newName.trim() }),
     });
     setAdding(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
-    const item = await res.json();
+    const item = res.data;
     setItems((prev) =>
       [...prev, item].sort((a, b) => a.name.localeCompare(b.name))
     );
@@ -70,23 +70,22 @@ export function ManufacturersClient({
 
   async function handleEdit(id: string) {
     if (!editName.trim()) return;
-    const res = await fetch(`/api/manufacturers/${id}`, {
+    const res = await apiFetch<Manufacturer>(`/api/manufacturers/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: editName.trim() }),
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const conflict = readMergeConflict(err, id, editName.trim());
+      const conflict = readMergeConflict(res.error, id, editName.trim());
       if (conflict) {
         setMergeConflict(conflict);
         return;
       }
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
-    const updated = await res.json();
+    const updated = res.data;
     setItems((prev) =>
       prev
         .map((i) => (i.id === id ? { ...i, name: updated.name } : i))
@@ -110,10 +109,9 @@ export function ManufacturersClient({
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/manufacturers/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/manufacturers/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));

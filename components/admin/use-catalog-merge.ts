@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useToast } from "@/components/ui/use-toast";
 import { apiErrorMessage } from "@/lib/utils";
 import type { MergeResult } from "@/lib/route-helpers";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 /**
  * POSTs a catalog merge (`/api/<resource>/<sourceId>/merge`) and toasts the
@@ -17,18 +18,13 @@ export function useCatalogMerge(resource: "asset-types" | "manufacturers" | "mod
 
   async function merge(sourceId: string, targetId: string): Promise<MergeResult | null> {
     setMerging(true);
-    const res = await fetch(`/api/${resource}/${sourceId}/merge`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetId }),
-    });
+    const res = await apiFetch<MergeResult>(`/api/${resource}/${sourceId}/merge`, jsonBody("POST", { targetId }));
     setMerging(false);
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(data, tCommon("somethingWentWrong")), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
       return null;
     }
-    return data as MergeResult;
+    return res.data;
   }
 
   /** "3 assets and 1 stock item moved." */

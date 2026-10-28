@@ -42,6 +42,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api-client";
 
 export type Attachment = {
   id: string;
@@ -146,12 +147,11 @@ export function AttachmentGallery({
       formData.append("file", file);
       if (locationId) formData.append("locationId", locationId);
       if (assetId) formData.append("assetId", assetId);
-      const res = await fetch("/api/attachments", { method: "POST", body: formData });
+      const res = await apiFetch<Attachment>("/api/attachments", { method: "POST", body: formData });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast({ title: t("uploadFailed"), description: apiErrorMessage(err, file.name), variant: "destructive" });
+        toast({ title: t("uploadFailed"), description: apiErrorMessage(res.error, file.name), variant: "destructive" });
       } else {
-        const attachment = await res.json();
+        const attachment = res.data;
         onUpdate((current) => [attachment, ...current]);
       }
     }
@@ -163,18 +163,17 @@ export function AttachmentGallery({
     e.preventDefault();
     if (!linkUrl || !linkLabel) return;
     setAddingLink(true);
-    const res = await fetch("/api/attachments", {
+    const res = await apiFetch<Attachment>("/api/attachments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: linkUrl, label: linkLabel, description: linkDesc || null, locationId, assetId }),
     });
     setAddingLink(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
-    const attachment = await res.json();
+    const attachment = res.data;
     onUpdate((current) => [attachment, ...current]);
     setShowLinkDialog(false);
     setLinkUrl(""); setLinkLabel(""); setLinkDesc("");
@@ -185,7 +184,7 @@ export function AttachmentGallery({
     e.preventDefault();
     if (!editingId) return;
     setSaving(true);
-    const res = await fetch(`/api/attachments/${editingId}`, {
+    const res = await apiFetch<Attachment>(`/api/attachments/${editingId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -196,21 +195,19 @@ export function AttachmentGallery({
     });
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
-    const updated = await res.json();
+    const updated = res.data;
     onUpdate((current) => current.map((a) => (a.id === editingId ? updated : a)));
     setEditingId(null);
     toast({ title: t("attachmentUpdated") });
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/attachments/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/attachments/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     toast({ title: t("deleted") });

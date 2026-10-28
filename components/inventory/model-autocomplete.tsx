@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 export type ModelOption = {
   id: string;
@@ -54,10 +55,9 @@ export function ModelAutocomplete({
       const params = new URLSearchParams();
       if (typeId) params.set("typeId", typeId);
       if (manufacturerId) params.set("manufacturerId", manufacturerId);
-      const res = await fetch(`/api/models?${params}`);
+      const res = await apiFetch<unknown>(`/api/models?${params}`);
       if (cancelled || !res.ok) return;
-      const data = await res.json();
-      if (Array.isArray(data)) setModels(data);
+      if (Array.isArray(res.data)) setModels(res.data);
     })();
     return () => { cancelled = true; };
   }, [typeId, manufacturerId]);

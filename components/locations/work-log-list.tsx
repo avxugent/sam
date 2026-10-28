@@ -23,6 +23,7 @@ import { useTranslations } from "next-intl";
 import { formatDate, getInitials, apiErrorMessage } from "@/lib/utils";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
+import { apiFetch } from "@/lib/api-client";
 
 export type WorkLogEntry = {
   id: string;
@@ -95,10 +96,9 @@ export function WorkLogList({
   });
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/work-logs/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/work-logs/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== id));

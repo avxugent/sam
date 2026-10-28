@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type DrilldownAsset = {
   id: string;
@@ -43,14 +44,11 @@ export function AssetDrilldownDialog({
     let stale = false;
     setAssets([]);
     setLoading(true);
-    fetch(source.url)
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data: DrilldownAsset[]) => {
-        if (!stale) setAssets(data);
-      })
-      .finally(() => {
-        if (!stale) setLoading(false);
-      });
+    apiFetch<DrilldownAsset[]>(source.url).then((res) => {
+      if (stale) return;
+      setAssets(res.ok ? res.data : []);
+      setLoading(false);
+    });
     return () => {
       stale = true;
     };

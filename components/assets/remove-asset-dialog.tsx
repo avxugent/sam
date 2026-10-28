@@ -12,6 +12,7 @@ import { cn, apiErrorMessage } from "@/lib/utils";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { DisposalMethod } from "@/generated/prisma/enums";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
+import { apiFetch } from "@/lib/api-client";
 
 /** Disposal evidence options, in the order the Prisma enum defines them. */
 export const DISPOSAL_METHODS = Object.values(DisposalMethod);
@@ -108,15 +109,14 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
   async function handleStock() {
     if (!selectedLocationId) return;
     setSubmitting(true);
-    const res = await fetch(`/api/assets/${assetId}/return-to-stock`, {
+    const res = await apiFetch(`/api/assets/${assetId}/return-to-stock`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ locationId: selectedLocationId }),
     });
     setSubmitting(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     toast({ title: t("returnedToStock") });
@@ -126,15 +126,14 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
   async function handleDecommission() {
     if (!disposalMethod) return;
     setSubmitting(true);
-    const res = await fetch(`/api/assets/${assetId}/decommission`, {
+    const res = await apiFetch(`/api/assets/${assetId}/decommission`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ note: decommissionNote || null, disposalMethod }),
     });
     setSubmitting(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     toast({ title: tDecom("decommissionAsset") });
@@ -143,15 +142,14 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
 
   async function handleSendForRepair() {
     setSubmitting(true);
-    const res = await fetch(`/api/assets/${assetId}/send-for-repair`, {
+    const res = await apiFetch(`/api/assets/${assetId}/send-for-repair`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ note: repairNote || null }),
     });
     setSubmitting(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     toast({ title: tRepair("assetSentForRepair") });
@@ -160,11 +158,10 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
 
   async function handleDelete() {
     setSubmitting(true);
-    const res = await fetch(`/api/assets/${assetId}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/assets/${assetId}`, { method: "DELETE" });
     setSubmitting(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
     toast({ title: t("assetDeleted") });

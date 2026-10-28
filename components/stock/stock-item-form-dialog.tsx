@@ -21,6 +21,7 @@ import { MacAddressFields } from "@/components/inventory/mac-address-fields";
 import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
+import { apiFetch } from "@/lib/api-client";
 
 type StockItemFormValues = {
   typeId: string;
@@ -147,9 +148,9 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   // Fetch dropdown options when dialog opens
   useEffect(() => {
     if (!open) return;
-    fetch("/api/asset-types")
-      .then((r) => r.json())
-      .then((types: AssetType[]) => setAssetTypes(types));
+    apiFetch<AssetType[]>("/api/asset-types").then((res) => {
+      if (res.ok) setAssetTypes(res.data);
+    });
   }, [open]);
 
   const manufacturers = useTypeScopedManufacturers({
@@ -177,7 +178,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     const url = mode === "create" ? "/api/stock" : `/api/stock/${itemId}`;
     const method = mode === "create" ? "POST" : "PUT";
 
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -193,8 +194,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
 

@@ -10,6 +10,7 @@ import { StockLocationPicker } from "@/components/inventory/stock-location-picke
 import { BulkResultSummary, type BulkResult } from "@/components/inventory/bulk-result-summary";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
 import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type Props = {
   open: boolean;
@@ -36,7 +37,7 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
 
   async function handleSubmit() {
     setSubmitting(true);
-    const res = await fetch("/api/stock/bulk-relocate", {
+    const res = await apiFetch("/api/stock/bulk-relocate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: itemIds, locationId: selectedLocationId || null }),
@@ -44,12 +45,11 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
     setSubmitting(false);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
     }
 
-    const data = (await res.json()) as BulkResult;
+    const data = res.data as BulkResult;
     onComplete(data);
     if (data.failed.length === 0) {
       handleClose();

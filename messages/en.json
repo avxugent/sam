@@ -312,7 +312,8 @@
     "deleteHasStock": "Cannot delete a location that still holds stock. Move or unassign the stock first.",
     "assetCount": "{count} {count, plural, =1 {asset} other {assets}}",
     "geocodeNoResults": "No results found",
-    "geocodeNoResultsHint": "Try a more specific address."
+    "geocodeNoResultsHint": "Try a more specific address.",
+    "geocodeFailed": "Could not reach the geocoding service."
   },
   "locationForm": {
     "createTitle": "Add location",
@@ -1103,7 +1104,8 @@
     "submitting": "Creating account…",
     "complete": "Setup complete. Sign in below.",
     "alreadySetup": "Setup already complete. You can sign in.",
-    "goToLogin": "Go to sign-in"
+    "goToLogin": "Go to sign-in",
+    "failed": "Setup failed."
   },
   "search": {
     "title": "Search",

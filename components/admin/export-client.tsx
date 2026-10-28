@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Download, Loader2, Save, Calendar } from "lucide-react";
 import { toIsoDay } from "@/lib/utils";
+import { apiFetch, downloadFile } from "@/lib/api-client";
 
 export function ExportClient({
   initialCronExpression,
@@ -29,29 +30,14 @@ export function ExportClient({
 
   async function download(endpoint: string, prefix: string, kind: "active" | "decommissioned" | "stock") {
     setDownloading(kind);
-    try {
-      const res = await fetch(endpoint);
-      if (!res.ok) {
-        toast({ title: tCommon("error"), variant: "destructive" });
-        return;
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const date = toIsoDay(new Date());
-      a.href = url;
-      a.download = `${prefix}-${date}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast({ title: t("exportComplete") });
-    } finally {
-      setDownloading(null);
-    }
+    const ok = await downloadFile(endpoint, `${prefix}-${toIsoDay(new Date())}.csv`);
+    setDownloading(null);
+    toast(ok ? { title: t("exportComplete") } : { title: tCommon("error"), variant: "destructive" });
   }
 
   async function handleSave() {
     setSaving(true);
-    const res = await fetch("/api/settings/export", {
+    const res = await apiFetch("/api/settings/export", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cronExpression, outputDir, enabled }),

@@ -17,10 +17,10 @@ import { cn } from "@/lib/utils";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
 import { MacAddressFields } from "@/components/inventory/mac-address-fields";
 import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
+import { useLocationOptions } from "@/components/inventory/use-location-options";
 
 type StockItemFormValues = {
   typeId: string;
@@ -97,7 +97,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
-  const [locations, setLocations] = useState<FlatLocation[]>([]);
+  const { locations } = useLocationOptions(open);
   // Initialised synchronously from prop so the value is ready before any fetch completes
   const [selectedTypeId, setSelectedTypeId] = useState(initialData?.typeId ?? "");
   const [selectedMfgId, setSelectedMfgId] = useState(initialData?.manufacturerId ?? "");
@@ -147,13 +147,9 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   // Fetch dropdown options when dialog opens
   useEffect(() => {
     if (!open) return;
-    Promise.all([
-      fetch("/api/asset-types").then((r) => r.json()),
-      fetch("/api/locations").then((r) => r.json()),
-    ]).then(([types, locTree]) => {
-      setAssetTypes(types as AssetType[]);
-      setLocations(flattenLocations(locTree as LocationTreeNode[]));
-    });
+    fetch("/api/asset-types")
+      .then((r) => r.json())
+      .then((types: AssetType[]) => setAssetTypes(types));
   }, [open]);
 
   const manufacturers = useTypeScopedManufacturers({

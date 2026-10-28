@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Package, ArchiveX, Trash2, ChevronRight, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { DisposalMethod } from "@/generated/prisma/enums";
+import { useLocationOptions } from "@/components/inventory/use-location-options";
 
 /** Disposal evidence options, in the order the Prisma enum defines them. */
 export const DISPOSAL_METHODS = Object.values(DisposalMethod);
@@ -78,11 +78,11 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("choose");
+  const { locations } = useLocationOptions(step === "stock");
   const [submitting, setSubmitting] = useState(false);
   const [disposalMethod, setDisposalMethod] = useState("");
   const [decommissionNote, setDecommissionNote] = useState("");
   const [repairNote, setRepairNote] = useState("");
-  const [locations, setLocations] = useState<FlatLocation[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState("");
 
   function reset() {
@@ -98,13 +98,6 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
     setOpen(next);
     if (!next) reset();
   }
-
-  useEffect(() => {
-    if (step !== "stock" || locations.length > 0) return;
-    fetch("/api/locations")
-      .then((r) => r.json())
-      .then((tree: LocationTreeNode[]) => setLocations(flattenLocations(tree)));
-  }, [step, locations.length]);
 
   function finish(action: RemoveAction) {
     setOpen(false);

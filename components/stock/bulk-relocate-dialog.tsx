@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { BulkResultSummary, type BulkResult } from "@/components/inventory/bulk-result-summary";
+import { useLocationOptions } from "@/components/inventory/use-location-options";
 
 type Props = {
   open: boolean;
@@ -22,17 +22,10 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
   const tCommon = useTranslations("common");
   const { toast } = useToast();
 
-  const [locations, setLocations] = useState<FlatLocation[]>([]);
+  const { locations } = useLocationOptions(open);
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<BulkResult | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    fetch("/api/locations")
-      .then((r) => r.json())
-      .then((tree: LocationTreeNode[]) => setLocations(flattenLocations(tree)));
-  }, [open]);
 
   function handleClose() {
     onOpenChange(false);

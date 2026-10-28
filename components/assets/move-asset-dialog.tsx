@@ -7,8 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { MapPin, Loader2 } from "lucide-react";
-import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
+import { type FlatLocation } from "@/lib/location-tree";
 import { LocationSearchList } from "@/components/inventory/location-search-list";
+import { useLocationOptions } from "@/components/inventory/use-location-options";
 
 type Props = {
   open: boolean;
@@ -31,8 +32,7 @@ export function MoveAssetDialog({
   const { toast } = useToast();
   const t = useTranslations("asset");
   const tCommon = useTranslations("common");
-  const [locations, setLocations] = useState<FlatLocation[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { locations, loading } = useLocationOptions(open);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<FlatLocation | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -43,13 +43,7 @@ export function MoveAssetDialog({
     if (!open) return;
     setQuery("");
     setSelected(null);
-    setLoading(true);
-    fetch("/api/locations")
-      .then((r) => r.json())
-      .then((tree: LocationTreeNode[]) => setLocations(flattenLocations(tree)))
-      .catch(() => toast({ title: tCommon("error"), variant: "destructive" }))
-      .finally(() => setLoading(false));
-  }, [open, toast, tCommon]);
+  }, [open]);
 
   useEffect(() => {
     if (open && !loading) {

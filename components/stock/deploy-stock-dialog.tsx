@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
-import { flattenLocations, type LocationTreeNode, type FlatLocation } from "@/lib/location-tree";
+import { type FlatLocation } from "@/lib/location-tree";
 import { LocationSearchList } from "@/components/inventory/location-search-list";
+import { useLocationOptions } from "@/components/inventory/use-location-options";
 
 type Props = {
   open: boolean;
@@ -34,8 +35,7 @@ export function DeployStockDialog({
   const t = useTranslations("deploy");
   const tCommon = useTranslations("common");
   const tStock = useTranslations("stock");
-  const [locations, setLocations] = useState<FlatLocation[]>([]);
-  const [loadingLocations, setLoadingLocations] = useState(false);
+  const { locations, loading: loadingLocations } = useLocationOptions(open);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<FlatLocation | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -53,13 +53,7 @@ export function DeployStockDialog({
     setSelected(null);
     setQuantity(isSerialized ? 1 : 1);
     setSerialInputs([]);
-    setLoadingLocations(true);
-    fetch("/api/locations")
-      .then((r) => r.json())
-      .then((tree: LocationTreeNode[]) => setLocations(flattenLocations(tree)))
-      .catch(() => toast({ title: tCommon("loadLocationsFailed"), variant: "destructive" }))
-      .finally(() => setLoadingLocations(false));
-  }, [open, isSerialized, toast, tCommon]);
+  }, [open, isSerialized]);
 
   useEffect(() => {
     if (open && !loadingLocations) {

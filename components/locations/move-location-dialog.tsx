@@ -8,8 +8,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
-import { flattenLocations, type LocationTreeNode, collectSubtreeIds, type FlatLocation } from "@/lib/location-tree";
+import { flattenLocations, collectSubtreeIds, type FlatLocation } from "@/lib/location-tree";
 import { LocationSearchList } from "@/components/inventory/location-search-list";
+import { useLocationOptions } from "@/components/inventory/use-location-options";
 
 type Props = {
   open: boolean;
@@ -32,8 +33,12 @@ export function MoveLocationDialog({
   const { toast } = useToast();
   const t = useTranslations("location");
   const tCommon = useTranslations("common");
-  const [locations, setLocations] = useState<FlatLocation[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { locations, loading } = useLocationOptions(open, (tree) =>
+    flattenLocations(tree, {
+      prune: collectSubtreeIds(tree, locationId),
+      hide: new Set<string>(currentParentId ? [currentParentId] : []),
+    })
+  );
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<FlatLocation | null>(null);
   const [saving, setSaving] = useState(false);
@@ -45,17 +50,7 @@ export function MoveLocationDialog({
     setQuery("");
     setSelected(null);
     setConfirmOpen(false);
-    setLoading(true);
-    fetch("/api/locations")
-      .then((r) => r.json())
-      .then((tree: LocationTreeNode[]) => {
-        const pruneIds = collectSubtreeIds(tree, locationId);
-        const hideIds = new Set<string>(currentParentId ? [currentParentId] : []);
-        setLocations(flattenLocations(tree, { prune: pruneIds, hide: hideIds }));
-      })
-      .catch(() => toast({ title: tCommon("error"), variant: "destructive" }))
-      .finally(() => setLoading(false));
-  }, [open, locationId, currentParentId, toast, tCommon]);
+  }, [open]);
 
   useEffect(() => {
     if (open && !loading) {

@@ -33,9 +33,6 @@ export default defineConfig({
         // Infrastructure / config — tested indirectly
         "lib/prisma.ts",
         "lib/auth.ts",
-        // API routes not yet held to the threshold. Remove an entry once the
-        // route has tests that keep the totals above 80%.
-        "app/api/vault/**",
         // UI-only components without meaningful logic (pass-through wrappers)
         "components/ui/toast.tsx",
         "components/ui/toaster.tsx",

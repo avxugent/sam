@@ -146,7 +146,8 @@ export async function GET(
     if (err instanceof StorageNotFoundError) {
       return NextResponse.json({ error: "File not found." }, { status: 404 });
     }
-    return NextResponse.json({ error: "Failed to read file." }, { status: 500 });
+    console.error("[attachments] storage read failed", err);
+    return NextResponse.json({ error: "Could not read the stored file. Please try again." }, { status: 502 });
   }
 
   const safeName = safeFilename(attachment.originalName);

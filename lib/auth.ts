@@ -282,7 +282,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user.id) {
         await prisma.user
           .update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
-          .catch(() => {});
+          // A failed timestamp write must not block the login itself.
+          .catch((err) => console.warn("[auth] failed to record lastLoginAt:", err instanceof Error ? err.message : err));
       }
     },
 

@@ -34,15 +34,15 @@ export default async function DashboardLayout({
   const assetCountMap = await getRecursiveAssetCounts();
 
   const [stockItemCount, decommissionedCount, inRepairCount, stockTypes, brandingMap] = await Promise.all([
-    prisma.stockItem.count().catch(() => 0),
-    prisma.asset.count({ where: { status: "DECOMMISSIONED" } }).catch(() => 0),
-    prisma.asset.count({ where: { status: "IN_REPAIR" } }).catch(() => 0),
+    prisma.stockItem.count(),
+    prisma.asset.count({ where: { status: "DECOMMISSIONED" } }),
+    prisma.asset.count({ where: { status: "IN_REPAIR" } }),
     prisma.assetType.findMany({
       where: { stockItems: { some: {} } },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
-    }).catch(() => [] as { id: string; name: string }[]),
-    readSettings(["app.title", "branding.logoStorageKey"]).catch(() => ({} as Record<string, string>)),
+    }),
+    readSettings(["app.title", "branding.logoStorageKey"]),
   ]);
 
   const appTitle = brandingMap["app.title"] || "SAM";

@@ -268,6 +268,22 @@ describe("GET /api/attachments/[id]", () => {
     expect(res.status).toBe(404);
   });
 
+  it("returns a logged 502 when storage fails for another reason", async () => {
+    mockAuth.mockResolvedValue(viewerSession() as never);
+    mockFindUnique.mockResolvedValue({
+      id: "a", attachmentType: "file", path: "locations/x/y.png", originalName: "y.png", mimeType: "image/png",
+    } as never);
+    getObject.mockRejectedValue(new Error("S3 timeout"));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const res = await GET(new NextRequest("http://x/api/attachments/a"), {
+      params: Promise.resolve({ id: "a" }),
+    });
+    expect(res.status).toBe(502);
+    expect(errSpy).toHaveBeenCalledWith("[attachments] storage read failed", expect.any(Error));
+    errSpy.mockRestore();
+  });
+
   it("happy path: streams body with Content-Type and Content-Disposition", async () => {
     mockAuth.mockResolvedValue(viewerSession() as never);
     mockFindUnique.mockResolvedValue({

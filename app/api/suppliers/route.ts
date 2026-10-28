@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
         defaultFrom: parsed.data.defaultFrom ? new Date(parsed.data.defaultFrom) : null,
         defaultUntil: parsed.data.defaultUntil ? new Date(parsed.data.defaultUntil) : null,
       },
+      // Same shape as a GET list item, so the client can insert it as-is.
+      include: { _count: { select: { assets: true } } },
     });
     await logAudit({
       session,

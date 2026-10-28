@@ -93,7 +93,7 @@ export function AssetTypesClient({
     }
     const item = await res.json();
     setTypes((prev) =>
-      [...prev, { ...item, scrapeTargetTemplate: null, prometheusExposed: true, hostnamePattern: null, defaultCriticality: null, _count: { assets: 0 } }].sort(
+      [...prev, item].sort(
         (a, b) => a.name.localeCompare(b.name)
       )
     );

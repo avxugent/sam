@@ -58,7 +58,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
     }
     const item = await res.json();
     setItems((prev) =>
-      [...prev, { ...item, _count: { workLogs: 0 } }].sort((a, b) => a.name.localeCompare(b.name))
+      [...prev, item].sort((a, b) => a.name.localeCompare(b.name))
     );
     setNewName("");
     setNewDescription("");

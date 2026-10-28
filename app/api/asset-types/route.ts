@@ -29,7 +29,11 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return invalidInput(parsed.error);
 
   try {
-    const type = await prisma.assetType.create({ data: { name: parsed.data.name } });
+    const type = await prisma.assetType.create({
+      data: { name: parsed.data.name },
+      // Same shape as a GET list item, so the client can insert it as-is.
+      include: { _count: { select: { assets: true } } },
+    });
     await logAudit({
       session,
       req,

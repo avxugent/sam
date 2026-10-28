@@ -62,7 +62,7 @@ export function ManufacturersClient({
     }
     const item = await res.json();
     setItems((prev) =>
-      [...prev, { ...item, _count: { assets: 0 } }].sort((a, b) => a.name.localeCompare(b.name))
+      [...prev, item].sort((a, b) => a.name.localeCompare(b.name))
     );
     setNewName("");
     toast({ title: t("manufacturerCreated") });

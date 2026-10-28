@@ -31,6 +31,8 @@ export async function POST(req: NextRequest) {
   try {
     const item = await prisma.workLogItem.create({
       data: { name: parsed.data.name, description: parsed.data.description ?? null },
+      // Same shape as a GET list item, so the client can insert it as-is.
+      include: { _count: { select: { workLogs: true } } },
     });
     await logAudit({
       session,

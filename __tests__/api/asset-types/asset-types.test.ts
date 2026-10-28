@@ -100,6 +100,8 @@ describe("POST /api/asset-types", () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.name).toBe("Monitor");
+    // Returned in the GET list shape so the admin client can insert it as-is.
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ include: { _count: { select: { assets: true } } } }));
   });
 
   it("returns 400 for empty name", async () => {

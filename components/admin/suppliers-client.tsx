@@ -78,7 +78,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
     }
     const created = await res.json();
     setSuppliers((prev) =>
-      [...prev, { ...created, _count: { assets: 0 } }].sort((a, b) => a.name.localeCompare(b.name))
+      [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
     );
     setNewName("");
     toast({ title: t("created") });

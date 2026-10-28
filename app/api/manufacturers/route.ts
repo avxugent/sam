@@ -33,7 +33,11 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return invalidInput(parsed.error);
 
   try {
-    const manufacturer = await prisma.manufacturer.create({ data: { name: parsed.data.name } });
+    const manufacturer = await prisma.manufacturer.create({
+      data: { name: parsed.data.name },
+      // Same shape as a GET list item, so the client can insert it as-is.
+      include: { _count: { select: { assets: true } } },
+    });
     await logAudit({
       session,
       req,

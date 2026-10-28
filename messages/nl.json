@@ -54,7 +54,8 @@
     "deleteItem": "{name} verwijderen",
     "saveName": "Naam opslaan",
     "cancelRename": "Hernoemen annuleren",
-    "loadLocationsFailed": "Locaties laden mislukt"
+    "loadLocationsFailed": "Locaties laden mislukt",
+    "mergeSummary": "{assets, plural, =1 {# asset} other {# assets}} en {stock, plural, =1 {# voorraaditem} other {# voorraaditems}} verplaatst."
   },
   "nav": {
     "locations": "Locaties",

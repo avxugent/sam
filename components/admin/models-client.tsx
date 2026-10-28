@@ -36,6 +36,8 @@ import { Loader2, Pencil, Trash2, Plus, Merge, TriangleAlert } from "lucide-reac
 import type { AssetStatus } from "@/generated/prisma/enums";
 import { apiErrorMessage } from "@/lib/utils";
 import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
+import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
+import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
 
 type NameOption = { id: string; name: string };
 
@@ -111,11 +113,10 @@ export function ModelsClient({
 
   // Merge-on-409 dialog
   const [mergeConflict, setMergeConflict] = useState<ModelMergeConflict | null>(null);
-  const [merging, setMerging] = useState(false);
+  const catalogMerge = useCatalogMerge("models");
 
   // Possible-duplicates merge dialog
   const [dupMerge, setDupMerge] = useState<{ sourceId: string; sourceName: string; targetId: string } | null>(null);
-  const [dupMerging, setDupMerging] = useState(false);
 
   function openCreate() {
     setEditingId(null);
@@ -189,26 +190,12 @@ export function ModelsClient({
 
   async function handleMergeConflict() {
     if (!mergeConflict) return;
-    setMerging(true);
-    const res = await fetch(`/api/models/${mergeConflict.editingId}/merge`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetId: mergeConflict.existingId }),
-    });
-    setMerging(false);
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(data), variant: "destructive" });
-      setMergeConflict(null);
-      return;
-    }
+    const result = await catalogMerge.merge(mergeConflict.editingId, mergeConflict.existingId);
     setMergeConflict(null);
+    if (!result) return;
     setDialogOpen(false);
     router.refresh();
-    toast({
-      title: t("modelMerged"),
-      description: `${data.assetsMoved} asset(s), ${data.stockItemsMoved} stock item(s) moved to "${mergeConflict.existingName}".`,
-    });
+    toast({ title: t("modelMerged"), description: catalogMerge.summary(result) });
   }
 
   async function handleDelete(id: string) {
@@ -224,25 +211,11 @@ export function ModelsClient({
 
   async function handleDuplicateMerge() {
     if (!dupMerge) return;
-    setDupMerging(true);
-    const res = await fetch(`/api/models/${dupMerge.sourceId}/merge`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetId: dupMerge.targetId }),
-    });
-    setDupMerging(false);
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(data), variant: "destructive" });
-      setDupMerge(null);
-      return;
-    }
+    const result = await catalogMerge.merge(dupMerge.sourceId, dupMerge.targetId);
     setDupMerge(null);
+    if (!result) return;
     router.refresh();
-    toast({
-      title: t("modelMerged"),
-      description: `${data.assetsMoved} asset(s), ${data.stockItemsMoved} stock item(s) moved.`,
-    });
+    toast({ title: t("modelMerged"), description: catalogMerge.summary(result) });
   }
 
   return (
@@ -490,51 +463,29 @@ export function ModelsClient({
         </DialogContent>
       </Dialog>
 
-      {/* Merge-on-409 dialog (rename collided with an existing model) */}
-      <AlertDialog open={!!mergeConflict} onOpenChange={(open) => { if (!open) setMergeConflict(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("mergeTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("mergeDescription", { from: mergeConflict?.existingName ?? "" })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setMergeConflict(null)}>{tCommon("cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleMergeConflict}
-              disabled={merging}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {merging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("mergeSubmit")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Merge-on-409 (rename collided with an existing model) */}
+      <MergeConfirmDialog
+        open={!!mergeConflict}
+        title={t("mergeTitle")}
+        description={t("mergeDescription", { from: models.find((m) => m.id === mergeConflict?.editingId)?.name ?? "" })}
+        cancelLabel={tCommon("cancel")}
+        confirmLabel={t("mergeSubmit")}
+        merging={catalogMerge.merging}
+        onCancel={() => setMergeConflict(null)}
+        onConfirm={handleMergeConflict}
+      />
 
       {/* Possible-duplicates merge confirmation */}
-      <AlertDialog open={!!dupMerge} onOpenChange={(open) => { if (!open) setDupMerge(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("mergeTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("mergeDescription", { from: dupMerge?.sourceName ?? "" })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDupMerge(null)}>{tCommon("cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDuplicateMerge}
-              disabled={dupMerging}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {dupMerging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("mergeSubmit")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <MergeConfirmDialog
+        open={!!dupMerge}
+        title={t("mergeTitle")}
+        description={t("mergeDescription", { from: dupMerge?.sourceName ?? "" })}
+        cancelLabel={tCommon("cancel")}
+        confirmLabel={t("mergeSubmit")}
+        merging={catalogMerge.merging}
+        onCancel={() => setDupMerge(null)}
+        onConfirm={handleDuplicateMerge}
+      />
     </div>
   );
 }

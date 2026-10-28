@@ -31,6 +31,7 @@ function post(body: object) {
 // tx mock: every updateMany reports a count; delete is a no-op.
 const tx = {
   asset: { updateMany: vi.fn().mockResolvedValue({ count: 3 }) },
+  stockItem: { updateMany: vi.fn().mockResolvedValue({ count: 4 }) },
   location: { updateMany: vi.fn().mockResolvedValue({ count: 2 }), delete: vi.fn().mockResolvedValue({}) },
   attachment: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
   workLog: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
@@ -82,7 +83,7 @@ describe("POST /api/locations/[id]/merge", () => {
     expect(res.status).toBe(400);
   });
 
-  it("merges siblings: reassigns children, deletes source, audits, returns counts", async () => {
+  it("merges siblings: reassigns children and stock, deletes source, audits, returns counts", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     vi.mocked(prisma.location.findUnique).mockImplementation((({ where }: { where: { id: string } }) =>
       Promise.resolve(where.id === "loc1"
@@ -91,7 +92,9 @@ describe("POST /api/locations/[id]/merge", () => {
 
     const res = await POST(post({ targetId: "loc2" }), { params: params() });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, id: "loc2", movedAssets: 3, movedSublocations: 2 });
+    expect(await res.json()).toEqual({ ok: true, assetsMoved: 3, stockItemsMoved: 4, sublocationsMoved: 2 });
+    // Stock references its location with ON DELETE RESTRICT, so it must move before the delete.
+    expect(tx.stockItem.updateMany).toHaveBeenCalledWith({ where: { locationId: "loc1" }, data: { locationId: "loc2" } });
 
     expect(tx.asset.updateMany).toHaveBeenCalledWith({ where: { locationId: "loc1" }, data: { locationId: "loc2" } });
     expect(tx.location.updateMany).toHaveBeenCalledWith({ where: { parentId: "loc1" }, data: { parentId: "loc2" } });
@@ -104,7 +107,7 @@ describe("POST /api/locations/[id]/merge", () => {
         action: "DELETE",
         entityType: "Location",
         entityId: "loc1",
-        detail: { mergedInto: "B", movedAssets: 3, movedSublocations: 2 },
+        detail: { snapshot: { "Merged into": "B", "Assets moved": 3, "Stock items moved": 4, "Sub-locations moved": 2 } },
       })
     );
   });

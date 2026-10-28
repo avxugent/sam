@@ -86,10 +86,10 @@ describe("POST /api/asset-types/[id]/merge", () => {
   it("moves assets, deletes source, and audits the merge", async () => {
     mockAuth.mockResolvedValue(session() as never);
     vi.mocked(prisma.assetType.findUnique).mockResolvedValueOnce({ id: "t1", name: "A" } as never).mockResolvedValueOnce({ id: "t2", name: "B" } as never);
-    vi.mocked(prisma.$transaction).mockResolvedValue({ assetCount: 4, stockCount: 2 } as never);
+    vi.mocked(prisma.$transaction).mockResolvedValue({ assetsMoved: 4, stockItemsMoved: 2, modelsMoved: 1, modelsFolded: 0 } as never);
     const res = await mergeType(jreq("http://x", { targetId: "t2" }), { params: params("t1") });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, assetCount: 4, stockCount: 2 });
+    expect(await res.json()).toEqual({ ok: true, assetsMoved: 4, stockItemsMoved: 2, modelsMoved: 1, modelsFolded: 0 });
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "DELETE", entityType: "AssetType", entityId: "t1" })
     );

@@ -65,6 +65,38 @@ export async function readMergeRequest<T>(
   return { source, target, targetId };
 }
 
+/** What a merge moved to its target. Every merge endpoint reports assetsMoved. */
+export type MergeCounts = {
+  assetsMoved: number;
+  stockItemsMoved?: number;
+  modelsMoved?: number;
+  /** Source models folded into a same-named model under the target. */
+  modelsFolded?: number;
+  sublocationsMoved?: number;
+};
+
+/** The body every merge endpoint returns. */
+export type MergeResult = { ok: true } & MergeCounts;
+
+const MERGE_COUNT_LABELS: Record<keyof MergeCounts, string> = {
+  assetsMoved: "Assets moved",
+  stockItemsMoved: "Stock items moved",
+  modelsMoved: "Models moved",
+  modelsFolded: "Models folded",
+  sublocationsMoved: "Sub-locations moved",
+};
+
+export function mergeResponse(counts: MergeCounts): NextResponse {
+  const body: MergeResult = { ok: true, ...counts };
+  return NextResponse.json(body);
+}
+
+/** Audit detail for a merge, shown as a table in the audit log. */
+export function mergeAuditDetail(targetName: string, counts: MergeCounts, extra: Record<string, string> = {}) {
+  const moved = Object.entries(counts).map(([key, n]) => [MERGE_COUNT_LABELS[key as keyof MergeCounts], n]);
+  return { snapshot: { "Merged into": targetName, ...Object.fromEntries(moved), ...extra } };
+}
+
 /** CSV file download response; never cached, since exports reflect live data. */
 export function csvDownload(csv: string, filename: string) {
   return new NextResponse(csv, {

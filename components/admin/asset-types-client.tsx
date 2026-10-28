@@ -18,6 +18,8 @@ import { TemplateOverridesEditor } from "@/components/admin/template-overrides-e
 import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";
 import { AssetDrilldownDialog } from "@/components/admin/asset-drilldown-dialog";
 import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
+import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
+import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
 import type { Criticality } from "@/generated/prisma/enums";
 import { CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
 
@@ -60,7 +62,7 @@ export function AssetTypesClient({
 
   // Merge conflict dialog state
   const [mergeConflict, setMergeConflict] = useState<MergeConflict | null>(null);
-  const [merging, setMerging] = useState(false);
+  const catalogMerge = useCatalogMerge("asset-types");
 
   // Template editor dialog state
   const [templateDialog, setTemplateDialog] = useState<AssetType | null>(null);
@@ -143,22 +145,12 @@ export function AssetTypesClient({
 
   async function handleMerge() {
     if (!mergeConflict) return;
-    setMerging(true);
-    const res = await fetch(`/api/asset-types/${mergeConflict.editingId}/merge`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetId: mergeConflict.existingId }),
-    });
-    setMerging(false);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
-      return;
-    }
+    const result = await catalogMerge.merge(mergeConflict.editingId, mergeConflict.existingId);
+    if (!result) return;
     setTypes((prev) => prev.filter((x) => x.id !== mergeConflict.editingId));
     setMergeConflict(null);
     setEditingId(null);
-    toast({ title: t("typeMerged") });
+    toast({ title: t("typeMerged"), description: catalogMerge.summary(result) });
   }
 
   async function handleSaveTemplate() {
@@ -579,33 +571,20 @@ export function AssetTypesClient({
         </DialogContent>
       </Dialog>
 
-      {/* Merge conflict dialog */}
-      <AlertDialog open={!!mergeConflict} onOpenChange={(open) => { if (!open) setMergeConflict(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("mergeConflictTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("mergeConflictDescription", {
-                source: types.find((x) => x.id === mergeConflict?.editingId)?.name ?? "",
-                target: mergeConflict?.existingName ?? "",
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setMergeConflict(null)}>
-              {t("mergeConflictChangeName")}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleMerge}
-              disabled={merging}
-              className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
-            >
-              {merging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("mergeConflictMerge", { target: mergeConflict?.existingName ?? "" })}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <MergeConfirmDialog
+        open={!!mergeConflict}
+        title={t("mergeConflictTitle")}
+        description={t("mergeConflictDescription", {
+          source: types.find((x) => x.id === mergeConflict?.editingId)?.name ?? "",
+          target: mergeConflict?.existingName ?? "",
+        })}
+        cancelLabel={t("mergeConflictChangeName")}
+        confirmLabel={t("mergeConflictMerge", { target: mergeConflict?.existingName ?? "" })}
+        merging={catalogMerge.merging}
+        destructive={false}
+        onCancel={() => setMergeConflict(null)}
+        onConfirm={handleMerge}
+      />
     </div>
   );
 }

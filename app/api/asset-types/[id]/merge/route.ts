@@ -4,7 +4,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
-import { readMergeRequest } from "@/lib/route-helpers";
+import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/route-helpers";
 import { reassignModels } from "@/lib/models/reassign";
 
 export async function POST(
@@ -20,7 +20,7 @@ export async function POST(
   if ("error" in merge) return merge.error;
   const { source, target, targetId } = merge;
 
-  const { assetCount, stockCount, modelsMoved, modelsFolded } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  const counts = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const [assetResult, stockResult] = await Promise.all([
       tx.asset.updateMany({ where: { typeId: id }, data: { typeId: targetId } }),
       tx.stockItem.updateMany({ where: { typeId: id }, data: { typeId: targetId } }),
@@ -28,7 +28,7 @@ export async function POST(
     const models = await reassignModels(tx, { typeId: id }, { typeId: targetId });
     await tx.maintenancePreset.deleteMany({ where: { assetTypeId: id } });
     await tx.assetType.delete({ where: { id } });
-    return { assetCount: assetResult.count, stockCount: stockResult.count, ...models };
+    return { assetsMoved: assetResult.count, stockItemsMoved: stockResult.count, ...models };
   });
 
   await logAudit({
@@ -38,8 +38,8 @@ export async function POST(
     entityType: "AssetType",
     entityId: id,
     entityName: source.name,
-    detail: { changes: { "Merged into": { from: source.name, to: target.name }, "Assets moved": { from: 0, to: assetCount }, "Stock moved": { from: 0, to: stockCount }, "Models moved": { from: 0, to: modelsMoved }, "Models folded": { from: 0, to: modelsFolded } } },
+    detail: mergeAuditDetail(target.name, counts),
   });
 
-  return NextResponse.json({ ok: true, assetCount, stockCount });
+  return mergeResponse(counts);
 }

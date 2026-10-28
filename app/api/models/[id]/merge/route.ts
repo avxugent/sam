@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
-import { readMergeRequest } from "@/lib/route-helpers";
+import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/route-helpers";
 
 export async function POST(
   req: NextRequest,
@@ -41,6 +41,7 @@ export async function POST(
     return { assetsMoved: assetResult.count, stockItemsMoved: stockResult.count };
   });
 
+  const counts = { assetsMoved, stockItemsMoved };
   await logAudit({
     session,
     req,
@@ -48,13 +49,8 @@ export async function POST(
     entityType: "Model",
     entityId: id,
     entityName: source.name,
-    detail: {
-      mergedInto: { id: targetId, name: target.name },
-      assetsMoved,
-      stockItemsMoved,
-      ...(retyped ? { retypedTo: target.typeId } : {}),
-    },
+    detail: mergeAuditDetail(target.name, counts, retyped ? { "Retyped to": target.typeId } : {}),
   });
 
-  return NextResponse.json({ ok: true, assetsMoved, stockItemsMoved });
+  return mergeResponse(counts);
 }

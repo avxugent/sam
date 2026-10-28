@@ -4,12 +4,14 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import type { Prisma } from "@/generated/prisma/client";
 import { canEdit } from "@/lib/permissions";
-import { readMergeRequest } from "@/lib/route-helpers";
+import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/route-helpers";
 
 /**
  * Merge the location identified by [id] (the source) into another location
- * (the target). All of the source's assets, sub-locations, attachments and
- * work logs are reassigned to the target, then the source is deleted.
+ * (the target). All of the source's assets, stock items, sub-locations,
+ * attachments and work logs are reassigned to the target, then the source is
+ * deleted (stock references its location with ON DELETE RESTRICT, so it has
+ * to move first).
  *
  * Guard rails: the two locations must be distinct siblings (same parent). This
  * is the server-side counterpart of the rename-collision flow — it never
@@ -37,13 +39,14 @@ export async function POST(
     );
   }
 
-  const [movedAssets, movedSublocations] = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  const counts = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const assets = await tx.asset.updateMany({ where: { locationId: id }, data: { locationId: targetId } });
+    const stock = await tx.stockItem.updateMany({ where: { locationId: id }, data: { locationId: targetId } });
     const subs = await tx.location.updateMany({ where: { parentId: id }, data: { parentId: targetId } });
     await tx.attachment.updateMany({ where: { locationId: id }, data: { locationId: targetId } });
     await tx.workLog.updateMany({ where: { locationId: id }, data: { locationId: targetId } });
     await tx.location.delete({ where: { id } });
-    return [assets.count, subs.count];
+    return { assetsMoved: assets.count, stockItemsMoved: stock.count, sublocationsMoved: subs.count };
   });
 
   await logAudit({
@@ -53,8 +56,8 @@ export async function POST(
     entityType: "Location",
     entityId: id,
     entityName: source.name,
-    detail: { mergedInto: target.name, movedAssets, movedSublocations },
+    detail: mergeAuditDetail(target.name, counts),
   });
 
-  return NextResponse.json({ ok: true, id: target.id, movedAssets, movedSublocations });
+  return mergeResponse(counts);
 }

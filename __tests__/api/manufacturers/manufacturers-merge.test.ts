@@ -88,7 +88,7 @@ describe("POST /api/manufacturers/[id]/merge", () => {
 
     const res = await POST(post({ targetId: "m2" }), { params: params() });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, movedCount: 3 });
+    expect(await res.json()).toEqual({ ok: true, assetsMoved: 3, stockItemsMoved: 2, modelsMoved: 1, modelsFolded: 1 });
     expect(tx.stockItem.updateMany).toHaveBeenCalledWith({ where: { manufacturerId: "m1" }, data: { manufacturerId: "m2" } });
     expect(reassignModels).toHaveBeenCalledWith(tx, { manufacturerId: "m1" }, { manufacturerId: "m2" });
     expect(tx.assetTypeManufacturerTemplate.update).not.toHaveBeenCalled();
@@ -100,7 +100,7 @@ describe("POST /api/manufacturers/[id]/merge", () => {
         action: "DELETE",
         entityType: "Manufacturer",
         entityId: "m1",
-        detail: expect.objectContaining({ assetsMoved: 3, stockMoved: 2, modelsMoved: 1, modelsFolded: 1 }),
+        detail: { snapshot: { "Merged into": "Dell Inc", "Assets moved": 3, "Stock items moved": 2, "Models moved": 1, "Models folded": 1 } },
       })
     );
   });

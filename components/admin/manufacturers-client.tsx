@@ -11,6 +11,8 @@ import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
 import { AssetDrilldownDialog } from "@/components/admin/asset-drilldown-dialog";
 import { apiErrorMessage } from "@/lib/utils";
 import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
+import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
+import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
 
 type Manufacturer = {
   id: string;
@@ -38,7 +40,7 @@ export function ManufacturersClient({
 
   // Merge conflict AlertDialog (programmatically controlled)
   const [mergeConflict, setMergeConflict] = useState<MergeConflict | null>(null);
-  const [merging, setMerging] = useState(false);
+  const catalogMerge = useCatalogMerge("manufacturers");
 
   function openDrilldown(item: { id: string; name: string }) {
     setDrilldown({ name: item.name, url: `/api/manufacturers/${item.id}/assets` });
@@ -96,28 +98,15 @@ export function ManufacturersClient({
 
   async function handleMerge() {
     if (!mergeConflict) return;
-    setMerging(true);
-    const res = await fetch(`/api/manufacturers/${mergeConflict.editingId}/merge`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetId: mergeConflict.existingId }),
-    });
-    setMerging(false);
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(data), variant: "destructive" });
+    const result = await catalogMerge.merge(mergeConflict.editingId, mergeConflict.existingId);
+    if (!result) {
       setMergeConflict(null);
       return;
     }
-
     setItems((prev) => prev.filter((i) => i.id !== mergeConflict.editingId));
     setMergeConflict(null);
     setEditingId(null);
-    toast({
-      title: t("manufacturerMerged"),
-      description: `${data.movedCount} asset(s) moved to "${mergeConflict.existingName}".`,
-    });
+    toast({ title: t("manufacturerMerged"), description: catalogMerge.summary(result) });
   }
 
   async function handleDelete(id: string) {
@@ -244,30 +233,16 @@ export function ManufacturersClient({
       {/* Asset drilldown dialog */}
       <AssetDrilldownDialog source={drilldown} column="type" onClose={() => setDrilldown(null)} />
 
-      {/* Merge conflict dialog (programmatically opened) */}
-      <AlertDialog open={!!mergeConflict} onOpenChange={(open) => { if (!open) setMergeConflict(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("mergeTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("mergeDescription", { from: mergeConflict?.existingName ?? "" })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setMergeConflict(null)}>
-              {tCommon("cancel")}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleMerge}
-              disabled={merging}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {merging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("mergeSubmit")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <MergeConfirmDialog
+        open={!!mergeConflict}
+        title={t("mergeTitle")}
+        description={t("mergeDescription", { from: items.find((i) => i.id === mergeConflict?.editingId)?.name ?? "" })}
+        cancelLabel={tCommon("cancel")}
+        confirmLabel={t("mergeSubmit")}
+        merging={catalogMerge.merging}
+        onCancel={() => setMergeConflict(null)}
+        onConfirm={handleMerge}
+      />
     </div>
   );
 }

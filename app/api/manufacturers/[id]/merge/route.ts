@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
-import { readMergeRequest } from "@/lib/route-helpers";
+import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/route-helpers";
 import { reassignModels } from "@/lib/models/reassign";
 
 export async function POST(
@@ -20,7 +20,7 @@ export async function POST(
   if ("error" in merge) return merge.error;
   const { source, target, targetId } = merge;
 
-  const { movedCount, stockMoved, modelsMoved, modelsFolded } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  const counts = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Reassign scrape template overrides from source to target. Where both
     // manufacturers have an override for the same asset type, the unique
     // (typeId, manufacturerId) constraint would collide — keep the target's
@@ -54,7 +54,7 @@ export async function POST(
     });
     const models = await reassignModels(tx, { manufacturerId: id }, { manufacturerId: targetId });
     await tx.manufacturer.delete({ where: { id } });
-    return { movedCount: result.count, stockMoved: stockResult.count, ...models };
+    return { assetsMoved: result.count, stockItemsMoved: stockResult.count, ...models };
   });
 
   await logAudit({
@@ -64,14 +64,8 @@ export async function POST(
     entityType: "Manufacturer",
     entityId: id,
     entityName: source.name,
-    detail: {
-      mergedInto: { id: targetId, name: target.name },
-      assetsMoved: movedCount,
-      stockMoved,
-      modelsMoved,
-      modelsFolded,
-    },
+    detail: mergeAuditDetail(target.name, counts),
   });
 
-  return NextResponse.json({ ok: true, movedCount });
+  return mergeResponse(counts);
 }

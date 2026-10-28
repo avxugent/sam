@@ -62,7 +62,7 @@ Key validated fields:
 | `POST` | `/api/locations` | EDITOR | Create location |
 | `GET` | `/api/locations/[id]` | VIEWER | Get location with ancestor path |
 | `PUT` | `/api/locations/[id]` | EDITOR | Update location (returns `409` with `code: "locationNameExists"`, `existingId` and `existingName` when the new name collides with a sibling, so the client can offer a merge). Accepts `inMaintenance` (boolean) — allowed only on rooms (leaf locations); setting it `true` on a location with sub-locations returns `400` |
-| `POST` | `/api/locations/[id]/merge` | EDITOR | Merge this location into a sibling (`targetId`): moves its assets, sub-locations, attachments and work logs to the target, then deletes it |
+| `POST` | `/api/locations/[id]/merge` | EDITOR | Merge this location into a sibling (`targetId`): moves its assets, stock items, sub-locations, attachments and work logs to the target, then deletes it |
 | `DELETE` | `/api/locations/[id]` | EDITOR | Delete location and its assets. Blocked with `400` `code: "hasSublocations"` if children exist, unless `?cascade=true` is passed — then the whole sub-tree is deleted. Also blocked with `400` `code: "hasStock"` if the location (or, when cascading, any descendant) still holds stock |
 | `GET` | `/api/locations/[id]/assets` | VIEWER | Assets in location |
 | `GET` | `/api/locations/[id]/attachments` | VIEWER | Location attachments |
@@ -99,7 +99,7 @@ Key validated fields:
 | `PUT` | `/api/manufacturers/[id]` | MAINTAINER | Update; renaming onto an existing name returns `409` with `code: "nameConflict"` and the existing manufacturer, so the client can offer a merge |
 | `DELETE` | `/api/manufacturers/[id]` | MAINTAINER | Delete; `404` if unknown, `400` while assets or models reference it |
 | `GET` | `/api/manufacturers/[id]/assets` | VIEWER | Active (INSTALLED) assets by manufacturer — decommissioned assets are historical and excluded |
-| `POST` | `/api/manufacturers/[id]/merge` | MAINTAINER | Merge into another manufacturer |
+| `POST` | `/api/manufacturers/[id]/merge` | MAINTAINER | Merge into another manufacturer — moves its assets, stock items and models (a model whose name already exists under the target is folded into it) |
 
 ---
 
@@ -115,6 +115,8 @@ Fixed lookup table for the Asset/StockItem "model" field, scoped by `(typeId, ma
 | `DELETE` | `/api/models/[id]` | MAINTAINER | Delete; `400` if any asset or stock item still references it |
 | `GET` | `/api/models/[id]/usage` | VIEWER | Active (INSTALLED) assets and stock items referencing this model — decommissioned assets are historical and excluded |
 | `POST` | `/api/models/[id]/merge` | MAINTAINER | Merge into another model — reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source. If the two models don't share the same `typeId`, every moved asset/stock item's own `typeId` is cascaded to the target's as part of the merge, so it never ends up pointing at a model from a different type than itself |
+
+Every merge endpoint takes `{ targetId }` and returns `{ ok: true, assetsMoved, … }` with the counts that apply — `stockItemsMoved`, `modelsMoved`, `modelsFolded`, `sublocationsMoved` — and logs a `DELETE` audit entry on the source with the same counts.
 | `GET` | `/api/models/clusters` | MAINTAINER | List clusters of 2+ similar-but-not-identical model names (fuzzy edit-distance matching), for the admin page's "possible duplicates" panel. Clustered per `typeId` — a shared name across different asset types is never offered as a merge candidate |
 
 ---

@@ -94,10 +94,7 @@ describe("POST /api/models/[id]/merge", () => {
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         detail: {
-          mergedInto: { id: "mo2", name: "Brio 4K" },
-          assetsMoved: 3,
-          stockItemsMoved: 2,
-          retypedTo: "type-webcam",
+          snapshot: { "Merged into": "Brio 4K", "Assets moved": 3, "Stock items moved": 2, "Retyped to": "type-webcam" },
         },
       })
     );
@@ -123,9 +120,7 @@ describe("POST /api/models/[id]/merge", () => {
         entityType: "Model",
         entityId: "mo1",
         detail: {
-          mergedInto: { id: "mo2", name: "poweredge r740" },
-          assetsMoved: 3,
-          stockItemsMoved: 2,
+          snapshot: { "Merged into": "poweredge r740", "Assets moved": 3, "Stock items moved": 2 },
         },
       })
     );

@@ -94,12 +94,12 @@ describe("audit — manufacturer create", () => {
 });
 
 describe("audit — manufacturer merge", () => {
-  it("logs DELETE on source with mergedInto detail", async () => {
+  it("logs DELETE on source with a merge snapshot detail", async () => {
     mockAuth.mockResolvedValue(session() as never);
     vi.mocked(prisma.manufacturer.findUnique)
       .mockResolvedValueOnce({ id: "m1", name: "Dell" } as never)
       .mockResolvedValueOnce({ id: "m2", name: "Dell Inc" } as never);
-    vi.mocked(prisma.$transaction).mockResolvedValue({ movedCount: 3, stockMoved: 0, modelsMoved: 0, modelsFolded: 0 } as never);
+    vi.mocked(prisma.$transaction).mockResolvedValue({ assetsMoved: 3, stockItemsMoved: 0, modelsMoved: 0, modelsFolded: 0 } as never);
 
     const res = await mergeManufacturer(
       req("http://localhost/api/manufacturers/m1/merge", { targetId: "m2" }),
@@ -112,7 +112,7 @@ describe("audit — manufacturer merge", () => {
         entityType: "Manufacturer",
         entityId: "m1",
         entityName: "Dell",
-        detail: expect.objectContaining({ mergedInto: { id: "m2", name: "Dell Inc" }, assetsMoved: 3 }),
+        detail: { snapshot: expect.objectContaining({ "Merged into": "Dell Inc", "Assets moved": 3 }) },
       })
     );
   });

@@ -67,14 +67,14 @@ export function parseFiNumber(
  * Builds a human-readable path string from an ancestor array.
  * e.g. "Campus 14 / Building 10 / Floor 100 / Room 013"
  */
-export function buildLocationPathString(ancestors: LocationAncestor[]): string {
+export function buildLocationPathString(ancestors: { name: string }[]): string {
   return ancestors.map((a) => a.name).join(" / ");
 }
 
 /**
  * Finds the most specific (deepest) FI number across the ancestor chain.
  */
-export function findFiNumber(ancestors: LocationAncestor[]): string | null {
+export function findFiNumber(ancestors: { fiNumber: string | null }[]): string | null {
   // Walk from leaf to root — take the first fiNumber we find
   for (let i = ancestors.length - 1; i >= 0; i--) {
     if (ancestors[i].fiNumber) return ancestors[i].fiNumber;

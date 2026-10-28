@@ -25,7 +25,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { integrationTokenError } from "@/lib/tokens/integration";
-import { ancestorChain, buildLocationPathsFromRows, findFiNumber, parseFiNumber } from "@/lib/location-path";
+import { ancestorChain, findFiNumber, parseFiNumber } from "@/lib/location-path";
+import { samAssetLabels, samLocationLabels } from "@/lib/prometheus-labels";
 import { computeNis2Counts } from "@/lib/nis2-compliance";
 
 // ─── Text format helpers ─────────────────────────────────────────────────────
@@ -327,32 +328,14 @@ export async function GET(req: NextRequest) {
   // Every label is always emitted (empty when unknown) so the series shape
   // stays stable and `count by (sam_fi_number)` never silently splits.
 
-  // Root → leaf name path per location, e.g. "Campus A / Building 10 / Room
-  // 013" — same separator as buildLocationPathString() in /api/prometheus/sd
-  // so sam_location_path reads identically wherever it's emitted.
-  const locationPaths = buildLocationPathsFromRows(allLocations, " / ");
-
   const infoSamples: Array<{ labels: Record<string, string>; value: number }> = [];
   const maintenanceSamples: Array<{ labels: Record<string, string>; value: number }> = [];
   const eosSamples: Array<{ labels: Record<string, string>; value: number }> = [];
 
   for (const asset of monitoredAssets) {
-    const fiNumber = inheritedFiNumber(asset.locationId);
-    const parts = parseFiNumber(fiNumber);
-
     infoSamples.push({
       labels: {
-        sam_hostname: asset.hostname!,
-        sam_fi_number: fiNumber ?? "",
-        sam_campus: parts?.campus ?? "",
-        sam_building: parts?.building ?? "",
-        sam_floor: parts?.floor ?? "",
-        sam_room: parts?.room ?? "",
-        sam_location_path: locationPaths.get(asset.locationId) ?? "",
-        sam_location_name: asset.location?.name ?? "",
-        sam_asset_type: asset.type?.name ?? "",
-        sam_manufacturer: asset.manufacturer?.name ?? "",
-        sam_model: asset.model?.name ?? "",
+        ...samAssetLabels({ ...asset, hostname: asset.hostname! }, ancestorChain(asset.locationId, locationsById)),
         // Effective criticality: per-asset override wins over the type default
         sam_criticality:
           asset.criticality ?? asset.type?.defaultCriticality ?? "",
@@ -405,15 +388,10 @@ export async function GET(req: NextRequest) {
       "sam_worklog_items_by_location",
       "Number of work-log entries recorded per room",
       workLogsByLocation.map((row) => {
-        const fiNumber = inheritedFiNumber(row.locationId);
-        return {
-          labels: {
-            sam_fi_number: fiNumber ?? "",
-            sam_location_path: locationPaths.get(row.locationId) ?? "",
-            sam_location_name: locationsById.get(row.locationId)?.name ?? "",
-          },
-          value: row._count.id,
-        };
+        const { sam_fi_number, sam_location_path, sam_location_name } = samLocationLabels(
+          ancestorChain(row.locationId, locationsById)
+        );
+        return { labels: { sam_fi_number, sam_location_path, sam_location_name }, value: row._count.id };
       })
     )
   );

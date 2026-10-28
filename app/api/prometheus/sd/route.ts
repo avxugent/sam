@@ -50,12 +50,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { integrationTokenError } from "@/lib/tokens/integration";
 import { auth } from "@/lib/auth";
-import {
-  resolveLocationPath,
-  parseFiNumber,
-  buildLocationPathString,
-  findFiNumber,
-} from "@/lib/location-path";
+import { resolveLocationPath } from "@/lib/location-path";
+import { samAssetLabels } from "@/lib/prometheus-labels";
 import {
   renderScrapeTemplate,
   resolveScrapeTemplate,
@@ -64,6 +60,8 @@ import {
 import { isAdmin } from "@/lib/permissions";
 
 // Prometheus label values: allow printable ASCII, replace control chars
+const ALWAYS_PRESENT = new Set(["sam_hostname", "sam_location_path", "sam_location_name"]);
+
 function safeLabel(value: string | null | undefined): string {
   if (!value) return "";
   return value.replace(/[\x00-\x1f\x7f]/g, "_").trim();
@@ -135,32 +133,15 @@ export async function GET(req: NextRequest) {
     // Room in maintenance — its assets are not scrape targets.
     if (asset.location?.inMaintenance) continue;
 
-    // Resolve location metadata
     const ancestors = await getLocationPath(asset.locationId);
-    const fiNumber = findFiNumber(ancestors);
-    const fiParts = parseFiNumber(fiNumber);
-    const locationPath = buildLocationPathString(ancestors);
-    const roomName =
-      ancestors.length > 0 ? ancestors[ancestors.length - 1].name : "";
-
-    // Core SAM metadata labels (always included)
-    const labels: Record<string, string> = {
-      sam_hostname: safeLabel(asset.hostname),
-      sam_location_path: safeLabel(locationPath),
-      sam_location_name: safeLabel(roomName),
-    };
-
-    if (fiNumber) labels.sam_fi_number = fiNumber;
-    if (fiParts) {
-      labels.sam_campus = fiParts.campus;
-      labels.sam_building = fiParts.building;
-      labels.sam_floor = fiParts.floor;
-      labels.sam_room = fiParts.room;
-    }
-    if (asset.type?.name) labels.sam_asset_type = safeLabel(asset.type.name);
-    if (asset.manufacturer?.name)
-      labels.sam_manufacturer = safeLabel(asset.manufacturer.name);
-    if (asset.model?.name) labels.sam_model = safeLabel(asset.model.name);
+    const samLabels = samAssetLabels({ ...asset, hostname: asset.hostname }, ancestors);
+    // Hostname, path and room name are always present; other sam_* labels
+    // only when known.
+    const labels: Record<string, string> = Object.fromEntries(
+      Object.entries(samLabels)
+        .map(([key, value]) => [key, safeLabel(value)])
+        .filter(([key, value]) => value || ALWAYS_PRESENT.has(key))
+    );
 
     // ── Scrape target template ───────────────────────────────────────────────
     // Most specific override wins: model+manufacturer → manufacturer → type default.
@@ -176,7 +157,7 @@ export async function GET(req: NextRequest) {
         serial: asset.serialNumber ?? "",
         model: asset.model?.name ?? "",
         manufacturer: asset.manufacturer?.name ?? "",
-        fi_number: fiNumber ?? "",
+        fi_number: samLabels.sam_fi_number,
         vault_path: asset.vaultPath ?? "",
       };
 

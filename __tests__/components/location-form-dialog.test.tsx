@@ -167,7 +167,7 @@ describe("<LocationFormDialog /> — edit mode", () => {
       if (opts?.method === "PUT") {
         return Promise.resolve({
           ok: false,
-          json: async () => ({ error: "LOCATION_NAME_EXISTS", targetId: "loc-2", targetName: "Campus B" }),
+          json: async () => ({ error: "A sibling location already has this name.", code: "locationNameExists", existingId: "loc-2", existingName: "Campus B" }),
         });
       }
       return Promise.resolve({ ok: true, json: async () => ({ id: "loc-2" }) });

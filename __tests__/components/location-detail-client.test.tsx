@@ -103,7 +103,7 @@ describe("LocationDetailClient", () => {
   });
 
   it("explains a delete refused because stock is still stored there", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, json: async () => ({ error: "HAS_STOCK" }) } as Response);
+    mockFetch.mockResolvedValueOnce({ ok: false, json: async () => ({ error: "Stock items are still stored at this location or below it.", code: "hasStock" }) } as Response);
     renderLocation();
     await userEvent.click(screen.getByRole("button", { name: /^delete$/ }));
     await userEvent.click(screen.getAllByRole("button", { name: "delete" }).at(-1)!);

@@ -170,9 +170,9 @@ export function LocationDetailClient({
     const res = await fetch(url, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      const description = err.error === "HAS_SUBLOCATIONS"
+      const description = err.code === "hasSublocations"
         ? t("deleteHasSubLocations")
-        : err.error === "HAS_STOCK"
+        : err.code === "hasStock"
         ? t("deleteHasStock")
         : apiErrorMessage(err);
       toast({ title: tCommon("error"), description, variant: "destructive" });

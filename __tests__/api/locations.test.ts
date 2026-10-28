@@ -202,11 +202,12 @@ describe("DELETE /api/locations/[id]", () => {
 
   it("returns 400 when location has children", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
+    mockFindUnique.mockResolvedValue({ name: "Room" } as never);
     mockCount.mockResolvedValue(2);
     const res = await DELETE(makeIdReq("DELETE"), { params });
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toBe("HAS_SUBLOCATIONS");
+    expect(body.code).toBe("hasSublocations");
   });
 
   it("deletes location when no children exist", async () => {

@@ -49,6 +49,12 @@ export async function PUT(
     return invalidInput(parsed.error);
   }
 
+  const before = await prisma.location.findUnique({
+    where: { id },
+    include: { parent: { select: { name: true } } },
+  });
+  if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   // Validate coverImageId: must be an image attachment belonging to this location
   if (parsed.data.coverImageId) {
     const cover = await prisma.attachment.findUnique({
@@ -103,14 +109,9 @@ export async function PUT(
     }
   }
 
-  const before = await prisma.location.findUnique({
-    where: { id },
-    include: { parent: { select: { name: true } } },
-  });
-
   // Detect a name collision with a sibling (same parent). Rather than silently
   // creating a duplicate, signal the client so it can offer to merge instead.
-  if (before && parsed.data.name !== undefined && parsed.data.name !== before.name) {
+  if (parsed.data.name !== undefined && parsed.data.name !== before.name) {
     const effectiveParentId =
       parsed.data.parentId !== undefined ? parsed.data.parentId : before.parentId;
     const duplicate = await prisma.location.findFirst({
@@ -119,7 +120,12 @@ export async function PUT(
     });
     if (duplicate) {
       return NextResponse.json(
-        { error: "LOCATION_NAME_EXISTS", targetId: duplicate.id, targetName: duplicate.name },
+        {
+          error: "A sibling location already has this name.",
+          code: "locationNameExists",
+          existingId: duplicate.id,
+          existingName: duplicate.name,
+        },
         { status: 409 }
       );
     }
@@ -143,8 +149,7 @@ export async function PUT(
   }
 
   const d = parsed.data;
-  const changes = before
-    ? auditChanges([
+  const changes = auditChanges([
         d.name !== undefined && { label: "Name", before: before.name, after: d.name },
         d.description !== undefined && { label: "Description", before: before.description, after: d.description },
         d.fiNumber !== undefined && { label: "FI number", before: before.fiNumber, after: d.fiNumber },
@@ -155,8 +160,7 @@ export async function PUT(
         d.latitude !== undefined && { label: "Latitude", before: before.latitude, after: d.latitude },
         d.longitude !== undefined && { label: "Longitude", before: before.longitude, after: d.longitude },
         d.inMaintenance !== undefined && { label: "In maintenance", before: before.inMaintenance, after: d.inMaintenance },
-      ])
-    : {};
+      ]);
 
   await logAudit({
     session,
@@ -183,10 +187,16 @@ export async function DELETE(
 
   const cascade = req.nextUrl.searchParams.get("cascade") === "true";
 
+  const loc = await prisma.location.findUnique({
+    where: { id },
+    select: { name: true, fiNumber: true, address: true, city: true, country: true },
+  });
+  if (!loc) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const childCount = await prisma.location.count({ where: { parentId: id } });
   if (childCount > 0 && !cascade) {
     return NextResponse.json(
-      { error: "HAS_SUBLOCATIONS" },
+      { error: "This location has sub-locations; confirm deleting them too.", code: "hasSublocations" },
       { status: 400 }
     );
   }
@@ -200,15 +210,10 @@ export async function DELETE(
   });
   if (stockCount > 0) {
     return NextResponse.json(
-      { error: "HAS_STOCK" },
+      { error: "Stock items are still stored at this location or below it.", code: "hasStock" },
       { status: 400 }
     );
   }
-
-  const loc = await prisma.location.findUnique({
-    where: { id },
-    select: { name: true, fiNumber: true, address: true, city: true, country: true },
-  });
 
   if (childCount > 0) {
     // Delete the whole subtree. The Location → parent relation is onDelete:
@@ -221,13 +226,11 @@ export async function DELETE(
   }
 
   const snapshot: Record<string, string> = {};
-  if (loc) {
-    if (loc.name) snapshot["Name"] = loc.name;
-    if (loc.fiNumber) snapshot["FI number"] = loc.fiNumber;
-    if (loc.address) snapshot["Address"] = loc.address;
-    if (loc.city) snapshot["City"] = loc.city;
-    if (loc.country) snapshot["Country"] = loc.country;
-  }
+  if (loc.name) snapshot["Name"] = loc.name;
+  if (loc.fiNumber) snapshot["FI number"] = loc.fiNumber;
+  if (loc.address) snapshot["Address"] = loc.address;
+  if (loc.city) snapshot["City"] = loc.city;
+  if (loc.country) snapshot["Country"] = loc.country;
 
   await logAudit({
     session,
@@ -235,7 +238,7 @@ export async function DELETE(
     action: "DELETE",
     entityType: "Location",
     entityId: id,
-    entityName: loc?.name,
+    entityName: loc.name,
     detail: Object.keys(snapshot).length > 0 ? { snapshot } : undefined,
   });
   return NextResponse.json({ ok: true });

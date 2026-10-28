@@ -123,14 +123,14 @@ describe("PUT /api/locations/[id]", () => {
     expect(mockLogAudit).toHaveBeenCalledWith(expect.objectContaining({ detail: undefined }));
   });
 
-  it("409 LOCATION_NAME_EXISTS when renaming onto a sibling", async () => {
+  it("409 locationNameExists when renaming onto a sibling", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     vi.mocked(prisma.location.findUnique).mockResolvedValue({ id: "loc1", name: "Old", parentId: "p1", parent: null } as never);
     vi.mocked(prisma.location.findFirst).mockResolvedValue({ id: "loc2", name: "New" } as never);
     const res = await PUT(put({ name: "New" }), { params: params() });
     expect(res.status).toBe(409);
     const j = await res.json();
-    expect(j).toEqual({ error: "LOCATION_NAME_EXISTS", targetId: "loc2", targetName: "New" });
+    expect(j).toEqual({ error: "A sibling location already has this name.", code: "locationNameExists", existingId: "loc2", existingName: "New" });
     expect(prisma.location.update).not.toHaveBeenCalled();
   });
 
@@ -143,7 +143,9 @@ describe("PUT /api/locations/[id]", () => {
 
   it("400 when the target parent does not exist", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
-    vi.mocked(prisma.location.findUnique).mockResolvedValue(null as never);
+    vi.mocked(prisma.location.findUnique)
+      .mockResolvedValueOnce({ id: "loc1", name: "Room", parent: null } as never)
+      .mockResolvedValueOnce(null as never);
     const res = await PUT(put({ parentId: "p2" }), { params: params() });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/does not exist/);
@@ -158,13 +160,13 @@ describe("PUT /api/locations/[id]", () => {
     expect((await res.json()).error).toMatch(/sub-location/);
   });
 
-  it("handles a missing 'before' record (no changes block)", async () => {
+  it("404 before any other check when the location does not exist", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     vi.mocked(prisma.location.findUnique).mockResolvedValue(null as never);
-    vi.mocked(prisma.location.update).mockResolvedValue({ id: "loc1", name: "New", parent: null } as never);
-    const res = await PUT(put({ name: "New" }), { params: params() });
-    expect(res.status).toBe(200);
-    expect(mockLogAudit).toHaveBeenCalledWith(expect.objectContaining({ detail: undefined }));
+    const res = await PUT(put({ name: "New", inMaintenance: true }), { params: params() });
+    expect(res.status).toBe(404);
+    expect(prisma.location.count).not.toHaveBeenCalled();
+    expect(prisma.location.update).not.toHaveBeenCalled();
   });
 
   it("places a leaf room in maintenance and audits the change", async () => {
@@ -197,31 +199,40 @@ describe("DELETE /api/locations/[id]", () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
     expect((await DELETE(del(), { params: params() })).status).toBe(403);
   });
+  it("404 when the location does not exist", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue(null as never);
+    expect((await DELETE(del(), { params: params() })).status).toBe(404);
+    expect(prisma.location.delete).not.toHaveBeenCalled();
+  });
   it("400 when the location still has sub-locations", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ name: "Room" } as never);
     vi.mocked(prisma.location.count).mockResolvedValue(2 as never);
     const res = await DELETE(del(), { params: params() });
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "HAS_SUBLOCATIONS" });
+    expect(await res.json()).toMatchObject({ code: "hasSublocations" });
   });
   it("400 when the leaf location still holds stock", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ name: "Room" } as never);
     vi.mocked(prisma.location.count).mockResolvedValue(0 as never);
     vi.mocked(prisma.stockItem.count).mockResolvedValue(3 as never);
     const res = await DELETE(del(), { params: params() });
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "HAS_STOCK" });
+    expect(await res.json()).toMatchObject({ code: "hasStock" });
     expect(prisma.location.delete).not.toHaveBeenCalled();
   });
   it("400 when cascading and a descendant still holds stock", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ name: "Room" } as never);
     vi.mocked(prisma.location.count).mockResolvedValue(2 as never);
     mockDescendants.mockResolvedValue(["child1", "child2"]);
     vi.mocked(prisma.stockItem.count).mockResolvedValue(1 as never);
     const req = new NextRequest("http://localhost/api/locations/loc1?cascade=true", { method: "DELETE" });
     const res = await DELETE(req, { params: params() });
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "HAS_STOCK" });
+    expect(await res.json()).toMatchObject({ code: "hasStock" });
     expect(vi.mocked(prisma.stockItem.count)).toHaveBeenCalledWith({
       where: { locationId: { in: ["loc1", "child1", "child2"] } },
     });

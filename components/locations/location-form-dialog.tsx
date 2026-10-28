@@ -165,8 +165,8 @@ export function LocationFormDialog({
       const err = await res.json().catch(() => ({}));
       // Renaming onto an existing sibling name — offer to merge instead of
       // creating a duplicate.
-      if (err.error === "LOCATION_NAME_EXISTS" && err.targetId) {
-        setMergeTarget({ id: err.targetId, name: err.targetName });
+      if (err.code === "locationNameExists" && err.existingId) {
+        setMergeTarget({ id: err.existingId, name: err.existingName });
         return;
       }
       toast({

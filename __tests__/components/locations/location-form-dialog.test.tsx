@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("next-intl", () => ({
   useTranslations: (ns: string) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const messages = require("../../messages/en.json") as Record<string, Record<string, string>>;
+    const messages = require("../../../messages/en.json") as Record<string, Record<string, string>>;
     const section = messages[ns] ?? {};
     return (key: string) => section[key] ?? key;
   },

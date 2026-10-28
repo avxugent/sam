@@ -12,6 +12,7 @@
  *   - 200: array of matching assets (may be empty, may have >1 if duplicates exist)
  *   - 400: missing hostname parameter
  *   - 401: unauthenticated
+ *   - 503: no session and PROMETHEUS_SD_TOKEN is not configured
  *
  * Grafana Infinity datasource example:
  *
@@ -34,9 +35,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
-import { hasBearerToken } from "@/lib/tokens/bearer";
+import { sessionOrIntegrationTokenError } from "@/lib/tokens/session-or-integration";
 import {
   resolveLocationPath,
   buildLocationPathString,
@@ -45,22 +44,10 @@ import {
 } from "@/lib/location-path";
 import { toIsoDay } from "@/lib/utils";
 
-/** Check either session cookie OR Bearer token */
-async function checkAuth(req: NextRequest): Promise<boolean> {
-  // Option 1: valid NextAuth session
-  // (a partly signed-in session, still owing a login step, does not count)
-  const session = await auth();
-  if (session?.user && !(await signInIncompleteResponse(session))) return true;
-
-  // Option 2: Prometheus bearer token (allows Grafana server-side queries)
-  return hasBearerToken(req, process.env.PROMETHEUS_SD_TOKEN);
-}
-
 export async function GET(req: NextRequest) {
-  const authorized = await checkAuth(req);
-  if (!authorized) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // Any signed-in role, or the integration token (Grafana server-side queries).
+  const authError = await sessionOrIntegrationTokenError(req, () => true);
+  if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
   const hostname = searchParams.get("hostname")?.trim();

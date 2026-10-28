@@ -48,8 +48,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { integrationTokenError } from "@/lib/tokens/integration";
-import { auth } from "@/lib/auth";
+import { sessionOrIntegrationTokenError } from "@/lib/tokens/session-or-integration";
 import { resolveLocationPath } from "@/lib/location-path";
 import { samAssetLabels } from "@/lib/prometheus-labels";
 import {
@@ -58,24 +57,19 @@ import {
   type TemplateVars,
 } from "@/lib/scrape-template";
 import { isAdmin } from "@/lib/permissions";
-import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 
-// Prometheus label values: allow printable ASCII, replace control chars
+// Labels emitted even when empty; other sam_* labels only when known.
 const ALWAYS_PRESENT = new Set(["sam_hostname", "sam_location_path", "sam_location_name"]);
 
+// Prometheus label values: allow printable ASCII, replace control chars
 function safeLabel(value: string | null | undefined): string {
   if (!value) return "";
   return value.replace(/[\x00-\x1f\x7f]/g, "_").trim();
 }
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  // A partly signed-in admin (still owing a login step) does not count.
-  const adminSession = session?.user && isAdmin(session.user.role) && !(await signInIncompleteResponse(session));
-  if (!adminSession) {
-    const authError = integrationTokenError(req);
-    if (authError) return authError;
-  }
+  const authError = await sessionOrIntegrationTokenError(req, isAdmin);
+  if (authError) return authError;
 
   const assets = await prisma.asset.findMany({
     where: { hostname: { not: null }, status: "INSTALLED" },
@@ -138,8 +132,6 @@ export async function GET(req: NextRequest) {
 
     const ancestors = await getLocationPath(asset.locationId);
     const samLabels = samAssetLabels({ ...asset, hostname: asset.hostname }, ancestors);
-    // Hostname, path and room name are always present; other sam_* labels
-    // only when known.
     const labels: Record<string, string> = Object.fromEntries(
       Object.entries(samLabels)
         .map(([key, value]) => [key, safeLabel(value)])
@@ -164,7 +156,6 @@ export async function GET(req: NextRequest) {
         vault_path: asset.vaultPath ?? "",
       };
 
-      // Render the template and merge __labels__ into the target group labels
       const { labels: templateLabels } = renderScrapeTemplate(template, vars);
       Object.assign(labels, templateLabels);
     }
@@ -192,7 +183,6 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(groups, {
     headers: {
-      "Content-Type": "application/json",
       "Cache-Control": "no-store",
       "X-SAM-Target-Count": String(groups.length),
     },

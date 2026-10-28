@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { hasBearerToken } from "@/lib/tokens/bearer";
 
 /**
@@ -10,7 +10,7 @@ import { hasBearerToken } from "@/lib/tokens/bearer";
  * - If the Authorization header is missing or wrong, returns 401.
  * - Returns null when auth succeeds (caller should proceed).
  */
-export function integrationTokenError(req: NextRequest): NextResponse | null {
+export function integrationTokenError(req: Request): NextResponse | null {
   const token = process.env.PROMETHEUS_SD_TOKEN;
 
   if (!token) {
@@ -25,15 +25,9 @@ export function integrationTokenError(req: NextRequest): NextResponse | null {
   }
 
   if (!hasBearerToken(req, token)) {
-    return new NextResponse(
-      JSON.stringify({ error: "Unauthorized. Provide a valid Bearer token." }),
-      {
-        status: 401,
-        headers: {
-          "Content-Type": "application/json",
-          "WWW-Authenticate": 'Bearer realm="SAM Prometheus"',
-        },
-      }
+    return NextResponse.json(
+      { error: "Unauthorized. Provide a valid Bearer token." },
+      { status: 401, headers: { "WWW-Authenticate": 'Bearer realm="SAM Prometheus"' } }
     );
   }
 

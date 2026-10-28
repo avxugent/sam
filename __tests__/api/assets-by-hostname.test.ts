@@ -60,9 +60,9 @@ describe("GET /api/assets/by-hostname", () => {
     expect((await GET(req("?hostname=x", "Bearer nope"))).status).toBe(401);
   });
 
-  it("401 for a Bearer token when PROMETHEUS_SD_TOKEN is unset", async () => {
+  it("503 without a session when PROMETHEUS_SD_TOKEN is unset, like the other integration endpoints", async () => {
     delete process.env.PROMETHEUS_SD_TOKEN;
-    expect((await GET(req("?hostname=x", "Bearer "))).status).toBe(401);
+    expect((await GET(req("?hostname=x", "Bearer "))).status).toBe(503);
   });
 
   it("accepts a session cookie", async () => {

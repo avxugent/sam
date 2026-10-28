@@ -71,7 +71,7 @@ The route handlers reach that provider only through `upgradeSession()` (`lib/two
 
 ### Partly signed-in sessions
 
-A session can still owe a login step: `needsPasswordChange`, `needs2FASetup`, or `needs2FA` (waived on a browser with a valid remember-device cookie). `pendingSignInStep()` (`lib/two-factor/sign-in-steps.ts`) decides which, for both `proxy.ts` (redirects) and the route handlers the proxy lets through without those redirects — `/api/auth/2fa/*`, `/api/auth/passkey/*`, `/api/export/*` and `/api/assets/by-hostname`. Those handlers call `signInIncompleteResponse(session, allowed)` and answer `403` while a step is pending; the 2FA setup/enable and passkey registration routes allow `"2fa-setup"`, since forced enrollment is what they are for. by-hostname treats such a session as absent and falls back to the Bearer token.
+A session can still owe a login step: `needsPasswordChange`, `needs2FASetup`, or `needs2FA` (waived on a browser with a valid remember-device cookie). `pendingSignInStep()` (`lib/two-factor/sign-in-steps.ts`) decides which, for both `proxy.ts` (redirects) and the route handlers the proxy lets through without those redirects — `/api/auth/2fa/*`, `/api/auth/passkey/*`, `/api/export/*` and `/api/assets/by-hostname`. Those handlers call `signInIncompleteResponse(session, allowed)` and answer `403` while a step is pending; the 2FA setup/enable and passkey registration routes allow `"2fa-setup"`, since forced enrollment is what they are for. by-hostname and the Prometheus SD endpoint (which also accepts an admin session) treat such a session as absent and fall back to the Bearer token.
 
 ### Admin enforcement
 
@@ -156,13 +156,13 @@ The proxy:
 
 ## Prometheus Endpoints
 
-`/api/prometheus/*` and `/api/grafana/*` use **Bearer token** authentication instead of sessions; `/api/assets/by-hostname` accepts a session **or** the same token:
+`/api/prometheus/*` and `/api/grafana/*` use **Bearer token** authentication instead of sessions; `/api/assets/by-hostname` (any role) and `/api/prometheus/sd` (admins, to browse it directly) also accept a session:
 
 ```http
 Authorization: Bearer <PROMETHEUS_SD_TOKEN>
 ```
 
-These endpoints are exempted from the session proxy and must authenticate in their route handlers — `integrationTokenError(req)` for the token-only routes, `hasBearerToken(req, process.env.PROMETHEUS_SD_TOKEN)` (`lib/tokens/bearer.ts`, constant-time) alongside `auth()` for by-hostname.
+These endpoints are exempted from the session proxy and must authenticate in their route handlers — `integrationTokenError(req)` (`lib/tokens/integration.ts`, constant-time via `hasBearerToken`) for the token-only routes, and `sessionOrIntegrationTokenError(req, sessionAllowed)` (`lib/tokens/session-or-integration.ts`) for by-hostname and SD, which accepts a fully signed-in session with an allowed role and otherwise applies the token check.
 
 If `PROMETHEUS_SD_TOKEN` is not set, the endpoints return HTTP 503.
 

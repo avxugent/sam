@@ -90,7 +90,7 @@ export function Forced2FASetupClient() {
                   {t("twoFactorEnabledDescription")}
                 </p>
                 <Button onClick={() => { window.location.href = "/"; }} className="mt-2">
-                  Continue
+                  {tCommon("continue")}
                 </Button>
               </div>
             </CardContent>
@@ -119,7 +119,7 @@ export function Forced2FASetupClient() {
               <div className="flex justify-center">
                 {qrCode && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={qrCode} alt="TOTP QR code" className="rounded-lg border" width={220} height={220} />
+                  <img src={qrCode} alt={t("twoFactorQrAlt")} className="rounded-lg border" width={220} height={220} />
                 )}
               </div>
 

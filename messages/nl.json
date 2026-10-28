@@ -55,7 +55,8 @@
     "saveName": "Naam opslaan",
     "cancelRename": "Hernoemen annuleren",
     "loadLocationsFailed": "Locaties laden mislukt",
-    "mergeSummary": "{assets, plural, =1 {# asset} other {# assets}} en {stock, plural, =1 {# voorraaditem} other {# voorraaditems}} verplaatst."
+    "mergeSummary": "{assets, plural, =1 {# asset} other {# assets}} en {stock, plural, =1 {# voorraaditem} other {# voorraaditems}} verplaatst.",
+    "continue": "Doorgaan"
   },
   "nav": {
     "locations": "Locaties",
@@ -940,7 +941,8 @@
     "noBackgroundUploaded": "Geen achtergrondafbeelding geüpload",
     "profilePageSubtitle": "Beheer uw weergavenaam en wachtwoord.",
     "twoFactorPageTitle": "Tweestapsverificatie",
-    "twoFactorPageSubtitle": "Beveilig uw account met een tijdgebaseerd eenmalig wachtwoord (TOTP) of een passkey."
+    "twoFactorPageSubtitle": "Beveilig uw account met een tijdgebaseerd eenmalig wachtwoord (TOTP) of een passkey.",
+    "profileSaved": "Profiel opgeslagen"
   },
   "report": {
     "title": "Rapporten",

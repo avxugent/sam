@@ -15,7 +15,6 @@ export default async function ProfilePage() {
       email: true,
       provider: true,
       locationDefaultTab: true,
-      theme: true,
     },
   });
   if (!user) redirect("/login");
@@ -32,7 +31,6 @@ export default async function ProfilePage() {
         email={user.email}
         provider={user.provider}
         locationDefaultTab={user.locationDefaultTab}
-        serverTheme={user.theme}
       />
     </div>
   );

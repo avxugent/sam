@@ -42,14 +42,12 @@ export default defineConfig({
         "components/ui/select.tsx",
         // Stateful clients not yet covered by component tests (there is no UI
         // integration suite); remove an entry once the file has tests.
-        "components/settings/profile-client.tsx",
         "components/locations/location-map.tsx",
         "components/locations/cover-image-picker.tsx",
         "components/layout/stock-nav-items.tsx",
         "components/layout/sidebar.tsx",
         "components/layout/app-footer.tsx",
         "components/layout/app-background.tsx",
-        "components/auth/**",
         "components/attachments/attachment-gallery.tsx",
         "components/admin/work-log-items-manager.tsx",
         "components/admin/suppliers-client.tsx",

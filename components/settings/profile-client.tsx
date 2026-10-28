@@ -28,7 +28,6 @@ type Props = {
   email: string;
   provider: string;
   locationDefaultTab?: string;
-  serverTheme?: string;
 };
 
 export function ProfileClient({
@@ -36,7 +35,6 @@ export function ProfileClient({
   email,
   provider,
   locationDefaultTab = "assets",
-  serverTheme: _serverTheme,
 }: Props) {
   const t = useTranslations("settings");
   const tCommon = useTranslations("common");
@@ -77,7 +75,7 @@ export function ProfileClient({
 
   async function onNameSubmit(data: NameForm) {
     if (await patchMe({ name: data.name }, setNameSaving)) {
-      toast({ title: t("profileTitle") });
+      toast({ title: t("profileSaved") });
       router.refresh();
     }
   }

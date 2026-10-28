@@ -55,7 +55,8 @@
     "saveName": "Save name",
     "cancelRename": "Cancel rename",
     "loadLocationsFailed": "Failed to load locations",
-    "mergeSummary": "{assets, plural, =1 {# asset} other {# assets}} and {stock, plural, =1 {# stock item} other {# stock items}} moved."
+    "mergeSummary": "{assets, plural, =1 {# asset} other {# assets}} and {stock, plural, =1 {# stock item} other {# stock items}} moved.",
+    "continue": "Continue"
   },
   "nav": {
     "locations": "Locations",
@@ -940,7 +941,8 @@
     "noBackgroundUploaded": "No background image uploaded",
     "profilePageSubtitle": "Manage your display name and password.",
     "twoFactorPageTitle": "Two-Factor Authentication",
-    "twoFactorPageSubtitle": "Secure your account with a time-based one-time password (TOTP) or a passkey."
+    "twoFactorPageSubtitle": "Secure your account with a time-based one-time password (TOTP) or a passkey.",
+    "profileSaved": "Profile saved"
   },
   "report": {
     "title": "Reports",

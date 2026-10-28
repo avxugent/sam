@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { readSettings, writeSettings } from "@/lib/app-settings";
+import { readGeneralSettings, writeGeneralSettings } from "@/lib/app-settings";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
-
-const GENERAL_KEYS = [
-  "hostname.urlTemplate",
-  "macAddress.urlTemplate",
-  "location.urlTemplate",
-] as const;
 
 const schema = z.object({
   hostnameUrlTemplate: z.string().max(1000).optional().nullable(),
@@ -22,12 +16,7 @@ export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const map = await readSettings(GENERAL_KEYS);
-  return NextResponse.json({
-    hostnameUrlTemplate: map["hostname.urlTemplate"] ?? "",
-    macAddressUrlTemplate: map["macAddress.urlTemplate"] ?? "",
-    locationUrlTemplate: map["location.urlTemplate"] ?? "",
-  });
+  return NextResponse.json(await readGeneralSettings());
 }
 
 export async function PUT(req: NextRequest) {
@@ -42,10 +31,10 @@ export async function PUT(req: NextRequest) {
   const { hostnameUrlTemplate, macAddressUrlTemplate, locationUrlTemplate } = parsed.data;
 
   // All three templates are always written; an omitted one is cleared.
-  const written = await writeSettings({
-    "hostname.urlTemplate": hostnameUrlTemplate ?? "",
-    "macAddress.urlTemplate": macAddressUrlTemplate ?? "",
-    "location.urlTemplate": locationUrlTemplate ?? "",
+  const written = await writeGeneralSettings({
+    hostnameUrlTemplate: hostnameUrlTemplate ?? "",
+    macAddressUrlTemplate: macAddressUrlTemplate ?? "",
+    locationUrlTemplate: locationUrlTemplate ?? "",
   });
 
   await logAudit({

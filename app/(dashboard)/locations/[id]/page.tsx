@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { readSettings } from "@/lib/app-settings";
+import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/locations/path";
@@ -14,11 +14,11 @@ async function getUrlTemplates(): Promise<{
   macAddressUrlTemplate: string | null;
   locationUrlTemplate: string | null;
 }> {
-  const map = await readSettings(["hostname.urlTemplate", "macAddress.urlTemplate", "location.urlTemplate"]);
+  const templates = await readGeneralSettings();
   return {
-    hostnameUrlTemplate: map["hostname.urlTemplate"] || null,
-    macAddressUrlTemplate: map["macAddress.urlTemplate"] || null,
-    locationUrlTemplate: map["location.urlTemplate"] || null,
+    hostnameUrlTemplate: templates.hostnameUrlTemplate || null,
+    macAddressUrlTemplate: templates.macAddressUrlTemplate || null,
+    locationUrlTemplate: templates.locationUrlTemplate || null,
   };
 }
 

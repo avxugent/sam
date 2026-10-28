@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { readSettings } from "@/lib/app-settings";
+import { readExportSettings } from "@/lib/app-settings";
 import { ExportClient } from "@/components/admin/export-client";
 import { isAdmin } from "@/lib/permissions";
 
@@ -11,7 +11,7 @@ export default async function ExportPage() {
 
   const t = await getTranslations("adminPages");
 
-  const map = await readSettings(["export.cronExpression", "export.outputDir", "export.enabled"]);
+  const settings = await readExportSettings();
 
   return (
     <div className="max-w-2xl">
@@ -20,9 +20,9 @@ export default async function ExportPage() {
         <p className="text-muted-foreground mt-1">{t("export.subtitle")}</p>
       </div>
       <ExportClient
-        initialCronExpression={map["export.cronExpression"] ?? "0 2 * * *"}
-        initialOutputDir={map["export.outputDir"] ?? "/backups"}
-        initialEnabled={map["export.enabled"] === "true"}
+        initialCronExpression={settings.cronExpression}
+        initialOutputDir={settings.outputDir}
+        initialEnabled={settings.enabled}
       />
     </div>
   );

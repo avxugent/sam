@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { readSettings, writeSettings } from "@/lib/app-settings";
+import { readComplianceSettings, writeComplianceSettings } from "@/lib/app-settings";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
-
-const KEYS = [
-  "security.requireTwoFactor",
-  "audit.retentionDays",
-  "assets.defaultOwnerId",
-  "compliance.reviewWorkLogItemId",
-  "compliance.reviewPeriodMonths",
-] as const;
 
 const schema = z.object({
   requireTwoFactor: z.boolean().optional(),
@@ -27,15 +19,7 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const map = await readSettings(KEYS);
-
-  return NextResponse.json({
-    requireTwoFactor: map["security.requireTwoFactor"] === "true",
-    auditRetentionDays: parseInt(map["audit.retentionDays"] ?? "730", 10),
-    defaultOwnerId: map["assets.defaultOwnerId"] || null,
-    reviewWorkLogItemId: map["compliance.reviewWorkLogItemId"] || null,
-    reviewPeriodMonths: parseInt(map["compliance.reviewPeriodMonths"] ?? "12", 10),
-  });
+  return NextResponse.json(await readComplianceSettings());
 }
 
 export async function PUT(req: NextRequest) {
@@ -47,14 +31,7 @@ export async function PUT(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return invalidInput(parsed.error);
 
-  const d = parsed.data;
-  const written = await writeSettings({
-    "security.requireTwoFactor": d.requireTwoFactor === undefined ? undefined : String(d.requireTwoFactor),
-    "audit.retentionDays": d.auditRetentionDays === undefined ? undefined : String(d.auditRetentionDays),
-    "assets.defaultOwnerId": d.defaultOwnerId === undefined ? undefined : d.defaultOwnerId ?? "",
-    "compliance.reviewWorkLogItemId": d.reviewWorkLogItemId === undefined ? undefined : d.reviewWorkLogItemId ?? "",
-    "compliance.reviewPeriodMonths": d.reviewPeriodMonths === undefined ? undefined : String(d.reviewPeriodMonths),
-  });
+  const written = await writeComplianceSettings(parsed.data);
 
   await logAudit({
     session,

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { readSettings } from "@/lib/app-settings";
+import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
 import { locationBreadcrumbs } from "@/lib/locations/path";
@@ -14,9 +14,9 @@ export default async function AssetPage({
   const session = await auth();
   const { id: locationId, assetId } = await params;
 
-  const templateMap = await readSettings(["hostname.urlTemplate", "macAddress.urlTemplate"]);
-  const hostnameUrlTemplate = templateMap["hostname.urlTemplate"] || null;
-  const macAddressUrlTemplate = templateMap["macAddress.urlTemplate"] || null;
+  const templates = await readGeneralSettings();
+  const hostnameUrlTemplate = templates.hostnameUrlTemplate || null;
+  const macAddressUrlTemplate = templates.macAddressUrlTemplate || null;
 
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },

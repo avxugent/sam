@@ -5,12 +5,10 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppBackground } from "@/components/layout/app-background";
-import { readSettings } from "@/lib/app-settings";
+import { readBrandingSettings } from "@/lib/app-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const map = await readSettings(["app.title", "branding.faviconStorageKey"]);
-  const appTitle = map["app.title"] || "SAM";
-  const hasFavicon = !!map["branding.faviconStorageKey"];
+  const { appTitle, hasFavicon } = await readBrandingSettings();
 
   return {
     title: {
@@ -35,7 +33,7 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
 
-  const { "branding.backgroundMode": backgroundMode = "" } = await readSettings(["branding.backgroundMode"]);
+  const { backgroundMode } = await readBrandingSettings();
 
   return (
     <html lang={locale} translate="no" className="h-full" suppressHydrationWarning>

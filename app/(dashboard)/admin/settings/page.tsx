@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { readSettings } from "@/lib/app-settings";
+import { readBrandingSettings, readComplianceSettings, readGeneralSettings } from "@/lib/app-settings";
 import { GeneralSettingsClient } from "@/components/admin/general-settings-client";
 import { BrandingSettingsClient } from "@/components/admin/branding-settings-client";
 import { ComplianceSettingsClient } from "@/components/admin/compliance-settings-client";
@@ -16,20 +16,10 @@ export default async function SettingsPage() {
 
   const t = await getTranslations("adminPages");
 
-  const map = await readSettings([
-    "hostname.urlTemplate",
-    "macAddress.urlTemplate",
-    "location.urlTemplate",
-    "app.title",
-    "branding.logoStorageKey",
-    "branding.faviconStorageKey",
-    "branding.backgroundMode",
-    "branding.backgroundStorageKey",
-    "security.requireTwoFactor",
-    "audit.retentionDays",
-    "assets.defaultOwnerId",
-    "compliance.reviewWorkLogItemId",
-    "compliance.reviewPeriodMonths",
+  const [general, branding, compliance] = await Promise.all([
+    readGeneralSettings(),
+    readBrandingSettings(),
+    readComplianceSettings(),
   ]);
 
   const workLogItems = await prisma.workLogItem.findMany({
@@ -50,29 +40,29 @@ export default async function SettingsPage() {
           <p className="text-muted-foreground mt-1">{t("settings.subtitle")}</p>
         </div>
         <GeneralSettingsClient
-          initialHostnameUrlTemplate={map["hostname.urlTemplate"] ?? ""}
-          initialMacAddressUrlTemplate={map["macAddress.urlTemplate"] ?? ""}
-          initialLocationUrlTemplate={map["location.urlTemplate"] ?? ""}
+          initialHostnameUrlTemplate={general.hostnameUrlTemplate}
+          initialMacAddressUrlTemplate={general.macAddressUrlTemplate}
+          initialLocationUrlTemplate={general.locationUrlTemplate}
         />
       </div>
 
       <div>
         <BrandingSettingsClient
-          initialAppTitle={map["app.title"] ?? "SAM"}
-          initialHasLogo={!!map["branding.logoStorageKey"]}
-          initialHasFavicon={!!map["branding.faviconStorageKey"]}
-          initialBackgroundMode={parseBackgroundMode(map["branding.backgroundMode"])}
-          initialHasCustomBackground={!!map["branding.backgroundStorageKey"]}
+          initialAppTitle={branding.appTitle}
+          initialHasLogo={branding.hasLogo}
+          initialHasFavicon={branding.hasFavicon}
+          initialBackgroundMode={parseBackgroundMode(branding.backgroundMode)}
+          initialHasCustomBackground={branding.hasCustomBackground}
         />
       </div>
 
       <div>
         <ComplianceSettingsClient
-          initialRequireTwoFactor={map["security.requireTwoFactor"] === "true"}
-          initialAuditRetentionDays={parseInt(map["audit.retentionDays"] ?? "730", 10)}
-          initialDefaultOwnerId={map["assets.defaultOwnerId"] || null}
-          initialReviewWorkLogItemId={map["compliance.reviewWorkLogItemId"] || null}
-          initialReviewPeriodMonths={parseInt(map["compliance.reviewPeriodMonths"] ?? "12", 10)}
+          initialRequireTwoFactor={compliance.requireTwoFactor}
+          initialAuditRetentionDays={compliance.auditRetentionDays}
+          initialDefaultOwnerId={compliance.defaultOwnerId}
+          initialReviewWorkLogItemId={compliance.reviewWorkLogItemId}
+          initialReviewPeriodMonths={compliance.reviewPeriodMonths}
           users={users}
           workLogItems={workLogItems.map((i) => ({ id: i.id, name: i.name }))}
         />

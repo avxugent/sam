@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { readSettings } from "@/lib/app-settings";
+import { readBrandingSettings } from "@/lib/app-settings";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
@@ -33,7 +33,7 @@ export default async function DashboardLayout({
 
   const assetCountMap = await getRecursiveAssetCounts();
 
-  const [stockItemCount, decommissionedCount, inRepairCount, stockTypes, brandingMap] = await Promise.all([
+  const [stockItemCount, decommissionedCount, inRepairCount, stockTypes, branding] = await Promise.all([
     prisma.stockItem.count(),
     prisma.asset.count({ where: { status: "DECOMMISSIONED" } }),
     prisma.asset.count({ where: { status: "IN_REPAIR" } }),
@@ -42,11 +42,11 @@ export default async function DashboardLayout({
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
-    readSettings(["app.title", "branding.logoStorageKey"]),
+    readBrandingSettings(),
   ]);
 
-  const appTitle = brandingMap["app.title"] || "SAM";
-  const logoUrl = brandingMap["branding.logoStorageKey"] ? "/api/branding/logo" : null;
+  const { appTitle } = branding;
+  const logoUrl = branding.hasLogo ? "/api/branding/logo" : null;
 
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },

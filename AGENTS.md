@@ -84,7 +84,7 @@ lib/               — shared code; modules importing next/server are route-hand
   storage.ts       — upload storage driver (local filesystem or S3)
   vault.ts         — HashiCorp Vault KV client (native fetch, no extra deps)
   jira.ts          — read-only Jira REST client (work-log issue keys)
-  app-settings.ts  — readSettings / writeSettings for the AppSetting key/value table
+  app-settings.ts  — AppSetting key/value table: readSettings / writeSettings, plus typed groups (compliance, general, branding, export) that own each key, default and decoding
   rate-limit.ts    — in-memory rate limiter; rate-limit-http.ts — client IP key + 429 response
   criticality.ts   — criticality levels, parseCriticality, effectiveCriticality; client-safe
   user-preferences.ts — theme / location-tab value sets; client-safe

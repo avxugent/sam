@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { readSettings, writeSettings } from "@/lib/app-settings";
+import { BRANDING_KEYS, readBrandingSettings, writeSettings } from "@/lib/app-settings";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
@@ -17,21 +17,7 @@ export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const map = await readSettings([
-    "app.title",
-    "branding.logoStorageKey",
-    "branding.faviconStorageKey",
-    "branding.backgroundMode",
-    "branding.backgroundStorageKey",
-  ]);
-
-  return NextResponse.json({
-    appTitle: map["app.title"] ?? "SAM",
-    hasLogo: !!map["branding.logoStorageKey"],
-    hasFavicon: !!map["branding.faviconStorageKey"],
-    backgroundMode: map["branding.backgroundMode"] ?? "",
-    hasCustomBackground: !!map["branding.backgroundStorageKey"],
-  });
+  return NextResponse.json(await readBrandingSettings());
 }
 
 export async function PUT(req: NextRequest) {
@@ -46,8 +32,8 @@ export async function PUT(req: NextRequest) {
   const { appTitle, backgroundMode } = parsed.data;
   // An empty background mode means "default": the setting is removed rather than stored.
   await Promise.all([
-    writeSettings({ "app.title": appTitle, "branding.backgroundMode": backgroundMode || undefined }),
-    backgroundMode === "" ? prisma.appSetting.deleteMany({ where: { key: "branding.backgroundMode" } }) : null,
+    writeSettings({ [BRANDING_KEYS.appTitle]: appTitle, [BRANDING_KEYS.backgroundMode]: backgroundMode || undefined }),
+    backgroundMode === "" ? prisma.appSetting.deleteMany({ where: { key: BRANDING_KEYS.backgroundMode } }) : null,
   ]);
 
   const detail: Record<string, unknown> = {};

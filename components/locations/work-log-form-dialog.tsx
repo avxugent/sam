@@ -26,7 +26,7 @@ import {
 import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
-import { createWorkLogSchema } from "@/lib/schemas/work-log";
+import { JIRA_KEY_REGEX, createWorkLogSchema } from "@/lib/schemas/work-log";
 import { z } from "zod";
 import { toIsoDay } from "@/lib/utils";
 
@@ -94,7 +94,6 @@ export function WorkLogFormDialog({
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
 
-  const JIRA_KEY_REGEX = /^[A-Z][A-Z0-9_]+-\d+$/;
   const validationSchema = useMemo(() => z.object({
     assetId: z.string().min(1).optional().nullable(),
     itemId: z.string().min(1).optional().nullable(),

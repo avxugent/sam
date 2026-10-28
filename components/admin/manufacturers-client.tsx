@@ -151,7 +151,7 @@ export function ManufacturersClient({
       {/* List */}
       <div className="border rounded-lg divide-y">
         {items.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">No manufacturers yet</div>
+          <div className="text-center py-8 text-muted-foreground">{t("emptyList")}</div>
         ) : (
           items.map((item) => (
             <div key={item.id} className="flex items-center gap-3 px-4 py-3">

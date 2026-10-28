@@ -244,7 +244,7 @@ export function BrandingSettingsClient({
         ) : (
           <div className="p-4 bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
             <ImageIcon className="h-6 w-6" />
-            <span className="text-[13px]">No logo uploaded</span>
+            <span className="text-[13px]">{t("noLogoUploaded")}</span>
           </div>
         )}
 
@@ -278,7 +278,7 @@ export function BrandingSettingsClient({
         ) : (
           <div className="p-4 bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
             <ImageIcon className="h-6 w-6" />
-            <span className="text-[13px]">No favicon uploaded</span>
+            <span className="text-[13px]">{t("noFaviconUploaded")}</span>
           </div>
         )}
 
@@ -368,7 +368,7 @@ export function BrandingSettingsClient({
             <p className="text-[12px] text-[#64748b]">{t("backgroundImageHelp")}</p>
             <div className="p-4 bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
               <ImageIcon className="h-6 w-6" />
-              <span className="text-[13px]">No background image uploaded</span>
+              <span className="text-[13px]">{t("noBackgroundUploaded")}</span>
             </div>
             <Button variant="outline" onClick={() => backgroundInputRef.current?.click()} disabled={uploadingBackground} className="gap-2">
               {uploadingBackground ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}

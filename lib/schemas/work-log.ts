@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-const JIRA_KEY_REGEX = /^[A-Z][A-Z0-9_]+-\d+$/;
+/** A Jira issue key, e.g. AVT-123. */
+export const JIRA_KEY_REGEX = /^[A-Z][A-Z0-9_]+-\d+$/;
 
 const isoDate = z
   .string()

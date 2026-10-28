@@ -123,10 +123,10 @@ export function SearchResults() {
     } catch {
       // An aborted request was superseded by a newer query or page
       if (signal.aborted) return;
-      setError("Search failed. Please try again.");
+      setError(t("searchFailed"));
     }
     setLoading(false);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -167,7 +167,7 @@ export function SearchResults() {
           <span className="flex-1 truncate">{q}</span>
           {results && (
             <span className="ml-3 text-[11px] text-[#64748b] bg-[#f1f5f9] px-2 py-0.5 rounded flex-shrink-0">
-              {results.total} result{results.total !== 1 ? "s" : ""}
+              {t("resultCount", { count: results.total })}
             </span>
           )}
         </div>
@@ -176,7 +176,7 @@ export function SearchResults() {
       {loading && (
         <div className="flex items-center justify-center py-16 text-[#64748b] gap-2">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-[13px]">Searching…</span>
+          <span className="text-[13px]">{t("searching")}</span>
         </div>
       )}
 
@@ -188,7 +188,7 @@ export function SearchResults() {
         <div className="text-center py-16 text-[#64748b]">
           <Search className="h-10 w-10 mx-auto mb-3 opacity-30" />
           <p className="text-[15px] font-semibold text-[#0f172a]">{t("noResults", { query: q })}</p>
-          <p className="text-[13px] mt-1">Try different keywords or check the spelling.</p>
+          <p className="text-[13px] mt-1">{t("noResultsHint")}</p>
         </div>
       )}
 

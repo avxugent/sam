@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 
-const tFn = (key: string) => key;
+const tFn = (key: string, values?: { count?: number }) => (values?.count !== undefined ? `${key}:${values.count}` : key);
 vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 vi.mock("next/navigation", () => ({
   useSearchParams: vi.fn(),
@@ -41,17 +41,17 @@ describe("SearchResults", () => {
     vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams("q=second") as never);
     rerender(<SearchResults />);
 
-    expect(await screen.findByText("2 results")).toBeInTheDocument();
+    expect(await screen.findByText("resultCount:2")).toBeInTheDocument();
     expect(fetchMock.mock.calls[0][1]?.signal?.aborted).toBe(true);
 
     await act(async () => resolveFirst(new Response(JSON.stringify(response(7)))));
-    expect(screen.getByText("2 results")).toBeInTheDocument();
-    expect(screen.queryByText("Search failed. Please try again.")).not.toBeInTheDocument();
+    expect(screen.getByText("resultCount:2")).toBeInTheDocument();
+    expect(screen.queryByText("searchFailed")).not.toBeInTheDocument();
   });
 
   it("shows an error when the search request fails", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 500 })));
     render(<SearchResults />);
-    expect(await screen.findByText("Search failed. Please try again.")).toBeInTheDocument();
+    expect(await screen.findByText("searchFailed")).toBeInTheDocument();
   });
 });

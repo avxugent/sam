@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signOut } from "next-auth/react";
@@ -10,18 +10,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Monitor, Loader2, ShieldAlert } from "lucide-react";
-import { passwordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
+import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
 
 export function ForcedPasswordChangeClient() {
   const t = useTranslations("auth");
   const tCommon = useTranslations("common");
   const [serverError, setServerError] = useState("");
 
+  const passwordSchema = useMemo(
+    () =>
+      buildPasswordChangeSchema({
+        currentRequired: t("currentPasswordRequired"),
+        tooShort: t("passwordTooShort"),
+        confirmRequired: t("confirmPasswordRequired"),
+        mismatch: t("passwordMismatch"),
+      }),
+    [t]
+  );
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<PasswordChangeValues>({ resolver: zodResolver(passwordChangeSchema) });
+  } = useForm<PasswordChangeValues>({ resolver: zodResolver(passwordSchema) });
 
   async function onSubmit(data: PasswordChangeValues) {
     setServerError("");

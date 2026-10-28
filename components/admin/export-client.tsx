@@ -106,17 +106,14 @@ export function ExportClient({
       <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-[#64748b]" />
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">Automated backup schedule</h2>
+          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("scheduleTitle")}</h2>
         </div>
 
-        <p className="text-[13px] text-[#64748b]">
-          SAM does not run a built-in scheduler. Configure an external cron job or Docker cron container
-          to call the export endpoint on a schedule.
-        </p>
+        <p className="text-[13px] text-[#64748b]">{t("scheduleIntro")}</p>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="cron-expression">Schedule (cron expression)</Label>
+            <Label htmlFor="cron-expression">{t("scheduleCron")}</Label>
             <Input
               id="cron-expression"
               value={cronExpression}
@@ -124,13 +121,11 @@ export function ExportClient({
               placeholder="0 2 * * *"
               className="font-mono text-[13px] max-w-xs"
             />
-            <p className="text-[12px] text-[#64748b]">
-              Example: <code className="font-mono bg-[#f1f5f9] px-1 rounded">0 2 * * *</code> = every night at 02:00
-            </p>
+            <p className="text-[12px] text-[#64748b]">{t.rich("scheduleCronExample", { code: (chunks) => <code className="font-mono bg-[#f1f5f9] px-1 rounded">{chunks}</code> })}</p>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="output-dir">Output directory (on the server)</Label>
+            <Label htmlFor="output-dir">{t("scheduleOutputDir")}</Label>
             <Input
               id="output-dir"
               value={outputDir}
@@ -148,22 +143,20 @@ export function ExportClient({
               onChange={(e) => setEnabled(e.target.checked)}
               className="h-4 w-4 rounded border-gray-300"
             />
-            <Label htmlFor="enabled" className="cursor-pointer">Show schedule as active in documentation</Label>
+            <Label htmlFor="enabled" className="cursor-pointer">{t("scheduleShowActive")}</Label>
           </div>
         </div>
 
         {/* Setup instructions */}
         <div className="mt-4 p-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] space-y-3">
-          <p className="text-[12px] font-semibold text-[#334155]">Setup instructions</p>
-          <p className="text-[12px] text-[#64748b]">
-            Option 1 — HTTP via cron (set <code className="font-mono bg-[#f1f5f9] px-1 rounded">EXPORT_TOKEN</code> in your .env):
-          </p>
+          <p className="text-[12px] font-semibold text-[#334155]">{t("setupInstructions")}</p>
+          <p className="text-[12px] text-[#64748b]">{t.rich("setupOptionHttp", { code: (chunks) => <code className="font-mono bg-[#f1f5f9] px-1 rounded">{chunks}</code> })}</p>
           <pre className="text-[11.5px] font-mono text-[#334155] bg-[#f1f5f9] p-3 rounded-[6px] overflow-x-auto whitespace-pre-wrap break-all">
 {`${cronExpression} curl -s -H "Authorization: Bearer $EXPORT_TOKEN" \\
   http://localhost:3000/api/export/csv \\
   > ${outputDir}/sam-$(date +%Y%m%d).csv`}
           </pre>
-          <p className="text-[12px] text-[#64748b]">Option 2 — CLI script (runs directly against the database):</p>
+          <p className="text-[12px] text-[#64748b]">{t("setupOptionCli")}</p>
           <pre className="text-[11.5px] font-mono text-[#334155] bg-[#f1f5f9] p-3 rounded-[6px] overflow-x-auto">
 {`${cronExpression} cd /app && node scripts/export-backup.mjs --output ${outputDir}`}
           </pre>
@@ -172,7 +165,7 @@ export function ExportClient({
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={saving} variant="outline" className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save schedule settings
+            {t("saveSchedule")}
           </Button>
         </div>
       </section>

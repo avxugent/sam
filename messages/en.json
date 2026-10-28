@@ -558,7 +558,30 @@
     "passkeyNeverUsed": "Never used",
     "passkeyRemove": "Remove",
     "passkeyRemoveConfirmTitle": "Remove this passkey?",
-    "passkeyRemoveConfirmDescription": "You will no longer be able to sign in with this passkey."
+    "passkeyRemoveConfirmDescription": "You will no longer be able to sign in with this passkey.",
+    "twoFactorSsoManaged": "Two-factor authentication is managed by your organisation's Microsoft identity provider. It cannot be configured here.",
+    "twoFactorSettingsTitle": "Two-Factor Authentication",
+    "twoFactorBadgeEnabled": "Enabled",
+    "twoFactorBadgeDisabled": "Not enabled",
+    "twoFactorActiveDescription": "Your account is secured with a TOTP authenticator app. Each login requires a 6-digit code from your app.",
+    "twoFactorReconfigureTitle": "Reconfigure authenticator",
+    "twoFactorReconfigureHelp": "Use this if you got a new phone or need to re-scan the QR code. Your current 2FA will remain active until you verify the new setup.",
+    "twoFactorReconfigureButton": "Set up a new authenticator",
+    "twoFactorDisableTitle": "Disable 2FA",
+    "twoFactorDisableHelp": "Enter your current 6-digit code to confirm you want to disable two-factor authentication.",
+    "twoFactorDisableConfirmTitle": "Disable two-factor authentication?",
+    "twoFactorDisableConfirmDescription": "This will make your account less secure. Enter your current 6-digit code to confirm.",
+    "twoFactorCurrentCode": "Current code",
+    "twoFactorNowActiveTitle": "2FA is now active",
+    "twoFactorNowActiveDescription": "Every time you sign in with your password, you will be asked for a 6-digit code from your authenticator app.",
+    "twoFactorBackToSettings": "Back to settings",
+    "twoFactorQrAlt": "TOTP QR code",
+    "twoFactorManualKey": "Manual entry key:",
+    "twoFactorManualKeyParams": "Type: Time-based · Period: 30s · Digits: 6",
+    "twoFactorEnterAppCode": "Enter the code shown in your app",
+    "twoFactorNotEnabledDescription": "Add an extra layer of security. After entering your password, you will be asked for a 6-digit code from an authenticator app.",
+    "currentPasswordRequired": "Current password is required.",
+    "confirmPasswordRequired": "Please confirm your new password."
   },
   "audit": {
     "title": "Audit Log",
@@ -608,7 +631,12 @@
     "providerCredentials": "Email & password",
     "providerEntra": "Microsoft Entra ID",
     "exportCsv": "Export CSV",
-    "twoFactorDisabledFor": "2FA disabled for {name}"
+    "twoFactorDisabledFor": "2FA disabled for {name}",
+    "securityOptions": "Security options",
+    "you": "(you)",
+    "ssoPasswordNotice": "This user authenticates via Microsoft SSO — password cannot be changed here.",
+    "disable2faTitle": "Disable 2FA for {name}?",
+    "disable2faDescription": "This admin override disables two-factor authentication for this user without requiring their TOTP code. Use this when a user has lost access to their authenticator app."
   },
   "assetTypes": {
     "title": "Asset Types",
@@ -671,7 +699,9 @@
     "viewAssetsOfType": "View {count} {count, plural, =1 {asset} other {assets}} of type {name}",
     "editOverrideFor": "Edit override for {name}",
     "deleteOverrideFor": "Delete override for {name}",
-    "deletePresetNamed": "Delete preset {name}"
+    "deletePresetNamed": "Delete preset {name}",
+    "emptyList": "No asset types yet",
+    "scrapeConfigured": "Scrape configured"
   },
   "manufacturers": {
     "title": "Manufacturers",
@@ -692,7 +722,8 @@
     "manufacturerDeleted": "Manufacturer deleted",
     "manufacturerMerged": "Manufacturers merged",
     "addNewManufacturer": "Add new manufacturer...",
-    "viewAssetsFrom": "View {count} {count, plural, =1 {asset} other {assets}} from {name}"
+    "viewAssetsFrom": "View {count} {count, plural, =1 {asset} other {assets}} from {name}",
+    "emptyList": "No manufacturers yet"
   },
   "models": {
     "title": "Models",
@@ -775,7 +806,17 @@
     "downloadStock": "Download stock CSV",
     "includeDecommissioned": "Include decommissioned assets",
     "exportComplete": "Export downloaded",
-    "scheduleSaved": "Schedule settings saved"
+    "scheduleSaved": "Schedule settings saved",
+    "scheduleTitle": "Automated backup schedule",
+    "scheduleIntro": "SAM does not run a built-in scheduler. Configure an external cron job or Docker cron container to call the export endpoint on a schedule.",
+    "scheduleCron": "Schedule (cron expression)",
+    "scheduleCronExample": "Example: <code>0 2 * * *</code> = every night at 02:00",
+    "scheduleOutputDir": "Output directory (on the server)",
+    "scheduleShowActive": "Show schedule as active in documentation",
+    "setupInstructions": "Setup instructions",
+    "setupOptionHttp": "Option 1 — HTTP via cron (set <code>EXPORT_TOKEN</code> in your .env):",
+    "setupOptionCli": "Option 2 — CLI script (runs directly against the database):",
+    "saveSchedule": "Save schedule settings"
   },
   "compliance": {
     "title": "Hostname compliance",
@@ -891,7 +932,13 @@
     "complianceReviewItemHelp": "The work log item that marks a location's asset list as reviewed (used by the compliance dashboard).",
     "complianceReviewPeriod": "Review period (months)",
     "complianceReviewPeriodHelp": "Locations without the review item within this period are flagged on the compliance dashboard.",
-    "complianceReviewPeriodInvalid": "Review period must be between 1 and 120 months."
+    "complianceReviewPeriodInvalid": "Review period must be between 1 and 120 months.",
+    "noLogoUploaded": "No logo uploaded",
+    "noFaviconUploaded": "No favicon uploaded",
+    "noBackgroundUploaded": "No background image uploaded",
+    "profilePageSubtitle": "Manage your display name and password.",
+    "twoFactorPageTitle": "Two-Factor Authentication",
+    "twoFactorPageSubtitle": "Secure your account with a time-based one-time password (TOTP) or a passkey."
   },
   "report": {
     "title": "Reports",
@@ -1066,7 +1113,11 @@
     "locations": "Locations",
     "results": "Search results",
     "previous": "Previous",
-    "page": "Page"
+    "page": "Page",
+    "searching": "Searching…",
+    "noResultsHint": "Try different keywords or check the spelling.",
+    "searchFailed": "Search failed. Please try again.",
+    "resultCount": "{count, plural, one {# result} other {# results}}"
   },
   "coverImage": {
     "title": "Cover image",

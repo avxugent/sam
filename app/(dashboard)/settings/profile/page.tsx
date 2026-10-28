@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { ProfileClient } from "@/components/settings/profile-client";
 
 export default async function ProfilePage() {
@@ -18,14 +19,13 @@ export default async function ProfilePage() {
     },
   });
   if (!user) redirect("/login");
+  const t = await getTranslations("settings");
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Profile</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your display name and password.
-        </p>
+        <h1 className="text-2xl font-bold">{t("profileTitle")}</h1>
+        <p className="text-muted-foreground mt-1">{t("profilePageSubtitle")}</p>
       </div>
       <ProfileClient
         name={user.name}

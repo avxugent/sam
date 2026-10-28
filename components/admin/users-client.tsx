@@ -273,7 +273,7 @@ export function UsersClient({
                 </Select>
               </div>
               <div className="space-y-2 rounded-lg border p-3">
-                <p className="text-xs font-medium text-muted-foreground">Security options</p>
+                <p className="text-xs font-medium text-muted-foreground">{t("securityOptions")}</p>
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="create-must-change-password"
@@ -335,7 +335,7 @@ export function UsersClient({
                     <span className="font-medium text-[13px] text-[#0f172a]">
                       {user.name}
                       {user.id === currentUserId && (
-                        <span className="ml-1.5 text-[11px] text-[#64748b] font-normal">(you)</span>
+                        <span className="ml-1.5 text-[11px] text-[#64748b] font-normal">{t("you")}</span>
                       )}
                     </span>
                   </div>
@@ -420,7 +420,7 @@ export function UsersClient({
                           )}
                           {user.provider !== "credentials" && (
                             <p className="text-xs text-muted-foreground bg-muted/50 rounded px-3 py-2">
-                              This user authenticates via Microsoft SSO — password cannot be changed here.
+                              {t("ssoPasswordNotice")}
                             </p>
                           )}
                           <div className="space-y-1.5">
@@ -440,7 +440,7 @@ export function UsersClient({
                           </div>
                           {user.provider === "credentials" && (
                             <div className="space-y-2 rounded-lg border p-3">
-                              <p className="text-xs font-medium text-muted-foreground">Security options</p>
+                              <p className="text-xs font-medium text-muted-foreground">{t("securityOptions")}</p>
                               <div className="flex items-center gap-2">
                                 <Checkbox
                                   id={`edit-2fa-required-${user.id}`}
@@ -479,12 +479,8 @@ export function UsersClient({
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Disable 2FA for {user.name}?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This admin override disables two-factor authentication for this
-                              user without requiring their TOTP code. Use this when a user has
-                              lost access to their authenticator app.
-                            </AlertDialogDescription>
+                            <AlertDialogTitle>{t("disable2faTitle", { name: user.name })}</AlertDialogTitle>
+                            <AlertDialogDescription>{t("disable2faDescription")}</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>

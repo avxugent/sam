@@ -60,10 +60,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
         <CardContent className="pt-6">
           <div className="flex items-start gap-3 text-muted-foreground">
             <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
-            <p className="text-sm">
-              Two-factor authentication is managed by your organisation&apos;s
-              Microsoft identity provider. It cannot be configured here.
-            </p>
+            <p className="text-sm">{t("twoFactorSsoManaged")}</p>
           </div>
         </CardContent>
       </Card>
@@ -138,15 +135,14 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-green-500" />
-              Two-Factor Authentication
+              {t("twoFactorSettingsTitle")}
             </CardTitle>
             <Badge className="bg-green-100 text-green-800 border-green-200">
-              Enabled
+              {t("twoFactorBadgeEnabled")}
             </Badge>
           </div>
           <CardDescription>
-            Your account is secured with a TOTP authenticator app.
-            Each login requires a 6-digit code from your app.
+            {t("twoFactorActiveDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -154,18 +150,15 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
 
           {/* Reconfigure */}
           <div>
-            <p className="text-sm font-medium mb-1">Reconfigure authenticator</p>
-            <p className="text-xs text-muted-foreground mb-3">
-              Use this if you got a new phone or need to re-scan the QR code.
-              Your current 2FA will remain active until you verify the new setup.
-            </p>
+            <p className="text-sm font-medium mb-1">{t("twoFactorReconfigureTitle")}</p>
+            <p className="text-xs text-muted-foreground mb-3">{t("twoFactorReconfigureHelp")}</p>
             <Button variant="outline" size="sm" onClick={handleStartSetup} disabled={loading}>
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
               ) : (
                 <RefreshCw className="h-4 w-4 mr-1.5" />
               )}
-              Set up a new authenticator
+              {t("twoFactorReconfigureButton")}
             </Button>
           </div>
 
@@ -173,28 +166,22 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
 
           {/* Disable */}
           <div>
-            <p className="text-sm font-medium mb-1">Disable 2FA</p>
-            <p className="text-xs text-muted-foreground mb-3">
-              Enter your current 6-digit code to confirm you want to disable
-              two-factor authentication.
-            </p>
+            <p className="text-sm font-medium mb-1">{t("twoFactorDisableTitle")}</p>
+            <p className="text-xs text-muted-foreground mb-3">{t("twoFactorDisableHelp")}</p>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
                   <ShieldOff className="h-4 w-4 mr-1.5" />
-                  Disable 2FA
+                  {t("twoFactorDisableTitle")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Disable two-factor authentication?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will make your account less secure. Enter your current
-                    6-digit code to confirm.
-                  </AlertDialogDescription>
+                  <AlertDialogTitle>{t("twoFactorDisableConfirmTitle")}</AlertDialogTitle>
+                  <AlertDialogDescription>{t("twoFactorDisableConfirmDescription")}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="px-6 pb-2">
-                  <Label htmlFor="disable-code">Current code</Label>
+                  <Label htmlFor="disable-code">{t("twoFactorCurrentCode")}</Label>
                   <Input
                     id="disable-code"
                     value={disableCode}
@@ -206,7 +193,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
                   />
                 </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDisableCode("")}>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel onClick={() => setDisableCode("")}>{tCommon("cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDisable}
                     disabled={loading || disableCode.length !== 6}
@@ -231,13 +218,10 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center gap-3 py-4">
             <CheckCircle2 className="h-12 w-12 text-green-500" />
-            <h3 className="text-lg font-semibold">2FA is now active</h3>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Every time you sign in with your password, you will be asked
-              for a 6-digit code from your authenticator app.
-            </p>
+            <h3 className="text-lg font-semibold">{t("twoFactorNowActiveTitle")}</h3>
+            <p className="text-sm text-muted-foreground max-w-xs">{t("twoFactorNowActiveDescription")}</p>
             <Button onClick={() => setSetupState("idle")} variant="outline" className="mt-2">
-              Back to settings
+              {t("twoFactorBackToSettings")}
             </Button>
           </div>
         </CardContent>
@@ -262,7 +246,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={qrCode}
-                alt="TOTP QR code"
+                alt={t("twoFactorQrAlt")}
                 className="rounded-lg border"
                 width={220}
                 height={220}
@@ -281,11 +265,9 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
             </button>
             {showManualKey && (
               <div className="mt-2 p-3 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Manual entry key:</p>
+                <p className="text-xs text-muted-foreground mb-1">{t("twoFactorManualKey")}</p>
                 <code className="text-sm font-mono select-all break-all">{secret}</code>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Type: Time-based · Period: 30s · Digits: 6
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">{t("twoFactorManualKeyParams")}</p>
               </div>
             )}
           </div>
@@ -295,9 +277,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
           {/* Code verification */}
           <form onSubmit={handleEnable} className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="enable-code">
-                Enter the code shown in your app
-              </Label>
+              <Label htmlFor="enable-code">{t("twoFactorEnterAppCode")}</Label>
               <Input
                 id="enable-code"
                 value={enableCode}
@@ -318,7 +298,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
                 onClick={() => setSetupState("idle")}
                 className="flex-1"
               >
-                Cancel
+                {tCommon("cancel")}
               </Button>
               <Button
                 type="submit"
@@ -342,15 +322,14 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <ShieldOff className="h-5 w-5 text-muted-foreground" />
-            Two-Factor Authentication
+            {t("twoFactorSettingsTitle")}
           </CardTitle>
           <Badge variant="outline" className="text-muted-foreground">
-            Not enabled
+            {t("twoFactorBadgeDisabled")}
           </Badge>
         </div>
         <CardDescription>
-          Add an extra layer of security. After entering your password,
-          you will be asked for a 6-digit code from an authenticator app.
+          {t("twoFactorNotEnabledDescription")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -360,7 +339,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
           ) : (
             <ShieldCheck className="mr-2 h-4 w-4" />
           )}
-          Enable 2FA
+          {t("twoFactorSetupConfirm")}
         </Button>
       </CardContent>
     </Card>

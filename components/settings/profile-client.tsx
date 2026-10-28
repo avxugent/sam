@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,7 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Sun, Moon, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme, type Theme } from "@/components/theme-provider";
-import { passwordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
+import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
 
 const nameSchema = z.object({
   name: z.string().min(1, "Name is required.").max(128, "Name is too long."),
@@ -82,12 +82,22 @@ export function ProfileClient({
   }
 
   // ── Password form ──────────────────────────────────────────────────────────
+  const passwordSchema = useMemo(
+    () =>
+      buildPasswordChangeSchema({
+        currentRequired: tAuth("currentPasswordRequired"),
+        tooShort: tAuth("passwordTooShort"),
+        confirmRequired: tAuth("confirmPasswordRequired"),
+        mismatch: tAuth("passwordMismatch"),
+      }),
+    [tAuth]
+  );
   const {
     register: registerPw,
     handleSubmit: handlePwSubmit,
     formState: { errors: pwErrors },
     reset: resetPw,
-  } = useForm<PasswordChangeValues>({ resolver: zodResolver(passwordChangeSchema) });
+  } = useForm<PasswordChangeValues>({ resolver: zodResolver(passwordSchema) });
 
   const [pwSaving, setPwSaving] = useState(false);
 

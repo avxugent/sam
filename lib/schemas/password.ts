@@ -1,16 +1,37 @@
 import { z } from "zod";
 
-/** Self-service password change (profile page and forced change after an admin reset). */
-export const passwordChangeSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Current password is required."),
-    newPassword: z.string().min(8, "Password must be at least 8 characters.").max(128),
-    confirmPassword: z.string().min(1, "Please confirm your new password."),
-  })
-  .superRefine(({ newPassword, confirmPassword }, ctx) => {
-    if (newPassword !== confirmPassword) {
-      ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: "Passwords do not match." });
-    }
-  });
+export type PasswordChangeMessages = {
+  currentRequired: string;
+  tooShort: string;
+  confirmRequired: string;
+  mismatch: string;
+};
+
+const ENGLISH: PasswordChangeMessages = {
+  currentRequired: "Current password is required.",
+  tooShort: "Password must be at least 8 characters.",
+  confirmRequired: "Please confirm your new password.",
+  mismatch: "Passwords do not match.",
+};
+
+/**
+ * Self-service password change (profile page and forced change after an admin
+ * reset). The API uses the English messages; forms pass translated ones.
+ */
+export function buildPasswordChangeSchema(messages: PasswordChangeMessages = ENGLISH) {
+  return z
+    .object({
+      currentPassword: z.string().min(1, messages.currentRequired),
+      newPassword: z.string().min(8, messages.tooShort).max(128),
+      confirmPassword: z.string().min(1, messages.confirmRequired),
+    })
+    .superRefine(({ newPassword, confirmPassword }, ctx) => {
+      if (newPassword !== confirmPassword) {
+        ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: messages.mismatch });
+      }
+    });
+}
+
+export const passwordChangeSchema = buildPasswordChangeSchema();
 
 export type PasswordChangeValues = z.infer<typeof passwordChangeSchema>;

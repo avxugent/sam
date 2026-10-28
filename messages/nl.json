@@ -558,7 +558,30 @@
     "passkeyNeverUsed": "Nooit gebruikt",
     "passkeyRemove": "Verwijderen",
     "passkeyRemoveConfirmTitle": "Deze passkey verwijderen?",
-    "passkeyRemoveConfirmDescription": "U kunt hiermee niet meer inloggen met deze passkey."
+    "passkeyRemoveConfirmDescription": "U kunt hiermee niet meer inloggen met deze passkey.",
+    "twoFactorSsoManaged": "Tweestapsverificatie wordt beheerd door de Microsoft-identiteitsprovider van uw organisatie en kan hier niet worden ingesteld.",
+    "twoFactorSettingsTitle": "Tweestapsverificatie",
+    "twoFactorBadgeEnabled": "Ingeschakeld",
+    "twoFactorBadgeDisabled": "Niet ingeschakeld",
+    "twoFactorActiveDescription": "Uw account is beveiligd met een TOTP-authenticator-app. Bij elke aanmelding is een 6-cijferige code uit uw app nodig.",
+    "twoFactorReconfigureTitle": "Authenticator opnieuw instellen",
+    "twoFactorReconfigureHelp": "Gebruik dit als u een nieuwe telefoon hebt of de QR-code opnieuw moet scannen. Uw huidige tweestapsverificatie blijft actief tot u de nieuwe instelling bevestigt.",
+    "twoFactorReconfigureButton": "Nieuwe authenticator instellen",
+    "twoFactorDisableTitle": "2FA uitschakelen",
+    "twoFactorDisableHelp": "Voer uw huidige 6-cijferige code in om te bevestigen dat u tweestapsverificatie wilt uitschakelen.",
+    "twoFactorDisableConfirmTitle": "Tweestapsverificatie uitschakelen?",
+    "twoFactorDisableConfirmDescription": "Hierdoor wordt uw account minder goed beveiligd. Voer uw huidige 6-cijferige code in om te bevestigen.",
+    "twoFactorCurrentCode": "Huidige code",
+    "twoFactorNowActiveTitle": "Tweestapsverificatie is nu actief",
+    "twoFactorNowActiveDescription": "Telkens als u zich met uw wachtwoord aanmeldt, wordt u om een 6-cijferige code uit uw authenticator-app gevraagd.",
+    "twoFactorBackToSettings": "Terug naar instellingen",
+    "twoFactorQrAlt": "TOTP-QR-code",
+    "twoFactorManualKey": "Sleutel voor handmatige invoer:",
+    "twoFactorManualKeyParams": "Type: tijdgebaseerd · Periode: 30s · Cijfers: 6",
+    "twoFactorEnterAppCode": "Voer de code in die uw app toont",
+    "twoFactorNotEnabledDescription": "Voeg een extra beveiligingslaag toe. Na uw wachtwoord wordt u om een 6-cijferige code uit een authenticator-app gevraagd.",
+    "currentPasswordRequired": "Huidig wachtwoord is verplicht.",
+    "confirmPasswordRequired": "Bevestig uw nieuwe wachtwoord."
   },
   "audit": {
     "title": "Audit-log",
@@ -608,7 +631,12 @@
     "providerCredentials": "E-mail & wachtwoord",
     "providerEntra": "Microsoft Entra ID",
     "exportCsv": "Exporteer CSV",
-    "twoFactorDisabledFor": "2FA uitgeschakeld voor {name}"
+    "twoFactorDisabledFor": "2FA uitgeschakeld voor {name}",
+    "securityOptions": "Beveiligingsopties",
+    "you": "(u)",
+    "ssoPasswordNotice": "Deze gebruiker meldt zich aan via Microsoft SSO — het wachtwoord kan hier niet worden gewijzigd.",
+    "disable2faTitle": "2FA uitschakelen voor {name}?",
+    "disable2faDescription": "Deze beheerdersoverride schakelt tweestapsverificatie voor deze gebruiker uit zonder hun TOTP-code. Gebruik dit als iemand geen toegang meer heeft tot de authenticator-app."
   },
   "assetTypes": {
     "title": "Asset-types",
@@ -671,7 +699,9 @@
     "viewAssetsOfType": "{count} {count, plural, =1 {asset} other {assets}} van type {name} bekijken",
     "editOverrideFor": "Override voor {name} bewerken",
     "deleteOverrideFor": "Override voor {name} verwijderen",
-    "deletePresetNamed": "Preset {name} verwijderen"
+    "deletePresetNamed": "Preset {name} verwijderen",
+    "emptyList": "Nog geen asset-types",
+    "scrapeConfigured": "Scrape ingesteld"
   },
   "manufacturers": {
     "title": "Fabrikanten",
@@ -692,7 +722,8 @@
     "manufacturerDeleted": "Fabrikant verwijderd",
     "manufacturerMerged": "Fabrikanten samengevoegd",
     "addNewManufacturer": "Nieuwe fabrikant toevoegen...",
-    "viewAssetsFrom": "{count} {count, plural, =1 {asset} other {assets}} van {name} bekijken"
+    "viewAssetsFrom": "{count} {count, plural, =1 {asset} other {assets}} van {name} bekijken",
+    "emptyList": "Nog geen fabrikanten"
   },
   "models": {
     "title": "Modellen",
@@ -775,7 +806,17 @@
     "downloadStock": "Voorraad-CSV downloaden",
     "includeDecommissioned": "Buiten dienst gestelde assets meenemen",
     "exportComplete": "Export gedownload",
-    "scheduleSaved": "Planningsinstellingen opgeslagen"
+    "scheduleSaved": "Planningsinstellingen opgeslagen",
+    "scheduleTitle": "Automatisch back-upschema",
+    "scheduleIntro": "SAM heeft geen ingebouwde planner. Stel een externe cronjob of Docker-croncontainer in die het export-endpoint volgens een schema aanroept.",
+    "scheduleCron": "Schema (cron-expressie)",
+    "scheduleCronExample": "Voorbeeld: <code>0 2 * * *</code> = elke nacht om 02:00",
+    "scheduleOutputDir": "Uitvoermap (op de server)",
+    "scheduleShowActive": "Schema als actief tonen in de documentatie",
+    "setupInstructions": "Installatie-instructies",
+    "setupOptionHttp": "Optie 1 — HTTP via cron (stel <code>EXPORT_TOKEN</code> in uw .env in):",
+    "setupOptionCli": "Optie 2 — CLI-script (werkt rechtstreeks op de database):",
+    "saveSchedule": "Schema-instellingen opslaan"
   },
   "compliance": {
     "title": "Hostnaam-compliance",
@@ -891,7 +932,13 @@
     "complianceReviewItemHelp": "Het werklogitem dat de assetlijst van een locatie als gecontroleerd markeert (gebruikt door het compliance-dashboard).",
     "complianceReviewPeriod": "Controleperiode (maanden)",
     "complianceReviewPeriodHelp": "Locaties zonder het controle-item binnen deze periode worden gemarkeerd op het compliance-dashboard.",
-    "complianceReviewPeriodInvalid": "Controleperiode moet tussen 1 en 120 maanden liggen."
+    "complianceReviewPeriodInvalid": "Controleperiode moet tussen 1 en 120 maanden liggen.",
+    "noLogoUploaded": "Geen logo geüpload",
+    "noFaviconUploaded": "Geen favicon geüpload",
+    "noBackgroundUploaded": "Geen achtergrondafbeelding geüpload",
+    "profilePageSubtitle": "Beheer uw weergavenaam en wachtwoord.",
+    "twoFactorPageTitle": "Tweestapsverificatie",
+    "twoFactorPageSubtitle": "Beveilig uw account met een tijdgebaseerd eenmalig wachtwoord (TOTP) of een passkey."
   },
   "report": {
     "title": "Rapporten",
@@ -1066,7 +1113,11 @@
     "locations": "Locaties",
     "results": "Zoekresultaten",
     "previous": "Vorige",
-    "page": "Pagina"
+    "page": "Pagina",
+    "searching": "Zoeken…",
+    "noResultsHint": "Probeer andere zoektermen of controleer de spelling.",
+    "searchFailed": "Zoeken mislukt. Probeer het opnieuw.",
+    "resultCount": "{count, plural, one {# resultaat} other {# resultaten}}"
   },
   "coverImage": {
     "title": "Hoofdfoto",

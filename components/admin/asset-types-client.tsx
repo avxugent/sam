@@ -240,7 +240,7 @@ export function AssetTypesClient({
       {/* List */}
       <div className="border rounded-lg divide-y">
         {types.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">No asset types yet</div>
+          <div className="text-center py-8 text-muted-foreground">{t("emptyList")}</div>
         ) : (
           types.map((item) => {
             const isExpanded = expandedIds.has(item.id);
@@ -303,7 +303,7 @@ export function AssetTypesClient({
                           className="text-xs text-blue-600 border-blue-300 bg-blue-50 gap-1"
                         >
                           <Activity className="h-3 w-3" />
-                          Scrape configured
+                          {t("scrapeConfigured")}
                         </Badge>
                       )}
 

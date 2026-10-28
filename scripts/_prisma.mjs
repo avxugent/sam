@@ -33,11 +33,16 @@ const clientPath = candidates.find(existsSync) ?? candidates[1];
 
 const { PrismaClient } = await import(pathToFileURL(clientPath).href);
 
+// Same rule as lib/prisma.ts: never fall back to a default database.
+if (!process.env.DB_HOST || !process.env.DB_NAME || !process.env.DB_USER) {
+  throw new Error("Missing required database environment variables: DB_HOST, DB_NAME, DB_USER");
+}
+
 const adapter = new PrismaMariaDb({
-  host:     process.env.DB_HOST     ?? "localhost",
+  host:     process.env.DB_HOST,
   port:     Number(process.env.DB_PORT ?? "3306"),
-  database: process.env.DB_NAME     ?? "samdb",
-  user:     process.env.DB_USER     ?? "sam",
+  database: process.env.DB_NAME,
+  user:     process.env.DB_USER,
   password: process.env.DB_PASSWORD ?? "",
   ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : undefined,
 });

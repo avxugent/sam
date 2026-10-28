@@ -16,8 +16,11 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-// Microsoft Entra ID is only enabled when all three env vars are present
-const entraEnabled =
+/**
+ * True when Microsoft Entra ID SSO is configured: all three env vars present.
+ * Read at import because the provider list below is built at import.
+ */
+export const ssoEnabled =
   !!process.env.AUTH_MICROSOFT_ENTRA_ID_ID &&
   !!process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET &&
   !!process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER;
@@ -158,7 +161,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
 
     // Only include Entra ID provider when configured
-    ...(entraEnabled
+    ...(ssoEnabled
       ? [
           MicrosoftEntraID({
             clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID!,
@@ -311,6 +314,3 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   trustHost: true,
 });
-
-/** True when Microsoft Entra ID SSO is configured via environment variables */
-export const ssoEnabled = entraEnabled;

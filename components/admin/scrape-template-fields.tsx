@@ -21,7 +21,7 @@ export function TemplatePreview({ template }: { template: string }) {
   const t = useTranslations("scrapeTemplate");
   if (!template.trim()) return null;
   const errors = validateTemplate(template);
-  const { standard } = getUsedVariables(template);
+  const standard = getUsedVariables(template);
 
   return (
     <div className="space-y-2 mt-2">

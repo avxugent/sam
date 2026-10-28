@@ -172,7 +172,7 @@ describe("validateTemplate()", () => {
 
 describe("getUsedVariables()", () => {
   it("detects standard variable usage", () => {
-    const { standard } = getUsedVariables(
+    const standard = getUsedVariables(
       "__t__={hostname_fqdn}\n__s__={serial}"
     );
     expect(standard).toContain("hostname_fqdn");
@@ -180,12 +180,12 @@ describe("getUsedVariables()", () => {
   });
 
   it("detects {vault_path} usage", () => {
-    const { standard } = getUsedVariables("__p__={vault_path}");
+    const standard = getUsedVariables("__p__={vault_path}");
     expect(standard).toContain("vault_path");
   });
 
   it("returns empty array for empty template", () => {
-    const { standard } = getUsedVariables("");
+    const standard = getUsedVariables("");
     expect(standard).toHaveLength(0);
   });
 });

@@ -86,7 +86,8 @@ export function renderScrapeTemplate(
 
 /**
  * Validates a template string and returns a list of any structural errors.
- * Used by the UI to give immediate feedback when editing.
+ * The server-side gate for saving a template (asset types and their
+ * overrides), and the editor's live preview.
  */
 export function validateTemplate(template: string): string[] {
   const errors: string[] = [];
@@ -156,24 +157,9 @@ export function resolveScrapeTemplate(
   return type.scrapeTargetTemplate;
 }
 
-/** Returns the set of variable names used in the template (for the UI preview). */
-export function getUsedVariables(template: string): {
-  standard: string[];
-} {
-  const standard = new Set<string>();
+const PLACEHOLDERS: (keyof TemplateVars)[] = ["hostname_fqdn", "serial", "model", "manufacturer", "fi_number", "vault_path"];
 
-  const standardPlaceholders = [
-    "hostname_fqdn",
-    "serial",
-    "model",
-    "manufacturer",
-    "fi_number",
-    "vault_path",
-  ];
-
-  for (const ph of standardPlaceholders) {
-    if (template.includes(`{${ph}}`)) standard.add(ph);
-  }
-
-  return { standard: Array.from(standard) };
+/** The variable names used in the template (for the UI preview). */
+export function getUsedVariables(template: string): string[] {
+  return PLACEHOLDERS.filter((ph) => template.includes(`{${ph}}`));
 }

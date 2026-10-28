@@ -6,7 +6,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
-import { SELECTABLE_BACKGROUND_MODES } from "@/lib/background-mode";
+import { SELECTABLE_BACKGROUND_MODES } from "@/lib/branding/background-mode";
 
 const schema = z.object({
   appTitle: z.string().min(1).max(100).optional(),

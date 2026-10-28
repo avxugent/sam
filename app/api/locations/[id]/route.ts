@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
-import { getAllDescendantLocationIds, getSubtreeIdsDeepestFirst } from "@/lib/location-path";
+import { getAllDescendantLocationIds, getSubtreeIdsDeepestFirst } from "@/lib/locations/path";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 import { updateLocationSchema } from "@/lib/schemas/location";

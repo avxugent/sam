@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LocationSearchList } from "@/components/inventory/location-search-list";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
-import type { FlatLocation } from "@/lib/location-tree";
+import type { FlatLocation } from "@/lib/locations/tree";
 
 const locations: FlatLocation[] = [
   { id: "a", name: "Room A", breadcrumb: "Campus › Room A", hasStock: true },

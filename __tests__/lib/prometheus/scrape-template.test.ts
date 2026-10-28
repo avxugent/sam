@@ -6,7 +6,7 @@ import {
   getUsedVariables,
   type TemplateVars,
   type ScrapeTemplateSource,
-} from "@/lib/scrape-template";
+} from "@/lib/prometheus/scrape-template";
 
 const baseVars: TemplateVars = {
   hostname_fqdn: "rectest001.ugent.be",

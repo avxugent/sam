@@ -10,7 +10,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { computeHostnameCompliance } from "@/lib/hostname/compliance";
+import { computeHostnameCompliance } from "@/lib/compliance/hostname";
 
 const mockTypeFind = vi.mocked(prisma.assetType.findMany);
 const mockAssetFind = vi.mocked(prisma.asset.findMany);

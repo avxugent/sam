@@ -3,7 +3,7 @@
 import type { RefObject } from "react";
 import { ChevronRight, Loader2, MapPin, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import type { FlatLocation } from "@/lib/location-tree";
+import type { FlatLocation } from "@/lib/locations/tree";
 import { cn } from "@/lib/utils";
 
 type Props = {

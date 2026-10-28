@@ -19,7 +19,7 @@ import {
   getAncestorChainsBatch,
   buildLocationPathsFromRows,
   type LocationAncestor,
-} from "@/lib/location-path";
+} from "@/lib/locations/path";
 import { prisma } from "@/lib/prisma";
 
 const mockQueryRaw = vi.mocked(prisma.$queryRaw);

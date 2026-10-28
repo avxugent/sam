@@ -41,7 +41,7 @@ import {
   buildLocationPathString,
   findFiNumber,
   parseFiNumber,
-} from "@/lib/location-path";
+} from "@/lib/locations/path";
 import { toIsoDay } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {

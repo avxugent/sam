@@ -63,31 +63,34 @@ SAMproject/
 │   ├── compliance/           # Hostname compliance + NIS2 dashboards
 │   ├── reports/              # Report builder/viewer
 │   └── import/               # CSV import wizard
-├── lib/                      # Shared utilities
+├── lib/                      # Shared code (modules importing next/server are server-only route helpers)
 │   ├── auth.ts               # NextAuth config + ssoEnabled flag
 │   ├── permissions.ts        # Role predicates (isAdmin, canManageCatalog, canEdit)
 │   ├── route-helpers.ts      # readJsonBody, invalidInput, Prisma error checks
 │   ├── prisma.ts             # PrismaClient singleton
 │   ├── app-settings.ts       # readSettings / writeSettings (AppSetting table)
 │   ├── vault.ts              # HashiCorp Vault client
-│   ├── scrape-template.ts    # Prometheus label template renderer
 │   ├── storage.ts            # File upload abstraction (local/S3)
-│   ├── branding-assets.ts    # Logo/favicon/background serve + upload
-│   ├── location-path.ts      # Location tree helpers + recursive CTEs
 │   ├── jira.ts               # JIRA API client
-│   ├── rate-limit.ts         # In-memory rate limiter
+│   ├── rate-limit.ts         # In-memory rate limiter (+ rate-limit-http.ts: client IP, 429)
+│   ├── criticality.ts        # Criticality levels and effective criticality
+│   ├── inventory-snapshot.ts # JSON inventory snapshot
 │   ├── utils.ts              # cn() utility (clsx + tailwind-merge)
-│   ├── assets/               # Lifecycle rules, state transitions, creation defaults, type icons
+│   ├── assets/               # Lifecycle rules, state transitions, input checks, creation defaults, type icons
 │   ├── audit/                # logAudit, audit diffs, login-failure audit, RFC 5424 syslog client
+│   ├── branding/             # Logo/favicon/background serve + upload
+│   ├── compliance/           # NIS2 and hostname compliance reports
 │   ├── csv/                  # CSV core, inventory export, import row parsing
+│   ├── hostname/             # Hostname pattern rules
+│   ├── locations/            # Recursive-CTE tree queries (path.ts) + client tree helpers (tree.ts)
 │   ├── models/               # Model clustering + name similarity
+│   ├── prometheus/           # sam_* labels, scrape template renderer + overrides
+│   ├── reports/              # Report query executor + definition types
+│   ├── schemas/              # Zod schemas shared by routes and forms (no DB code)
 │   ├── suppliers/            # Default-window rules + conflict lookup
 │   ├── tokens/               # Constant-time Bearer check, integration + export tokens
-│   ├── schemas/              # Zod schemas shared by routes and forms (no DB code)
-│   ├── hostname/             # Hostname rules, compliance
 │   ├── url-templates.ts      # Hostname / MAC / location link templates
-│   ├── reports/              # Report query executor + definition types
-│   └── two-factor/           # TOTP (RFC 6238 on node:crypto), passkeys, remember-device
+│   └── two-factor/           # TOTP (RFC 6238 on node:crypto), passkeys, remember-device, sign-in steps
 ├── prisma/
 │   └── schema.prisma         # MySQL schema (source of truth)
 ├── __tests__/                # Test files mirroring source structure
@@ -164,7 +167,7 @@ UI primitives in `components/ui/` are hand-written shadcn-style components. Do *
 
 ### Database
 
-Prisma ORM with MySQL 8. Raw SQL is used only for the recursive location-tree CTEs in `lib/location-path.ts`: ancestor paths, descendant IDs, the deepest-first subtree used by the location delete, and per-location asset totals (for the whole tree, or scoped to the locations a search matched). They are exercised against a real MySQL by `npm run test:integration`.
+Prisma ORM with MySQL 8. Raw SQL is used only for the recursive location-tree CTEs in `lib/locations/path.ts`: ancestor paths, descendant IDs, the deepest-first subtree used by the location delete, and per-location asset totals (for the whole tree, or scoped to the locations a search matched). They are exercised against a real MySQL by `npm run test:integration`.
 
 All of it uses `prisma.$queryRaw` with tagged template literals. Never use string concatenation in SQL.
 

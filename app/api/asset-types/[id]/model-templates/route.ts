@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
-import { createTemplateOverride, listTemplateOverrides, modelTemplates } from "@/lib/template-overrides";
+import { createTemplateOverride, listTemplateOverrides, modelTemplates } from "@/lib/prometheus/template-overrides";
 
 export async function GET(
   _req: NextRequest,

@@ -5,7 +5,7 @@ import { createAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
 import { resolveAssetCreationDefaults } from "@/lib/assets/defaults";
 import { canEdit } from "@/lib/permissions";
-import { getAllDescendantLocationIds } from "@/lib/location-path";
+import { getAllDescendantLocationIds } from "@/lib/locations/path";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 import { assetListStatusFilter } from "@/lib/assets/list-status";
 import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/input";

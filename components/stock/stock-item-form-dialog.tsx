@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { ModelAutocomplete } from "@/components/model-autocomplete";
+import { ModelAutocomplete } from "@/components/inventory/model-autocomplete";
 import { cn, apiErrorMessage } from "@/lib/utils";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { Loader2 } from "lucide-react";

@@ -14,7 +14,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-vi.mock("@/lib/location-path", () => ({ getRecursiveAssetCounts: vi.fn() }));
+vi.mock("@/lib/locations/path", () => ({ getRecursiveAssetCounts: vi.fn() }));
 
 vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock("@/lib/auth", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getRecursiveAssetCounts } from "@/lib/location-path";
+import { getRecursiveAssetCounts } from "@/lib/locations/path";
 import { GET } from "@/app/api/search/route";
 
 const mockAuth = vi.mocked(auth);

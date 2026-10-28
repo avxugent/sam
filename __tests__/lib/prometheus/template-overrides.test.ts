@@ -19,7 +19,7 @@ import {
   manufacturerTemplates,
   modelTemplates,
   updateTemplateOverride,
-} from "@/lib/template-overrides";
+} from "@/lib/prometheus/template-overrides";
 
 const session = { user: { id: "u1", role: "ADMIN" } } as never;
 const post = (body: unknown) => new Request("http://x", { method: "POST", body: JSON.stringify(body) });

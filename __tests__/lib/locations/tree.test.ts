@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { collectSubtreeIds, flattenLocations, nestLocations, type LocationTreeNode } from "@/lib/location-tree";
+import { collectSubtreeIds, flattenLocations, nestLocations, type LocationTreeNode } from "@/lib/locations/tree";
 
 const tree: LocationTreeNode[] = [
   {

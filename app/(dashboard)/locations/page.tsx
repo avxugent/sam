@@ -3,8 +3,8 @@ import { getTranslations } from "next-intl/server";
 import { MapPin } from "lucide-react";
 import { LocationBrowserClient } from "@/components/locations/location-browser-client";
 import type { LocationNode } from "@/components/locations/location-browser-client";
-import { nestLocations, type Nested } from "@/lib/location-tree";
-import { getRecursiveAssetCounts } from "@/lib/location-path";
+import { nestLocations, type Nested } from "@/lib/locations/tree";
+import { getRecursiveAssetCounts } from "@/lib/locations/path";
 import { PageHeader } from "@/components/layout/page-header";
 
 function toNode(loc: Nested<{ id: string; name: string; fiNumber: string | null; parentId: string | null }>): LocationNode {

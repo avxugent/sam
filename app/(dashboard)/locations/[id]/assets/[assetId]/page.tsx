@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { readSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
-import { locationBreadcrumbs } from "@/lib/location-path";
+import { locationBreadcrumbs } from "@/lib/locations/path";
 
 
 export default async function AssetPage({

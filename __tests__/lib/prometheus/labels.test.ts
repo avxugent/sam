@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 // location-path imports the Prisma client; these helpers never touch it.
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
-import { samAssetLabels, samLocationLabels } from "@/lib/prometheus-labels";
+import { samAssetLabels, samLocationLabels } from "@/lib/prometheus/labels";
 
 const CHAIN = [
   { name: "Campus A", fiNumber: null },

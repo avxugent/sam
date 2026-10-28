@@ -23,7 +23,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getRecursiveAssetCounts } from "@/lib/location-path";
+import { getRecursiveAssetCounts } from "@/lib/locations/path";
 
 const ASSET_PAGE_SIZE = 50;
 const LOCATION_PAGE_SIZE = 20;

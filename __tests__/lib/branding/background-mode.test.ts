@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseBackgroundMode, SELECTABLE_BACKGROUND_MODES, BACKGROUND_MODES } from "@/lib/background-mode";
+import { parseBackgroundMode, SELECTABLE_BACKGROUND_MODES, BACKGROUND_MODES } from "@/lib/branding/background-mode";
 
 describe("parseBackgroundMode()", () => {
   it.each(BACKGROUND_MODES)("keeps the known mode %j", (mode) => {

@@ -1,7 +1,7 @@
 // @vitest-environment node
 /**
  * Opt-in integration test for the recursive location-tree SQL in
- * lib/location-path.ts (also used by the search and location-delete routes),
+ * lib/locations/path.ts (also used by the search and location-delete routes),
  * which the unit tests only check against a mocked $queryRaw. Runs against a real MySQL (e.g. docker-compose.dev.yml) when
  * RUN_DB_TESTS=1 and DB_* point at it:
  *
@@ -21,13 +21,13 @@ const enabled = process.env.RUN_DB_TESTS === "1";
 
 describe.runIf(enabled)("location-path SQL (integration)", () => {
   let prisma: typeof import("@/lib/prisma").prisma;
-  let lib: typeof import("@/lib/location-path");
+  let lib: typeof import("@/lib/locations/path");
   const tag = `it-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const ids = { campus: "", building: "", room: "", typeId: "" };
 
   beforeAll(async () => {
     ({ prisma } = await import("@/lib/prisma"));
-    lib = await import("@/lib/location-path");
+    lib = await import("@/lib/locations/path");
     const campus = await prisma.location.create({ data: { name: `${tag} campus` } });
     const building = await prisma.location.create({ data: { name: `${tag} building`, parentId: campus.id } });
     const room = await prisma.location.create({ data: { name: `${tag} room`, parentId: building.id, fiNumber: `99.99.${String(Date.now()).slice(-3)}.001` } });

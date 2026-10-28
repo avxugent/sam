@@ -11,12 +11,12 @@ vi.mock("@/lib/prisma", () => ({
     stockItem: { count: vi.fn() },
   },
 }));
-vi.mock("@/lib/location-path", () => ({ getAllDescendantLocationIds: vi.fn() }));
+vi.mock("@/lib/locations/path", () => ({ getAllDescendantLocationIds: vi.fn() }));
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { getAllDescendantLocationIds } from "@/lib/location-path";
+import { getAllDescendantLocationIds } from "@/lib/locations/path";
 import { GET, PUT, DELETE } from "@/app/api/locations/[id]/route";
 
 const mockAuth = vi.mocked(auth);

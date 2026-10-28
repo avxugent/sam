@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { buildLocationPathsFromRows } from "@/lib/location-path";
+import { buildLocationPathsFromRows } from "@/lib/locations/path";
 import { parseReportDefinition } from "@/lib/schemas/report";
 import { ReportBuilder } from "@/components/reports/report-builder";
 import { BarChart2 } from "lucide-react";

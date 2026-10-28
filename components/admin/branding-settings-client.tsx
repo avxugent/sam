@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, Upload, Trash2, Image as ImageIcon } from "lucide-react";
 import { cn, apiErrorMessage } from "@/lib/utils";
-import type { BackgroundMode } from "@/lib/background-mode";
+import type { BackgroundMode } from "@/lib/branding/background-mode";
 
 
 export function BrandingSettingsClient({

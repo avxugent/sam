@@ -128,7 +128,7 @@ Hierarchical tree of physical spaces (campus, building, floor, room, …).
 
 `fiNumber` has a `@unique` constraint. Duplicate inserts return Prisma error `P2002` → API returns 409.
 
-Ancestor path resolution uses a recursive CTE query in `lib/location-path.ts`.
+Ancestor path resolution uses a recursive CTE query in `lib/locations/path.ts`.
 
 ---
 

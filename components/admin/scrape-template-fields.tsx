@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Check, X } from "lucide-react";
-import { getUsedVariables, validateTemplate } from "@/lib/scrape-template";
+import { getUsedVariables, validateTemplate } from "@/lib/prometheus/scrape-template";
 
 export const TEMPLATE_PLACEHOLDER = `# Lines starting with # are comments.
 # Format: key=value (one per line)

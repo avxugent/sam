@@ -3,7 +3,7 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useToast } from "@/components/ui/use-toast";
-import { flattenLocations, type FlatLocation, type LocationTreeNode } from "@/lib/location-tree";
+import { flattenLocations, type FlatLocation, type LocationTreeNode } from "@/lib/locations/tree";
 
 /**
  * The location tree as flat picker options, (re)loaded each time `enabled`

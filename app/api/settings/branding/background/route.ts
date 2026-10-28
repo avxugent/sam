@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
-import { removeBrandingAsset, uploadBrandingAsset } from "@/lib/branding-assets";
+import { removeBrandingAsset, uploadBrandingAsset } from "@/lib/branding/assets";
 
 export async function POST(req: Request) {
   const session = await auth();

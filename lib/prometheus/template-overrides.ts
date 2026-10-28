@@ -3,7 +3,7 @@ import type { Session } from "next-auth";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { validateTemplate } from "@/lib/scrape-template";
+import { validateTemplate } from "@/lib/prometheus/scrape-template";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
 /**

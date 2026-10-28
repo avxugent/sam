@@ -13,7 +13,7 @@ vi.mock("@/lib/storage", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { removeBrandingAsset, uploadBrandingAsset } from "@/lib/branding-assets";
+import { removeBrandingAsset, uploadBrandingAsset } from "@/lib/branding/assets";
 
 const session = { user: { id: "u1", role: "ADMIN" } } as never;
 

@@ -13,10 +13,10 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Plus, Tag, Tags } from "lucide-react";
-import { validateTemplate } from "@/lib/scrape-template";
+import { validateTemplate } from "@/lib/prometheus/scrape-template";
 import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";
 import { apiErrorMessage } from "@/lib/utils";
-import type { TemplateOverride } from "@/lib/template-overrides";
+import type { TemplateOverride } from "@/lib/prometheus/template-overrides";
 
 type ManufacturerOption = { id: string; name: string };
 type Kind = "manufacturer" | "model";

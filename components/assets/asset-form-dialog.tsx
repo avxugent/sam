@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ModelAutocomplete } from "@/components/model-autocomplete";
+import { ModelAutocomplete } from "@/components/inventory/model-autocomplete";
 import { cn, toIsoDay, apiErrorMessage } from "@/lib/utils";
 import { isHostnameCompliant } from "@/lib/hostname/pattern";
 import { normalizeMacAddress } from "@/lib/mac-address";

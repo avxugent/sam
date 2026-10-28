@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import type { Nis2ComplianceResult, AssetSample, LocationSample } from "@/lib/nis2-compliance";
+import type { Nis2ComplianceResult, AssetSample, LocationSample } from "@/lib/compliance/nis2";
 
 type CardKey =
   | "missingOwner"

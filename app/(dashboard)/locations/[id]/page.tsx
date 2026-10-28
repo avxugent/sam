@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { readSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
-import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/location-path";
+import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/locations/path";
 import { isJiraConfigured } from "@/lib/jira";
 import { toLocationTab } from "@/lib/user-preferences";
 

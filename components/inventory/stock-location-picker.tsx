@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { LocationOptionButton } from "@/components/inventory/location-search-list";
-import type { FlatLocation } from "@/lib/location-tree";
+import type { FlatLocation } from "@/lib/locations/tree";
 import { cn } from "@/lib/utils";
 
 type Props = {

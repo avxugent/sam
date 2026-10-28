@@ -49,13 +49,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sessionOrIntegrationTokenError } from "@/lib/tokens/session-or-integration";
-import { getLocationPath } from "@/lib/location-path";
-import { samAssetLabels } from "@/lib/prometheus-labels";
+import { getLocationPath } from "@/lib/locations/path";
+import { samAssetLabels } from "@/lib/prometheus/labels";
 import {
   renderScrapeTemplate,
   resolveScrapeTemplate,
   type TemplateVars,
-} from "@/lib/scrape-template";
+} from "@/lib/prometheus/scrape-template";
 import { isAdmin } from "@/lib/permissions";
 
 // Labels emitted even when empty; other sam_* labels only when known.

@@ -9,7 +9,7 @@ vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefi
 vi.mock("@/lib/tokens/integration", () => ({ integrationTokenError: vi.fn() }));
 // location-path is mocked to keep the test focused on target/address handling;
 // scrape-template is intentionally NOT mocked so template rendering is real.
-vi.mock("@/lib/location-path", () => ({
+vi.mock("@/lib/locations/path", () => ({
   getLocationPath: vi.fn(async () => []),
   parseFiNumber: vi.fn(() => null),
   buildLocationPathString: vi.fn(() => ""),

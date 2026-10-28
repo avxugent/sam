@@ -204,7 +204,7 @@ sam_firmware_baseline_info{sam_asset_type, sam_model, version} 1
 ```
 
 Plus counts on the existing NIS2 block: outdated, unclassified, never-seen. The
-comparison lives in `lib/nis2-compliance.ts` so the SAM UI, the metrics
+comparison lives in `lib/compliance/nis2.ts` so the SAM UI, the metrics
 endpoint, and the exportable NIS2 report all read the same numbers.
 
 ### 2.5 Embedding

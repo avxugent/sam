@@ -191,7 +191,7 @@ Many AV devices cannot expose Prometheus metrics directly and are monitored via 
 
 **Per-model overrides:** Within a manufacturer, a specific model can be given an even more specific template — useful when one model in a brand's lineup exposes metrics differently from the rest. Model overrides are matched against the asset's resolved `Model.name` case-insensitively (trimmed) — this override table's own `model` column is intentionally still free text, since the string-equality match is unaffected by where the compared string comes from. Managed via `POST`/`PUT`/`DELETE` on `/api/asset-types/[id]/model-templates` and `/api/asset-types/model-templates/[id]`.
 
-**Resolution order** for a given asset, most specific wins: model-specific override (matching the asset's type, manufacturer, **and** model) → manufacturer-specific override (matching the asset's type **and** manufacturer) → the asset type's default template → no template (asset scraped directly by hostname). Implemented in `resolveScrapeTemplate()` in `lib/scrape-template.ts`.
+**Resolution order** for a given asset, most specific wins: model-specific override (matching the asset's type, manufacturer, **and** model) → manufacturer-specific override (matching the asset's type **and** manufacturer) → the asset type's default template → no template (asset scraped directly by hostname). Implemented in `resolveScrapeTemplate()` in `lib/prometheus/scrape-template.ts`.
 
 **Format:** One `key=value` pair per line. Keys override Prometheus `__labels__`. Comments start with `#`.
 

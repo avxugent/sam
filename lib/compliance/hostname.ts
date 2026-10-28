@@ -7,7 +7,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { isHostnameCompliant } from "@/lib/hostname/pattern";
-import { getLocationPathsBatch } from "@/lib/location-path";
+import { getLocationPathsBatch } from "@/lib/locations/path";
 
 export type NonCompliantAsset = {
   id: string;

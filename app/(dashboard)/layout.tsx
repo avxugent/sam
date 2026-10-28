@@ -9,8 +9,8 @@ import { ThemeSync } from "@/components/theme-sync";
 import { AppFooter } from "@/components/layout/app-footer";
 import { version } from "@/package.json";
 import { canManageCatalog } from "@/lib/permissions";
-import { getRecursiveAssetCounts } from "@/lib/location-path";
-import { nestLocations } from "@/lib/location-tree";
+import { getRecursiveAssetCounts } from "@/lib/locations/path";
+import { nestLocations } from "@/lib/locations/tree";
 
 export default async function DashboardLayout({
   children,

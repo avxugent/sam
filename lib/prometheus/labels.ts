@@ -1,4 +1,4 @@
-import { buildLocationPathString, findFiNumber, parseFiNumber, type LocationAncestor } from "@/lib/location-path";
+import { buildLocationPathString, findFiNumber, parseFiNumber, type LocationAncestor } from "@/lib/locations/path";
 
 /**
  * The sam_* labels shared by /api/prometheus/sd (target-group labels) and

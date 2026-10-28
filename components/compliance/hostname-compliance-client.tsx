@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { cn, toIsoDay } from "@/lib/utils";
 import { ChevronDown, ChevronUp, Download, Loader2 } from "lucide-react";
-import type { HostnameComplianceResult, TypeCompliance } from "@/lib/hostname/compliance";
+import type { HostnameComplianceResult, TypeCompliance } from "@/lib/compliance/hostname";
 
 function formatRate(rate: number | null): string | null {
   if (rate === null) return null;

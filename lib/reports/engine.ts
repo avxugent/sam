@@ -1,7 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { AssetStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
-import { getLocationPathsBatch, getAncestorChainsBatch } from "@/lib/location-path";
+import { getLocationPathsBatch, getAncestorChainsBatch } from "@/lib/locations/path";
 import { effectiveCriticality, parseCriticality } from "@/lib/criticality";
 import type {
   ReportDefinition,

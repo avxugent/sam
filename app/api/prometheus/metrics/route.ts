@@ -25,9 +25,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { integrationTokenError } from "@/lib/tokens/integration";
-import { ancestorChain, findFiNumber, parseFiNumber } from "@/lib/location-path";
-import { samAssetLabels, samLocationLabels } from "@/lib/prometheus-labels";
-import { computeNis2Counts } from "@/lib/nis2-compliance";
+import { ancestorChain, findFiNumber, parseFiNumber } from "@/lib/locations/path";
+import { samAssetLabels, samLocationLabels } from "@/lib/prometheus/labels";
+import { computeNis2Counts } from "@/lib/compliance/nis2";
 
 // ─── Text format helpers ─────────────────────────────────────────────────────
 

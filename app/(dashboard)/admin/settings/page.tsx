@@ -8,7 +8,7 @@ import { BrandingSettingsClient } from "@/components/admin/branding-settings-cli
 import { ComplianceSettingsClient } from "@/components/admin/compliance-settings-client";
 import { WorkLogItemsManager } from "@/components/admin/work-log-items-manager";
 import { isAdmin } from "@/lib/permissions";
-import { parseBackgroundMode } from "@/lib/background-mode";
+import { parseBackgroundMode } from "@/lib/branding/background-mode";
 
 export default async function SettingsPage() {
   const session = await auth();

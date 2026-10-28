@@ -5,7 +5,7 @@
 
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { ancestorChain, getLocationPathsBatch } from "@/lib/location-path";
+import { ancestorChain, getLocationPathsBatch } from "@/lib/locations/path";
 import { escapeCsvCell } from "@/lib/csv/core";
 import { toIsoDay } from "@/lib/utils";
 import { stockMetadataMacs } from "@/lib/stock-metadata";

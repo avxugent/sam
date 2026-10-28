@@ -22,7 +22,7 @@ vi.mock("@/lib/audit/syslog", () => ({
 import { prisma } from "@/lib/prisma";
 import { runLocationReport } from "@/lib/reports/engine";
 import { isSyslogConfigured } from "@/lib/audit/syslog";
-import { computeNis2Compliance, computeNis2Counts } from "@/lib/nis2-compliance";
+import { computeNis2Compliance, computeNis2Counts } from "@/lib/compliance/nis2";
 
 const mockAssetCount = vi.mocked(prisma.asset.count);
 const mockAssetFindMany = vi.mocked(prisma.asset.findMany);

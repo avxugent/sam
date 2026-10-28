@@ -6,7 +6,7 @@ import { StockItemTable } from "@/components/stock/stock-item-table";
 import { StockItemFormDialog } from "@/components/stock/stock-item-form-dialog";
 import { StockLocationFilter } from "@/components/stock/stock-location-filter";
 import { Button } from "@/components/ui/button";
-import { buildLocationPathsFromRows } from "@/lib/location-path";
+import { buildLocationPathsFromRows } from "@/lib/locations/path";
 import * as permissions from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
 

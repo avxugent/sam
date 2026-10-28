@@ -14,14 +14,14 @@ vi.mock("@/lib/tokens/integration", () => ({
   __esModule: true,
   integrationTokenError: vi.fn(),
 }));
-vi.mock("@/lib/nis2-compliance", () => ({
+vi.mock("@/lib/compliance/nis2", () => ({
   __esModule: true,
   computeNis2Counts: vi.fn(),
 }));
 
 import { prisma } from "@/lib/prisma";
 import { integrationTokenError } from "@/lib/tokens/integration";
-import { computeNis2Counts } from "@/lib/nis2-compliance";
+import { computeNis2Counts } from "@/lib/compliance/nis2";
 import { GET } from "@/app/api/prometheus/metrics/route";
 import { NextRequest, NextResponse } from "next/server";
 

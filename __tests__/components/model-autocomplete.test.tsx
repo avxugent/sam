@@ -2,7 +2,7 @@ import { useState } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ModelAutocomplete, type ModelOption } from "@/components/model-autocomplete";
+import { ModelAutocomplete, type ModelOption } from "@/components/inventory/model-autocomplete";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;

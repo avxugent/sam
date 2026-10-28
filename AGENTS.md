@@ -69,39 +69,49 @@ app/
     stock/         — stock items
     decommissioned/ — decommissioned assets
     in-repair/     — assets sent for repair
-    import/        — CSV import
     reports/       — saved report builder + viewer
-    settings/      — per-user profile (password, 2FA, passkeys)
+    settings/      — per-user profile (password, 2FA, passkeys); asset-types/, manufacturers/, users/ are legacy redirects to /admin/*
+    import/        — legacy redirect to /admin/import
     search/        — full-text search results
   api/             — all API route handlers
   setup/           — first-run wizard (no auth required)
 proxy.ts           — NextAuth session guard (replaces middleware.ts)
-lib/               — shared utilities
+lib/               — shared code; modules importing next/server are route-handler helpers (server only)
   auth.ts          — NextAuth config + ssoEnabled flag
   permissions.ts   — role predicates (isAdmin, canManageCatalog, canEdit); client-safe
   route-helpers.ts — readJsonBody, invalidInput, isUniqueConstraintError, isRecordNotFoundError
   prisma.ts        — PrismaClient singleton
   storage.ts       — upload storage driver (local filesystem or S3)
   vault.ts         — HashiCorp Vault KV client (native fetch, no extra deps)
-  scrape-template.ts — Prometheus scrape URL template renderer
-  location-path.ts — location tree helpers (ancestorChain, recursive CTEs)
+  jira.ts          — read-only Jira REST client (work-log issue keys)
   app-settings.ts  — readSettings / writeSettings for the AppSetting key/value table
-  assets/          — lifecycle rules (pure), state transitions (writes + audit), creation defaults, type icons
-  audit/           — logAudit (index), audit diffs, login-failure audit, syslog forwarding
-  csv/             — CSV cell/parse core, inventory export, import row parsing
-  models/          — model clustering + name similarity
-  suppliers/       — default-window rules and conflict lookup
-  tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), export token
-  schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …); no DB code
-  hostname/        — hostname pattern/FQDN rules, compliance report
+  rate-limit.ts    — in-memory rate limiter; rate-limit-http.ts — client IP key + 429 response
+  criticality.ts   — criticality levels, parseCriticality, effectiveCriticality; client-safe
+  user-preferences.ts — theme / location-tab value sets; client-safe
+  stock-metadata.ts — StockItem.metadata JSON (an asset's identity while in stock); client-safe
+  mac-address.ts   — canonical MAC address form + validation; client-safe
   url-templates.ts — hostname / MAC / location link templates
+  inventory-snapshot.ts — JSON inventory snapshot (export route + backup script)
+  work-log-include.ts — relations returned with every work-log entry
+  assets/          — lifecycle rules (pure), state transitions (writes + audit), input checks + nested rows, creation defaults, type icons
+  audit/           — logAudit (index), audit diffs, login-failure audit, syslog forwarding
+  branding/        — logo/favicon/background upload + serve, background mode
+  compliance/      — NIS2 and hostname compliance reports
+  csv/             — CSV cell/parse core, inventory export, import row parsing
+  hostname/        — hostname pattern/FQDN rules
+  locations/       — path.ts: recursive-CTE tree queries (server); tree.ts: nesting/flattening a location tree (client-safe)
+  models/          — model clustering + name similarity
+  prometheus/      — sam_* labels, scrape template renderer, per-brand/model template overrides
   reports/         — report engine + definition types
-  two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy
+  schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …); no DB code
+  suppliers/       — default-window rules and conflict lookup
+  tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), session-or-token, export token
+  two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy, sign-in steps
 components/
   layout/          — Sidebar (locations only) + Header (search + admin + user)
   ui/              — shadcn-style primitives (Button, Input, Dialog, …)
   assets/          — AssetFormDialog, AssetTable, AssetDetailClient, decommissioned/in-repair tables
-  inventory/       — widgets shared by assets, stock and locations (location pickers, MAC fields, bulk results)
+  inventory/       — widgets shared by assets, stock and locations (location pickers, model autocomplete, MAC fields, bulk results)
   locations/       — LocationFormDialog, LocationDetailClient, LocationMap, CoverImagePicker
   attachments/     — AttachmentGallery
   admin/           — clients for the /admin pages (UsersClient, AssetTypesClient, ManufacturersClient, …)
@@ -111,7 +121,7 @@ components/
   reports/         — report builder, viewers, list
   search/          — SearchResults
   import/          — CsvImportClient
-  auth/            — LoginClient
+  auth/            — login, forced password change / 2FA setup, 2FA challenge, 2FA and passkey settings
 prisma/
   schema.prisma    — MySQL schema, source of truth
 ```
@@ -124,7 +134,7 @@ prisma/
 - **Required column with a non-DB-level default** (`@default(cuid())`, `@default(uuid())`) on a table that may already have rows: the raw diff Prisma generates will be a plain `NOT NULL` column add, which fails against a populated table. Run `npx prisma migrate dev --create-only` instead of accepting the auto-applied migration, then hand-edit `migration.sql` into three steps — add nullable, `UPDATE ... SET col = UUID() WHERE col IS NULL` to backfill, then `ALTER TABLE ... MODIFY col ... NOT NULL`. Worked example: `prisma/migrations/20260930120000_add_asset_lineage_and_repair_status/migration.sql`.
 - After a migration, Prisma regenerates the client automatically. If it does not, run `npx prisma generate`.
 - Never edit or delete an already-committed migration file — it's a permanent, ordered record. Fix forward with a new migration instead.
-- Raw SQL is used only for the recursive location-tree CTEs in `lib/location-path.ts` (ancestors, descendants, deepest-first subtree for deletes, per-location asset totals — optionally scoped to given roots, as search does). Put new tree queries there and cover them in `__tests__/integration/location-path.int.test.ts`. Use `prisma.$queryRaw` with tagged template literals — never string concatenation.
+- Raw SQL is used only for the recursive location-tree CTEs in `lib/locations/path.ts` (ancestors, descendants, deepest-first subtree for deletes, per-location asset totals — optionally scoped to given roots, as search does). Put new tree queries there and cover them in `__tests__/integration/locations-path.int.test.ts`. Use `prisma.$queryRaw` with tagged template literals — never string concatenation.
 - MySQL returns `COUNT(...)` as `BigInt`. Always wrap with `Number(row.count)`.
 - `prisma.$transaction` callbacks receive a `Prisma.TransactionClient` — type it explicitly to avoid TypeScript errors.
 - The `fiNumber` column on `Location` has a `@unique` constraint. Duplicate inserts return Prisma error code `P2002` — catch it and return a 409.
@@ -195,7 +205,7 @@ prisma/
 - `/api/prometheus/sd` — HTTP Service Discovery. Returns assets with hostnames as target groups with `sam_*` labels. If the asset type has a `scrapeTargetTemplate`, it is rendered and its `__labels__` are merged in.
 - `/api/prometheus/metrics` — Prometheus text format inventory metrics. No `prom-client` dependency — the format is built as a plain string.
 - `/api/assets/by-hostname` — Grafana Infinity datasource lookup. Accepts session cookie OR Bearer token.
-- Template syntax: newline-separated `key=value` pairs. Variables: `{hostname_fqdn}`, `{serial}`, `{model}`, `{manufacturer}`, `{fi_number}`, `{vault_path}` (the asset's Vault path reference, never the secret itself). Validated server-side via `validateTemplate()` in `lib/scrape-template.ts`.
+- Template syntax: newline-separated `key=value` pairs. Variables: `{hostname_fqdn}`, `{serial}`, `{model}`, `{manufacturer}`, `{fi_number}`, `{vault_path}` (the asset's Vault path reference, never the secret itself). Validated server-side via `validateTemplate()` in `lib/prometheus/scrape-template.ts`.
 - Vault client (`lib/vault.ts`) uses native `fetch`. Returns `null` on any error — never throws. It backs the admin connectivity check (`/api/vault/test`); the SD endpoint only passes the non-secret `{vault_path}` reference and never reads Vault.
 
 ---

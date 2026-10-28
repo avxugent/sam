@@ -5,6 +5,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: { asset: { findMany: vi.fn() } },
 }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
 vi.mock("@/lib/tokens/integration", () => ({ integrationTokenError: vi.fn() }));
 // location-path is mocked to keep the test focused on target/address handling;
 // scrape-template is intentionally NOT mocked so template rendering is real.
@@ -80,6 +81,16 @@ beforeEach(() => {
 describe("GET /api/prometheus/sd", () => {
   it("returns 401 when not admin and bearer token check fails", async () => {
     mockAuth.mockResolvedValue(null as never);
+    mockCheckAuth.mockReturnValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const res = await GET(req());
+    expect(res.status).toBe(401);
+    expect(mockFindMany).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the bearer token check for an admin who still owes 2FA", async () => {
+    mockAuth.mockResolvedValue({ ...adminSession(), needs2FA: true } as never);
     mockCheckAuth.mockReturnValue(
       NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     );

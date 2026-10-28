@@ -18,8 +18,8 @@
  * asset's Vault path as a non-secret reference via {vault_path}; the external
  * exporter reads the secret from Vault itself and uses it to scrape the device.
  *
- * Authentication: Bearer token via PROMETHEUS_SD_TOKEN env var, or an active
- * admin session cookie (so admins can browse the endpoint directly).
+ * Authentication: Bearer token via PROMETHEUS_SD_TOKEN env var, or a fully
+ * signed-in admin session cookie (so admins can browse the endpoint directly).
  *
  * ──────────────────────────────────────────────────────────────────────────────
  * Prometheus scrape_configs example (exporter-based devices):
@@ -58,6 +58,7 @@ import {
   type TemplateVars,
 } from "@/lib/scrape-template";
 import { isAdmin } from "@/lib/permissions";
+import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 
 // Prometheus label values: allow printable ASCII, replace control chars
 const ALWAYS_PRESENT = new Set(["sam_hostname", "sam_location_path", "sam_location_name"]);
@@ -69,7 +70,9 @@ function safeLabel(value: string | null | undefined): string {
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!isAdmin(session?.user?.role)) {
+  // A partly signed-in admin (still owing a login step) does not count.
+  const adminSession = session?.user && isAdmin(session.user.role) && !(await signInIncompleteResponse(session));
+  if (!adminSession) {
     const authError = integrationTokenError(req);
     if (authError) return authError;
   }

@@ -10,6 +10,7 @@ import { AppFooter } from "@/components/layout/app-footer";
 import { version } from "@/package.json";
 import { canManageCatalog } from "@/lib/permissions";
 import { getRecursiveAssetCounts } from "@/lib/location-path";
+import { nestLocations } from "@/lib/location-tree";
 
 export default async function DashboardLayout({
   children,
@@ -26,29 +27,9 @@ export default async function DashboardLayout({
     redirect("/setup");
   }
 
-  const locationTree = await prisma.location.findMany({
-    where: { parentId: null },
-    include: {
-      children: {
-        include: {
-          children: {
-            include: {
-              children: {
-                include: {
-                  children: {
-                    include: {
-                      children: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    orderBy: [{ order: "asc" }, { name: "asc" }],
-  });
+  const locationTree = nestLocations(
+    await prisma.location.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] })
+  );
 
   const assetCountMap = await getRecursiveAssetCounts();
 

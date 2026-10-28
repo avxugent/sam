@@ -1,6 +1,7 @@
 /**
- * Client-side helpers for the nested tree returned by GET /api/locations,
- * used by the location pickers in the move/deploy/relocate dialogs.
+ * Helpers for nested location trees: nesting a flat location list (server
+ * pages), and flattening the tree returned by GET /api/locations for the
+ * location pickers in the move/deploy/relocate dialogs.
  */
 
 export type LocationTreeNode = {
@@ -25,6 +26,22 @@ type FlattenOptions = {
   /** Skip these nodes but keep their descendants. */
   hide?: Set<string>;
 };
+
+export type Nested<T> = T & { children: Nested<T>[] };
+
+/**
+ * Nests a flat location list into a tree of any depth. Siblings keep the order
+ * of `rows`; a row whose parent is not in `rows` becomes a root.
+ */
+export function nestLocations<T extends { id: string; parentId: string | null }>(rows: T[]): Nested<T>[] {
+  const nodes = new Map<string, Nested<T>>(rows.map((row) => [row.id, { ...row, children: [] }]));
+  const roots: Nested<T>[] = [];
+  for (const node of nodes.values()) {
+    const parent = node.parentId ? nodes.get(node.parentId) : undefined;
+    (parent ? parent.children : roots).push(node);
+  }
+  return roots;
+}
 
 /** Depth-first list of every location with its breadcrumb path. */
 export function flattenLocations(

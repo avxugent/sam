@@ -132,11 +132,11 @@ describe("PUT /api/asset-types/[id]", () => {
 
   it("returns 409 with existingId when name already taken", async () => {
     mockAuth.mockResolvedValue(adminSession() as never);
-    vi.mocked(prisma.assetType.findFirst).mockResolvedValue({ id: "type-2", name: "Existing" } as never);
+    vi.mocked(prisma.assetType.findFirst).mockResolvedValue({ id: "type-2", name: "Existing", _count: { assets: 2 } } as never);
     const res = await PUT(makeIdReq("PUT", { name: "Existing" }), { params });
     expect(res.status).toBe(409);
     const body = await res.json();
-    expect(body.conflict).toBe("name");
+    expect(body.code).toBe("nameConflict");
     expect(body.existingId).toBe("type-2");
   });
 

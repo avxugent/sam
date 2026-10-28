@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { csvDownload, invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody, readMergeRequest } from "@/lib/route-helpers";
+import { csvDownload, invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody, readMergeRequest, nameConflictResponse } from "@/lib/route-helpers";
 
 describe("readJsonBody()", () => {
   it("returns the parsed body", async () => {
@@ -76,5 +76,25 @@ describe("csvDownload()", () => {
     expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="x.csv"');
     expect(res.headers.get("Cache-Control")).toBe("no-store");
     expect(await res.text()).toBe("a;b");
+  });
+});
+
+describe("nameConflictResponse()", () => {
+  it("answers 409 with the existing record for the merge offer", async () => {
+    const res = nameConflictResponse("Name already exists.", { id: "x", name: "Dell", _count: { assets: 3, stockItems: 1 } });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({
+      error: "Name already exists.",
+      code: "nameConflict",
+      existingId: "x",
+      existingName: "Dell",
+      existingAssetCount: 3,
+      existingStockCount: 1,
+    });
+  });
+
+  it("omits the stock count when the catalog has none", async () => {
+    const res = nameConflictResponse("dup", { id: "x", name: "Recorder", _count: { assets: 0 } });
+    expect(await res.json()).not.toHaveProperty("existingStockCount");
   });
 });

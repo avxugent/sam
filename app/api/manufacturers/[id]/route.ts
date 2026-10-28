@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody, nameConflictResponse } from "@/lib/route-helpers";
 
 const schema = z.object({ name: z.string().min(1).max(255) });
 
@@ -29,10 +29,7 @@ export async function PUT(
     prisma.manufacturer.findUnique({ where: { id }, select: { name: true } }),
   ]);
   if (existing) {
-    return NextResponse.json(
-      { error: "Name already exists.", existingId: existing.id, existingName: existing.name, existingAssetCount: existing._count.assets },
-      { status: 409 }
-    );
+    return nameConflictResponse("Name already exists.", existing);
   }
 
   try {

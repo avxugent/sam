@@ -75,7 +75,7 @@ Key validated fields:
 | `GET` | `/api/asset-types` | VIEWER | List all |
 | `POST` | `/api/asset-types` | ADMIN | Create; `409` on a duplicate name |
 | `GET` | `/api/asset-types/[id]` | VIEWER | Get detail |
-| `PUT` | `/api/asset-types/[id]` | ADMIN | Update (including scrape template, `hostnamePattern`, and `defaultCriticality`) |
+| `PUT` | `/api/asset-types/[id]` | ADMIN | Update (including scrape template, `hostnamePattern`, and `defaultCriticality`); renaming onto an existing name returns `409` with `code: "nameConflict"` and the existing type, so the client can offer a merge |
 | `DELETE` | `/api/asset-types/[id]` | ADMIN | Delete |
 | `GET` | `/api/asset-types/[id]/assets` | VIEWER | Active assets of this type. `?status=DECOMMISSIONED` lists decommissioned only; `?status=all` lists both |
 | `POST` | `/api/asset-types/[id]/presets` | ADMIN | Create maintenance preset |
@@ -94,7 +94,7 @@ Key validated fields:
 |---|---|---|---|
 | `GET` | `/api/manufacturers` | VIEWER | List all. Accepts an optional `typeId` filter — when given, only manufacturers with at least one Model under that asset type are returned |
 | `POST` | `/api/manufacturers` | MAINTAINER | Create; `409` on a duplicate name |
-| `PUT` | `/api/manufacturers/[id]` | MAINTAINER | Update |
+| `PUT` | `/api/manufacturers/[id]` | MAINTAINER | Update; renaming onto an existing name returns `409` with `code: "nameConflict"` and the existing manufacturer, so the client can offer a merge |
 | `DELETE` | `/api/manufacturers/[id]` | MAINTAINER | Delete; `404` if unknown, `400` while assets or models reference it |
 | `GET` | `/api/manufacturers/[id]/assets` | VIEWER | Active (INSTALLED) assets by manufacturer — decommissioned assets are historical and excluded |
 | `POST` | `/api/manufacturers/[id]/merge` | MAINTAINER | Merge into another manufacturer |
@@ -109,7 +109,7 @@ Fixed lookup table for the Asset/StockItem "model" field, scoped by `(typeId, ma
 |---|---|---|---|
 | `GET` | `/api/models` | VIEWER | List models. Accepts `q` (name contains), `typeId`, `manufacturerId` filters |
 | `POST` | `/api/models` | MAINTAINER | Create. Body accepts an optional `documentationUrl` (must be a valid URL if present) — required for compliance, but not enforced here so a model can be added to unblock inventory entry before its documentation page exists |
-| `PUT` | `/api/models/[id]` | MAINTAINER | Update (type/manufacturer/name/documentationUrl); `409` with `{existingId, existingName, existingAssetCount, existingStockCount}` on a name collision within the same type/manufacturer |
+| `PUT` | `/api/models/[id]` | MAINTAINER | Update (type/manufacturer/name/documentationUrl); `409` with `{ code: "nameConflict", existingId, existingName, existingAssetCount, existingStockCount }` on a name collision within the same type/manufacturer (the client offers a merge) |
 | `DELETE` | `/api/models/[id]` | MAINTAINER | Delete; `400` if any asset or stock item still references it |
 | `GET` | `/api/models/[id]/usage` | VIEWER | Active (INSTALLED) assets and stock items referencing this model — decommissioned assets are historical and excluded |
 | `POST` | `/api/models/[id]/merge` | MAINTAINER | Merge into another model — reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source. If the two models don't share the same `typeId`, every moved asset/stock item's own `typeId` is cascaded to the target's as part of the merge, so it never ends up pointing at a model from a different type than itself |

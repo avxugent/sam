@@ -75,3 +75,25 @@ export function csvDownload(csv: string, filename: string) {
     },
   });
 }
+
+/**
+ * 409 for renaming a catalog record (asset type, manufacturer, model) onto
+ * the name of an existing one. `code: "nameConflict"` plus the existing
+ * record lets the admin client offer a merge instead (readMergeConflict).
+ */
+export function nameConflictResponse(
+  message: string,
+  existing: { id: string; name: string; _count: { assets: number; stockItems?: number } }
+) {
+  return NextResponse.json(
+    {
+      error: message,
+      code: "nameConflict",
+      existingId: existing.id,
+      existingName: existing.name,
+      existingAssetCount: existing._count.assets,
+      ...(existing._count.stockItems !== undefined && { existingStockCount: existing._count.stockItems }),
+    },
+    { status: 409 }
+  );
+}

@@ -17,6 +17,7 @@ import { MaintenancePresetsManager } from "@/components/admin/maintenance-preset
 import { TemplateOverridesEditor } from "@/components/admin/template-overrides-editor";
 import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";
 import { AssetDrilldownDialog } from "@/components/admin/asset-drilldown-dialog";
+import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
 
 type AssetType = {
   id: string;
@@ -57,12 +58,7 @@ export function AssetTypesClient({
   }
 
   // Merge conflict dialog state
-  const [mergeConflict, setMergeConflict] = useState<{
-    sourceId: string;
-    sourceName: string;
-    targetId: string;
-    targetName: string;
-  } | null>(null);
+  const [mergeConflict, setMergeConflict] = useState<MergeConflict | null>(null);
   const [merging, setMerging] = useState(false);
 
   // Template editor dialog state
@@ -109,7 +105,7 @@ export function AssetTypesClient({
   async function updateType(
     id: string,
     patch: Partial<AssetType>,
-    onError?: (res: Response, err: { error?: string; conflict?: string; existingId?: string }) => boolean
+    onError?: (err: Parameters<typeof readMergeConflict>[0]) => boolean
   ): Promise<boolean> {
     const res = await fetch(`/api/asset-types/${id}`, {
       method: "PUT",
@@ -118,7 +114,7 @@ export function AssetTypesClient({
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      if (!onError?.(res, err)) {
+      if (!onError?.(err)) {
         toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       }
       return false;
@@ -134,11 +130,10 @@ export function AssetTypesClient({
   async function handleEditName(id: string) {
     if (!editName.trim()) return;
     const newNameTrimmed = editName.trim();
-    const saved = await updateType(id, { name: newNameTrimmed }, (res, err) => {
-      if (res.status !== 409 || err.conflict !== "name" || !err.existingId) return false;
-      const sourceName = types.find((x) => x.id === id)?.name ?? id;
-      setMergeConflict({ sourceId: id, sourceName, targetId: err.existingId, targetName: newNameTrimmed });
-      return true;
+    const saved = await updateType(id, { name: newNameTrimmed }, (err) => {
+      const conflict = readMergeConflict(err, id, newNameTrimmed);
+      if (conflict) setMergeConflict(conflict);
+      return !!conflict;
     });
     if (!saved) return;
     setEditingId(null);
@@ -148,10 +143,10 @@ export function AssetTypesClient({
   async function handleMerge() {
     if (!mergeConflict) return;
     setMerging(true);
-    const res = await fetch(`/api/asset-types/${mergeConflict.sourceId}/merge`, {
+    const res = await fetch(`/api/asset-types/${mergeConflict.editingId}/merge`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetId: mergeConflict.targetId }),
+      body: JSON.stringify({ targetId: mergeConflict.existingId }),
     });
     setMerging(false);
     if (!res.ok) {
@@ -159,7 +154,7 @@ export function AssetTypesClient({
       toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
-    setTypes((prev) => prev.filter((x) => x.id !== mergeConflict.sourceId));
+    setTypes((prev) => prev.filter((x) => x.id !== mergeConflict.editingId));
     setMergeConflict(null);
     setEditingId(null);
     toast({ title: t("typeMerged") });
@@ -590,8 +585,8 @@ export function AssetTypesClient({
             <AlertDialogTitle>{t("mergeConflictTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {t("mergeConflictDescription", {
-                source: mergeConflict?.sourceName ?? "",
-                target: mergeConflict?.targetName ?? "",
+                source: types.find((x) => x.id === mergeConflict?.editingId)?.name ?? "",
+                target: mergeConflict?.existingName ?? "",
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -605,7 +600,7 @@ export function AssetTypesClient({
               className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
             >
               {merging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("mergeConflictMerge", { target: mergeConflict?.targetName ?? "" })}
+              {t("mergeConflictMerge", { target: mergeConflict?.existingName ?? "" })}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

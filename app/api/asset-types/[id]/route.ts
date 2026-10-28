@@ -8,7 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { Criticality } from "@/generated/prisma/enums";
 import { isAdmin } from "@/lib/permissions";
-import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody, nameConflictResponse } from "@/lib/route-helpers";
 
 const schema = z.object({
   name: z.string().min(1).max(255).optional(),
@@ -59,13 +59,10 @@ export async function PUT(
   if (parsed.data.name !== undefined) {
     const conflict = await prisma.assetType.findFirst({
       where: { name: parsed.data.name, NOT: { id } },
-      select: { id: true, name: true },
+      select: { id: true, name: true, _count: { select: { assets: true } } },
     });
     if (conflict) {
-      return NextResponse.json(
-        { error: `An asset type named "${parsed.data.name}" already exists.`, conflict: "name", existingId: conflict.id },
-        { status: 409 }
-      );
+      return nameConflictResponse(`An asset type named "${parsed.data.name}" already exists.`, conflict);
     }
   }
 

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, readJsonBody, nameConflictResponse } from "@/lib/route-helpers";
 
 const updateSchema = z.object({
   typeId: z.string().min(1),
@@ -40,16 +40,7 @@ export async function PUT(
   ]);
   if (!current) return NextResponse.json({ error: "Model not found." }, { status: 404 });
   if (existing) {
-    return NextResponse.json(
-      {
-        error: `"${existing.name}" already exists for this type/manufacturer.`,
-        existingId: existing.id,
-        existingName: existing.name,
-        existingAssetCount: existing._count.assets,
-        existingStockCount: existing._count.stockItems,
-      },
-      { status: 409 }
-    );
+    return nameConflictResponse(`"${existing.name}" already exists for this type/manufacturer.`, existing);
   }
 
   const model = await prisma.model.update({ where: { id }, data: { typeId, manufacturerId, name, documentationUrl } });

@@ -10,19 +10,12 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
 import { AssetDrilldownDialog } from "@/components/admin/asset-drilldown-dialog";
 import { apiErrorMessage } from "@/lib/utils";
+import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
 
 type Manufacturer = {
   id: string;
   name: string;
   _count: { assets: number };
-};
-
-type MergeConflict = {
-  editingId: string;
-  newName: string;
-  existingId: string;
-  existingName: string;
-  existingAssetCount: number;
 };
 
 export function ManufacturersClient({
@@ -81,20 +74,13 @@ export function ManufacturersClient({
       body: JSON.stringify({ name: editName.trim() }),
     });
 
-    if (res.status === 409) {
-      const err = await res.json().catch(() => ({}));
-      setMergeConflict({
-        editingId: id,
-        newName: editName.trim(),
-        existingId: err.existingId,
-        existingName: err.existingName,
-        existingAssetCount: err.existingAssetCount ?? 0,
-      });
-      return;
-    }
-
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      const conflict = readMergeConflict(err, id, editName.trim());
+      if (conflict) {
+        setMergeConflict(conflict);
+        return;
+      }
       toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }

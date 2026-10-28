@@ -35,6 +35,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Plus, Merge, TriangleAlert } from "lucide-react";
 import type { AssetStatus } from "@/generated/prisma/enums";
 import { apiErrorMessage } from "@/lib/utils";
+import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
 
 type NameOption = { id: string; name: string };
 
@@ -54,16 +55,8 @@ type ClusterItem = { id: string; model: string; count: number; typeName: string;
 type DrilldownAsset = { id: string; serialNumber: string | null; hostname: string | null; status: AssetStatus; location: { id: string; name: string } | null };
 type DrilldownStockItem = { id: string; serialNumber: string | null; quantity: number; location: { id: string; name: string } | null };
 
-type MergeConflict = {
-  editingId: string;
-  newTypeId: string;
-  newManufacturerId: string | null;
-  newName: string;
-  existingId: string;
-  existingName: string;
-  existingAssetCount: number;
-  existingStockCount: number;
-};
+/** A model rename can also move it to another type/manufacturer. */
+type ModelMergeConflict = MergeConflict & { newTypeId: string; newManufacturerId: string | null };
 
 const ALL = "__all__";
 const NONE = "__none__";
@@ -117,7 +110,7 @@ export function ModelsClient({
   const [drilldownLoading, setDrilldownLoading] = useState(false);
 
   // Merge-on-409 dialog
-  const [mergeConflict, setMergeConflict] = useState<MergeConflict | null>(null);
+  const [mergeConflict, setMergeConflict] = useState<ModelMergeConflict | null>(null);
   const [merging, setMerging] = useState(false);
 
   // Possible-duplicates merge dialog
@@ -178,26 +171,13 @@ export function ModelsClient({
         });
     setSaving(false);
 
-    if (res.status === 409) {
-      const err = await res.json().catch(() => ({}));
-      if (editingId) {
-        setMergeConflict({
-          editingId,
-          newTypeId: formTypeId,
-          newManufacturerId: formManufacturerId || null,
-          newName: formName.trim(),
-          existingId: err.existingId,
-          existingName: err.existingName,
-          existingAssetCount: err.existingAssetCount ?? 0,
-          existingStockCount: err.existingStockCount ?? 0,
-        });
-      } else {
-        toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
-      }
-      return;
-    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      const conflict = editingId ? readMergeConflict(err, editingId, formName.trim()) : null;
+      if (conflict) {
+        setMergeConflict({ ...conflict, newTypeId: formTypeId, newManufacturerId: formManufacturerId || null });
+        return;
+      }
       toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }

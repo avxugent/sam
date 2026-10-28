@@ -49,6 +49,11 @@ describe("auth", () => {
 });
 
 describe("POST /api/manufacturers", () => {
+  it("400 for a name over 255 characters", async () => {
+    expect((await POST(req("POST", { name: "x".repeat(256) }))).status).toBe(400);
+    expect(m.create).not.toHaveBeenCalled();
+  });
+
   it("409 on a duplicate name", async () => {
     m.create.mockRejectedValue(dup());
     expect((await POST(req("POST", { name: "Dell" }))).status).toBe(409);

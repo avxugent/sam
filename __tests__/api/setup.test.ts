@@ -111,4 +111,23 @@ describe("POST /api/setup", () => {
     }));
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 for a name over the length cap", async () => {
+    mockCount.mockResolvedValue(0);
+    const res = await POST(makeRequest({ name: "x".repeat(129), email: "admin@test.com", password: "securepassword" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 403 when a concurrent setup created the admin first", async () => {
+    mockCount.mockResolvedValue(0);
+    mockCreate.mockRejectedValueOnce(Object.assign(new Error("dup"), { code: "P2002" }));
+    const res = await POST(makeRequest({ name: "Admin", email: "admin@test.com", password: "securepassword" }));
+    expect(res.status).toBe(403);
+  });
+
+  it("rethrows unexpected database errors", async () => {
+    mockCount.mockResolvedValue(0);
+    mockCreate.mockRejectedValueOnce(new Error("db down"));
+    await expect(POST(makeRequest({ name: "Admin", email: "admin@test.com", password: "securepassword" }))).rejects.toThrow("db down");
+  });
 });

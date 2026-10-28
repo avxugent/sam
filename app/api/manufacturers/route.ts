@@ -6,7 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 
-const schema = z.object({ name: z.string().min(1) });
+const schema = z.object({ name: z.string().min(1).max(255) });
 
 export async function GET(req: NextRequest) {
   const session = await auth();

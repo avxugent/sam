@@ -88,7 +88,7 @@ export function buildStockItemFromReturn(
     typeId: asset.typeId!,
     manufacturerId: asset.manufacturerId,
     // returnToStockViolation (checked by every caller before this) already
-    // throws MISSING_MODEL when null — same guarantee as typeId above.
+    // reports MISSING_MODEL when null — same guarantee as typeId above.
     modelId: asset.modelId!,
     serialNumber: asset.serialNumber,
     invoiceNumber: asset.invoiceNumber,

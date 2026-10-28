@@ -69,8 +69,8 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
       )}
 
       {reports.length === 0 ? (
-        <div className="text-center py-16 border border-[#e2e8f0] rounded-[10px] bg-white">
-          <p className="text-[#64748b] text-[14px] mb-3">{t("noReports")}</p>
+        <div className="text-center py-16 border border-border rounded-[10px] bg-card">
+          <p className="text-muted-foreground text-[14px] mb-3">{t("noReports")}</p>
           {canEdit && (
             <Button asChild variant="outline" className="h-[36px] text-[13px] gap-1.5">
               <Link href="/reports/new">
@@ -81,29 +81,29 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
           )}
         </div>
       ) : (
-        <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
+        <div className="rounded-[10px] border border-border overflow-hidden bg-card">
           <table className="w-full text-[13px]">
             <caption className="sr-only">{t("results")}</caption>
             <thead>
-              <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{t("reportName")}</th>
-                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] hidden sm:table-cell">{t("reportDescription")}</th>
-                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] hidden md:table-cell">{tField("updated")}</th>
-                <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{tCommon("actions")}</th>
+              <tr className="border-b border-border bg-background">
+                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-muted-foreground">{t("reportName")}</th>
+                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-muted-foreground hidden sm:table-cell">{t("reportDescription")}</th>
+                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-muted-foreground hidden md:table-cell">{tField("updated")}</th>
+                <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-muted-foreground">{tCommon("actions")}</th>
               </tr>
             </thead>
             <tbody>
               {reports.map((r) => (
-                <tr key={r.id} className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors">
-                  <td className="px-4 py-[11px] font-medium text-[#0f172a]">
+                <tr key={r.id} className="border-b border-border last:border-0 hover:bg-background transition-colors">
+                  <td className="px-4 py-[11px] font-medium text-foreground">
                     <Link href={`/reports/${r.id}`} className="hover:text-[#1e64c8] hover:underline">
                       {r.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-[11px] text-[#64748b] hidden sm:table-cell">
+                  <td className="px-4 py-[11px] text-muted-foreground hidden sm:table-cell">
                     {r.description || <span className="italic text-[#94a3b8]">—</span>}
                   </td>
-                  <td className="px-4 py-[11px] text-[#64748b] hidden md:table-cell">
+                  <td className="px-4 py-[11px] text-muted-foreground hidden md:table-cell">
                     {formatDate(r.updatedAt)}
                   </td>
                   <td className="px-4 py-[11px]">

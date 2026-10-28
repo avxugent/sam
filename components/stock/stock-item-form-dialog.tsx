@@ -293,7 +293,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
           {/* Storage location */}
           <div className="space-y-1">
             <Label htmlFor="stock-item-location-search">{t("location")}</Label>
-            <p className="text-[12px] text-[#64748b]">{locationLabel}</p>
+            <p className="text-[12px] text-muted-foreground">{locationLabel}</p>
             <StockLocationPicker
               locations={locations}
               selectedId={selectedLocationId}

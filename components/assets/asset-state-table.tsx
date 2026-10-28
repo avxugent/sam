@@ -91,20 +91,20 @@ export function AssetStateTable({
         />
       </div>
 
-      <div className="border border-[#e2e8f0] rounded-[10px] overflow-hidden">
+      <div className="border border-border rounded-[10px] overflow-hidden">
         <table className="w-full text-[13px]">
-          <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
+          <thead className="bg-background border-b border-border">
             <tr>
               {th("type", tStock("type"))}
               {th("model", tStock("model"))}
               {th("serialNumber", tStock("serial"))}
               {th("location", labels.location)}
               {th("since", labels.since)}
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{labels.note}</th>
+              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{labels.note}</th>
               {renderActions && <th className="px-3 py-2.5 w-[60px]" />}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#f1f5f9]">
+          <tbody className="divide-y divide-muted">
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={columnCount} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">
@@ -113,10 +113,10 @@ export function AssetStateTable({
               </tr>
             ) : (
               sorted.map((asset) => (
-                <tr key={asset.id} className="hover:bg-[#f8fafc] transition-colors">
+                <tr key={asset.id} className="hover:bg-background transition-colors">
                   <td className="px-3 py-2.5">
                     {asset.type ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#64748b] text-[11px] font-medium">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-medium">
                         {asset.type.name}
                       </span>
                     ) : <span className="text-[#cbd5e1]">—</span>}
@@ -124,7 +124,7 @@ export function AssetStateTable({
                   <td className="px-3 py-2.5">
                     <Link
                       href={`/locations/${asset.locationId}/assets/${asset.id}`}
-                      className="font-medium text-[#0f172a] hover:text-[#1e64c8] hover:underline"
+                      className="font-medium text-foreground hover:text-[#1e64c8] hover:underline"
                     >
                       {asset.model?.name || asset.serialNumber || tAsset("unnamedAsset")}
                     </Link>
@@ -134,19 +134,19 @@ export function AssetStateTable({
                   </td>
                   <td className="px-3 py-2.5">
                     {asset.serialNumber
-                      ? <span className="font-mono text-[11.5px] text-[#64748b]">{asset.serialNumber}</span>
+                      ? <span className="font-mono text-[11.5px] text-muted-foreground">{asset.serialNumber}</span>
                       : <span className="text-[#cbd5e1]">—</span>}
                   </td>
-                  <td className="px-3 py-2.5 text-[#64748b]">
+                  <td className="px-3 py-2.5 text-muted-foreground">
                     <span className="text-[#334155]">{asset.locationName ?? "—"}</span>
                     {asset.locationFiNumber && (
                       <span className="ml-1.5 font-mono text-[11px] text-[#94a3b8]">{asset.locationFiNumber}</span>
                     )}
                   </td>
-                  <td className="px-3 py-2.5 text-[12px] text-[#64748b]">
+                  <td className="px-3 py-2.5 text-[12px] text-muted-foreground">
                     {asset.since ? formatDate(asset.since) : "—"}
                   </td>
-                  <td className="px-3 py-2.5 text-[12px] text-[#64748b] max-w-[200px] truncate">
+                  <td className="px-3 py-2.5 text-[12px] text-muted-foreground max-w-[200px] truncate">
                     {asset.note || <span className="text-[#cbd5e1]">—</span>}
                   </td>
                   {renderActions && <td className="px-3 py-2.5">{renderActions(asset)}</td>}

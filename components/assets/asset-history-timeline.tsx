@@ -102,8 +102,8 @@ export function AssetHistoryTimeline({ assetId }: { assetId: string }) {
   return (
     <ul className="space-y-3">
       {entries.map((entry) => (
-        <li key={entry.id} className="border-l-2 border-[#e2e8f0] pl-3">
-          <p className="text-[12.5px] font-medium text-[#0f172a]">{t(historyLabelKey(entry))}</p>
+        <li key={entry.id} className="border-l-2 border-border pl-3">
+          <p className="text-[12.5px] font-medium text-foreground">{t(historyLabelKey(entry))}</p>
           <p className="text-[11px] text-[#94a3b8]">
             {new Date(entry.timestamp).toLocaleString("sv-SE")}
             {entry.userEmail && ` · ${t("byUser", { email: entry.userEmail })}`}

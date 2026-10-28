@@ -74,7 +74,7 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
             <DialogHeader>
               <DialogTitle>{t("bulkRelocateTitle", { count: itemIds.length })}</DialogTitle>
             </DialogHeader>
-            <p className="text-[12.5px] text-[#64748b]">{t("bulkRelocateDescription")}</p>
+            <p className="text-[12.5px] text-muted-foreground">{t("bulkRelocateDescription")}</p>
 
             <div className="space-y-1">
               <StockLocationPicker

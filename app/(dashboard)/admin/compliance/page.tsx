@@ -26,7 +26,7 @@ export default async function CompliancePage() {
       <Nis2DashboardClient result={nis2Result} />
       <div>
         <div className="mb-4">
-          <h2 className="text-[16px] font-bold text-[#0f172a]">{t("hostnameSectionTitle")}</h2>
+          <h2 className="text-[16px] font-bold text-foreground">{t("hostnameSectionTitle")}</h2>
         </div>
         <HostnameComplianceClient result={hostnameResult} />
       </div>

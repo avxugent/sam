@@ -80,7 +80,7 @@ function RolePill({ role }: { role: Role }) {
     );
   }
   return (
-    <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#f1f5f9] text-[#64748b]">
+    <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-muted text-muted-foreground">
       VIEWER
     </span>
   );
@@ -190,8 +190,8 @@ export function UsersClient({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-[18px] font-bold text-[#0f172a]">{t("title")}</h2>
-          <p className="text-[12.5px] text-[#64748b]">{t("subtitle")}</p>
+          <h2 className="text-[18px] font-bold text-foreground">{t("title")}</h2>
+          <p className="text-[12.5px] text-muted-foreground">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
         <Button
@@ -309,40 +309,40 @@ export function UsersClient({
       </div>
 
       {/* User table */}
-      <div className="border border-[#e2e8f0] rounded-[10px] overflow-x-auto bg-white">
+      <div className="border border-border rounded-[10px] overflow-x-auto bg-card">
         <table className="w-full min-w-[720px] text-[13px]">
           <caption className="sr-only">{t("title")}</caption>
           <thead>
-            <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
+            <tr className="border-b border-border bg-background">
               <SortableTh col="name" label={t("name")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <SortableTh col="email" label={t("email")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <SortableTh col="role" label={t("role")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{t("provider")}</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-muted-foreground whitespace-nowrap">{t("provider")}</th>
               <SortableTh col="twoFactor" label={t("twoFactor")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <SortableTh col="lastLoginAt" label={t("lastLogin")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <SortableTh col="createdAt" label={tField("created")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">{tCommon("actions")}</th>
+              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-muted-foreground whitespace-nowrap">{tCommon("actions")}</th>
             </tr>
           </thead>
           <tbody>
             {sortedUsers.map((user) => (
-              <tr key={user.id} className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors">
+              <tr key={user.id} className="border-b border-border last:border-0 hover:bg-background transition-colors">
                 <td className="px-4 py-[10px]">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-full bg-[#1e64c8] text-white text-[10.5px] font-bold flex items-center justify-center flex-shrink-0">
                       {getInitials(user.name)}
                     </div>
-                    <span className="font-medium text-[13px] text-[#0f172a]">
+                    <span className="font-medium text-[13px] text-foreground">
                       {user.name}
                       {user.id === currentUserId && (
-                        <span className="ml-1.5 text-[11px] text-[#64748b] font-normal">{t("you")}</span>
+                        <span className="ml-1.5 text-[11px] text-muted-foreground font-normal">{t("you")}</span>
                       )}
                     </span>
                   </div>
                 </td>
-                <td className="px-4 py-[10px] text-[#64748b]">{user.email}</td>
+                <td className="px-4 py-[10px] text-muted-foreground">{user.email}</td>
                 <td className="px-4 py-[10px]"><RolePill role={user.role} /></td>
-                <td className="px-4 py-[10px] text-[12px] text-[#64748b]">
+                <td className="px-4 py-[10px] text-[12px] text-muted-foreground">
                   {user.provider === "microsoft-entra-id" ? t("providerEntra") : t("providerCredentials")}
                 </td>
                 <td className="px-4 py-[10px]">
@@ -352,16 +352,16 @@ export function UsersClient({
                         {t("active")}
                       </span>
                     ) : (
-                      <span className="text-[#64748b]">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )
                   ) : (
-                    <span className="text-[#64748b]">—</span>
+                    <span className="text-muted-foreground">—</span>
                   )}
                 </td>
-                <td className="px-4 py-[10px] text-[#64748b] text-[12px]">
+                <td className="px-4 py-[10px] text-muted-foreground text-[12px]">
                   {user.lastLoginAt ? formatDate(user.lastLoginAt) : "—"}
                 </td>
-                <td className="px-4 py-[10px] text-[#64748b] text-[12px]">{formatDate(user.createdAt)}</td>
+                <td className="px-4 py-[10px] text-muted-foreground text-[12px]">{formatDate(user.createdAt)}</td>
                 <td className="px-4 py-[10px]">
                   <div className="flex justify-end gap-1">
                     {/* Edit */}
@@ -373,7 +373,7 @@ export function UsersClient({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
+                          className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card"
                           title={t("editUser")}
                           onClick={() => {
                             setEditUser(user);

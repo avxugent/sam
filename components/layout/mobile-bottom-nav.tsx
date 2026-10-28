@@ -54,7 +54,7 @@ export function MobileBottomNav({ showAdminTab }: { showAdminTab: boolean }) {
   }
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-[58px] bg-white border-t border-[#e2e8f0] flex items-center z-40">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-[58px] bg-card border-t border-border flex items-center z-40">
       {navTabs.map((tab) => {
         const active = tab.match(pathname);
         return (
@@ -63,7 +63,7 @@ export function MobileBottomNav({ showAdminTab }: { showAdminTab: boolean }) {
             href={tab.href}
             className={cn(
               "flex-1 flex flex-col items-center justify-center gap-0.5 h-full",
-              active ? "text-[#1e64c8]" : "text-[#64748b]"
+              active ? "text-[#1e64c8]" : "text-muted-foreground"
             )}
           >
             <div
@@ -74,7 +74,7 @@ export function MobileBottomNav({ showAdminTab }: { showAdminTab: boolean }) {
             >
               {tab.icon}
             </div>
-            <span className={cn("text-[10px]", active ? "font-semibold text-[#1e64c8]" : "font-normal text-[#64748b]")}>
+            <span className={cn("text-[10px]", active ? "font-semibold text-[#1e64c8]" : "font-normal text-muted-foreground")}>
               {labelOf(tab.labelKey)}
             </span>
           </Link>

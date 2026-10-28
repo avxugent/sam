@@ -27,10 +27,10 @@ export function BulkResultSummary({
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
       </DialogHeader>
-      <p className="text-[13px] text-[#64748b]">{summary}</p>
-      <ul className="text-[12.5px] text-[#64748b] space-y-1 max-h-48 overflow-y-auto">
+      <p className="text-[13px] text-muted-foreground">{summary}</p>
+      <ul className="text-[12.5px] text-muted-foreground space-y-1 max-h-48 overflow-y-auto">
         {failed.map((f) => (
-          <li key={f.id} className="flex justify-between gap-2 border-b border-[#f1f5f9] py-1">
+          <li key={f.id} className="flex justify-between gap-2 border-b border-muted py-1">
             <span className="font-mono text-[11.5px]">{f.id}</span>
             <span>{reasonLabel(f.reason)}</span>
           </li>

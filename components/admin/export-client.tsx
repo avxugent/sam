@@ -67,10 +67,10 @@ export function ExportClient({
   return (
     <div className="space-y-8">
       {/* Manual export */}
-      <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-4">
+      <section className="bg-card border border-border rounded-[10px] p-6 space-y-4">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("title")}</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">{t("subtitle")}</p>
+          <h2 className="text-[15px] font-semibold text-foreground">{t("title")}</h2>
+          <p className="text-[13px] text-muted-foreground mt-1">{t("subtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button
@@ -103,13 +103,13 @@ export function ExportClient({
       </section>
 
       {/* Schedule configuration */}
-      <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
+      <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-[#64748b]" />
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("scheduleTitle")}</h2>
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-[15px] font-semibold text-foreground">{t("scheduleTitle")}</h2>
         </div>
 
-        <p className="text-[13px] text-[#64748b]">{t("scheduleIntro")}</p>
+        <p className="text-[13px] text-muted-foreground">{t("scheduleIntro")}</p>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -121,7 +121,7 @@ export function ExportClient({
               placeholder="0 2 * * *"
               className="font-mono text-[13px] max-w-xs"
             />
-            <p className="text-[12px] text-[#64748b]">{t.rich("scheduleCronExample", { code: (chunks) => <code className="font-mono bg-[#f1f5f9] px-1 rounded">{chunks}</code> })}</p>
+            <p className="text-[12px] text-muted-foreground">{t.rich("scheduleCronExample", { code: (chunks) => <code className="font-mono bg-muted px-1 rounded">{chunks}</code> })}</p>
           </div>
 
           <div className="space-y-1.5">
@@ -148,16 +148,16 @@ export function ExportClient({
         </div>
 
         {/* Setup instructions */}
-        <div className="mt-4 p-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] space-y-3">
+        <div className="mt-4 p-4 bg-background border border-border rounded-[8px] space-y-3">
           <p className="text-[12px] font-semibold text-[#334155]">{t("setupInstructions")}</p>
-          <p className="text-[12px] text-[#64748b]">{t.rich("setupOptionHttp", { code: (chunks) => <code className="font-mono bg-[#f1f5f9] px-1 rounded">{chunks}</code> })}</p>
-          <pre className="text-[11.5px] font-mono text-[#334155] bg-[#f1f5f9] p-3 rounded-[6px] overflow-x-auto whitespace-pre-wrap break-all">
+          <p className="text-[12px] text-muted-foreground">{t.rich("setupOptionHttp", { code: (chunks) => <code className="font-mono bg-muted px-1 rounded">{chunks}</code> })}</p>
+          <pre className="text-[11.5px] font-mono text-[#334155] bg-muted p-3 rounded-[6px] overflow-x-auto whitespace-pre-wrap break-all">
 {`${cronExpression} curl -s -H "Authorization: Bearer $EXPORT_TOKEN" \\
   http://localhost:3000/api/export/csv \\
   > ${outputDir}/sam-$(date +%Y%m%d).csv`}
           </pre>
-          <p className="text-[12px] text-[#64748b]">{t("setupOptionCli")}</p>
-          <pre className="text-[11.5px] font-mono text-[#334155] bg-[#f1f5f9] p-3 rounded-[6px] overflow-x-auto">
+          <p className="text-[12px] text-muted-foreground">{t("setupOptionCli")}</p>
+          <pre className="text-[11.5px] font-mono text-[#334155] bg-muted p-3 rounded-[6px] overflow-x-auto">
 {`${cronExpression} cd /app && node scripts/export-backup.mjs --output ${outputDir}`}
           </pre>
         </div>

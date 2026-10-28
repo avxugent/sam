@@ -75,10 +75,10 @@ export function ComplianceSettingsClient({
     "w-full h-9 px-3 rounded-md border border-input bg-transparent text-[13px] focus:outline-none focus:ring-1 focus:ring-ring";
 
   return (
-    <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
+    <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
       <div>
-        <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("complianceTitle")}</h2>
-        <p className="text-[13px] text-[#64748b] mt-1">{t("complianceHelp")}</p>
+        <h2 className="text-[15px] font-semibold text-foreground">{t("complianceTitle")}</h2>
+        <p className="text-[13px] text-muted-foreground mt-1">{t("complianceHelp")}</p>
       </div>
 
       <div className="flex items-center gap-2">
@@ -91,7 +91,7 @@ export function ComplianceSettingsClient({
           {t("complianceRequire2fa")}
         </Label>
       </div>
-      <p className="text-[12px] text-[#64748b] -mt-3 ml-6">{t("complianceRequire2faHelp")}</p>
+      <p className="text-[12px] text-muted-foreground -mt-3 ml-6">{t("complianceRequire2faHelp")}</p>
 
       <div className="space-y-2">
         <Label htmlFor="audit-retention">{t("complianceRetention")}</Label>
@@ -104,7 +104,7 @@ export function ComplianceSettingsClient({
           onChange={(e) => setAuditRetentionDays(e.target.value)}
           className="max-w-[140px]"
         />
-        <p className="text-[12px] text-[#64748b]">{t("complianceRetentionHelp")}</p>
+        <p className="text-[12px] text-muted-foreground">{t("complianceRetentionHelp")}</p>
       </div>
 
       <div className="space-y-2">
@@ -120,7 +120,7 @@ export function ComplianceSettingsClient({
             <option key={u.id} value={u.id}>{u.name}</option>
           ))}
         </select>
-        <p className="text-[12px] text-[#64748b]">{t("complianceDefaultOwnerHelp")}</p>
+        <p className="text-[12px] text-muted-foreground">{t("complianceDefaultOwnerHelp")}</p>
       </div>
 
       <div className="space-y-2">
@@ -136,7 +136,7 @@ export function ComplianceSettingsClient({
             <option key={item.id} value={item.id}>{item.name}</option>
           ))}
         </select>
-        <p className="text-[12px] text-[#64748b]">{t("complianceReviewItemHelp")}</p>
+        <p className="text-[12px] text-muted-foreground">{t("complianceReviewItemHelp")}</p>
       </div>
 
       <div className="space-y-2">
@@ -150,7 +150,7 @@ export function ComplianceSettingsClient({
           onChange={(e) => setReviewPeriodMonths(e.target.value)}
           className="max-w-[140px]"
         />
-        <p className="text-[12px] text-[#64748b]">{t("complianceReviewPeriodHelp")}</p>
+        <p className="text-[12px] text-muted-foreground">{t("complianceReviewPeriodHelp")}</p>
       </div>
 
       <div className="flex justify-end">

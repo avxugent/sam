@@ -49,19 +49,19 @@ function OptionRow({
       onClick={onClick}
       className={cn(
         "w-full flex items-start gap-3 rounded-[8px] border p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        danger ? "border-[#fecaca]" : "border-[#e2e8f0]"
+        danger ? "border-[#fecaca]" : "border-border"
       )}
     >
       <div
         className={cn(
           "h-8 w-8 rounded-[7px] flex items-center justify-center flex-shrink-0",
-          danger ? "bg-red-50" : "bg-[#f1f5f9]"
+          danger ? "bg-red-50" : "bg-muted"
         )}
       >
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold text-[#0f172a]">{title}</p>
+        <p className="text-[13px] font-semibold text-foreground">{title}</p>
         <p className="text-[12px] text-muted-foreground">{description}</p>
       </div>
       <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />

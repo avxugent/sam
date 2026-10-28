@@ -13,10 +13,10 @@ type FetchedIssue = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  todo: "bg-[#f1f5f9] text-[#475569]",
+  todo: "bg-muted text-[#475569]",
   "in-progress": "bg-[#fef3c7] text-[#92400e]",
   done: "bg-[#dcfce7] text-[#15803d]",
-  unknown: "bg-[#f1f5f9] text-[#475569]",
+  unknown: "bg-muted text-[#475569]",
 };
 
 export function JiraIssueBadge({ issueKey, jiraBaseUrl }: { issueKey: string; jiraBaseUrl?: string | null }) {

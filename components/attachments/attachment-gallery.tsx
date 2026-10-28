@@ -228,7 +228,7 @@ export function AttachmentGallery({
       {/* Drop zone */}
       {canEdit && (
         <div
-          className={`border-2 border-dashed rounded-[10px] px-5 py-7 text-center transition-colors cursor-pointer bg-white ${
+          className={`border-2 border-dashed rounded-[10px] px-5 py-7 text-center transition-colors cursor-pointer bg-card ${
             dragOver ? "border-[#1e64c8] bg-[#e8f0fc]" : "border-[#cbd5e1]"
           }`}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -245,14 +245,14 @@ export function AttachmentGallery({
             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
           />
           {uploading ? (
-            <div className="flex items-center justify-center gap-2 text-[#64748b]">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
               <span className="text-[13px]">{tCommon("uploading")}</span>
             </div>
           ) : (
             <div className="space-y-1.5">
               <Upload className="h-7 w-7 mx-auto text-[#94a3b8]" />
-              <p className="text-[13px] text-[#64748b]">
+              <p className="text-[13px] text-muted-foreground">
                 Drag &amp; drop files here, or{" "}
                 <span className="text-[#1e64c8] hover:underline">browse</span>
               </p>
@@ -267,7 +267,7 @@ export function AttachmentGallery({
         <Button
           variant="outline"
           size="sm"
-          className="gap-2 border-[#e2e8f0] text-[#334155] text-[12px]"
+          className="gap-2 border-border text-[#334155] text-[12px]"
           onClick={() => setShowLinkDialog(true)}
         >
           <Plus className="h-3.5 w-3.5" />
@@ -401,7 +401,7 @@ export function AttachmentGallery({
                 <p className="text-[11.5px] text-[#94a3b8]">{lightboxIndex + 1} / {previewable.length}</p>
               )}
               {lightboxAttachment.description && (
-                <p className="text-[13px] text-[#64748b] text-center max-w-lg">{lightboxAttachment.description}</p>
+                <p className="text-[13px] text-muted-foreground text-center max-w-lg">{lightboxAttachment.description}</p>
               )}
               <Button variant="outline" size="sm" className="gap-1.5" asChild>
                 <a href={`/api/attachments/${lightboxAttachment.id}`} target="_blank" rel="noopener noreferrer">
@@ -416,12 +416,12 @@ export function AttachmentGallery({
 
       {/* Attachment list */}
       {attachments.length === 0 ? (
-        <div className="text-center py-8 text-[#64748b] border border-[#e2e8f0] rounded-[10px] bg-white">
+        <div className="text-center py-8 text-muted-foreground border border-border rounded-[10px] bg-card">
           <Paperclip className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p className="text-[13px]">{t("noAttachments")}</p>
         </div>
       ) : (
-        <div className="divide-y divide-[#e2e8f0] border border-[#e2e8f0] rounded-[10px] overflow-hidden bg-white">
+        <div className="divide-y divide-border border border-border rounded-[10px] overflow-hidden bg-card">
           {attachments.map((attachment) => {
             const isLink = attachment.attachmentType === "link";
             const isImage = !isLink && isPreviewableImage(attachment.mimeType);
@@ -429,12 +429,12 @@ export function AttachmentGallery({
             const displayName = label(attachment);
 
             return (
-              <div key={attachment.id} className="flex items-start gap-3 p-3 hover:bg-[#f8fafc] transition-colors">
+              <div key={attachment.id} className="flex items-start gap-3 p-3 hover:bg-background transition-colors">
                 {/* Thumbnail / icon */}
                 {isImage ? (
                   <button
                     type="button"
-                    className="flex-shrink-0 w-[52px] h-[52px] rounded-[7px] overflow-hidden border border-[#e2e8f0] bg-[#f1f5f9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] group relative"
+                    className="flex-shrink-0 w-[52px] h-[52px] rounded-[7px] overflow-hidden border border-border bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] group relative"
                     onClick={() => setLightboxId(attachment.id)}
                     aria-label={t("previewAlt", { name: displayName })}
                   >
@@ -457,8 +457,8 @@ export function AttachmentGallery({
                     <FileText className="h-5 w-5 text-red-500" />
                   </div>
                 ) : (
-                  <div className="w-[52px] h-[52px] rounded-[7px] flex items-center justify-center flex-shrink-0 bg-[#f1f5f9]">
-                    <File className="h-5 w-5 text-[#64748b]" />
+                  <div className="w-[52px] h-[52px] rounded-[7px] flex items-center justify-center flex-shrink-0 bg-muted">
+                    <File className="h-5 w-5 text-muted-foreground" />
                   </div>
                 )}
 
@@ -475,19 +475,19 @@ export function AttachmentGallery({
                       <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-60" />
                     </a>
                   ) : (
-                    <p className="text-[13px] font-medium text-[#0f172a] truncate">{displayName}</p>
+                    <p className="text-[13px] font-medium text-foreground truncate">{displayName}</p>
                   )}
                   {/* Show originalName as subtitle if displayName overrides it */}
                   {attachment.displayName?.trim() && (
                     <p className="text-[11px] text-[#94a3b8] truncate">{attachment.originalName}</p>
                   )}
-                  <p className="text-[11.5px] text-[#64748b]">
+                  <p className="text-[11.5px] text-muted-foreground">
                     {isLink ? t("linkType") : formatFileSize(attachment.size ?? 0)}
                     {" · "}
                     {t("addedBy", { date: formatDate(attachment.createdAt), name: attachment.uploadedBy.name })}
                   </p>
                   {attachment.description && (
-                    <p className="text-[12px] text-[#64748b] mt-1 whitespace-pre-wrap break-words">{attachment.description}</p>
+                    <p className="text-[12px] text-muted-foreground mt-1 whitespace-pre-wrap break-words">{attachment.description}</p>
                   )}
                 </div>
 
@@ -498,7 +498,7 @@ export function AttachmentGallery({
                       variant="ghost"
                       size="icon"
                       aria-label={`Download ${displayName}`}
-                      className="h-[30px] w-[30px] text-[#64748b] hover:text-[#334155]"
+                      className="h-[30px] w-[30px] text-muted-foreground hover:text-[#334155]"
                       onClick={() => window.open(`/api/attachments/${attachment.id}`, "_blank")}
                     >
                       <Download className="h-4 w-4" />
@@ -509,7 +509,7 @@ export function AttachmentGallery({
                       variant="ghost"
                       size="icon"
                       aria-label={`${t("editAttachment")} ${displayName}`}
-                      className="h-[30px] w-[30px] text-[#64748b] hover:text-[#334155]"
+                      className="h-[30px] w-[30px] text-muted-foreground hover:text-[#334155]"
                       onClick={() => openEdit(attachment)}
                     >
                       <Pencil className="h-4 w-4" />

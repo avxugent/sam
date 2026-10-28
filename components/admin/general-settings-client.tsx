@@ -67,10 +67,10 @@ export function GeneralSettingsClient({
   return (
     <div className="space-y-8">
       {/* Hostname URL template */}
-      <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
+      <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("hostnameTemplate")}</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">{t("hostnameTemplateHelp")}</p>
+          <h2 className="text-[15px] font-semibold text-foreground">{t("hostnameTemplate")}</h2>
+          <p className="text-[13px] text-muted-foreground mt-1">{t("hostnameTemplateHelp")}</p>
         </div>
 
         <div className="space-y-2">
@@ -82,18 +82,18 @@ export function GeneralSettingsClient({
             placeholder="https://example.com/host/{hostname}"
             className="font-mono text-[13px]"
           />
-          <p className="text-[12px] text-[#64748b]">
+          <p className="text-[12px] text-muted-foreground">
             Available variables:{" "}
-            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{hostname}"}</code>{" "}
-            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{serial}"}</code>{" "}
-            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{model}"}</code>{" "}
-            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{manufacturer}"}</code>
+            <code className="font-mono bg-muted px-1 rounded">{"{hostname}"}</code>{" "}
+            <code className="font-mono bg-muted px-1 rounded">{"{serial}"}</code>{" "}
+            <code className="font-mono bg-muted px-1 rounded">{"{model}"}</code>{" "}
+            <code className="font-mono bg-muted px-1 rounded">{"{manufacturer}"}</code>
           </p>
         </div>
 
         {hostnamePreview && (
-          <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] text-[12px]">
-            <p className="text-[#64748b] mb-1 font-medium">Preview (with example values):</p>
+          <div className="p-3 bg-background border border-border rounded-[8px] text-[12px]">
+            <p className="text-muted-foreground mb-1 font-medium">Preview (with example values):</p>
             <a
               href={hostnamePreview}
               target="_blank"
@@ -108,10 +108,10 @@ export function GeneralSettingsClient({
       </section>
 
       {/* MAC address URL template */}
-      <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
+      <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("macAddressTemplate")}</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">{t("macAddressTemplateHelp")}</p>
+          <h2 className="text-[15px] font-semibold text-foreground">{t("macAddressTemplate")}</h2>
+          <p className="text-[13px] text-muted-foreground mt-1">{t("macAddressTemplateHelp")}</p>
         </div>
 
         <div className="space-y-2">
@@ -123,20 +123,20 @@ export function GeneralSettingsClient({
             placeholder="https://example.com/mac/{mac}"
             className="font-mono text-[13px]"
           />
-          <p className="text-[12px] text-[#64748b]">
+          <p className="text-[12px] text-muted-foreground">
             Available variables:{" "}
-            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{mac}"}</code>{" "}
+            <code className="font-mono bg-muted px-1 rounded">{"{mac}"}</code>{" "}
             <span className="text-[#94a3b8]">(aa:bb:cc:dd:ee:ff)</span>{" "}
-            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{mac_plain}"}</code>{" "}
+            <code className="font-mono bg-muted px-1 rounded">{"{mac_plain}"}</code>{" "}
             <span className="text-[#94a3b8]">(aabbccddeeff)</span>{" "}
-            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{mac_dash}"}</code>{" "}
+            <code className="font-mono bg-muted px-1 rounded">{"{mac_dash}"}</code>{" "}
             <span className="text-[#94a3b8]">(aa-bb-cc-dd-ee-ff)</span>
           </p>
         </div>
 
         {macPreview && (
-          <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] text-[12px]">
-            <p className="text-[#64748b] mb-1 font-medium">Preview (with example value aa:bb:cc:dd:ee:ff):</p>
+          <div className="p-3 bg-background border border-border rounded-[8px] text-[12px]">
+            <p className="text-muted-foreground mb-1 font-medium">Preview (with example value aa:bb:cc:dd:ee:ff):</p>
             <a
               href={macPreview}
               target="_blank"
@@ -151,10 +151,10 @@ export function GeneralSettingsClient({
       </section>
 
       {/* Location URL template */}
-      <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
+      <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("locationTemplate")}</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">{t("locationTemplateHelp")}</p>
+          <h2 className="text-[15px] font-semibold text-foreground">{t("locationTemplate")}</h2>
+          <p className="text-[13px] text-muted-foreground mt-1">{t("locationTemplateHelp")}</p>
         </div>
 
         <div className="space-y-2">
@@ -166,21 +166,21 @@ export function GeneralSettingsClient({
             placeholder="https://grafana.example.com/d/sam-room/room?var-fi_number={fi_number}"
             className="font-mono text-[13px]"
           />
-          <p className="text-[12px] text-[#64748b]">
+          <p className="text-[12px] text-muted-foreground">
             Available variables:{" "}
-            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{fi_number}"}</code>{" "}
-            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{location_name}"}</code>{" "}
-            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{location_id}"}</code>
+            <code className="font-mono bg-muted px-1 rounded">{"{fi_number}"}</code>{" "}
+            <code className="font-mono bg-muted px-1 rounded">{"{location_name}"}</code>{" "}
+            <code className="font-mono bg-muted px-1 rounded">{"{location_id}"}</code>
           </p>
-          <p className="text-[12px] text-[#64748b]">
+          <p className="text-[12px] text-muted-foreground">
             Locations without an FI number show no link when the template uses{" "}
-            <code className="font-mono bg-[#f1f5f9] px-1 rounded">{"{fi_number}"}</code>.
+            <code className="font-mono bg-muted px-1 rounded">{"{fi_number}"}</code>.
           </p>
         </div>
 
         {locationPreview && (
-          <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] text-[12px]">
-            <p className="text-[#64748b] mb-1 font-medium">Preview (with example values):</p>
+          <div className="p-3 bg-background border border-border rounded-[8px] text-[12px]">
+            <p className="text-muted-foreground mb-1 font-medium">Preview (with example values):</p>
             <a
               href={locationPreview}
               target="_blank"

@@ -95,10 +95,10 @@ function InfoCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden">
-      <div className="flex items-center gap-2 px-[18px] py-[14px] border-b border-[#e2e8f0]">
-        <span className="text-[#64748b]">{icon}</span>
-        <h3 className="text-[13px] font-semibold text-[#0f172a]">{title}</h3>
+    <div className="bg-card border border-border rounded-[10px] overflow-hidden">
+      <div className="flex items-center gap-2 px-[18px] py-[14px] border-b border-border">
+        <span className="text-muted-foreground">{icon}</span>
+        <h3 className="text-[13px] font-semibold text-foreground">{title}</h3>
       </div>
       <div className="p-[18px]">{children}</div>
     </div>
@@ -107,7 +107,7 @@ function InfoCard({
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <dt className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-1">
+    <dt className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground mb-1">
       {children}
     </dt>
   );
@@ -115,8 +115,8 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 function FieldValue({ value, mono, children }: { value?: string | null; mono?: boolean; children?: React.ReactNode }) {
   return (
-    <dd className={mono ? "font-mono text-[12px] text-[#0f172a]" : "text-[13px] text-[#0f172a]"}>
-      {children || (value ? value : <span className="text-[#64748b]">—</span>)}
+    <dd className={mono ? "font-mono text-[12px] text-foreground" : "text-[13px] text-foreground"}>
+      {children || (value ? value : <span className="text-muted-foreground">—</span>)}
     </dd>
   );
 }
@@ -173,19 +173,19 @@ export function AssetDetailClient({
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1 text-[12px] text-[#64748b] flex-wrap">
-        <Link href="/locations" className="hover:text-[#0f172a] transition-colors">{tCommon("home")}</Link>
+      <nav className="flex items-center gap-1 text-[12px] text-muted-foreground flex-wrap">
+        <Link href="/locations" className="hover:text-foreground transition-colors">{tCommon("home")}</Link>
         {breadcrumbs.map((crumb) => (
           <span key={crumb.id} className="flex items-center gap-1">
             <ChevronRight className="h-3 w-3" />
-            <Link href={`/locations/${crumb.id}`} className="hover:text-[#0f172a] transition-colors">
+            <Link href={`/locations/${crumb.id}`} className="hover:text-foreground transition-colors">
               {crumb.name}
             </Link>
           </span>
         ))}
         <span className="flex items-center gap-1">
           <ChevronRight className="h-3 w-3" />
-          <span className="text-[#0f172a] font-medium">{displayName}</span>
+          <span className="text-foreground font-medium">{displayName}</span>
         </span>
       </nav>
 
@@ -272,7 +272,7 @@ export function AssetDetailClient({
             {createElement(getAssetTypeIcon(asset.type?.name), { className: "h-4 w-4 text-[#1e64c8]" })}
           </div>
           <div>
-            <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">{displayName}</h1>
+            <h1 className="text-[22px] font-bold text-foreground tracking-[-0.01em]">{displayName}</h1>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {asset.type && (
                 <span className="text-[11px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-[10px] py-[3px] rounded-[5px]">
@@ -280,7 +280,7 @@ export function AssetDetailClient({
                 </span>
               )}
               {asset.manufacturer && (
-                <span className="text-[11px] font-medium bg-[#f1f5f9] text-[#64748b] px-[10px] py-[3px] rounded-[5px]">
+                <span className="text-[11px] font-medium bg-muted text-muted-foreground px-[10px] py-[3px] rounded-[5px]">
                   {asset.manufacturer.name}
                 </span>
               )}
@@ -298,7 +298,7 @@ export function AssetDetailClient({
                   locationId={asset.locationId}
                   onSuccess={() => router.refresh()}
                 >
-                  <Button variant="outline" size="sm" className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5">
+                  <Button variant="outline" size="sm" className="h-[34px] rounded-[7px] border-border text-[13px] gap-1.5">
                     <Pencil className="h-3.5 w-3.5" />
                     {tCommon("edit")}
                   </Button>
@@ -308,7 +308,7 @@ export function AssetDetailClient({
                   variant="outline"
                   size="sm"
                   onClick={() => setMoveOpen(true)}
-                  className="h-[34px] rounded-[7px] border-[#e2e8f0] text-[13px] gap-1.5"
+                  className="h-[34px] rounded-[7px] border-border text-[13px] gap-1.5"
                 >
                   <FolderInput className="h-3.5 w-3.5" />
                   {t("moveAssetButton")}
@@ -423,11 +423,11 @@ export function AssetDetailClient({
                     <>
                       {asset.supplier.name}
                       {asset.supplier.contractReference && (
-                        <span className="text-[#64748b] text-[12px] ml-1.5">({asset.supplier.contractReference})</span>
+                        <span className="text-muted-foreground text-[12px] ml-1.5">({asset.supplier.contractReference})</span>
                       )}
                     </>
                   ) : (
-                    <span className="text-[#64748b]">—</span>
+                    <span className="text-muted-foreground">—</span>
                   )}
                 </FieldValue>
               </div>
@@ -436,12 +436,12 @@ export function AssetDetailClient({
                 <FieldValue>
                   {(() => {
                     const effective = asset.criticality ?? asset.type?.defaultCriticality ?? null;
-                    if (!effective) return <span className="text-[#64748b]">{t("unclassified")}</span>;
+                    if (!effective) return <span className="text-muted-foreground">{t("unclassified")}</span>;
                     return (
                       <>
                         {tCommon(`criticality.${effective}`)}
                         {!asset.criticality && (
-                          <span className="text-[#64748b] text-[12px] ml-1.5">({t("inheritedFromType")})</span>
+                          <span className="text-muted-foreground text-[12px] ml-1.5">({t("inheritedFromType")})</span>
                         )}
                       </>
                     );
@@ -461,8 +461,8 @@ export function AssetDetailClient({
             </dl>
 
             {asset.macAddresses.length > 0 && (
-              <div className="border-t border-[#e2e8f0] mt-4 pt-4">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-2">
+              <div className="border-t border-border mt-4 pt-4">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground mb-2">
                   {tField("macAddresses")}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -479,7 +479,7 @@ export function AssetDetailClient({
                         <ExternalLink className="h-2.5 w-2.5 opacity-60" />
                       </a>
                     ) : (
-                      <span key={mac.id} className="font-mono text-[11.5px] bg-[#f1f5f9] text-[#334155] px-[10px] py-[3px] rounded-[5px]">
+                      <span key={mac.id} className="font-mono text-[11.5px] bg-muted text-[#334155] px-[10px] py-[3px] rounded-[5px]">
                         {mac.address}
                       </span>
                     )
@@ -489,18 +489,18 @@ export function AssetDetailClient({
             )}
 
             {asset.notes && (
-              <div className="border-t border-[#e2e8f0] mt-4 pt-4">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-2">{tField("notes")}</p>
+              <div className="border-t border-border mt-4 pt-4">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground mb-2">{tField("notes")}</p>
                 <p className="text-[13px] text-[#334155] leading-relaxed whitespace-pre-wrap">{asset.notes}</p>
               </div>
             )}
 
             {asset.vaultPath && (
-              <div className="border-t border-[#e2e8f0] mt-4 pt-4">
-                <div className="flex items-center gap-2 text-[12px] text-[#64748b]">
+              <div className="border-t border-border mt-4 pt-4">
+                <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                   <Lock className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="font-medium text-[#0f172a]">{tField("vaultPath")}:</span>
-                  <code className="font-mono bg-[#f1f5f9] text-[#334155] px-2 py-0.5 rounded-[4px] text-[11.5px]">
+                  <span className="font-medium text-foreground">{tField("vaultPath")}:</span>
+                  <code className="font-mono bg-muted text-[#334155] px-2 py-0.5 rounded-[4px] text-[11.5px]">
                     {asset.vaultPath}
                   </code>
                 </div>
@@ -508,8 +508,8 @@ export function AssetDetailClient({
             )}
 
             {asset.customFields.length > 0 && (
-              <div className="border-t border-[#e2e8f0] mt-4 pt-4">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#64748b] mb-3">
+              <div className="border-t border-border mt-4 pt-4">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground mb-3">
                   {tField("customFields")}
                 </p>
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-[14px]">
@@ -529,13 +529,13 @@ export function AssetDetailClient({
               <div
                 className={`flex items-center gap-2 px-3 py-2 mb-3 rounded-[8px] border text-[12.5px] ${
                   asset.model.documentationUrl
-                    ? "border-[#e2e8f0] bg-white"
+                    ? "border-border bg-card"
                     : "border-[#fde047] bg-[#fefce8] text-[#713f12]"
                 }`}
               >
                 {asset.model.documentationUrl ? (
                   <>
-                    <FileText className="h-3.5 w-3.5 text-[#64748b] flex-shrink-0" />
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                     <a
                       href={asset.model.documentationUrl}
                       target="_blank"
@@ -611,14 +611,14 @@ export function AssetDetailClient({
                       target="_blank"
                       rel="noopener noreferrer"
                       className={`w-[52px] h-[52px] rounded-[7px] flex items-center justify-center text-[10px] text-center font-medium overflow-hidden ${
-                        isImage ? "bg-[#dbeafe]" : isPdf ? "bg-[#fee2e2]" : "bg-[#f1f5f9]"
+                        isImage ? "bg-[#dbeafe]" : isPdf ? "bg-[#fee2e2]" : "bg-muted"
                       }`}
                     >
                       {isImage ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={`/api/attachments/${att.id}`} alt={att.originalName} className="w-full h-full object-cover rounded-[7px]" />
                       ) : (
-                        <span className="text-[10px] text-[#64748b] px-1 truncate">{att.originalName.split(".").pop()?.toUpperCase()}</span>
+                        <span className="text-[10px] text-muted-foreground px-1 truncate">{att.originalName.split(".").pop()?.toUpperCase()}</span>
                       )}
                     </a>
                   );
@@ -626,7 +626,7 @@ export function AssetDetailClient({
               </div>
               <a
                 href="#attachments"
-                className="flex w-full h-[30px] items-center justify-center border border-[#e2e8f0] rounded-[6px] bg-[#f8fafc] text-[12px] text-[#64748b] hover:bg-white transition-colors"
+                className="flex w-full h-[30px] items-center justify-center border border-border rounded-[6px] bg-background text-[12px] text-muted-foreground hover:bg-card transition-colors"
               >
                 {t("viewAllAttachments", { count: attachments.length, plural: attachments.length !== 1 ? "s" : "" })}
               </a>

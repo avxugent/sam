@@ -33,7 +33,7 @@ export function LanguageSwitcher() {
           variant="ghost"
           size="sm"
           aria-label={t("language")}
-          className="h-[34px] px-2 rounded-[6px] gap-1.5 text-[12px] font-medium uppercase text-[#64748b] hover:text-[#0f172a]"
+          className="h-[34px] px-2 rounded-[6px] gap-1.5 text-[12px] font-medium uppercase text-muted-foreground hover:text-foreground"
           disabled={pending}
         >
           <Languages className="h-4 w-4" />

@@ -266,16 +266,16 @@ export function ProfileClient({
                     "flex flex-col items-center gap-2 rounded-[8px] border px-3 py-4 text-sm transition-colors",
                     active
                       ? "border-[#1e64c8] bg-[#eff6ff] text-[#1e64c8] font-medium"
-                      : "border-[#e2e8f0] bg-white text-[#0f172a] hover:border-[#94a3b8]"
+                      : "border-border bg-card text-foreground hover:border-[#94a3b8]"
                   )}
                 >
-                  <Icon className={cn("h-5 w-5", active ? "text-[#1e64c8]" : "text-[#64748b]")} />
+                  <Icon className={cn("h-5 w-5", active ? "text-[#1e64c8]" : "text-muted-foreground")} />
                   <span className="text-xs">{t(labelKey)}</span>
                 </button>
               );
             })}
           </div>
-          {themeSaving && <p className="text-xs text-[#64748b] mt-2">{tCommon("saving")}…</p>}
+          {themeSaving && <p className="text-xs text-muted-foreground mt-2">{tCommon("saving")}…</p>}
         </CardContent>
       </Card>
 
@@ -298,19 +298,19 @@ export function ProfileClient({
                   "w-full text-left rounded-[8px] border px-4 py-3 text-sm transition-colors",
                   active
                     ? "border-[#1e64c8] bg-[#eff6ff] text-[#1e64c8] font-medium"
-                    : "border-[#e2e8f0] bg-white text-[#0f172a] hover:border-[#94a3b8]"
+                    : "border-border bg-card text-foreground hover:border-[#94a3b8]"
                 )}
               >
                 <span className="font-medium">
                   {value === "assets" ? t("locationNavAssets") : t("locationNavSublocations")}
                 </span>
-                <p className="text-xs mt-0.5 text-[#64748b]">
+                <p className="text-xs mt-0.5 text-muted-foreground">
                   {value === "assets" ? t("locationNavAssetsDesc") : t("locationNavSublocationsDesc")}
                 </p>
               </button>
             );
           })}
-          {locTabSaving && <p className="text-xs text-[#64748b]">{tCommon("saving")}…</p>}
+          {locTabSaving && <p className="text-xs text-muted-foreground">{tCommon("saving")}…</p>}
         </CardContent>
       </Card>
     </div>

@@ -204,15 +204,15 @@ export function LocationDetailClient({
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1 text-[12px] text-[#64748b] flex-wrap">
-        <Link href="/locations" className="hover:text-[#0f172a] transition-colors">{tCommon("home")}</Link>
+      <nav className="flex items-center gap-1 text-[12px] text-muted-foreground flex-wrap">
+        <Link href="/locations" className="hover:text-foreground transition-colors">{tCommon("home")}</Link>
         {breadcrumbs.map((crumb, i) => (
           <span key={crumb.id} className="flex items-center gap-1">
             <ChevronRight className="h-3 w-3" />
             {i === breadcrumbs.length - 1 ? (
-              <span className="text-[#0f172a] font-medium">{crumb.name}</span>
+              <span className="text-foreground font-medium">{crumb.name}</span>
             ) : (
-              <Link href={`/locations/${crumb.id}`} className="hover:text-[#0f172a] transition-colors">
+              <Link href={`/locations/${crumb.id}`} className="hover:text-foreground transition-colors">
                 {crumb.name}
               </Link>
             )}
@@ -239,8 +239,8 @@ export function LocationDetailClient({
               style={{ background: "linear-gradient(135deg, #1e64c8 0%, #1a4fa0 100%)" }}
             />
             {/* Decorative circles */}
-            <div className="absolute -top-8 -right-8 w-[200px] h-[200px] rounded-full bg-white opacity-[0.05]" />
-            <div className="absolute -bottom-6 -left-6 w-[120px] h-[120px] rounded-full bg-white opacity-[0.06]" />
+            <div className="absolute -top-8 -right-8 w-[200px] h-[200px] rounded-full bg-card opacity-[0.05]" />
+            <div className="absolute -bottom-6 -left-6 w-[120px] h-[120px] rounded-full bg-card opacity-[0.06]" />
           </>
         )}
 
@@ -257,7 +257,7 @@ export function LocationDetailClient({
           {(location.fiNumber || monitoringUrl || selfMaintenance) && (
             <div className="flex flex-wrap items-center gap-2 mt-1">
               {location.fiNumber && (
-                <span className="inline-flex items-center font-mono text-[11px] leading-none text-white bg-white/20 border border-white/25 px-2 py-1 rounded-[5px]">
+                <span className="inline-flex items-center font-mono text-[11px] leading-none text-white bg-card/20 border border-white/25 px-2 py-1 rounded-[5px]">
                   {location.fiNumber}
                 </span>
               )}
@@ -266,7 +266,7 @@ export function LocationDetailClient({
                   href={monitoringUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-semibold text-[11px] leading-none text-white bg-white/20 border border-white/25 hover:bg-white/30 px-2 py-1 rounded-[5px]"
+                  className="inline-flex items-center gap-1 font-semibold text-[11px] leading-none text-white bg-card/20 border border-white/25 hover:bg-card/30 px-2 py-1 rounded-[5px]"
                 >
                   <Activity className="h-3 w-3" />
                   {t("monitoring")}
@@ -274,7 +274,7 @@ export function LocationDetailClient({
                 </a>
               )}
               {selfMaintenance && (
-                <span className="inline-flex items-center gap-1 font-semibold text-[11px] leading-none text-[#0f172a] bg-amber-400 border border-amber-300 px-2 py-1 rounded-[5px]">
+                <span className="inline-flex items-center gap-1 font-semibold text-[11px] leading-none text-foreground bg-amber-400 border border-amber-300 px-2 py-1 rounded-[5px]">
                   <Wrench className="h-3 w-3" />
                   {t("inMaintenance")}
                 </span>
@@ -300,8 +300,8 @@ export function LocationDetailClient({
                 disabled={maintPendingId === location.id}
                 className={`h-8 rounded-[7px] border gap-1.5 text-[13px] backdrop-blur-[4px] ${
                   selfMaintenance
-                    ? "border-amber-300 bg-amber-400 text-[#0f172a] hover:brightness-95"
-                    : "border-white/30 bg-white/15 text-white hover:bg-white/25"
+                    ? "border-amber-300 bg-amber-400 text-foreground hover:brightness-95"
+                    : "border-white/30 bg-card/15 text-white hover:bg-card/25"
                 }`}
               >
                 <Wrench className="h-3.5 w-3.5" />
@@ -322,7 +322,7 @@ export function LocationDetailClient({
             >
               <Button
                 size="sm"
-                className="h-8 rounded-[7px] border border-white/30 bg-white/15 text-white hover:bg-white/25 backdrop-blur-[4px] gap-1.5 text-[13px]"
+                className="h-8 rounded-[7px] border border-white/30 bg-card/15 text-white hover:bg-card/25 backdrop-blur-[4px] gap-1.5 text-[13px]"
                 variant="ghost"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -349,15 +349,15 @@ export function LocationDetailClient({
 
       {/* Stats bar */}
       <div className="flex items-center gap-6 flex-wrap">
-        <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
+        <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <Package className="h-4 w-4" />
           <span>{t("directAssets", { count: location._count.assets })}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
+        <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <FolderOpen className="h-4 w-4" />
           <span>{t("subLocations", { count: location._count.children })}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
+        <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <Paperclip className="h-4 w-4" />
           <span>{t("attachmentsCount", { count: attachments.length })}</span>
         </div>
@@ -367,7 +367,7 @@ export function LocationDetailClient({
               variant="outline"
               size="sm"
               onClick={() => setMoveOpen(true)}
-              className="h-8 text-[13px] rounded-[7px] border-[#e2e8f0] gap-1.5"
+              className="h-8 text-[13px] rounded-[7px] border-border gap-1.5"
             >
               <FolderInput className="h-3.5 w-3.5" />
               {t("moveLocationButton")}
@@ -421,15 +421,15 @@ export function LocationDetailClient({
       </div>
 
       {location.description && (
-        <p className="text-[13px] text-[#64748b]">{location.description}</p>
+        <p className="text-[13px] text-muted-foreground">{location.description}</p>
       )}
 
       {/* Tabs */}
       <Tabs defaultValue={defaultTab}>
-        <TabsList className="flex-wrap h-auto gap-0 border-b border-[#e2e8f0] bg-transparent rounded-none p-0">
+        <TabsList className="flex-wrap h-auto gap-0 border-b border-border bg-transparent rounded-none p-0">
           <TabsTrigger
             value="assets"
-            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             {t("tabAssets")}
             {assets.length > 0 && (
@@ -438,7 +438,7 @@ export function LocationDetailClient({
           </TabsTrigger>
           <TabsTrigger
             value="sublocations"
-            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             {t("tabSubLocations")}
             {location.children.length > 0 && (
@@ -447,14 +447,14 @@ export function LocationDetailClient({
           </TabsTrigger>
           <TabsTrigger
             value="map"
-            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             <MapPin className="h-3.5 w-3.5 mr-1" />
             {t("tabMap")}
           </TabsTrigger>
           <TabsTrigger
             value="attachments"
-            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             {t("tabAttachments")}
             {attachments.length > 0 && (
@@ -463,7 +463,7 @@ export function LocationDetailClient({
           </TabsTrigger>
           <TabsTrigger
             value="worklog"
-            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             <Wrench className="h-3.5 w-3.5 mr-1" />
             {t("tabWorkLog")}
@@ -474,7 +474,7 @@ export function LocationDetailClient({
           {canEdit && (
             <TabsTrigger
               value="cover"
-              className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+              className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
             >
               <ImageIcon className="h-3.5 w-3.5 mr-1" />
               {t("tabCoverImage")}
@@ -485,7 +485,7 @@ export function LocationDetailClient({
         {/* Assets tab */}
         <TabsContent value="assets" className="mt-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[18px] font-semibold text-[#0f172a]">
+            <h2 className="text-[18px] font-semibold text-foreground">
               {showLocation ? t("allAssetsIn", { name: location.name }) : t("assetsIn", { name: location.name })}
             </h2>
           </div>
@@ -495,7 +495,7 @@ export function LocationDetailClient({
         {/* Sub-locations tab */}
         <TabsContent value="sublocations" className="mt-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[18px] font-semibold text-[#0f172a]">{t("subLocationsHeading")}</h2>
+            <h2 className="text-[18px] font-semibold text-foreground">{t("subLocationsHeading")}</h2>
             {canEdit && (
               <LocationFormDialog mode="create" parentId={location.id}>
                 <Button size="sm" className="h-[34px] rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
@@ -506,7 +506,7 @@ export function LocationDetailClient({
             )}
           </div>
           {location.children.length === 0 ? (
-            <div className="text-center py-12 text-[#64748b] border border-[#e2e8f0] rounded-[10px] bg-white">
+            <div className="text-center py-12 text-muted-foreground border border-border rounded-[10px] bg-card">
               <FolderOpen className="h-10 w-10 mx-auto mb-3 opacity-40" />
               <p>{t("noSubLocations")}</p>
             </div>
@@ -517,12 +517,12 @@ export function LocationDetailClient({
                 return (
                   <div
                     key={child.id}
-                    className="bg-white border border-[#e2e8f0] rounded-[10px] p-[18px_20px] hover:border-[rgba(30,100,200,0.5)] transition-colors"
+                    className="bg-card border border-border rounded-[10px] p-[18px_20px] hover:border-[rgba(30,100,200,0.5)] transition-colors"
                   >
                     <Link href={`/locations/${child.id}`} className="block cursor-pointer">
                       <div className="flex items-center gap-1.5 mb-1">
                         <MapPin className="h-3.5 w-3.5 fill-[#1e64c8] stroke-[#1e64c8] flex-shrink-0" />
-                        <span className="text-[13.5px] font-semibold text-[#0f172a]">{child.name}</span>
+                        <span className="text-[13.5px] font-semibold text-foreground">{child.name}</span>
                         {child.inMaintenance && (
                           <span className="inline-flex items-center gap-1 font-semibold text-[10px] text-[#92400e] bg-amber-100 border border-amber-300 px-1.5 py-[1px] rounded-[4px]">
                             <Wrench className="h-2.5 w-2.5" />
@@ -531,15 +531,15 @@ export function LocationDetailClient({
                         )}
                       </div>
                       {child.fiNumber && (
-                        <p className="font-mono text-[11px] text-[#64748b] mb-2">{child.fiNumber}</p>
+                        <p className="font-mono text-[11px] text-muted-foreground mb-2">{child.fiNumber}</p>
                       )}
-                      <div className="flex gap-3 text-[12px] text-[#64748b]">
+                      <div className="flex gap-3 text-[12px] text-muted-foreground">
                         <span>{t("directAssets", { count: child._count.assets })}</span>
                         <span>{t("subLocations", { count: child._count.children })}</span>
                       </div>
                     </Link>
                     {canEdit && isRoom && (
-                      <div className="mt-2 pt-2 border-t border-[#f1f5f9]">
+                      <div className="mt-2 pt-2 border-t border-muted">
                         <button
                           type="button"
                           onClick={() => toggleMaintenance(child.id, !!child.inMaintenance)}
@@ -547,7 +547,7 @@ export function LocationDetailClient({
                           className={`inline-flex items-center gap-1 text-[12px] font-medium transition-colors ${
                             child.inMaintenance
                               ? "text-[#92400e] hover:text-[#78350f]"
-                              : "text-[#64748b] hover:text-[#1e64c8]"
+                              : "text-muted-foreground hover:text-[#1e64c8]"
                           }`}
                         >
                           <Wrench className="h-3 w-3" />
@@ -561,7 +561,7 @@ export function LocationDetailClient({
               {/* Add sub-location card */}
               {canEdit && (
                 <LocationFormDialog mode="create" parentId={location.id}>
-                  <div className="border-2 border-dashed border-[#e2e8f0] rounded-[10px] flex items-center justify-center gap-2 p-[18px_20px] cursor-pointer hover:border-[#94a3b8] transition-colors min-h-[80px]">
+                  <div className="border-2 border-dashed border-border rounded-[10px] flex items-center justify-center gap-2 p-[18px_20px] cursor-pointer hover:border-[#94a3b8] transition-colors min-h-[80px]">
                     <Plus className="h-4 w-4 text-[#94a3b8]" />
                     <span className="text-[13px] text-[#94a3b8]">{t("addSubLocationCard")}</span>
                   </div>
@@ -598,8 +598,8 @@ export function LocationDetailClient({
         {/* Work Log tab */}
         <TabsContent value="worklog" className="mt-4">
           <div className="mb-4">
-            <h2 className="text-[18px] font-semibold text-[#0f172a]">{t("workLogHeading")}</h2>
-            <p className="text-[13px] text-[#64748b] mt-1">
+            <h2 className="text-[18px] font-semibold text-foreground">{t("workLogHeading")}</h2>
+            <p className="text-[13px] text-muted-foreground mt-1">
               {t("workLogSubtitle")}
             </p>
           </div>
@@ -625,8 +625,8 @@ export function LocationDetailClient({
         {canEdit && (
           <TabsContent value="cover" className="mt-4">
             <div className="mb-4">
-              <h2 className="text-[18px] font-semibold text-[#0f172a]">{t("coverImageHeading")}</h2>
-              <p className="text-[13px] text-[#64748b] mt-1">
+              <h2 className="text-[18px] font-semibold text-foreground">{t("coverImageHeading")}</h2>
+              <p className="text-[13px] text-muted-foreground mt-1">
                 {t("coverImageHelp")}
               </p>
             </div>

@@ -200,7 +200,7 @@ function SearchBar() {
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" aria-hidden="true" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
         <label htmlFor="global-search" className="sr-only">{t("searchPlaceholder")}</label>
         <input
           ref={inputRef}
@@ -216,7 +216,7 @@ function SearchBar() {
           onKeyDown={handleKeyDown}
           onFocus={() => { if (quickResults.length > 0) setOpen(true); }}
           placeholder={t("searchPlaceholder")}
-          className="w-full h-[36px] pl-9 pr-8 text-[13px] bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_3px_#e8f0fc] transition-shadow"
+          className="w-full h-[36px] pl-9 pr-8 text-[13px] bg-background border border-border rounded-[8px] text-foreground placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_3px_#e8f0fc] transition-shadow"
         />
         {query && (
           <button
@@ -239,7 +239,7 @@ function SearchBar() {
           id="global-search-listbox"
           role="listbox"
           aria-label="Search results"
-          className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-[#e2e8f0] rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.08)] overflow-hidden list-none m-0 p-0"
+          className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-card border border-border rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.08)] overflow-hidden list-none m-0 p-0"
         >
           {quickResults.map((r, idx) => (
             <li
@@ -249,7 +249,7 @@ function SearchBar() {
               aria-selected={idx === activeIndex}
               className={cn(
                 "flex items-start gap-3 px-3 py-2.5 cursor-pointer transition-colors",
-                idx === activeIndex ? "bg-[#e8f0fc]" : "hover:bg-[#f8fafc]"
+                idx === activeIndex ? "bg-[#e8f0fc]" : "hover:bg-background"
               )}
               onMouseEnter={() => setActiveIndex(idx)}
               onMouseDown={(e) => { e.preventDefault(); handleSelect(r.href); }}
@@ -258,7 +258,7 @@ function SearchBar() {
                 aria-hidden="true"
                 className={cn(
                   "w-[34px] h-[34px] rounded-[8px] flex items-center justify-center flex-shrink-0",
-                  r.kind === "asset" ? "bg-[#e8f0fc]" : "bg-[#f1f5f9]"
+                  r.kind === "asset" ? "bg-[#e8f0fc]" : "bg-muted"
                 )}
               >
                 {r.kind === "asset" ? (
@@ -268,14 +268,14 @@ function SearchBar() {
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-[13.5px] font-semibold text-[#0f172a] truncate">{r.title}</p>
+                <p className="text-[13.5px] font-semibold text-foreground truncate">{r.title}</p>
                 {r.subtitle && (
-                  <p className="text-[12px] text-[#64748b] truncate">{r.subtitle}</p>
+                  <p className="text-[12px] text-muted-foreground truncate">{r.subtitle}</p>
                 )}
               </div>
             </li>
           ))}
-          <li role="presentation" className="border-t border-[#e2e8f0] px-3 py-2 bg-[#f8fafc]">
+          <li role="presentation" className="border-t border-border px-3 py-2 bg-background">
             <button
               type="button"
               className="text-xs text-[#1e64c8] hover:underline w-full text-left"
@@ -305,7 +305,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
   const isInAdmin = pathname.startsWith("/admin");
 
   return (
-    <header className="h-[56px] border-b border-[#e2e8f0] flex items-center gap-3 px-4 bg-white flex-shrink-0 z-30">
+    <header className="h-[56px] border-b border-border flex items-center gap-3 px-4 bg-card flex-shrink-0 z-30">
       {/* Logo — mobile only (sidebar is hidden on mobile) */}
       <Link href="/" className="flex items-center gap-1.5 mr-1 lg:hidden flex-shrink-0">
         {logoUrl ? (
@@ -314,7 +314,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
         ) : (
           <Monitor className="h-5 w-5 text-[#1e64c8] flex-shrink-0" strokeWidth={2} />
         )}
-        <span className="font-bold text-[16px] text-[#0f172a]">{appTitle}</span>
+        <span className="font-bold text-[16px] text-foreground">{appTitle}</span>
       </Link>
 
       {/* Search bar */}
@@ -347,7 +347,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
                 size="sm"
                 aria-label={t("administration")}
                 className={cn(
-                  "text-[13px] h-[34px] px-[14px] rounded-[6px] border-[#e2e8f0] gap-1.5",
+                  "text-[13px] h-[34px] px-[14px] rounded-[6px] border-border gap-1.5",
                   isInAdmin && "bg-[#e8f0fc] border-[#1e64c8] text-[#1e64c8]"
                 )}
               >
@@ -395,8 +395,8 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
           <DropdownMenuContent align="end" className="w-52 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
             <DropdownMenuLabel>
               <div className="text-[13px] font-medium">{user.name}</div>
-              <div className="text-[12px] text-[#64748b] font-normal">{user.email}</div>
-              <div className="text-[11px] text-[#64748b] font-normal mt-0.5">{user.role}</div>
+              <div className="text-[12px] text-muted-foreground font-normal">{user.email}</div>
+              <div className="text-[11px] text-muted-foreground font-normal mt-0.5">{user.role}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

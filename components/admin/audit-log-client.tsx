@@ -29,14 +29,14 @@ const ACTION_COLORS: Record<string, string> = {
   EXPORT: "bg-[#f3e8ff] text-[#7c3aed]",
   LOGIN_SUCCESS: "bg-[#dcfce7] text-[#15803d]",
   LOGIN_FAILED: "bg-[#fee2e2] text-[#b91c1c]",
-  LOGOUT: "bg-[#e2e8f0] text-[#475569]",
+  LOGOUT: "bg-border text-[#475569]",
 };
 
 type SortCol = "timestamp" | "user" | "action" | "entity";
 
 function ActionBadge({ action }: { action: string }) {
   return (
-    <span className={cn("inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-[5px]", ACTION_COLORS[action] ?? "bg-[#f1f5f9] text-[#64748b]")}>
+    <span className={cn("inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-[5px]", ACTION_COLORS[action] ?? "bg-muted text-muted-foreground")}>
       {action}
     </span>
   );
@@ -56,9 +56,9 @@ function DetailRenderer({ detail }: { detail: string }) {
         <tbody>
           {Object.entries(changes).map(([field, { from, to }]) => (
             <tr key={field}>
-              <td className="pr-4 text-[#64748b] font-medium whitespace-nowrap align-top">{field}</td>
+              <td className="pr-4 text-muted-foreground font-medium whitespace-nowrap align-top">{field}</td>
               <td className="pr-2 text-[#dc2626] line-through align-top break-all max-w-[220px]">{String(from ?? "—")}</td>
-              <td className="pr-2 text-[#64748b] align-top">→</td>
+              <td className="pr-2 text-muted-foreground align-top">→</td>
               <td className="text-[#16a34a] font-medium align-top break-all max-w-[220px]">{String(to ?? "—")}</td>
             </tr>
           ))}
@@ -73,7 +73,7 @@ function DetailRenderer({ detail }: { detail: string }) {
         <tbody>
           {Object.entries(snapshot).map(([field, value]) => (
             <tr key={field}>
-              <td className="pr-4 text-[#64748b] font-medium whitespace-nowrap">{field}</td>
+              <td className="pr-4 text-muted-foreground font-medium whitespace-nowrap">{field}</td>
               <td className="text-[#334155] break-all">{String(value ?? "—")}</td>
             </tr>
           ))}
@@ -160,26 +160,26 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
         </select>
       </div>
 
-      <p className="text-[12px] text-[#64748b]">{filtered.length} {tCommon("of")} {initialLogs.length}</p>
+      <p className="text-[12px] text-muted-foreground">{filtered.length} {tCommon("of")} {initialLogs.length}</p>
 
       {/* Table */}
-      <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
+      <div className="rounded-[10px] border border-border overflow-hidden bg-card">
         <table className="w-full text-[13px]">
           <caption className="sr-only">{t("title")}</caption>
           <thead>
-            <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
+            <tr className="border-b border-border bg-background">
               <SortableTh col="timestamp" label={t("timestamp")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <SortableTh col="user" label={t("user")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <SortableTh col="action" label={t("action")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <SortableTh col="entity" label={t("entity")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap hidden md:table-cell">{t("ip")}</th>
+              <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">{t("ip")}</th>
               <th scope="col" className="px-4 py-[10px]"><span className="sr-only">{t("details")}</span></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-10 text-[#64748b]">{t("noLogs")}</td>
+                <td colSpan={6} className="text-center py-10 text-muted-foreground">{t("noLogs")}</td>
               </tr>
             ) : (
               sorted.map((log) => (
@@ -189,7 +189,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
                     tabIndex={log.detail ? 0 : undefined}
                     aria-expanded={log.detail ? expandedId === log.id : undefined}
                     aria-label={log.detail ? `${t("showDetails")} ${log.action} ${log.entityType}` : undefined}
-                    className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] cursor-pointer focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
+                    className="border-b border-border last:border-0 hover:bg-background cursor-pointer focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
                     onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
                     onKeyDown={(e) => {
                       if (!log.detail) return;
@@ -199,22 +199,22 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
                       }
                     }}
                   >
-                    <td className="px-4 py-[10px] text-[12px] font-mono text-[#64748b] whitespace-nowrap">
+                    <td className="px-4 py-[10px] text-[12px] font-mono text-muted-foreground whitespace-nowrap">
                       {new Date(log.timestamp).toLocaleString("sv-SE")}
                     </td>
-                    <td className="px-4 py-[10px] text-[#64748b] max-w-[160px] truncate">
+                    <td className="px-4 py-[10px] text-muted-foreground max-w-[160px] truncate">
                       {log.userEmail ?? <span className="italic">system</span>}
                     </td>
                     <td className="px-4 py-[10px]">
                       <ActionBadge action={log.action} />
                     </td>
                     <td className="px-4 py-[10px]">
-                      <span className="text-[#64748b]">{log.entityType}</span>
+                      <span className="text-muted-foreground">{log.entityType}</span>
                       {log.entityName && (
-                        <span className="ml-1 text-[#0f172a] font-medium">· {log.entityName}</span>
+                        <span className="ml-1 text-foreground font-medium">· {log.entityName}</span>
                       )}
                     </td>
-                    <td className="px-4 py-[10px] text-[12px] font-mono text-[#64748b] hidden md:table-cell">
+                    <td className="px-4 py-[10px] text-[12px] font-mono text-muted-foreground hidden md:table-cell">
                       {log.ipAddress ?? "—"}
                     </td>
                     <td className="px-4 py-[10px] text-right">
@@ -228,7 +228,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
                     </td>
                   </tr>
                   {expandedId === log.id && log.detail && (
-                    <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
+                    <tr className="border-b border-border bg-background">
                       <td colSpan={6} className="px-6 py-3">
                         <DetailRenderer detail={log.detail} />
                       </td>

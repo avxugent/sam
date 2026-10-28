@@ -58,15 +58,15 @@ export function StockLocationPicker({
           className="pl-8 h-9 text-[13px]"
         />
       </div>
-      <label htmlFor={`${idPrefix}-show-all-locations`} className="flex items-center gap-1.5 text-[12px] text-[#64748b] cursor-pointer">
+      <label htmlFor={`${idPrefix}-show-all-locations`} className="flex items-center gap-1.5 text-[12px] text-muted-foreground cursor-pointer">
         <Checkbox id={`${idPrefix}-show-all-locations`} checked={showAll} onCheckedChange={(v) => setShowAll(v === true)} />
         {showAllLabel}
       </label>
-      <div className={cn("border border-[#e2e8f0] rounded-[8px] overflow-y-auto", listClassName)}>
+      <div className={cn("border border-border rounded-[8px] overflow-y-auto", listClassName)}>
         {!unassignedLabel && visible.length === 0 ? (
           <div className="flex items-center justify-center h-16 text-[12.5px] text-[#94a3b8]">{emptyText}</div>
         ) : (
-          <ul className="divide-y divide-[#f1f5f9]">
+          <ul className="divide-y divide-muted">
             {unassignedLabel && (
               <li>
                 <button
@@ -74,7 +74,7 @@ export function StockLocationPicker({
                   onClick={() => onSelect("")}
                   className={cn(
                     "w-full text-left px-3 py-2 text-[12.5px] transition-colors",
-                    !selectedId ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#64748b]"
+                    !selectedId ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-background text-muted-foreground"
                   )}
                 >
                   {unassignedLabel}

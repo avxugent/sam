@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 const TONES = {
   brand: { tile: "bg-[#e8f0fc]", icon: "text-[#1e64c8]" },
   info: { tile: "bg-[#eff6ff]", icon: "text-[#1e40af]" },
-  neutral: { tile: "bg-[#f1f5f9]", icon: "text-[#64748b]" },
+  neutral: { tile: "bg-muted", icon: "text-muted-foreground" },
 } as const;
 
 type PageHeaderProps = {
@@ -28,14 +28,14 @@ export function PageHeader({ icon: Icon, title, subtitle, back, tone = "brand" }
       <div className="min-w-0">
         {back && (
           <div className="flex items-center gap-2 mb-0.5">
-            <Link href={back.href} className="text-[12px] text-[#64748b] hover:text-[#1e64c8] flex items-center gap-0.5">
+            <Link href={back.href} className="text-[12px] text-muted-foreground hover:text-[#1e64c8] flex items-center gap-0.5">
               <ChevronLeft className="h-3 w-3" />
               {back.label}
             </Link>
           </div>
         )}
-        <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em] truncate">{title}</h1>
-        {subtitle && <p className="text-[13px] text-[#64748b] mt-0.5">{subtitle}</p>}
+        <h1 className="text-[22px] font-bold text-foreground tracking-[-0.01em] truncate">{title}</h1>
+        {subtitle && <p className="text-[13px] text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>
     </div>
   );

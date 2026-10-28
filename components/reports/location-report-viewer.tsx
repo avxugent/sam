@@ -42,7 +42,7 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
         onSearchChange={setSearch}
         summary={
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[13px] text-[#64748b]">{t("resultCount", { count: result.total })}</span>
+            <span className="text-[13px] text-muted-foreground">{t("resultCount", { count: result.total })}</span>
             <span className="inline-flex items-center gap-1 text-[11px] bg-[#dcfce7] text-[#166534] px-2 py-0.5 rounded-full">
               <Check className="h-3 w-3" />
               {t("filledCount", { count: result.filledCount })}
@@ -56,30 +56,30 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
       />
 
       {/* Table */}
-      <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
+      <div className="rounded-[10px] border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <caption className="sr-only">{reportName}: {result.total}</caption>
             <thead>
-              <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">
+              <tr className="border-b border-border bg-background">
+                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-muted-foreground whitespace-nowrap">
                   {tField("location")}
                 </th>
-                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">
+                <th scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-muted-foreground whitespace-nowrap">
                   {tField("fiNumber")}
                 </th>
                 {result.itemColumns.map((c) => (
-                  <th key={c.id} scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap">
+                  <th key={c.id} scope="col" className="text-left px-4 py-[10px] text-[12px] font-medium text-muted-foreground whitespace-nowrap">
                     {c.name}
                   </th>
                 ))}
-                <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{tCommon("view")}</th>
+                <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-muted-foreground">{tCommon("view")}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={result.itemColumns.length + 3} className="text-center py-10 text-[#64748b]">
+                  <td colSpan={result.itemColumns.length + 3} className="text-center py-10 text-muted-foreground">
                     {search ? t("noMatchingResults") : t("noResults")}
                   </td>
                 </tr>
@@ -92,7 +92,7 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
                   return (
                     <Fragment key={row.id}>
                       {showGroup && (
-                        <tr className="bg-[#f1f5f9]">
+                        <tr className="bg-muted">
                           <th
                             scope="colgroup"
                             colSpan={result.itemColumns.length + 3}
@@ -102,9 +102,9 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
                           </th>
                         </tr>
                       )}
-                      <tr className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors">
+                      <tr className="border-b border-border last:border-0 hover:bg-background transition-colors">
                         <td className="px-4 py-[10px] text-[#334155]">{row.name}</td>
-                        <td className="px-4 py-[10px] font-mono text-[11.5px] text-[#64748b]">
+                        <td className="px-4 py-[10px] font-mono text-[11.5px] text-muted-foreground">
                           {row.fiNumber ?? <span className="italic text-[#94a3b8] font-sans">—</span>}
                         </td>
                         {result.itemColumns.map((c) => {
@@ -134,7 +134,7 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
+                            className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card"
                             aria-label={`${tCommon("view")} ${row.name}`}
                             asChild
                           >

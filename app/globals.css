@@ -93,18 +93,17 @@
   --font-family-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", "Fira Mono", monospace;
 }
 
-/* ─── Dark-mode overrides for hardcoded hex colors used throughout components ─── */
-/* These cover sidebar, header, and all content pages without touching each file.  */
+/* ─── Dark-mode overrides for the remaining hardcoded hex colours ─── */
+/* Slate greys use the theme tokens (text-foreground, text-muted-foreground,
+   bg-card, bg-muted, bg-background, border-border), which switch with the
+   theme on their own. Only the brand blue and amber/red accents below still
+   need a manual dark value; prefer a token for anything new.               */
 
 /* Surfaces */
-.dark .bg-white                         { background-color: hsl(var(--card)); }
-.dark .bg-\[\#f8fafc\]                  { background-color: hsl(var(--background)); }
-.dark .bg-\[\#f1f5f9\]                  { background-color: hsl(var(--muted)); }
 /* Active-state blue: blue-900 bg + white text (14:1 contrast vs prior 2.9:1) */
 .dark .bg-\[\#e8f0fc\]                  { background-color: #1e3a8a; color: hsl(var(--foreground)); }
 
 /* Hover surfaces */
-.dark .hover\:bg-\[\#f8fafc\]:hover     { background-color: hsl(var(--muted)); }
 .dark .hover\:bg-\[\#e8f0fc\]:hover     { background-color: #1e3a8a; }
 /* Danger/warning button hovers: replace light bg with dark tinted bg.
    Outline variant injects hover:text-accent-foreground (near-white);
@@ -112,13 +111,10 @@
 .dark .hover\:bg-red-50:hover           { background-color: #450a0a; }
 .dark .hover\:bg-\[\#fef9c3\]:hover     { background-color: #422006; } /* amber-950 */
 
-/* Text — exclude yellow-bg elements (yellow button keeps dark text for readability) */
-.dark .text-\[\#0f172a\]:not(.bg-\[\#ffd200\])  { color: hsl(var(--foreground)); }
+/* Text (the yellow brand buttons keep text-[#0f172a] in both themes) */
 .dark .text-\[\#334155\]                         { color: hsl(var(--foreground)); }
-.dark .text-\[\#64748b\]                { color: hsl(var(--muted-foreground)); }
 
 /* Borders */
-.dark .border-\[\#e2e8f0\]              { border-color: hsl(var(--border)); }
 .dark .border-\[\#e8f0fc\]              { border-color: #1e3a8a; }
 .dark .border-\[\#fecaca\]              { border-color: #7f1d1d; }
 .dark .border-\[\#fde047\]              { border-color: #854d0e; } /* amber border */

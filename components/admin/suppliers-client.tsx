@@ -159,10 +159,10 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
       </div>
 
       {/* Table */}
-      <div className="border border-[#e2e8f0] rounded-[10px] overflow-x-auto bg-white">
+      <div className="border border-border rounded-[10px] overflow-x-auto bg-card">
         <table className="w-full min-w-[640px] text-[13px]">
           <thead>
-            <tr className="border-b border-[#e2e8f0] bg-[#f8fafc] text-left text-[12px] text-[#64748b]">
+            <tr className="border-b border-border bg-background text-left text-[12px] text-muted-foreground">
               <th scope="col" className="px-4 py-[10px] font-medium">{t("name")}</th>
               <th scope="col" className="px-4 py-[10px] font-medium">{t("contractReference")}</th>
               <th scope="col" className="px-4 py-[10px] font-medium">{t("defaultWindow")}</th>
@@ -173,27 +173,27 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
           <tbody>
             {suppliers.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-[#64748b]">{t("empty")}</td>
+                <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">{t("empty")}</td>
               </tr>
             )}
             {suppliers.map((supplier) => (
               <>
-                <tr key={supplier.id} className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc]">
-                  <td className="px-4 py-[10px] font-medium text-[#0f172a]">{supplier.name}</td>
-                  <td className="px-4 py-[10px] text-[#64748b]">{supplier.contractReference ?? "—"}</td>
-                  <td className="px-4 py-[10px] text-[#64748b] text-[12px]">
+                <tr key={supplier.id} className="border-b border-border last:border-0 hover:bg-background">
+                  <td className="px-4 py-[10px] font-medium text-foreground">{supplier.name}</td>
+                  <td className="px-4 py-[10px] text-muted-foreground">{supplier.contractReference ?? "—"}</td>
+                  <td className="px-4 py-[10px] text-muted-foreground text-[12px]">
                     {supplier.defaultFrom
                       ? `${formatDate(supplier.defaultFrom)} → ${supplier.defaultUntil ? formatDate(supplier.defaultUntil) : t("openEnded")}`
                       : "—"}
                   </td>
-                  <td className="px-4 py-[10px] text-right text-[#64748b]">{supplier._count.assets}</td>
+                  <td className="px-4 py-[10px] text-right text-muted-foreground">{supplier._count.assets}</td>
                   <td className="px-4 py-[10px]">
                     <div className="flex justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
                         aria-label={t("edit")}
-                        className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
+                        className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card"
                         onClick={() => toggleExpand(supplier)}
                       >
                         {expandedId === supplier.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -205,7 +205,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
                             size="icon"
                             aria-label={tCommon("delete")}
                             disabled={supplier._count.assets > 0}
-                            className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white text-[#dc2626] disabled:opacity-40"
+                            className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card text-[#dc2626] disabled:opacity-40"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -227,7 +227,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
                   </td>
                 </tr>
                 {expandedId === supplier.id && draft && (
-                  <tr key={`${supplier.id}-edit`} className="border-b border-[#e2e8f0] bg-[#f8fafc]">
+                  <tr key={`${supplier.id}-edit`} className="border-b border-border bg-background">
                     <td colSpan={5} className="px-4 py-4">
                       <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
                         <div className="space-y-1.5">
@@ -274,7 +274,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
                             onChange={(e) => setDraft({ ...draft, defaultUntil: e.target.value })}
                           />
                         </div>
-                        <p className="text-[12px] text-[#64748b] sm:col-span-2">{t("windowHelp")}</p>
+                        <p className="text-[12px] text-muted-foreground sm:col-span-2">{t("windowHelp")}</p>
                         <div className="sm:col-span-2 flex justify-end gap-2">
                           <Button variant="outline" onClick={() => { setExpandedId(null); setDraft(null); }}>
                             {tCommon("cancel")}

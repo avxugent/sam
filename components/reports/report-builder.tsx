@@ -301,8 +301,8 @@ export function ReportBuilder({
   return (
     <div className="space-y-8">
       {/* Name & description */}
-      <div className="space-y-4 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
-        <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("details")}</h2>
+      <div className="space-y-4 bg-card border border-border rounded-[10px] p-5">
+        <h2 className="text-[14px] font-semibold text-foreground">{t("details")}</h2>
         <div className="space-y-1.5">
           <Label htmlFor="report-name" className="text-[12.5px]">
             {t("reportName")} <span aria-hidden="true" className="text-destructive">*</span>
@@ -330,8 +330,8 @@ export function ReportBuilder({
       </div>
 
       {/* Report type */}
-      <div className="space-y-3 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
-        <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("reportType")}</h2>
+      <div className="space-y-3 bg-card border border-border rounded-[10px] p-5">
+        <h2 className="text-[14px] font-semibold text-foreground">{t("reportType")}</h2>
         <Select value={source} onValueChange={(v) => setSource(v as ReportSource)}>
           <SelectTrigger className="h-[36px] text-[13px] w-[220px]">
             <SelectValue />
@@ -349,9 +349,9 @@ export function ReportBuilder({
 
       {/* Location report config */}
       {source === "location" && (
-        <div className="space-y-4 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
+        <div className="space-y-4 bg-card border border-border rounded-[10px] p-5">
           <div className="space-y-2">
-            <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("locationScope")}</h2>
+            <h2 className="text-[14px] font-semibold text-foreground">{t("locationScope")}</h2>
             <p className="text-[12px] text-[#94a3b8]">{t("locationScopeHelp")}</p>
 
             {locationScopeIds.length > 0 && (
@@ -384,13 +384,13 @@ export function ReportBuilder({
                 className="pl-8 h-[34px] text-[12.5px]"
               />
             </div>
-            <div className="border border-[#e2e8f0] rounded-[8px] overflow-y-auto max-h-48">
+            <div className="border border-border rounded-[8px] overflow-y-auto max-h-48">
               {filteredScopeOptions.length === 0 ? (
                 <div className="flex items-center justify-center h-16 text-[12.5px] text-[#94a3b8]">
                   {tLocation("noLocationsFound")}
                 </div>
               ) : (
-                <ul className="divide-y divide-[#f1f5f9]">
+                <ul className="divide-y divide-muted">
                   {filteredScopeOptions.map((o) => {
                     const active = locationScopeIds.includes(o.id);
                     return (
@@ -399,7 +399,7 @@ export function ReportBuilder({
                           type="button"
                           onClick={() => toggleScopeLocation(o.id)}
                           className={`w-full text-left px-3 py-2 text-[12.5px] transition-colors ${
-                            active ? "bg-[#e8f0fc] text-[#1e64c8] font-medium" : "hover:bg-[#f8fafc] text-[#334155]"
+                            active ? "bg-[#e8f0fc] text-[#1e64c8] font-medium" : "hover:bg-background text-[#334155]"
                           }`}
                         >
                           {o.name}
@@ -412,7 +412,7 @@ export function ReportBuilder({
             </div>
           </div>
           <div className="space-y-2">
-            <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("workLogItems")}</h2>
+            <h2 className="text-[14px] font-semibold text-foreground">{t("workLogItems")}</h2>
             {workLogItems.length === 0 ? (
               <p className="text-[12.5px] text-[#94a3b8]">{t("noWorkLogItems")}</p>
             ) : (
@@ -427,7 +427,7 @@ export function ReportBuilder({
                       className={`px-3 py-1 rounded-full text-[12px] font-medium border transition-colors ${
                         active
                           ? "bg-[#1e64c8] text-white border-[#1e64c8]"
-                          : "bg-white text-[#64748b] border-[#e2e8f0] hover:border-[#1e64c8] hover:text-[#1e64c8]"
+                          : "bg-card text-muted-foreground border-border hover:border-[#1e64c8] hover:text-[#1e64c8]"
                       }`}
                     >
                       {it.name}
@@ -441,7 +441,7 @@ export function ReportBuilder({
             )}
           </div>
           <div className="space-y-2">
-            <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("statusFilter")}</h2>
+            <h2 className="text-[14px] font-semibold text-foreground">{t("statusFilter")}</h2>
             <Select value={locationStatus} onValueChange={(v) => setLocationStatus(v as LocationReportStatus)}>
               <SelectTrigger className="h-[36px] text-[13px] w-[220px]">
                 <SelectValue />
@@ -454,9 +454,9 @@ export function ReportBuilder({
             </Select>
           </div>
           <div className="space-y-2">
-            <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("timeWindow")}</h2>
+            <h2 className="text-[14px] font-semibold text-foreground">{t("timeWindow")}</h2>
             <div className="flex items-center gap-2">
-              <span className="text-[12.5px] text-[#64748b]">{t("withinLast")}</span>
+              <span className="text-[12.5px] text-muted-foreground">{t("withinLast")}</span>
               <Input
                 type="number"
                 min={1}
@@ -485,9 +485,9 @@ export function ReportBuilder({
       {/* Filters */}
       {source === "asset" && (
       <>
-      <div className="space-y-3 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
+      <div className="space-y-3 bg-card border border-border rounded-[10px] p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("filters")}</h2>
+          <h2 className="text-[14px] font-semibold text-foreground">{t("filters")}</h2>
           <Button variant="outline" size="sm" className="h-[30px] text-[12.5px] gap-1" onClick={addFilter}>
             <Plus className="h-3 w-3" />
             {t("addFilter")}
@@ -568,8 +568,8 @@ export function ReportBuilder({
       </div>
 
       {/* Group by */}
-      <div className="space-y-3 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
-        <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("groupBy")}</h2>
+      <div className="space-y-3 bg-card border border-border rounded-[10px] p-5">
+        <h2 className="text-[14px] font-semibold text-foreground">{t("groupBy")}</h2>
         <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupByField)}>
           <SelectTrigger className="h-[36px] text-[13px] w-[220px]">
             <SelectValue />
@@ -583,8 +583,8 @@ export function ReportBuilder({
       </div>
 
       {/* Columns */}
-      <div className="space-y-3 bg-white border border-[#e2e8f0] rounded-[10px] p-5">
-        <h2 className="text-[14px] font-semibold text-[#0f172a]">{t("columns")}</h2>
+      <div className="space-y-3 bg-card border border-border rounded-[10px] p-5">
+        <h2 className="text-[14px] font-semibold text-foreground">{t("columns")}</h2>
         <div className="flex flex-wrap gap-2">
           {columnOptions.map((c) => {
             const active = columns.includes(c.value);
@@ -595,7 +595,7 @@ export function ReportBuilder({
                 className={`px-3 py-1 rounded-full text-[12px] font-medium border transition-colors ${
                   active
                     ? "bg-[#1e64c8] text-white border-[#1e64c8]"
-                    : "bg-white text-[#64748b] border-[#e2e8f0] hover:border-[#1e64c8] hover:text-[#1e64c8]"
+                    : "bg-card text-muted-foreground border-border hover:border-[#1e64c8] hover:text-[#1e64c8]"
                 }`}
               >
                 {c.label}

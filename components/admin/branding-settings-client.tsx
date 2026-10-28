@@ -203,10 +203,10 @@ export function BrandingSettingsClient({
   return (
     <div className="space-y-6">
       {/* App title */}
-      <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
+      <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("brandingTitle")}</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">{t("brandingSubtitle")}</p>
+          <h2 className="text-[15px] font-semibold text-foreground">{t("brandingTitle")}</h2>
+          <p className="text-[13px] text-muted-foreground mt-1">{t("brandingSubtitle")}</p>
         </div>
 
         <div className="space-y-2">
@@ -225,24 +225,24 @@ export function BrandingSettingsClient({
               {savingTitle ? tCommon("saving") : tCommon("save")}
             </Button>
           </div>
-          <p className="text-[12px] text-[#64748b]">{t("appTitleHelp")}</p>
+          <p className="text-[12px] text-muted-foreground">{t("appTitleHelp")}</p>
         </div>
       </section>
 
       {/* Logo */}
-      <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
+      <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("logo")}</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">{t("logoHelp")}</p>
+          <h2 className="text-[15px] font-semibold text-foreground">{t("logo")}</h2>
+          <p className="text-[13px] text-muted-foreground mt-1">{t("logoHelp")}</p>
         </div>
 
         {hasLogo ? (
-          <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] inline-block">
+          <div className="p-3 bg-background border border-border rounded-[8px] inline-block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/api/branding/logo?v=${logoVersion}`} alt="Logo" className="h-8 w-8 object-contain" />
           </div>
         ) : (
-          <div className="p-4 bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
+          <div className="p-4 bg-background border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
             <ImageIcon className="h-6 w-6" />
             <span className="text-[13px]">{t("noLogoUploaded")}</span>
           </div>
@@ -264,19 +264,19 @@ export function BrandingSettingsClient({
       </section>
 
       {/* Favicon */}
-      <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
+      <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("favicon")}</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">{t("faviconHelp")}</p>
+          <h2 className="text-[15px] font-semibold text-foreground">{t("favicon")}</h2>
+          <p className="text-[13px] text-muted-foreground mt-1">{t("faviconHelp")}</p>
         </div>
 
         {hasFavicon ? (
-          <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] inline-block">
+          <div className="p-3 bg-background border border-border rounded-[8px] inline-block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/api/branding/favicon?v=${faviconVersion}`} alt="Favicon" className="h-8 w-8 object-contain" />
           </div>
         ) : (
-          <div className="p-4 bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
+          <div className="p-4 bg-background border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
             <ImageIcon className="h-6 w-6" />
             <span className="text-[13px]">{t("noFaviconUploaded")}</span>
           </div>
@@ -298,10 +298,10 @@ export function BrandingSettingsClient({
       </section>
 
       {/* Environment background */}
-      <section className="bg-white border border-[#e2e8f0] rounded-[10px] p-6 space-y-5">
+      <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0f172a]">{t("backgroundTitle")}</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">{t("backgroundSubtitle")}</p>
+          <h2 className="text-[15px] font-semibold text-foreground">{t("backgroundTitle")}</h2>
+          <p className="text-[13px] text-muted-foreground mt-1">{t("backgroundSubtitle")}</p>
         </div>
 
         {/* Mode picker */}
@@ -322,7 +322,7 @@ export function BrandingSettingsClient({
                 "px-3 py-1.5 rounded-[8px] text-[13px] border transition-colors",
                 backgroundMode === value || (value === "custom" && backgroundMode === "custom")
                   ? "border-[#1e64c8] bg-[#eff6ff] text-[#1e64c8] font-medium"
-                  : "border-[#e2e8f0] bg-white text-[#334155] hover:border-[#94a3b8]"
+                  : "border-border bg-card text-[#334155] hover:border-[#94a3b8]"
               )}
             >
               {label}
@@ -341,8 +341,8 @@ export function BrandingSettingsClient({
 
         {backgroundMode === "custom" && hasCustomBackground && (
           <div className="space-y-3">
-            <p className="text-[12px] text-[#64748b]">{t("backgroundImageHelp")}</p>
-            <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] inline-block">
+            <p className="text-[12px] text-muted-foreground">{t("backgroundImageHelp")}</p>
+            <div className="p-3 bg-background border border-border rounded-[8px] inline-block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`/api/branding/background?v=${backgroundVersion}`}
@@ -365,8 +365,8 @@ export function BrandingSettingsClient({
 
         {backgroundMode === "custom" && !hasCustomBackground && (
           <div className="space-y-3">
-            <p className="text-[12px] text-[#64748b]">{t("backgroundImageHelp")}</p>
-            <div className="p-4 bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
+            <p className="text-[12px] text-muted-foreground">{t("backgroundImageHelp")}</p>
+            <div className="p-4 bg-background border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
               <ImageIcon className="h-6 w-6" />
               <span className="text-[13px]">{t("noBackgroundUploaded")}</span>
             </div>

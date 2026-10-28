@@ -39,26 +39,26 @@ function StatCard({
   linkLabel?: string;
 }) {
   return (
-    <div className="rounded-[10px] border border-[#e2e8f0] bg-white p-5">
+    <div className="rounded-[10px] border border-border bg-card p-5">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[12px] font-medium text-[#64748b]">{title}</p>
+          <p className="text-[12px] font-medium text-muted-foreground">{title}</p>
           <p
             className={cn(
               "text-[28px] font-bold tracking-[-0.01em]",
-              typeof count === "number" ? countColor(count) : "text-[#64748b]"
+              typeof count === "number" ? countColor(count) : "text-muted-foreground"
             )}
           >
             {count}
           </p>
-          <p className="text-[12px] text-[#64748b] mt-0.5">{subtitle}</p>
+          <p className="text-[12px] text-muted-foreground mt-0.5">{subtitle}</p>
         </div>
         {expandable && (
           <button
             type="button"
             onClick={onToggle}
             aria-expanded={expanded}
-            className="p-1 rounded hover:bg-[#f1f5f9] text-[#64748b] flex-shrink-0"
+            className="p-1 rounded hover:bg-muted text-muted-foreground flex-shrink-0"
           >
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
@@ -76,7 +76,7 @@ function StatCard({
 function AssetSampleList({ sample, total }: { sample: AssetSample[]; total: number }) {
   const t = useTranslations("compliance");
   return (
-    <div className="rounded-[10px] border border-[#e2e8f0] bg-white p-4 text-[13px]">
+    <div className="rounded-[10px] border border-border bg-card p-4 text-[13px]">
       <ul className="space-y-1">
         {sample.map((a) => (
           <li key={a.id}>
@@ -87,13 +87,13 @@ function AssetSampleList({ sample, total }: { sample: AssetSample[]; total: numb
               {a.model ?? a.serialNumber ?? a.hostname ?? a.id}
             </Link>
             {a.hostname && a.model && (
-              <span className="text-[#64748b] ml-1.5 font-mono text-[11.5px]">{a.hostname}</span>
+              <span className="text-muted-foreground ml-1.5 font-mono text-[11.5px]">{a.hostname}</span>
             )}
           </li>
         ))}
       </ul>
       {total > sample.length && (
-        <p className="text-[12px] text-[#64748b] mt-2">
+        <p className="text-[12px] text-muted-foreground mt-2">
           {t("nis2SampleMore", { shown: sample.length, total })}
         </p>
       )}
@@ -104,7 +104,7 @@ function AssetSampleList({ sample, total }: { sample: AssetSample[]; total: numb
 function LocationSampleList({ sample, total }: { sample: LocationSample[]; total: number }) {
   const t = useTranslations("compliance");
   return (
-    <div className="rounded-[10px] border border-[#e2e8f0] bg-white p-4 text-[13px]">
+    <div className="rounded-[10px] border border-border bg-card p-4 text-[13px]">
       <ul className="space-y-1">
         {sample.map((l) => (
           <li key={l.id}>
@@ -115,7 +115,7 @@ function LocationSampleList({ sample, total }: { sample: LocationSample[]; total
         ))}
       </ul>
       {total > sample.length && (
-        <p className="text-[12px] text-[#64748b] mt-2">
+        <p className="text-[12px] text-muted-foreground mt-2">
           {t("nis2SampleMore", { shown: sample.length, total })}
         </p>
       )}
@@ -136,8 +136,8 @@ export function Nis2DashboardClient({ result }: { result: Nis2ComplianceResult }
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-[16px] font-bold text-[#0f172a]">{t("nis2Title")}</h2>
-        <p className="text-[12.5px] text-[#64748b]">{t("nis2Subtitle")}</p>
+        <h2 className="text-[16px] font-bold text-foreground">{t("nis2Title")}</h2>
+        <p className="text-[12.5px] text-muted-foreground">{t("nis2Subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

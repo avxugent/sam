@@ -183,9 +183,9 @@ export function StockItemTable({
       )}
 
       {/* Table */}
-      <div className="border border-[#e2e8f0] rounded-[10px] overflow-hidden">
+      <div className="border border-border rounded-[10px] overflow-hidden">
         <table className="w-full text-[13px]">
-          <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
+          <thead className="bg-background border-b border-border">
             <tr>
               {canEdit && (
                 <th className="px-3 py-2.5 w-[36px]">
@@ -201,13 +201,13 @@ export function StockItemTable({
               <SortableTh variant="compact" col="model" label={t("model")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
               <SortableTh variant="compact" col="serialNumber" label={t("serial")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
               <SortableTh variant="compact" col="quantity" label={t("qty")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">
+              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                 {t("location")}
               </th>
               {canEdit && <th className="px-3 py-2.5 w-[100px]" />}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#f1f5f9]">
+          <tbody className="divide-y divide-muted">
             {paginated.length === 0 ? (
               <tr>
                 <td colSpan={canEdit ? 8 : 6} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">
@@ -216,7 +216,7 @@ export function StockItemTable({
               </tr>
             ) : (
               paginated.map((item) => (
-                <tr key={item.id} className="hover:bg-[#f8fafc] transition-colors">
+                <tr key={item.id} className="hover:bg-background transition-colors">
                   {canEdit && (
                     <td className="px-3 py-2.5">
                       <Checkbox
@@ -231,17 +231,17 @@ export function StockItemTable({
                       {item.type.name}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 text-[#64748b]">{item.manufacturer?.name ?? "—"}</td>
-                  <td className="px-3 py-2.5 font-medium text-[#0f172a]">{item.model?.name ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{item.manufacturer?.name ?? "—"}</td>
+                  <td className="px-3 py-2.5 font-medium text-foreground">{item.model?.name ?? "—"}</td>
                   <td className="px-3 py-2.5">
                     {item.serialNumber
-                      ? <span className="font-mono text-[11.5px] text-[#64748b]">{item.serialNumber}</span>
+                      ? <span className="font-mono text-[11.5px] text-muted-foreground">{item.serialNumber}</span>
                       : <span className="text-[#cbd5e1]">—</span>}
                   </td>
-                  <td className="px-3 py-2.5 text-[#64748b]">
-                    {item.serialNumber ? "—" : <span className="font-medium text-[#0f172a]">×{item.quantity}</span>}
+                  <td className="px-3 py-2.5 text-muted-foreground">
+                    {item.serialNumber ? "—" : <span className="font-medium text-foreground">×{item.quantity}</span>}
                   </td>
-                  <td className="px-3 py-2.5 text-[#64748b] text-[12.5px]">
+                  <td className="px-3 py-2.5 text-muted-foreground text-[12.5px]">
                     {item.locationId
                       ? locationBreadcrumbs[item.locationId] ?? item.location?.name ?? "—"
                       : <span className="text-[#cbd5e1]">{t("unassigned")}</span>}
@@ -282,8 +282,8 @@ export function StockItemTable({
                           } satisfies StockItemInitialData}
                           onSuccess={() => router.refresh()}
                         >
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-[#f1f5f9]">
-                            <Pencil className="h-3.5 w-3.5 text-[#64748b]" />
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-muted">
+                            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                           </Button>
                         </StockItemFormDialog>
                         <AlertDialog>
@@ -322,7 +322,7 @@ export function StockItemTable({
 
       {/* Pagination */}
       {sorted.length > pageSize && (
-        <div className="flex items-center justify-between text-[12px] text-[#64748b]">
+        <div className="flex items-center justify-between text-[12px] text-muted-foreground">
           <div className="flex items-center gap-2">
             <span>{t("rowsPerPage")}</span>
             <Select

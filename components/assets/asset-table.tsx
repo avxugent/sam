@@ -179,7 +179,7 @@ export function AssetTable({
 
   if (assets.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground border border-[#e2e8f0] rounded-[10px] bg-white">
+      <div className="text-center py-12 text-muted-foreground border border-border rounded-[10px] bg-card">
         <Package className="h-10 w-10 mx-auto mb-3 opacity-40" />
         <p>{t("noAssetsInLocation")}</p>
       </div>
@@ -242,11 +242,11 @@ export function AssetTable({
         </div>
       )}
 
-      <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
+      <div className="rounded-[10px] border border-border overflow-hidden bg-card">
         <table className="w-full text-[13px]">
           <caption className="sr-only">{t("assetCount", { count: sorted.length })}</caption>
           <thead>
-            <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
+            <tr className="border-b border-border bg-background">
               {canEdit && (
                 <th scope="col" className="w-[36px] px-4 py-[10px]">
                   <Checkbox
@@ -263,7 +263,7 @@ export function AssetTable({
               <SortableTh col="hostname" label={tField("hostname")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               {showLocation && <SortableTh col="location" label={tField("location")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />}
               <SortableTh col="installationDate" label={tField("installed")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{tCommon("actions")}</th>
+              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-muted-foreground">{tCommon("actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -283,7 +283,7 @@ export function AssetTable({
                   role="link"
                   tabIndex={0}
                   aria-label={`Open asset ${asset.model?.name || asset.hostname || asset.serialNumber || "details"}`}
-                  className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors duration-75 cursor-pointer focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
+                  className="border-b border-border last:border-0 hover:bg-background transition-colors duration-75 cursor-pointer focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
                   onClick={() => router.push(assetHref)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") { e.preventDefault(); router.push(assetHref); }
@@ -304,22 +304,22 @@ export function AssetTable({
                         {asset.type.name}
                       </span>
                     ) : (
-                      <span className="text-[#64748b]">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-[11px] text-[#64748b]">
+                  <td className="px-4 py-[11px] text-muted-foreground">
                     {asset.manufacturer?.name || "—"}
                   </td>
-                  <td className="px-4 py-[11px] font-medium text-[#0f172a]">
-                    {asset.model?.name || <span className="text-[#64748b] font-normal italic">{t("noModel")}</span>}
+                  <td className="px-4 py-[11px] font-medium text-foreground">
+                    {asset.model?.name || <span className="text-muted-foreground font-normal italic">{t("noModel")}</span>}
                     {asset.quantity > 1 && (
-                      <span className="ml-1.5 text-[11px] font-normal text-[#64748b]">×{asset.quantity}</span>
+                      <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">×{asset.quantity}</span>
                     )}
                   </td>
-                  <td className="px-4 py-[11px] text-[#64748b] font-mono text-[11.5px]">
+                  <td className="px-4 py-[11px] text-muted-foreground font-mono text-[11.5px]">
                     {asset.serialNumber || "—"}
                   </td>
-                  <td className="px-4 py-[11px] text-[#64748b] font-mono text-[11.5px]">
+                  <td className="px-4 py-[11px] text-muted-foreground font-mono text-[11.5px]">
                     {asset.hostname && hostnameUrlTemplate ? (
                       <a
                         href={renderHostnameUrl(hostnameUrlTemplate, asset)}
@@ -336,7 +336,7 @@ export function AssetTable({
                     )}
                   </td>
                   {showLocation && (
-                    <td className="px-4 py-[11px] text-[#64748b]" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-[11px] text-muted-foreground" onClick={(e) => e.stopPropagation()}>
                       {asset.location ? (
                         <Link href={`/locations/${asset.location.id}`} className="hover:text-[#1e64c8]">
                           {asset.location.name}
@@ -344,7 +344,7 @@ export function AssetTable({
                       ) : "—"}
                     </td>
                   )}
-                  <td className="px-4 py-[11px] text-[#64748b] text-[12px]">
+                  <td className="px-4 py-[11px] text-muted-foreground text-[12px]">
                     {formatDate(asset.installationDate)}
                   </td>
                   <td className="px-4 py-[11px]" onClick={(e) => e.stopPropagation()}>
@@ -361,7 +361,7 @@ export function AssetTable({
                               variant="ghost"
                               size="icon"
                               aria-label={`Edit asset ${asset.model?.name || asset.hostname || asset.serialNumber || asset.id}`}
-                              className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
+                              className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card"
                             >
                               <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
                             </Button>
@@ -394,7 +394,7 @@ export function AssetTable({
         </table>
       </div>
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <p className="text-[12px] text-[#64748b]">
+        <p className="text-[12px] text-muted-foreground">
           {sorted.length === 0 ? (
             <>0 {tCommon("of")} {t("assetCount", { count: assets.length })}</>
           ) : (
@@ -408,7 +408,7 @@ export function AssetTable({
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-[12px] text-[#64748b]">{t("rowsPerPage")}</span>
+            <span className="text-[12px] text-muted-foreground">{t("rowsPerPage")}</span>
             <Select
               value={String(pageSize)}
               onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}

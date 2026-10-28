@@ -144,16 +144,16 @@ export function WorkLogList({
 
       {/* Empty state */}
       {entries.length === 0 ? (
-        <div className="text-center py-12 border border-[#e2e8f0] rounded-[10px] bg-white">
+        <div className="text-center py-12 border border-border rounded-[10px] bg-card">
           <Wrench className="h-10 w-10 mx-auto mb-3 text-[#94a3b8] opacity-60" />
-          <p className="text-[14px] text-[#64748b] mb-1">{t("noEntries")}</p>
+          <p className="text-[14px] text-muted-foreground mb-1">{t("noEntries")}</p>
           <p className="text-[12px] text-[#94a3b8]">
             {canCreate ? t("noEntriesHint") : t("noEntriesViewerHint")}
           </p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-10 border border-[#e2e8f0] rounded-[10px] bg-white">
-          <p className="text-[13px] text-[#64748b]">{t("noSearchResults")}</p>
+        <div className="text-center py-10 border border-border rounded-[10px] bg-card">
+          <p className="text-[13px] text-muted-foreground">{t("noSearchResults")}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -163,7 +163,7 @@ export function WorkLogList({
             return (
               <div
                 key={entry.id}
-                className="bg-white border border-[#e2e8f0] rounded-[10px] p-4 hover:border-[#cbd5e1] transition-colors"
+                className="bg-card border border-border rounded-[10px] p-4 hover:border-[#cbd5e1] transition-colors"
               >
                 <div className="flex items-start gap-3">
                   {/* Avatar — name appears as text below, so the avatar is decorative */}
@@ -177,11 +177,11 @@ export function WorkLogList({
                   <div className="flex-1 min-w-0">
                     {/* Top row: name, date, asset, JIRA */}
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-[13px] font-semibold text-[#0f172a]">
+                      <span className="text-[13px] font-semibold text-foreground">
                         {entry.performedBy.name}
                       </span>
-                      <span className="text-[12px] text-[#64748b]">•</span>
-                      <span className="text-[12px] text-[#64748b]">{formatDate(entry.performedAt)}</span>
+                      <span className="text-[12px] text-muted-foreground">•</span>
+                      <span className="text-[12px] text-muted-foreground">{formatDate(entry.performedAt)}</span>
 
                       {entry.item && (
                         <span className="inline-flex items-center text-[10px] font-semibold bg-[#fef3c7] text-[#92400e] px-1.5 py-0.5 rounded-[4px]">
@@ -191,7 +191,7 @@ export function WorkLogList({
 
                       {entry.asset && (
                         <>
-                          <span className="text-[12px] text-[#64748b]">•</span>
+                          <span className="text-[12px] text-muted-foreground">•</span>
                           <Link
                             href={`/locations/${locationId}/assets/${entry.asset.id}`}
                             className="inline-flex items-center gap-1 text-[12px] text-[#1e64c8] hover:underline"

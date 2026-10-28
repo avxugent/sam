@@ -89,7 +89,7 @@ function LocationTreeItem({
           "flex items-center gap-1 py-[5px] text-[12.5px] group relative cursor-pointer select-none",
           isActive
             ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
-            : "text-[#334155] hover:bg-[#f8fafc]"
+            : "text-[#334155] hover:bg-background"
         )}
         style={{ paddingLeft: `${12 + depth * 14}px`, paddingRight: "10px" }}
       >
@@ -123,7 +123,7 @@ function LocationTreeItem({
         </Link>
 
         {totalAssets > 0 && (
-          <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
+          <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0 rounded flex-shrink-0 leading-5">
             {totalAssets}
           </span>
         )}
@@ -159,13 +159,13 @@ function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
         "flex items-center gap-1.5 px-3 py-[5px] text-[12.5px] select-none",
         isActive
           ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
-          : "text-[#334155] hover:bg-[#f8fafc]"
+          : "text-[#334155] hover:bg-background"
       )}
     >
       <Layers className={cn("h-3 w-3 flex-shrink-0", isActive ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
       <span className="flex-1 truncate">{t("allLocations")}</span>
       {totalAssets > 0 && (
-        <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
+        <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0 rounded flex-shrink-0 leading-5">
           {totalAssets}
         </span>
       )}
@@ -201,7 +201,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
   }
 
   return (
-    <aside className="w-[248px] flex-shrink-0 border-r bg-white flex flex-col h-full overflow-hidden hidden lg:flex">
+    <aside className="w-[248px] flex-shrink-0 border-r bg-card flex flex-col h-full overflow-hidden hidden lg:flex">
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 h-[56px] border-b flex-shrink-0">
         {logoUrl ? (
@@ -210,7 +210,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
         ) : (
           <Monitor className="h-5 w-5 text-[#1e64c8] flex-shrink-0" strokeWidth={2} />
         )}
-        <span className="font-bold text-[16px] text-[#0f172a] tracking-tight">{appTitle}</span>
+        <span className="font-bold text-[16px] text-foreground tracking-tight">{appTitle}</span>
       </div>
 
       {/* Single scrollable area for both sections */}
@@ -253,7 +253,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
                   value={filterQuery}
                   onChange={(e) => setFilterQuery(e.target.value)}
                   placeholder={t("filterLocations")}
-                  className="w-full h-[28px] pl-7 pr-6 text-[12px] bg-[#f8fafc] border border-[#e2e8f0] rounded-[6px] text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_2px_#e8f0fc] transition-shadow"
+                  className="w-full h-[28px] pl-7 pr-6 text-[12px] bg-background border border-border rounded-[6px] text-foreground placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_2px_#e8f0fc] transition-shadow"
                 />
                 {filterQuery && (
                   <button
@@ -303,7 +303,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
         </div>
 
         {/* ── Stock section ── */}
-        <div className="border-t border-[#e2e8f0] py-2">
+        <div className="border-t border-border py-2">
           {/* Stock header row */}
           <div
             className={cn(
@@ -338,7 +338,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
               <Package className={cn("h-3 w-3 flex-shrink-0", isStockPath ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
               <span className="truncate">{t("stock")}</span>
               {stockItemCount > 0 && (
-                <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5 ml-auto">
+                <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0 rounded flex-shrink-0 leading-5 ml-auto">
                   {stockItemCount}
                 </span>
               )}

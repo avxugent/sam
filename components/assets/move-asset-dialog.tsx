@@ -86,9 +86,9 @@ export function MoveAssetDialog({
           <DialogTitle>{t("moveTitle", { name: assetName })}</DialogTitle>
         </DialogHeader>
 
-        <div className="text-[12.5px] text-[#64748b] flex items-center gap-1.5 mb-1">
+        <div className="text-[12.5px] text-muted-foreground flex items-center gap-1.5 mb-1">
           <MapPin className="h-3.5 w-3.5" />
-          {t("currentLocation")}: <span className="font-medium text-[#0f172a]">{currentLocationName}</span>
+          {t("currentLocation")}: <span className="font-medium text-foreground">{currentLocationName}</span>
         </div>
 
         <LocationSearchList

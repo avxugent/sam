@@ -106,12 +106,12 @@ export function DeployStockDialog({
           <DialogTitle>{t("title", { model: itemModel })}</DialogTitle>
         </DialogHeader>
 
-        <div className="text-[12.5px] text-[#64748b] space-y-0.5">
+        <div className="text-[12.5px] text-muted-foreground space-y-0.5">
           {isSerialized && (
-            <p>{tStock("serial")}: <span className="font-mono text-[#0f172a]">{itemSerial}</span></p>
+            <p>{tStock("serial")}: <span className="font-mono text-foreground">{itemSerial}</span></p>
           )}
           {!isSerialized && (
-            <p>{t("available")}: <span className="font-medium text-[#0f172a]">{availableQuantity}</span></p>
+            <p>{t("available")}: <span className="font-medium text-foreground">{availableQuantity}</span></p>
           )}
         </div>
 
@@ -134,7 +134,7 @@ export function DeployStockDialog({
         {/* Optional serial numbers for bulk deploy */}
         {showSerialInputs && (
           <div className="space-y-2">
-            <Label className="text-[12.5px] text-[#64748b]">{t("serialNumbersOptional")}</Label>
+            <Label className="text-[12.5px] text-muted-foreground">{t("serialNumbersOptional")}</Label>
             <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
               {serialInputs.map((s, i) => (
                 <Input

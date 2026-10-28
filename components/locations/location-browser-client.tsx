@@ -57,7 +57,7 @@ function LocationTreeItem({
           "flex items-center gap-2 py-[10px] text-[14px] rounded-[8px] transition-colors",
           isActive
             ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold"
-            : "text-[#334155] hover:bg-[#f8fafc] active:bg-[#f1f5f9]"
+            : "text-[#334155] hover:bg-background active:bg-muted"
         )}
         style={{ paddingLeft: `${12 + depth * 20}px`, paddingRight: "12px" }}
       >
@@ -107,7 +107,7 @@ function LocationTreeItem({
         </Link>
 
         {totalAssets > 0 && (
-          <span className="text-[12px] text-[#64748b] bg-[#f1f5f9] px-2 py-0.5 rounded-[5px] flex-shrink-0">
+          <span className="text-[12px] text-muted-foreground bg-muted px-2 py-0.5 rounded-[5px] flex-shrink-0">
             {totalAssets}
           </span>
         )}
@@ -165,9 +165,9 @@ export function LocationBrowserClient({
       </div>
 
       {/* Tree */}
-      <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border rounded-[10px] overflow-hidden">
         {locationTree.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-[#64748b]">
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <FolderOpen className="h-8 w-8 mb-2 opacity-40" />
             <p className="text-[14px]">{t("noLocationsYet")}</p>
           </div>

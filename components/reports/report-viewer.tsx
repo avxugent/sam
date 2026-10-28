@@ -80,7 +80,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
         onSearchChange={setSearch}
         summary={
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-[13px] text-[#64748b]">
+            <span className="text-[13px] text-muted-foreground">
               {t("resultCount", { count: result.total })}
             </span>
             {result.groups.length > 0 && (
@@ -88,7 +88,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                 {result.groups.slice(0, 8).map((g) => (
                   <span
                     key={g.label}
-                    className="inline-flex items-center gap-1 text-[11px] bg-[#f1f5f9] text-[#334155] px-2 py-0.5 rounded-full"
+                    className="inline-flex items-center gap-1 text-[11px] bg-muted text-[#334155] px-2 py-0.5 rounded-full"
                   >
                     <span className="font-medium">{g.label}</span>
                     <span className="text-[#94a3b8]">{g.count}</span>
@@ -104,12 +104,12 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
       />
 
       {/* Table */}
-      <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
+      <div className="rounded-[10px] border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <caption className="sr-only">{reportName}: {result.total}</caption>
             <thead>
-              <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
+              <tr className="border-b border-border bg-background">
                 {columns.map((col) => {
                   const active = sortCol === col;
                   const ariaSort: "ascending" | "descending" | "none" = active
@@ -120,7 +120,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                       key={col}
                       scope="col"
                       aria-sort={ariaSort}
-                      className="text-left px-4 py-[10px] text-[12px] font-medium text-[#64748b] whitespace-nowrap cursor-pointer select-none hover:bg-[#f1f5f9]"
+                      className="text-left px-4 py-[10px] text-[12px] font-medium text-muted-foreground whitespace-nowrap cursor-pointer select-none hover:bg-muted"
                       onClick={() => handleSort(col)}
                     >
                       <div className="flex items-center gap-1">
@@ -130,19 +130,19 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                     </th>
                   );
                 })}
-                <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{tCommon("view")}</th>
+                <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-muted-foreground">{tCommon("view")}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length + 1} className="text-center py-10 text-[#64748b]">
+                  <td colSpan={columns.length + 1} className="text-center py-10 text-muted-foreground">
                     {search ? t("noMatchingResults") : t("noResults")}
                   </td>
                 </tr>
               ) : (
                 sorted.map((row) => (
-                  <tr key={row.id} className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors">
+                  <tr key={row.id} className="border-b border-border last:border-0 hover:bg-background transition-colors">
                     {columns.map((col) => {
                       const val = row[col] as string | null;
                       if (col === "type" && val) {
@@ -156,13 +156,13 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                       }
                       if ((col === "serialNumber" || col === "hostname") && val) {
                         return (
-                          <td key={col} className="px-4 py-[10px] font-mono text-[11.5px] text-[#64748b]">
+                          <td key={col} className="px-4 py-[10px] font-mono text-[11.5px] text-muted-foreground">
                             {val}
                           </td>
                         );
                       }
                       return (
-                        <td key={col} className="px-4 py-[10px] text-[#64748b]">
+                        <td key={col} className="px-4 py-[10px] text-muted-foreground">
                           {val ?? <span className="italic text-[#94a3b8]">—</span>}
                         </td>
                       );
@@ -172,7 +172,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
+                          className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card"
                           aria-label={`${tCommon("view")} ${row.model || row.hostname || row.serialNumber || row.id}`}
                           asChild
                         >
@@ -191,7 +191,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
       </div>
 
       {sorted.length < result.total && search && (
-        <p className="text-[12px] text-[#64748b] text-center">
+        <p className="text-[12px] text-muted-foreground text-center">
           {t("showingOf", { n: sorted.length, total: result.total })}
         </p>
       )}

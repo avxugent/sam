@@ -102,30 +102,45 @@ export function AssetTypesClient({
     toast({ title: t("typeCreated") });
   }
 
-  async function handleEditName(id: string) {
-    if (!editName.trim()) return;
-    const newNameTrimmed = editName.trim();
+  /**
+   * PUTs `patch` and merges the saved values of those fields into the list.
+   * Errors are toasted unless `onError` handles them (returns true).
+   */
+  async function updateType(
+    id: string,
+    patch: Partial<AssetType>,
+    onError?: (res: Response, err: { error?: string; conflict?: string; existingId?: string }) => boolean
+  ): Promise<boolean> {
     const res = await fetch(`/api/asset-types/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newNameTrimmed }),
+      body: JSON.stringify(patch),
     });
     if (!res.ok) {
-      const err = await res.json();
-      if (res.status === 409 && err.conflict === "name" && err.existingId) {
-        const sourceName = types.find((x) => x.id === id)?.name ?? id;
-        setMergeConflict({ sourceId: id, sourceName, targetId: err.existingId, targetName: newNameTrimmed });
-        return;
+      const err = await res.json().catch(() => ({}));
+      if (!onError?.(res, err)) {
+        toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       }
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
-      return;
+      return false;
     }
-    const updated = await res.json();
+    const updated: AssetType = await res.json();
+    const saved = Object.fromEntries(Object.keys(patch).map((key) => [key, updated[key as keyof AssetType]]));
     setTypes((prev) =>
-      prev
-        .map((i) => (i.id === id ? { ...i, name: updated.name } : i))
-        .sort((a, b) => a.name.localeCompare(b.name))
+      prev.map((item) => (item.id === id ? { ...item, ...saved } : item)).sort((a, b) => a.name.localeCompare(b.name))
     );
+    return true;
+  }
+
+  async function handleEditName(id: string) {
+    if (!editName.trim()) return;
+    const newNameTrimmed = editName.trim();
+    const saved = await updateType(id, { name: newNameTrimmed }, (res, err) => {
+      if (res.status !== 409 || err.conflict !== "name" || !err.existingId) return false;
+      const sourceName = types.find((x) => x.id === id)?.name ?? id;
+      setMergeConflict({ sourceId: id, sourceName, targetId: err.existingId, targetName: newNameTrimmed });
+      return true;
+    });
+    if (!saved) return;
     setEditingId(null);
     toast({ title: t("typeUpdated") });
   }
@@ -162,27 +177,9 @@ export function AssetTypesClient({
       return;
     }
     setTemplateSaving(true);
-    const res = await fetch(`/api/asset-types/${templateDialog.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        scrapeTargetTemplate: templateValue.trim() || null,
-      }),
-    });
+    const saved = await updateType(templateDialog.id, { scrapeTargetTemplate: templateValue.trim() || null });
     setTemplateSaving(false);
-    if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
-      return;
-    }
-    const updated = await res.json();
-    setTypes((prev) =>
-      prev.map((item) =>
-        item.id === templateDialog.id
-          ? { ...item, scrapeTargetTemplate: updated.scrapeTargetTemplate }
-          : item
-      )
-    );
+    if (!saved) return;
     setTemplateDialog(null);
     toast({ title: t("scrapeTemplateSaved") });
   }
@@ -197,23 +194,9 @@ export function AssetTypesClient({
       }
     }
     setHostnamePatternSavingId(id);
-    const res = await fetch(`/api/asset-types/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hostnamePattern: value || null }),
-    });
+    const saved = await updateType(id, { hostnamePattern: value || null });
     setHostnamePatternSavingId(null);
-    if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
-      return;
-    }
-    const updated = await res.json();
-    setTypes((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, hostnamePattern: updated.hostnamePattern } : item
-      )
-    );
+    if (!saved) return;
     setHostnamePatternDrafts((prev) => {
       const next = { ...prev };
       delete next[id];
@@ -234,40 +217,12 @@ export function AssetTypesClient({
   }
 
   async function handleSaveDefaultCriticality(id: string, value: string) {
-    const res = await fetch(`/api/asset-types/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ defaultCriticality: value || null }),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
-      return;
-    }
-    setTypes((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, defaultCriticality: value || null } : item
-      )
-    );
+    if (!(await updateType(id, { defaultCriticality: value || null }))) return;
     toast({ title: t("defaultCriticalitySaved") });
   }
 
   async function handleTogglePrometheusExposed(id: string, current: boolean) {
-    const res = await fetch(`/api/asset-types/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prometheusExposed: !current }),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
-      return;
-    }
-    setTypes((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, prometheusExposed: !current } : item
-      )
-    );
+    await updateType(id, { prometheusExposed: !current });
   }
 
   return (

@@ -5,6 +5,7 @@ vi.mock("@/lib/prisma", () => ({
     asset: {
       findMany: vi.fn(),
       groupBy: vi.fn(),
+      count: vi.fn(),
     },
     assetType: { findMany: vi.fn() },
     manufacturer: { findMany: vi.fn() },
@@ -13,7 +14,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { translateFilters, runAssetReport } from "@/lib/reports/engine";
+import { translateFilters, runAssetReport, ASSET_REPORT_ROW_CAP } from "@/lib/reports/engine";
 import { prisma } from "@/lib/prisma";
 
 const mockFindMany = vi.mocked(prisma.asset.findMany);
@@ -372,6 +373,28 @@ describe("runReport()", () => {
     const result = await runAssetReport({ filters: [], groupBy: "installationYear", columns: ["model"] });
     expect(result.groups).toContainEqual({ label: "2020", count: 2 });
     expect(result.groups).toContainEqual({ label: "2022", count: 1 });
+  });
+
+  it("counts the total and year groups over every match when rows hit the cap", async () => {
+    const row = (i: number) => ({ id: `a${i}`, model: null, serialNumber: null, hostname: null, locationId: null, installationDate: new Date("2020-03-01"), invoiceDate: null, invoiceNumber: null, notes: null, type: null, manufacturer: null, location: null });
+    mockFindMany
+      .mockResolvedValueOnce(Array.from({ length: ASSET_REPORT_ROW_CAP }, (_, i) => row(i)) as never)
+      .mockResolvedValueOnce([
+        ...Array.from({ length: ASSET_REPORT_ROW_CAP }, () => ({ installationDate: new Date("2020-03-01") })),
+        { installationDate: new Date("2023-01-01") },
+        { installationDate: null },
+      ] as never);
+    vi.mocked(prisma.asset.count).mockResolvedValue(ASSET_REPORT_ROW_CAP + 2);
+    mockQueryRaw.mockResolvedValue([] as never);
+
+    const result = await runAssetReport({ filters: [], groupBy: "installationYear", columns: ["model"] });
+    expect(result.rows).toHaveLength(ASSET_REPORT_ROW_CAP);
+    expect(result.total).toBe(ASSET_REPORT_ROW_CAP + 2);
+    expect(result.groups).toEqual([
+      { label: "2020", count: ASSET_REPORT_ROW_CAP },
+      { label: "2023", count: 1 },
+      { label: "Unknown", count: 1 },
+    ]);
   });
 
   it("excludes decommissioned assets by default when no status filter is set", async () => {

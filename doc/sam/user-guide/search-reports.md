@@ -32,7 +32,7 @@ Click **Reports** in the left sidebar.
 
 ### Running an existing report
 
-Click a report name in the list to run it. Results appear in a table. Click **Export CSV** to download the results.
+Click a report name in the list to run it. Results appear in a table. An asset report shows at most 5,000 rows (newest first); the result count and the group counts always cover every matching asset, and a note below the table says when rows were left out. Click **Export CSV** to download the results.
 
 ### Report types
 

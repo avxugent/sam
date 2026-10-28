@@ -190,7 +190,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
         </div>
       </div>
 
-      {sorted.length < result.total && search && (
+      {sorted.length < result.total && (
         <p className="text-[12px] text-muted-foreground text-center">
           {t("showingOf", { n: sorted.length, total: result.total })}
         </p>

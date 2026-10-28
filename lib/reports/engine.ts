@@ -207,6 +207,9 @@ export async function runReport(definition: ReportDefinition): Promise<ReportRes
   return runAssetReport(definition);
 }
 
+/** Most rows an asset report returns; `total` still counts every match. */
+export const ASSET_REPORT_ROW_CAP = 5000;
+
 export async function runAssetReport(definition: AssetReportDefinition): Promise<AssetReportResult> {
   // Decommissioned assets are historical, not current inventory — excluded by
   // default. Unlike the INSTALLED-only overviews, reports keep IN_REPAIR
@@ -229,8 +232,11 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
       location: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
-    take: 5000,
+    take: ASSET_REPORT_ROW_CAP,
   });
+  // Rows are capped; the total and the groups always cover every match.
+  const truncated = assets.length === ASSET_REPORT_ROW_CAP;
+  const total = truncated ? await prisma.asset.count({ where }) : assets.length;
 
   const uniqueLocationIds = [
     ...new Set(assets.map((a) => a.locationId).filter((id): id is string => id !== null)),
@@ -280,7 +286,8 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
     }));
   } else if (definition.groupBy === "installationYear") {
     const yearMap = new Map<string, number>();
-    for (const a of assets) {
+    const dated = truncated ? await prisma.asset.findMany({ where, select: { installationDate: true } }) : assets;
+    for (const a of dated) {
       const year = a.installationDate ? String(a.installationDate.getFullYear()) : "Unknown";
       yearMap.set(year, (yearMap.get(year) ?? 0) + 1);
     }
@@ -291,7 +298,7 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
 
   groups.sort((a, b) => b.count - a.count);
 
-  return { source: "asset", rows, groups, total: rows.length };
+  return { source: "asset", rows, groups, total };
 }
 
 /**

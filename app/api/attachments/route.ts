@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import type { Session } from "next-auth";
 import { extname } from "path";
 import { randomUUID } from "crypto";
 import { z } from "zod";
@@ -105,54 +106,55 @@ const linkSchema = z.object({
   assetId: z.string().optional().nullable(),
 });
 
-export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  const contentType = req.headers.get("content-type") ?? "";
-
-  // ── Link attachment (JSON body) ──────────────────────────────────────────
-  if (contentType.includes("application/json")) {
-    const body = await readJsonBody(req);
-    const parsed = linkSchema.safeParse(body);
-    if (!parsed.success) return invalidInput(parsed.error);
-    const { url, label, description, locationId, assetId } = parsed.data;
-    if (!locationId && !assetId) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
-
-    const parentName = locationId
-      ? ((await prisma.location.findUnique({ where: { id: locationId }, select: { name: true } }))?.name ?? locationId)
-      : ((await prisma.asset.findUnique({ where: { id: assetId! }, select: { model: { select: { name: true } } } }))?.model?.name ?? assetId!);
-
-    const attachment = await prisma.attachment.create({
-      data: {
-        attachmentType: "link",
-        url,
-        originalName: label,
-        description: description ?? null,
-        locationId: locationId || null,
-        assetId: assetId || null,
-        uploadedById: session.user.id,
-      },
-      include: { uploadedBy: { select: { id: true, name: true } } },
-    });
-    await logAudit({
-      session,
-      req,
-      action: "CREATE",
-      entityType: "Attachment",
-      entityId: attachment.id,
-      entityName: attachment.originalName,
-      detail: {
-        snapshot: {
-          "Type": "link",
-          ...(locationId ? { "Location": parentName } : { "Asset": parentName }),
-        },
-      },
-    });
-    return NextResponse.json(attachment, { status: 201 });
+/** The audit snapshot entry naming what the attachment was added to. */
+async function parentSnapshot(locationId: string | null | undefined, assetId: string | null | undefined) {
+  if (locationId) {
+    const location = await prisma.location.findUnique({ where: { id: locationId }, select: { name: true } });
+    return { Location: location?.name ?? locationId };
   }
+  const asset = await prisma.asset.findUnique({ where: { id: assetId! }, select: { model: { select: { name: true } } } });
+  return { Asset: asset?.model?.name ?? assetId! };
+}
 
+/** JSON body: an external link attached to a location or asset. */
+async function createLinkAttachment(req: NextRequest, session: Session) {
+  const body = await readJsonBody(req);
+  const parsed = linkSchema.safeParse(body);
+  if (!parsed.success) return invalidInput(parsed.error);
+  const { url, label, description, locationId, assetId } = parsed.data;
+  if (!locationId && !assetId) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
+
+  const attachment = await prisma.attachment.create({
+    data: {
+      attachmentType: "link",
+      url,
+      originalName: label,
+      description: description ?? null,
+      locationId: locationId || null,
+      assetId: assetId || null,
+      uploadedById: session.user.id,
+    },
+    include: { uploadedBy: { select: { id: true, name: true } } },
+  });
+  await logAudit({
+    session,
+    req,
+    action: "CREATE",
+    entityType: "Attachment",
+    entityId: attachment.id,
+    entityName: attachment.originalName,
+    detail: {
+      snapshot: {
+        "Type": "link",
+        ...(await parentSnapshot(locationId, assetId)),
+      },
+    },
+  });
+  return NextResponse.json(attachment, { status: 201 });
+}
+
+/** Multipart body: an uploaded file, validated and written to storage. */
+async function createFileAttachment(req: NextRequest, session: Session) {
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const locationId = formData.get("locationId") as string | null;
@@ -212,10 +214,6 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const fileParentName = locationId
-    ? ((await prisma.location.findUnique({ where: { id: locationId }, select: { name: true } }))?.name ?? locationId)
-    : ((await prisma.asset.findUnique({ where: { id: assetId! }, select: { model: { select: { name: true } } } }))?.model?.name ?? assetId!);
-
   await logAudit({
     session,
     req,
@@ -227,10 +225,21 @@ export async function POST(req: NextRequest) {
       snapshot: {
         "Type": "file",
         "MIME type": file.type,
-        ...(locationId ? { "Location": fileParentName } : { "Asset": fileParentName }),
+        ...(await parentSnapshot(locationId, assetId)),
       },
     },
   });
 
   return NextResponse.json(attachment, { status: 201 });
+}
+
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const contentType = req.headers.get("content-type") ?? "";
+  return contentType.includes("application/json")
+    ? createLinkAttachment(req, session)
+    : createFileAttachment(req, session);
 }

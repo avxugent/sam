@@ -1,6 +1,7 @@
 /**
- * Loads .env and constructs DATABASE_URL from DB_* vars, mirroring prisma.config.ts.
- * Import this before PrismaClient in any CLI script.
+ * Loads .env into process.env (without overriding variables already set),
+ * mirroring prisma.config.ts. Import this before PrismaClient in any CLI
+ * script; _prisma.mjs builds its MariaDB adapter from the DB_* vars.
  */
 import { existsSync, readFileSync } from "fs";
 
@@ -12,14 +13,3 @@ if (existsSync(".env")) {
     }
   }
 }
-
-const host = process.env.DB_HOST ?? "localhost";
-const port = process.env.DB_PORT ?? "3306";
-const name = process.env.DB_NAME ?? "samdb";
-const user = process.env.DB_USER ?? "sam";
-const password = process.env.DB_PASSWORD ?? "";
-
-let url = `mysql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${name}`;
-if (process.env.DB_SSL === "true") url += "?sslaccept=strict";
-
-process.env.DATABASE_URL = url;

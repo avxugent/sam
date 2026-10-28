@@ -1,20 +1,18 @@
 // @vitest-environment node
-// rate-limit.ts calls setInterval(...).unref() at module load time.
-// The jsdom environment's setInterval returns a number with no .unref();
-// running in the Node environment gives a proper Timeout object.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 describe("checkRateLimit()", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    // Fresh store and sweep timer per test: the state lives on globalThis.
+    delete (globalThis as { __samRateLimit?: unknown }).__samRateLimit;
+    vi.resetModules();
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  // Import inside each test block so the module re-initialises with a fresh
-  // in-memory store between describe runs when using vi.resetModules().
   async function getCheckRateLimit() {
     const { checkRateLimit } = await import("@/lib/rate-limit");
     return checkRateLimit;
@@ -58,5 +56,20 @@ describe("checkRateLimit()", () => {
     const result = checkRateLimit("rl:retry", 1, 60_000);
     expect(result.retryAfterMs).toBeGreaterThan(0);
     expect(result.retryAfterMs).toBeLessThanOrEqual(60_000);
+  });
+
+  it("sweeps expired entries in the background", async () => {
+    const checkRateLimit = await getCheckRateLimit();
+    checkRateLimit("rl:sweep", 1, 1_000);
+    const state = (globalThis as { __samRateLimit?: { store: Map<string, unknown> } }).__samRateLimit!;
+    expect(state.store.has("rl:sweep")).toBe(true);
+    vi.advanceTimersByTime(5 * 60 * 1000 + 1);
+    expect(state.store.has("rl:sweep")).toBe(false);
+  });
+
+  it("keeps one store across module reloads (dev hot reload)", async () => {
+    (await getCheckRateLimit())("rl:reload", 1, 60_000);
+    vi.resetModules();
+    expect((await getCheckRateLimit())("rl:reload", 1, 60_000).allowed).toBe(false);
   });
 });

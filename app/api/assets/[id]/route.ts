@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import type { Prisma } from "@/generated/prisma/client";
-import { isHostnameCompliant } from "@/lib/hostname/pattern";
+import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/write";
 import { updateAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
 import { auditChanges, type FieldChange } from "@/lib/audit/diff";
@@ -73,12 +73,8 @@ export async function PUT(
 
   const { macAddresses, customFields, installationDate, invoiceDate, endOfSupportDate, ...assetData } = parsed.data;
 
-  if (assetData.supplierId) {
-    const supplier = await prisma.supplier.findUnique({ where: { id: assetData.supplierId }, select: { id: true } });
-    if (!supplier) {
-      return NextResponse.json({ error: "Unknown supplier." }, { status: 400 });
-    }
-  }
+  const supplierError = await unknownSupplierResponse(assetData.supplierId);
+  if (supplierError) return supplierError;
 
   const before = await prisma.asset.findUnique({
     where: { id },
@@ -107,16 +103,9 @@ export async function PUT(
   // Only re-validate hostname format when hostname and/or typeId are part of
   // this update — an unrelated field edit must never fail because a type's
   // pattern was tightened after the asset's hostname was originally set.
-  if ((assetData.hostname !== undefined || assetData.typeId !== undefined) && effective.hostname) {
-    const assetType = effective.typeId
-      ? await prisma.assetType.findUnique({ where: { id: effective.typeId }, select: { hostnamePattern: true } })
-      : null;
-    if (!isHostnameCompliant(effective.hostname, assetType?.hostnamePattern)) {
-      return NextResponse.json(
-        { error: "Hostname does not match the required format for this asset type." },
-        { status: 400 }
-      );
-    }
+  if (assetData.hostname !== undefined || assetData.typeId !== undefined) {
+    const hostnameError = await hostnameFormatResponse(effective.hostname, effective.typeId);
+    if (hostnameError) return hostnameError;
   }
 
   // Quantity > 1 only makes sense for bulk items with no individual identity.
@@ -141,18 +130,14 @@ export async function PUT(
       if (macAddresses !== undefined) {
         await tx.macAddress.deleteMany({ where: { assetId: id } });
         if (macAddresses.length > 0) {
-          await tx.macAddress.createMany({
-            data: macAddresses.filter(Boolean).map((address) => ({ assetId: id, address })),
-          });
+          await tx.macAddress.createMany({ data: macAddressRows(macAddresses).map((row) => ({ ...row, assetId: id })) });
         }
       }
 
       if (customFields !== undefined) {
         await tx.customField.deleteMany({ where: { assetId: id } });
         if (customFields.length > 0) {
-          await tx.customField.createMany({
-            data: customFields.filter((f) => f.key).map((f) => ({ assetId: id, key: f.key, value: f.value })),
-          });
+          await tx.customField.createMany({ data: customFieldRows(customFields).map((row) => ({ ...row, assetId: id })) });
         }
       }
 
@@ -177,12 +162,7 @@ export async function PUT(
       });
     });
   } catch (err: unknown) {
-    if (isUniqueConstraintError(err)) {
-      return NextResponse.json(
-        { error: "This hostname is already assigned to another asset." },
-        { status: 409 }
-      );
-    }
+    if (isUniqueConstraintError(err)) return hostnameTakenResponse();
     throw err;
   }
 
@@ -241,17 +221,16 @@ export async function DELETE(
       location: { select: { name: true } },
     },
   });
+  if (!asset) return NextResponse.json({ error: "Not found" }, { status: 404 });
   await prisma.asset.delete({ where: { id } });
 
   const snapshot: Record<string, string> = {};
-  if (asset) {
-    if (asset.model?.name) snapshot["Model"] = asset.model.name;
-    if (asset.serialNumber) snapshot["Serial number"] = asset.serialNumber;
-    if (asset.type?.name) snapshot["Type"] = asset.type.name;
-    if (asset.manufacturer?.name) snapshot["Manufacturer"] = asset.manufacturer.name;
-    if (asset.location?.name) snapshot["Location"] = asset.location.name;
-    if (asset.hostname) snapshot["Hostname"] = asset.hostname;
-  }
+  if (asset.model?.name) snapshot["Model"] = asset.model.name;
+  if (asset.serialNumber) snapshot["Serial number"] = asset.serialNumber;
+  if (asset.type?.name) snapshot["Type"] = asset.type.name;
+  if (asset.manufacturer?.name) snapshot["Manufacturer"] = asset.manufacturer.name;
+  if (asset.location?.name) snapshot["Location"] = asset.location.name;
+  if (asset.hostname) snapshot["Hostname"] = asset.hostname;
 
   await logAudit({
     session,
@@ -259,9 +238,9 @@ export async function DELETE(
     action: "DELETE",
     entityType: "Asset",
     entityId: id,
-    entityName: asset?.model?.name ?? asset?.serialNumber ?? undefined,
+    entityName: asset.model?.name ?? asset.serialNumber ?? undefined,
     detail: Object.keys(snapshot).length > 0 ? { snapshot } : undefined,
-    lineageId: asset?.lineageId,
+    lineageId: asset.lineageId,
   });
   return NextResponse.json({ ok: true });
 }

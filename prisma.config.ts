@@ -34,7 +34,6 @@ function buildDatabaseUrl(): string {
 }
 
 const databaseUrl = buildDatabaseUrl();
-process.env.DATABASE_URL = databaseUrl;
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

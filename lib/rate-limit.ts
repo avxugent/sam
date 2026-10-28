@@ -9,17 +9,28 @@
  */
 
 type Entry = { count: number; resetAt: number };
+type RateLimitState = { store: Map<string, Entry>; sweeping: boolean };
 
-const store = new Map<string, Entry>();
+// Kept on globalThis (like the Prisma client) so a dev hot reload reuses one
+// store and one sweep timer instead of resetting every limit and stacking
+// another interval.
+const globalForRateLimit = globalThis as typeof globalThis & { __samRateLimit?: RateLimitState };
+const state = (globalForRateLimit.__samRateLimit ??= { store: new Map(), sweeping: false });
 
-// Periodic cleanup — remove entries whose window has already passed
+// Periodic cleanup — remove entries whose window has already passed. Started
+// on first use rather than at import time.
 const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of store) {
-    if (entry.resetAt <= now) store.delete(key);
-  }
-}, SWEEP_INTERVAL_MS).unref(); // .unref() so the timer doesn't keep the process alive
+function ensureSweep() {
+  if (state.sweeping) return;
+  state.sweeping = true;
+  const timer = setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of state.store) {
+      if (entry.resetAt <= now) state.store.delete(key);
+    }
+  }, SWEEP_INTERVAL_MS);
+  timer.unref?.(); // don't keep the process alive (absent in browser-like environments)
+}
 
 /**
  * Check whether the given key is within its rate-limit window.
@@ -35,11 +46,12 @@ export function checkRateLimit(
   maxRequests: number,
   windowMs: number
 ): { allowed: boolean; retryAfterMs: number } {
+  ensureSweep();
   const now = Date.now();
-  const entry = store.get(key);
+  const entry = state.store.get(key);
 
   if (!entry || entry.resetAt <= now) {
-    store.set(key, { count: 1, resetAt: now + windowMs });
+    state.store.set(key, { count: 1, resetAt: now + windowMs });
     return { allowed: true, retryAfterMs: 0 };
   }
 

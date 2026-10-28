@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { isHostnameCompliant } from "@/lib/hostname/pattern";
 import { createAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
 import { resolveAssetCreationDefaults } from "@/lib/assets/defaults";
@@ -9,6 +8,7 @@ import { canEdit } from "@/lib/permissions";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 import { assetListStatusFilter } from "@/lib/assets/list-status";
+import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/write";
 
 export async function GET(
   req: NextRequest,
@@ -76,29 +76,14 @@ export async function POST(
 
   const { macAddresses, customFields, installationDate, invoiceDate, endOfSupportDate, ownerId, supplierId, ...assetData } = parsed.data;
 
-  if (supplierId) {
-    const supplier = await prisma.supplier.findUnique({ where: { id: supplierId }, select: { id: true } });
-    if (!supplier) {
-      return NextResponse.json({ error: "Unknown supplier." }, { status: 400 });
-    }
-  }
+  const supplierError = await unknownSupplierResponse(supplierId);
+  if (supplierError) return supplierError;
 
   const defaults = await resolveAssetCreationDefaults(prisma, { ownerId, supplierId });
 
   const hostnameTrimmed = assetData.hostname?.trim();
-  if (hostnameTrimmed) {
-    const assetType = await prisma.assetType.findUnique({
-      where: { id: assetData.typeId },
-      select: { hostnamePattern: true },
-    });
-    const isValidHostname = isHostnameCompliant(hostnameTrimmed, assetType?.hostnamePattern);
-    if (!isValidHostname) {
-      return NextResponse.json(
-        { error: "Hostname does not match the required format for this asset type." },
-        { status: 400 }
-      );
-    }
-  }
+  const hostnameError = await hostnameFormatResponse(hostnameTrimmed, assetData.typeId);
+  if (hostnameError) return hostnameError;
 
   let asset;
   try {
@@ -112,12 +97,8 @@ export async function POST(
         installationDate: installationDate ? new Date(installationDate) : null,
         invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
         endOfSupportDate: endOfSupportDate ? new Date(endOfSupportDate) : null,
-        macAddresses: macAddresses?.length
-          ? { create: macAddresses.filter(Boolean).map((address) => ({ address })) }
-          : undefined,
-        customFields: customFields?.length
-          ? { create: customFields.filter((f) => f.key).map((f) => ({ key: f.key, value: f.value })) }
-          : undefined,
+        macAddresses: macAddresses?.length ? { create: macAddressRows(macAddresses) } : undefined,
+        customFields: customFields?.length ? { create: customFieldRows(customFields) } : undefined,
       },
       include: {
         type: true,
@@ -128,12 +109,7 @@ export async function POST(
       },
     });
   } catch (err: unknown) {
-    if (isUniqueConstraintError(err)) {
-      return NextResponse.json(
-        { error: "This hostname is already assigned to another asset." },
-        { status: 409 }
-      );
-    }
+    if (isUniqueConstraintError(err)) return hostnameTakenResponse();
     throw err;
   }
 

@@ -35,18 +35,7 @@ export default defineConfig({
         "lib/auth.ts",
         // API routes not yet held to the threshold. Remove an entry once the
         // route has tests that keep the totals above 80%.
-        "app/api/attachments/**",
-        "app/api/import/**",
-        "app/api/locations/*/assets/**",
-        "app/api/locations/*/attachments/**",
-        "app/api/models/**",
-        "app/api/prometheus/**",
-        "app/api/search/**",
         "app/api/vault/**",
-        // Bracket dir names ([id], [...nextauth]) are read as glob char-classes,
-        // so use single-segment wildcards to match the dynamic route folders.
-        "app/api/assets/*/**",
-        "app/api/auth/*/route.ts",
         // UI-only components without meaningful logic (pass-through wrappers)
         "components/ui/toast.tsx",
         "components/ui/toaster.tsx",
@@ -55,7 +44,8 @@ export default defineConfig({
         "components/ui/separator.tsx",
         "components/ui/tabs.tsx",
         "components/ui/select.tsx",
-        // Complex pages with many external deps — integration tested
+        // Large stateful clients not yet covered by component tests (no UI
+        // integration suite exists); remove an entry once it has tests.
         "components/layout/**",
         "components/attachments/**",
         "components/auth/**",

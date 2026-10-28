@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { decommissionViolation } from "@/lib/assets/lifecycle-rules";
-import { DECOMMISSION_SELECT, decommissionAsset, decommissionFields } from "@/lib/assets/transitions";
+import { DECOMMISSION_SELECT, STATUS_CHANGED, decommissionAsset, decommissionFields } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
@@ -31,7 +31,10 @@ export async function POST(req: NextRequest) {
       failed.push({ id, reason: reason ?? "NOT_FOUND" });
       continue;
     }
-    await decommissionAsset(req, session, id, existing, input);
+    if (!(await decommissionAsset(req, session, id, existing, input))) {
+      failed.push({ id, reason: STATUS_CHANGED });
+      continue;
+    }
     succeeded.push(id);
   }
 

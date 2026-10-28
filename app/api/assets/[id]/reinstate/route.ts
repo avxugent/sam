@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
-import { buildReinstateUpdateData, reinstateViolation } from "@/lib/assets/lifecycle-rules";
-import { lifecycleViolationResponse } from "@/lib/assets/transitions";
+import { reinstateViolation } from "@/lib/assets/lifecycle-rules";
+import { REPAIR_SELECT, lifecycleViolationResponse, reinstateAsset, statusChangedResponse } from "@/lib/assets/transitions";
 
 export async function POST(
   req: NextRequest,
@@ -15,26 +14,13 @@ export async function POST(
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const existing = await prisma.asset.findUnique({
-    where: { id },
-    select: { model: { select: { name: true } }, status: true, lineageId: true },
-  });
+  const existing = await prisma.asset.findUnique({ where: { id }, select: REPAIR_SELECT });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const violation = lifecycleViolationResponse(reinstateViolation(existing));
   if (violation) return violation;
 
-  const asset = await prisma.asset.update({ where: { id }, data: buildReinstateUpdateData() });
-
-  await logAudit({
-    session,
-    req,
-    action: "UPDATE",
-    entityType: "Asset",
-    entityId: id,
-    entityName: existing.model?.name ?? undefined,
-    detail: { status: "INSTALLED" },
-    lineageId: existing.lineageId,
-  });
+  const asset = await reinstateAsset(req, session, id, existing);
+  if (!asset) return statusChangedResponse();
 
   return NextResponse.json(asset);
 }

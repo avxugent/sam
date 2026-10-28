@@ -37,6 +37,8 @@ Successful `DELETE` requests return `200` with `{ ok: true }`.
 | `GET` | `/api/assets/[id]/history` | VIEWER | Full audit trail for this asset's `lineageId`, across Asset ↔ StockItem conversions — see [Database → Asset history](database.md#asset-history) |
 | `GET` | `/api/assets/by-hostname` | Bearer token | Grafana Infinity datasource lookup. Matches active (INSTALLED) assets only — decommissioned assets are historical and excluded |
 
+The lifecycle routes (decommission, reinstate, return-to-stock, send-for-repair and the bulk variants) only write while the asset still has the status they checked. If a concurrent request changed it first, the single-asset routes return `409` with `code: "statusChanged"` and the bulk routes report the id as failed with reason `STATUS_CHANGED`.
+
 ### Asset body (create/update)
 
 Key validated fields:

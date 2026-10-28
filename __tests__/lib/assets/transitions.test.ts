@@ -14,8 +14,13 @@ import { logAudit } from "@/lib/audit";
 import {
   decommissionAsset,
   lifecycleViolationResponse,
+  reinstateAsset,
   returnAssetToStock,
+  sendAssetForRepair,
+  statusChangedResponse,
 } from "@/lib/assets/transitions";
+
+const notFound = () => Object.assign(new Error("Record to update not found."), { code: "P2025" });
 
 const session = { user: { id: "u1", email: "a@x.com", role: "EDITOR" } } as never;
 const req = new Request("http://x");
@@ -76,5 +81,46 @@ describe("returnAssetToStock()", () => {
       ["DELETE", "Asset"],
       ["CREATE", "StockItem"],
     ]);
+  });
+});
+
+describe("status-guarded writes", () => {
+  const existing = { model: { name: "XPS" }, status: "INSTALLED", lineageId: "lin", location: { name: "Room 1", fiNumber: null } };
+
+  it("only writes while the asset still has the checked status", async () => {
+    vi.mocked(prisma.asset.update).mockResolvedValue({ id: "a1" } as never);
+    await sendAssetForRepair(req, session, "a1", existing as never, "fan");
+    expect(vi.mocked(prisma.asset.update).mock.calls[0][0].where).toEqual({ id: "a1", status: "INSTALLED" });
+    expect(logAudit).toHaveBeenCalledWith(expect.objectContaining({ detail: { status: "IN_REPAIR", note: "fan" } }));
+  });
+
+  it.each([
+    ["decommission", () => decommissionAsset(req, session, "a1", existing as never, { disposalMethod: "WIPED" })],
+    ["repair", () => sendAssetForRepair(req, session, "a1", existing as never, null)],
+    ["reinstate", () => reinstateAsset(req, session, "a1", { ...existing, status: "DECOMMISSIONED" } as never)],
+  ])("%s returns null without auditing when a concurrent change won", async (_name, call) => {
+    vi.mocked(prisma.asset.update).mockRejectedValue(notFound());
+    expect(await call()).toBeNull();
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("return to stock rolls back when the asset changed meanwhile", async () => {
+    vi.mocked(prisma.stockItem.create).mockResolvedValue({ id: "s1", lineageId: "lin" } as never);
+    vi.mocked(prisma.asset.delete).mockRejectedValue(notFound());
+    const asset = { id: "a1", status: "INSTALLED", lineageId: "lin", typeId: "t1", manufacturerId: null, modelId: "m1", serialNumber: null, notes: null, macAddresses: [], customFields: [], location: { name: "R" }, model: { name: "X" } };
+    expect(await returnAssetToStock(req, session, asset as never, "l2")).toBeNull();
+    expect(vi.mocked(prisma.asset.delete).mock.calls[0][0].where).toEqual({ id: "a1", status: "INSTALLED" });
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("rethrows other database errors", async () => {
+    vi.mocked(prisma.asset.update).mockRejectedValue(new Error("db down"));
+    await expect(reinstateAsset(req, session, "a1", existing as never)).rejects.toThrow("db down");
+  });
+
+  it("statusChangedResponse() is a 409 with a stable code", async () => {
+    const res = statusChangedResponse();
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ code: "statusChanged" });
   });
 });

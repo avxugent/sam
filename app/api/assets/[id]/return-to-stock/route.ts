@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { returnToStockViolation } from "@/lib/assets/lifecycle-rules";
-import { RETURN_TO_STOCK_INCLUDE, lifecycleViolationResponse, returnAssetToStock } from "@/lib/assets/transitions";
+import { RETURN_TO_STOCK_INCLUDE, lifecycleViolationResponse, returnAssetToStock, statusChangedResponse } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
@@ -34,5 +34,5 @@ export async function POST(
   if (violation) return violation;
 
   const stockItem = await returnAssetToStock(req, session, asset, locationId);
-  return NextResponse.json({ stockItemId: stockItem.id });
+  return stockItem ? NextResponse.json({ stockItemId: stockItem.id }) : statusChangedResponse();
 }

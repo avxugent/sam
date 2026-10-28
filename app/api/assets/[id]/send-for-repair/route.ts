@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { logAudit } from "@/lib/audit";
-import { buildSendForRepairUpdateData, repairViolation } from "@/lib/assets/lifecycle-rules";
-import { lifecycleViolationResponse } from "@/lib/assets/transitions";
+import { repairViolation } from "@/lib/assets/lifecycle-rules";
+import { REPAIR_SELECT, lifecycleViolationResponse, sendAssetForRepair, statusChangedResponse } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
@@ -21,10 +20,7 @@ export async function POST(
   if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const existing = await prisma.asset.findUnique({
-    where: { id },
-    select: { model: { select: { name: true } }, status: true, lineageId: true },
-  });
+  const existing = await prisma.asset.findUnique({ where: { id }, select: REPAIR_SELECT });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const violation = lifecycleViolationResponse(repairViolation(existing));
   if (violation) return violation;
@@ -35,24 +31,8 @@ export async function POST(
     return invalidInput(parsed.error);
   }
 
-  const asset = await prisma.asset.update({
-    where: { id },
-    data: buildSendForRepairUpdateData({
-      note: parsed.data.note ?? null,
-      actorId: session.user.id,
-    }),
-  });
-
-  await logAudit({
-    session,
-    req,
-    action: "UPDATE",
-    entityType: "Asset",
-    entityId: id,
-    entityName: existing.model?.name ?? undefined,
-    detail: { status: "IN_REPAIR", note: parsed.data.note },
-    lineageId: existing.lineageId,
-  });
+  const asset = await sendAssetForRepair(req, session, id, existing, parsed.data.note ?? null);
+  if (!asset) return statusChangedResponse();
 
   return NextResponse.json(asset);
 }

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { returnToStockViolation } from "@/lib/assets/lifecycle-rules";
-import { RETURN_TO_STOCK_INCLUDE, returnAssetToStock } from "@/lib/assets/transitions";
+import { RETURN_TO_STOCK_INCLUDE, STATUS_CHANGED, returnAssetToStock } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
       failed.push({ id, reason: reason ?? "NOT_FOUND" });
       continue;
     }
-    await returnAssetToStock(req, session, asset, locationId);
+    if (!(await returnAssetToStock(req, session, asset, locationId))) {
+      failed.push({ id, reason: STATUS_CHANGED });
+      continue;
+    }
     succeeded.push(id);
   }
 

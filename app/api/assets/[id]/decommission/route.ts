@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { decommissionViolation } from "@/lib/assets/lifecycle-rules";
-import { DECOMMISSION_SELECT, decommissionAsset, decommissionFields, lifecycleViolationResponse } from "@/lib/assets/transitions";
+import { DECOMMISSION_SELECT, decommissionAsset, decommissionFields, lifecycleViolationResponse, statusChangedResponse } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
@@ -27,5 +27,6 @@ export async function POST(
   const parsed = schema.safeParse(await readJsonBody(req));
   if (!parsed.success) return invalidInput(parsed.error);
 
-  return NextResponse.json(await decommissionAsset(req, session, id, existing, parsed.data));
+  const asset = await decommissionAsset(req, session, id, existing, parsed.data);
+  return asset ? NextResponse.json(asset) : statusChangedResponse();
 }

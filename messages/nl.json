@@ -434,7 +434,8 @@
       "ALREADY_DECOMMISSIONED": "Al buiten dienst",
       "MISSING_TYPE": "Geen asset type",
       "MISSING_MODEL": "Geen model",
-      "NOT_FOUND": "Niet meer gevonden"
+      "NOT_FOUND": "Niet meer gevonden",
+      "STATUS_CHANGED": "Intussen door iemand anders gewijzigd"
     }
   },
   "repair": {

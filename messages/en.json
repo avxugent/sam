@@ -434,7 +434,8 @@
       "ALREADY_DECOMMISSIONED": "Already decommissioned",
       "MISSING_TYPE": "Missing asset type",
       "MISSING_MODEL": "Missing model",
-      "NOT_FOUND": "No longer found"
+      "NOT_FOUND": "No longer found",
+      "STATUS_CHANGED": "Changed by someone else meanwhile"
     }
   },
   "repair": {

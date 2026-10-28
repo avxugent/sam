@@ -7,7 +7,7 @@ import { serializeStockMetadata } from "@/lib/stock-metadata";
  * both enforce identical validation. lib/assets/transitions.ts performs the
  * writes and audit entries on top of these.
  */
-export type AssetLifecycleErrorCode =
+export type LifecycleViolationCode =
   | "ALREADY_DECOMMISSIONED"
   | "ALREADY_IN_REPAIR"
   | "NOT_DECOMMISSIONED"
@@ -15,9 +15,9 @@ export type AssetLifecycleErrorCode =
   | "MISSING_MODEL";
 
 /** Why a transition is not allowed: `code` for bulk results, `message` for a 400. */
-export type LifecycleViolation = { code: AssetLifecycleErrorCode; message: string };
+export type LifecycleViolation = { code: LifecycleViolationCode; message: string };
 
-const violation = (code: AssetLifecycleErrorCode, message: string): LifecycleViolation => ({ code, message });
+const violation = (code: LifecycleViolationCode, message: string): LifecycleViolation => ({ code, message });
 
 export function decommissionViolation(asset: { status: AssetStatus }): LifecycleViolation | null {
   if (asset.status === "DECOMMISSIONED") return violation("ALREADY_DECOMMISSIONED", "Asset is already decommissioned.");
@@ -87,7 +87,7 @@ export function buildStockItemFromReturn(
     lineageId: asset.lineageId,
     typeId: asset.typeId!,
     manufacturerId: asset.manufacturerId,
-    // assertReturnableToStock (called by every caller before this) already
+    // returnToStockViolation (checked by every caller before this) already
     // throws MISSING_MODEL when null — same guarantee as typeId above.
     modelId: asset.modelId!,
     serialNumber: asset.serialNumber,

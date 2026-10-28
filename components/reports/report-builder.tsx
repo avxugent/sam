@@ -18,6 +18,7 @@ import { Plus, Trash2, Save, Search, X } from "lucide-react";
 import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey, ReportDefinition, ReportSource, LocationReportStatus, LocationReportPeriodUnit } from "@/lib/reports/types";
 import { isLocationReport } from "@/lib/reports/types";
 import { apiErrorMessage } from "@/lib/utils";
+import { CRITICALITY_VALUES } from "@/lib/criticality";
 
 
 const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
@@ -111,30 +112,32 @@ export function ReportBuilder({
     notHasItem: t("opNotHasItem"),
   };
 
-  const groupByOptions = [
-    { value: "none" as GroupByField, label: t("noGrouping") },
-    { value: "type" as GroupByField, label: tField("type") },
-    { value: "manufacturer" as GroupByField, label: tField("manufacturer") },
-    { value: "location" as GroupByField, label: tField("location") },
-    { value: "installationYear" as GroupByField, label: t("installationYear") },
-  ];
+  const groupByLabels: Record<GroupByField, string> = {
+    none: t("noGrouping"),
+    type: tField("type"),
+    manufacturer: tField("manufacturer"),
+    location: tField("location"),
+    installationYear: t("installationYear"),
+  };
+  const groupByOptions = (Object.keys(groupByLabels) as GroupByField[]).map((value) => ({ value, label: groupByLabels[value] }));
 
-  const columnOptions = [
-    { value: "model" as ColumnKey, label: tField("model") },
-    { value: "serialNumber" as ColumnKey, label: tField("serialNumber") },
-    { value: "hostname" as ColumnKey, label: tField("hostname") },
-    { value: "type" as ColumnKey, label: tField("type") },
-    { value: "manufacturer" as ColumnKey, label: tField("manufacturer") },
-    { value: "location" as ColumnKey, label: tField("location") },
-    { value: "installationDate" as ColumnKey, label: tField("installationDate") },
-    { value: "invoiceDate" as ColumnKey, label: tField("invoiceDate") },
-    { value: "invoiceNumber" as ColumnKey, label: tField("invoiceNumber") },
-    { value: "notes" as ColumnKey, label: tField("notes") },
-    { value: "lastChanged" as ColumnKey, label: tField("lastModified") },
-    { value: "supplier" as ColumnKey, label: tField("supplier") },
-    { value: "criticality" as ColumnKey, label: tField("criticality") },
-    { value: "endOfSupportDate" as ColumnKey, label: tField("endOfSupport") },
-  ];
+  const columnLabels: Record<ColumnKey, string> = {
+    model: tField("model"),
+    serialNumber: tField("serialNumber"),
+    hostname: tField("hostname"),
+    type: tField("type"),
+    manufacturer: tField("manufacturer"),
+    location: tField("location"),
+    installationDate: tField("installationDate"),
+    invoiceDate: tField("invoiceDate"),
+    invoiceNumber: tField("invoiceNumber"),
+    notes: tField("notes"),
+    lastChanged: tField("lastModified"),
+    supplier: tField("supplier"),
+    criticality: tField("criticality"),
+    endOfSupportDate: tField("endOfSupport"),
+  };
+  const columnOptions = (Object.keys(columnLabels) as ColumnKey[]).map((value) => ({ value, label: columnLabels[value] }));
 
   const assetStatusOptions: AssetOption[] = [
     { id: "INSTALLED", name: tField("installed") },
@@ -142,12 +145,7 @@ export function ReportBuilder({
     { id: "DECOMMISSIONED", name: tField("decommissioned") },
   ];
 
-  const criticalityOptions: AssetOption[] = [
-    { id: "LOW", name: tCommon("criticality.LOW") },
-    { id: "MEDIUM", name: tCommon("criticality.MEDIUM") },
-    { id: "HIGH", name: tCommon("criticality.HIGH") },
-    { id: "CRITICAL", name: tCommon("criticality.CRITICAL") },
-  ];
+  const criticalityOptions: AssetOption[] = CRITICALITY_VALUES.map((id) => ({ id, name: tCommon(`criticality.${id}`) }));
 
   const initLocation = initialDefinition && isLocationReport(initialDefinition) ? initialDefinition : null;
   const initAsset = initialDefinition && !isLocationReport(initialDefinition) ? initialDefinition : null;

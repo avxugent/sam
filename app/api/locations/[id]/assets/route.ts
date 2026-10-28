@@ -9,6 +9,7 @@ import { getAllDescendantLocationIds } from "@/lib/locations/path";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 import { assetListStatusFilter } from "@/lib/assets/list-status";
 import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/input";
+import { ASSET_LIST_INCLUDE, ASSET_ROW_INCLUDE } from "@/lib/assets/include";
 
 export async function GET(
   req: NextRequest,
@@ -22,37 +23,10 @@ export async function GET(
   const recursive = searchParams.get("recursive") === "true";
   const statusFilter = assetListStatusFilter(searchParams.get("status"));
 
-  if (recursive) {
-    const ids = await getAllDescendantLocationIds(id);
-    ids.push(id);
-
-    const assets = await prisma.asset.findMany({
-      where: { locationId: { in: ids }, ...statusFilter },
-      include: {
-        type: true,
-        manufacturer: true,
-        model: true,
-        macAddresses: true,
-        customFields: true,
-        location: { select: { id: true, name: true } },
-        _count: { select: { attachments: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json(assets);
-  }
-
+  const locationIds = recursive ? [id, ...(await getAllDescendantLocationIds(id))] : [id];
   const assets = await prisma.asset.findMany({
-    where: { locationId: id, ...statusFilter },
-    include: {
-      type: true,
-      manufacturer: true,
-      model: true,
-      macAddresses: true,
-      customFields: true,
-      _count: { select: { attachments: true } },
-    },
+    where: { locationId: { in: locationIds }, ...statusFilter },
+    include: ASSET_LIST_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
 
@@ -100,13 +74,7 @@ export async function POST(
         macAddresses: macAddresses?.length ? { create: macAddressRows(macAddresses) } : undefined,
         customFields: customFields?.length ? { create: customFieldRows(customFields) } : undefined,
       },
-      include: {
-        type: true,
-        manufacturer: true,
-        model: true,
-        macAddresses: true,
-        customFields: true,
-      },
+      include: ASSET_ROW_INCLUDE,
     });
   } catch (err: unknown) {
     if (isUniqueConstraintError(err)) return hostnameTakenResponse();

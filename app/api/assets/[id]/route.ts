@@ -9,6 +9,7 @@ import { auditChanges, type FieldChange } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 import { toIsoDay } from "@/lib/utils";
+import { ASSET_ROW_INCLUDE } from "@/lib/assets/include";
 
 export async function GET(
   _req: NextRequest,
@@ -150,15 +151,7 @@ export async function PUT(
           invoiceDate: toDateUpdate(invoiceDate),
           endOfSupportDate: toDateUpdate(endOfSupportDate),
         },
-        include: {
-          type: true,
-          manufacturer: true,
-          model: true,
-          supplier: true,
-          macAddresses: true,
-          customFields: true,
-          location: { select: { id: true, name: true } },
-        },
+        include: { ...ASSET_ROW_INCLUDE, supplier: true },
       });
     });
   } catch (err: unknown) {

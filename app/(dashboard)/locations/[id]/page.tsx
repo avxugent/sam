@@ -6,6 +6,7 @@ import { LocationDetailClient } from "@/components/locations/location-detail-cli
 import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/locations/path";
 import { isJiraConfigured } from "@/lib/jira";
 import { toLocationTab } from "@/lib/user-preferences";
+import { ASSET_LIST_INCLUDE } from "@/lib/assets/include";
 
 
 async function getUrlTemplates(): Promise<{
@@ -66,14 +67,7 @@ export default async function LocationPage({
 
   const assets = await prisma.asset.findMany({
     where: { locationId: { in: locationIds }, status: "INSTALLED" },
-    include: {
-      type: true,
-      manufacturer: true,
-      model: true,
-      macAddresses: true,
-      location: { select: { id: true, name: true } },
-      _count: { select: { attachments: true } },
-    },
+    include: ASSET_LIST_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
 

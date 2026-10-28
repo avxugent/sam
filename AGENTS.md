@@ -93,7 +93,7 @@ lib/               — shared code; modules importing next/server are route-hand
   url-templates.ts — hostname / MAC / location link templates
   inventory-snapshot.ts — JSON inventory snapshot (export route + backup script)
   work-log-include.ts — relations returned with every work-log entry
-  assets/          — lifecycle rules (pure), state transitions (writes + audit), input checks + nested rows, creation defaults, type icons
+  assets/          — lifecycle rules (pure), state transitions (writes + audit), input checks + nested rows, shared response includes, creation defaults, type icons
   audit/           — logAudit (index), audit diffs, login-failure audit, syslog forwarding
   branding/        — logo/favicon/background upload + serve, background mode
   compliance/      — NIS2 and hostname compliance reports

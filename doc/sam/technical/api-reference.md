@@ -220,8 +220,8 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 |---|---|---|---|
 | `POST` | `/api/import` | ADMIN | Bulk CSV import (creates assets, validates per row) |
 | `GET` | `/api/export/csv` | ADMIN or Bearer `EXPORT_TOKEN` | Download active-asset CSV export (status `INSTALLED` only) |
-| `GET` | `/api/export/decommissioned` | ADMIN | Download decommissioned-asset CSV (adds decommission metadata columns) |
-| `GET` | `/api/export/stock` | ADMIN | Download current stock inventory CSV |
+| `GET` | `/api/export/decommissioned` | ADMIN or Bearer `EXPORT_TOKEN` | Download decommissioned-asset CSV (adds decommission metadata columns) |
+| `GET` | `/api/export/stock` | ADMIN or Bearer `EXPORT_TOKEN` | Download current stock inventory CSV |
 | `GET` | `/api/export/snapshot` | ADMIN session or Bearer `EXPORT_TOKEN` | Point-in-time JSON inventory snapshot (assets incl. owner/criticality/end-of-support/supplier/disposal, suppliers, locations) — NIS2 evidence artifact |
 | `POST` | `/api/settings/export` | ADMIN | Trigger backup script |
 

@@ -82,7 +82,7 @@ Click **Download decommissioned CSV**. Contains only assets that have been **dec
 
 Click **Download stock CSV**. Contains the current stock inventory (items not yet deployed to a location): type, brand, model, serial, quantity, the location it is reserved for (if any), MAC address, notes, and invoice details.
 
-> All three exports require Admin role. The active-assets export can also be fetched with a configured export API token; the decommissioned and stock exports require an admin session.
+> All three exports require Admin role, or can be fetched with a configured export API token.
 
 ### Inventory snapshot (JSON)
 

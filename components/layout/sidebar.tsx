@@ -53,14 +53,12 @@ function nodeMatchesFilter(node: LocationNode, query: string): boolean {
 function LocationTreeItem({
   location,
   depth = 0,
-  userRole,
   assetCountMap,
   filterQuery = "",
   showAll = false,
 }: {
   location: LocationNode;
   depth?: number;
-  userRole: Role;
   assetCountMap: Record<string, number>;
   filterQuery?: string;
   showAll?: boolean;
@@ -136,7 +134,6 @@ function LocationTreeItem({
               key={child.id}
               location={child}
               depth={depth + 1}
-              userRole={userRole}
               assetCountMap={assetCountMap}
               filterQuery={filterQuery}
               showAll={showAll || selfMatches}
@@ -291,7 +288,6 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
                     <LocationTreeItem
                       key={location.id}
                       location={location}
-                      userRole={userRole}
                       assetCountMap={assetCountMap}
                       filterQuery={filterQuery.toLowerCase().trim()}
                     />

@@ -5,14 +5,15 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { LOCATION_TABS, THEMES } from "@/lib/user-preferences";
 
 const schema = z.object({
   name: z.string().min(1).max(128).optional(),
   currentPassword: z.string().max(128).optional(),
   newPassword: z.string().min(8).max(128).optional(),
   confirmPassword: z.string().max(128).optional(),
-  locationDefaultTab: z.enum(["assets", "sublocations"]).optional(),
-  theme: z.enum(["light", "dark", "system"]).optional(),
+  locationDefaultTab: z.enum(LOCATION_TABS).optional(),
+  theme: z.enum(THEMES).optional(),
 }).superRefine(({ newPassword, confirmPassword }, ctx) => {
   if (newPassword && newPassword !== confirmPassword) {
     ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: "Passwords do not match." });

@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Sun, Moon, Monitor } from "lucide-react";
 import { cn, apiErrorMessage } from "@/lib/utils";
 import { useTheme, type Theme } from "@/components/theme-provider";
+import { LOCATION_TABS, toLocationTab, type LocationTab } from "@/lib/user-preferences";
 import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
 
 const nameSchema = z.object({
@@ -113,12 +114,10 @@ export function ProfileClient({
   }
 
   // ── Location preference ────────────────────────────────────────────────────
-  const [locTab, setLocTab] = useState<"assets" | "sublocations">(
-    locationDefaultTab === "sublocations" ? "sublocations" : "assets"
-  );
+  const [locTab, setLocTab] = useState<LocationTab>(toLocationTab(locationDefaultTab));
   const [locTabSaving, setLocTabSaving] = useState(false);
 
-  async function saveLocTab(value: "assets" | "sublocations") {
+  async function saveLocTab(value: LocationTab) {
     setLocTab(value);
     if (await patchMe({ locationDefaultTab: value }, setLocTabSaving)) {
       toast({ title: t("preferencesSaved") });
@@ -286,7 +285,7 @@ export function ProfileClient({
           <CardDescription>{t("locationNavSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {(["assets", "sublocations"] as const).map((value) => {
+          {LOCATION_TABS.map((value) => {
             const active = locTab === value;
             return (
               <button

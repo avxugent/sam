@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { useTheme, type Theme } from "@/components/theme-provider";
+import { useTheme, THEME_STORAGE_KEY } from "@/components/theme-provider";
+import { toTheme } from "@/lib/user-preferences";
 
 export function ThemeSync({ serverTheme }: { serverTheme: string }) {
   const { setTheme } = useTheme();
 
   useEffect(() => {
     // Only sync if the user has no local preference stored yet (new device/browser)
-    const stored = localStorage.getItem("sam-theme");
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (!stored) {
-      setTheme((serverTheme as Theme) ?? "light");
+      setTheme(toTheme(serverTheme));
     }
   // Run once on mount
   // eslint-disable-next-line react-hooks/exhaustive-deps

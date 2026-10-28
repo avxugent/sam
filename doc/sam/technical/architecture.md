@@ -163,9 +163,7 @@ UI primitives in `components/ui/` are hand-written shadcn-style components. Do *
 
 ### Database
 
-Prisma ORM with MySQL 8. Raw SQL is used only for:
-1. Recursive location-tree CTEs in `lib/location-path.ts` — ancestor paths, descendant IDs and per-location asset totals — plus the ordered subtree delete in `app/api/locations/[id]/route.ts`
-2. Asset totals for matched locations in `app/api/search/route.ts`
+Prisma ORM with MySQL 8. Raw SQL is used only for the recursive location-tree CTEs in `lib/location-path.ts`: ancestor paths, descendant IDs, the deepest-first subtree used by the location delete, and per-location asset totals (for the whole tree, or scoped to the locations a search matched). They are exercised against a real MySQL by `npm run test:integration`.
 
 All of it uses `prisma.$queryRaw` with tagged template literals. Never use string concatenation in SQL.
 

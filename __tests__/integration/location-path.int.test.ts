@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
  * Opt-in integration test for the recursive location-tree SQL in
- * lib/location-path.ts, which the unit tests only check against a mocked
- * $queryRaw. Runs against a real MySQL (e.g. docker-compose.dev.yml) when
+ * lib/location-path.ts (also used by the search and location-delete routes),
+ * which the unit tests only check against a mocked $queryRaw. Runs against a real MySQL (e.g. docker-compose.dev.yml) when
  * RUN_DB_TESTS=1 and DB_* point at it:
  *
  *   DB_HOST=localhost DB_NAME=samdb DB_USER=sam DB_PASSWORD=… npm run test:integration
@@ -61,6 +61,14 @@ describe.runIf(enabled)("location-path SQL (integration)", () => {
     expect(counts[ids.room]).toBe(3);
     expect(counts[ids.building]).toBe(3);
     expect(counts[ids.campus]).toBe(3);
+  });
+
+  it("getRecursiveAssetCounts scoped to root ids counts only those roots (search)", async () => {
+    expect(await lib.getRecursiveAssetCounts([ids.building, ids.room])).toEqual({ [ids.building]: 3, [ids.room]: 3 });
+  });
+
+  it("getSubtreeIdsDeepestFirst lists the subtree in delete order", async () => {
+    expect(await lib.getSubtreeIdsDeepestFirst(ids.campus)).toEqual([ids.room, ids.building, ids.campus]);
   });
 });
 

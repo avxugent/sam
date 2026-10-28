@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
-import { getAllDescendantLocationIds } from "@/lib/location-path";
+import { getAllDescendantLocationIds, getSubtreeIdsDeepestFirst } from "@/lib/location-path";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 import { updateLocationSchema } from "@/lib/schemas/location";
@@ -214,18 +214,8 @@ export async function DELETE(
     // Delete the whole subtree. The Location → parent relation is onDelete:
     // Restrict, so descendants must be removed deepest-first. Assets,
     // attachments and work logs cascade per location automatically.
-    const subtree = await prisma.$queryRaw<{ id: string; depth: number }[]>`
-      WITH RECURSIVE loc_tree AS (
-        SELECT id, 0 AS depth FROM locations WHERE id = ${id}
-        UNION ALL
-        SELECT l.id, lt.depth + 1 FROM locations l
-        INNER JOIN loc_tree lt ON l.parentId = lt.id
-      )
-      SELECT id, depth FROM loc_tree ORDER BY depth DESC
-    `;
-    await prisma.$transaction(
-      subtree.map((row) => prisma.location.delete({ where: { id: row.id } }))
-    );
+    const subtree = await getSubtreeIdsDeepestFirst(id);
+    await prisma.$transaction(subtree.map((locationId) => prisma.location.delete({ where: { id: locationId } })));
   } else {
     await prisma.location.delete({ where: { id } });
   }

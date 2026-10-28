@@ -1,3 +1,4 @@
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type LocationAncestor = {
@@ -189,12 +190,15 @@ export async function getAllDescendantLocationIds(locationId: string): Promise<s
 
 /**
  * Installed-asset quantity per location, summed over the location and all of
- * its descendants, keyed by location id. One recursive CTE for the whole tree.
+ * its descendants. Without `rootIds` every location is a root; with them only
+ * those locations are counted (search results). One recursive CTE either way.
  */
-export async function getRecursiveAssetCounts(): Promise<Record<string, number>> {
+export async function getRecursiveAssetCounts(rootIds?: string[]): Promise<Record<string, number>> {
+  if (rootIds?.length === 0) return {};
+  const roots = rootIds ? Prisma.sql`WHERE id IN (${Prisma.join(rootIds)})` : Prisma.empty;
   const rows = await prisma.$queryRaw<{ id: string; totalAssets: bigint }[]>`
     WITH RECURSIVE loc_tree AS (
-      SELECT id AS root_id, id AS loc_id FROM locations
+      SELECT id AS root_id, id AS loc_id FROM locations ${roots}
       UNION ALL
       SELECT lt.root_id, l.id AS loc_id
       FROM loc_tree lt
@@ -208,4 +212,21 @@ export async function getRecursiveAssetCounts(): Promise<Record<string, number>>
   const map: Record<string, number> = {};
   for (const row of rows) map[row.id] = Number(row.totalAssets);
   return map;
+}
+
+/**
+ * The location and all of its descendants, deepest first: the order they must
+ * be deleted in, since Location -> parent is onDelete: Restrict.
+ */
+export async function getSubtreeIdsDeepestFirst(locationId: string): Promise<string[]> {
+  const rows = await prisma.$queryRaw<{ id: string; depth: number }[]>`
+    WITH RECURSIVE loc_tree AS (
+      SELECT id, 0 AS depth FROM locations WHERE id = ${locationId}
+      UNION ALL
+      SELECT l.id, lt.depth + 1 FROM locations l
+      INNER JOIN loc_tree lt ON l.parentId = lt.id
+    )
+    SELECT id, depth FROM loc_tree ORDER BY depth DESC
+  `;
+  return rows.map((r) => r.id);
 }

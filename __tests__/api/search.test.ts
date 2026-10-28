@@ -1,12 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/generated/prisma/client", () => ({
-  Prisma: {
-    join: vi.fn((arr: unknown[]) => arr.join(",")),
-  },
-}));
-
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     asset: {
@@ -17,9 +11,10 @@ vi.mock("@/lib/prisma", () => ({
       count: vi.fn(),
       findMany: vi.fn(),
     },
-    $queryRaw: vi.fn(),
   },
 }));
+
+vi.mock("@/lib/location-path", () => ({ getRecursiveAssetCounts: vi.fn() }));
 
 vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
@@ -27,6 +22,7 @@ vi.mock("@/lib/auth", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getRecursiveAssetCounts } from "@/lib/location-path";
 import { GET } from "@/app/api/search/route";
 
 const mockAuth = vi.mocked(auth);
@@ -34,7 +30,7 @@ const mockAssetCount = vi.mocked(prisma.asset.count);
 const mockAssetFindMany = vi.mocked(prisma.asset.findMany);
 const mockLocationCount = vi.mocked(prisma.location.count);
 const mockLocationFindMany = vi.mocked(prisma.location.findMany);
-const mockQueryRaw = vi.mocked(prisma.$queryRaw);
+const mockCounts = vi.mocked(getRecursiveAssetCounts);
 
 function session() {
   return { user: { id: "u1", role: "VIEWER", name: "User", email: "user@test.com" } };
@@ -83,7 +79,7 @@ function fakeLocation(overrides: Partial<{ id: string; name: string; fiNumber: s
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockQueryRaw.mockResolvedValue([]);
+  mockCounts.mockResolvedValue({});
 });
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -125,7 +121,7 @@ describe("GET /api/search — happy path", () => {
     mockLocationCount.mockResolvedValue(3 as never);
     mockAssetFindMany.mockResolvedValue([fakeAsset()] as never);
     mockLocationFindMany.mockResolvedValue([fakeLocation()] as never);
-    mockQueryRaw.mockResolvedValue([{ rootId: "loc-1", assetCount: BigInt(5) }] as never);
+    mockCounts.mockResolvedValue({ "loc-1": 5 });
 
     const res = await GET(makeReq("thinkpad"));
     expect(res.status).toBe(200);
@@ -249,33 +245,43 @@ describe("GET /api/search — asset scoring", () => {
   });
 });
 
-// ── CTE skipped when no locations ─────────────────────────────────────────────
+// ── Subtree asset counts ──────────────────────────────────────────────────────
 
-describe("GET /api/search — location CTE", () => {
-  it("skips $queryRaw when location findMany returns empty", async () => {
-    mockAuth.mockResolvedValue(session() as never);
-    mockAssetCount.mockResolvedValue(1 as never);
-    mockLocationCount.mockResolvedValue(0 as never);
-    mockAssetFindMany.mockResolvedValue([fakeAsset()] as never);
-    mockLocationFindMany.mockResolvedValue([] as never);
-
-    await GET(makeReq("thinkpad"));
-
-    expect(mockQueryRaw).not.toHaveBeenCalled();
-  });
-
-  it("calls $queryRaw and populates assets count when locations returned", async () => {
+describe("GET /api/search — location asset counts", () => {
+  it("counts installed assets under each matched location", async () => {
     mockAuth.mockResolvedValue(session() as never);
     mockAssetCount.mockResolvedValue(0 as never);
     mockLocationCount.mockResolvedValue(1 as never);
     mockAssetFindMany.mockResolvedValue([] as never);
     mockLocationFindMany.mockResolvedValue([fakeLocation({ id: "loc-1" })] as never);
-    mockQueryRaw.mockResolvedValue([{ rootId: "loc-1", assetCount: BigInt(12) }] as never);
+    mockCounts.mockResolvedValue({ "loc-1": 12 });
 
     const res = await GET(makeReq("building"));
     const body = await res.json();
 
-    expect(mockQueryRaw).toHaveBeenCalledTimes(1);
+    expect(mockCounts).toHaveBeenCalledWith(["loc-1"]);
     expect(body.locations[0]._count.assets).toBe(12);
+  });
+});
+
+// ── Field table ───────────────────────────────────────────────────────────────
+
+describe("GET /api/search — matched fields", () => {
+  it("searches every field, including the location address, and snippets the first three hits", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockAssetCount.mockResolvedValue(1 as never);
+    mockLocationCount.mockResolvedValue(0 as never);
+    mockLocationFindMany.mockResolvedValue([] as never);
+    mockAssetFindMany.mockResolvedValue([
+      { ...fakeAsset({ model: { name: "AB-1" }, serialNumber: "AB-SN", hostname: "ab-host", notes: "the ab note" }) },
+    ] as never);
+
+    const body = await (await GET(makeReq("ab"))).json();
+
+    const or = mockAssetFindMany.mock.calls[0][0]?.where?.OR as object[];
+    expect(or).toContainEqual({ location: { address: { contains: "ab" } } });
+    expect(or).toHaveLength(14);
+    expect(body.assets[0].snippet).toBe("Model: AB-1 · S/N: AB-SN · Host: ab-host");
+    expect(body.assets[0]._score).toBe(31);
   });
 });

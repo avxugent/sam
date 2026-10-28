@@ -12,6 +12,7 @@ import {
   findFiNumber,
   getAllDescendantLocationIds,
   getRecursiveAssetCounts,
+  getSubtreeIdsDeepestFirst,
   ancestorChain,
   locationBreadcrumbs,
   resolveLocationPath,
@@ -242,6 +243,26 @@ describe("getRecursiveAssetCounts()", () => {
       { id: "leaf", totalAssets: BigInt(0) },
     ] as never);
     expect(await getRecursiveAssetCounts()).toEqual({ root: 7, leaf: 0 });
+  });
+
+  it("skips the query for an empty root list", async () => {
+    mockQueryRaw.mockClear();
+    expect(await getRecursiveAssetCounts([])).toEqual({});
+    expect(mockQueryRaw).not.toHaveBeenCalled();
+  });
+
+  it("scopes the roots when ids are given", async () => {
+    mockQueryRaw.mockClear();
+    mockQueryRaw.mockResolvedValueOnce([{ id: "root", totalAssets: BigInt(2) }] as never);
+    expect(await getRecursiveAssetCounts(["root"])).toEqual({ root: 2 });
+    expect(JSON.stringify(mockQueryRaw.mock.calls[0])).toContain("root");
+  });
+});
+
+describe("getSubtreeIdsDeepestFirst()", () => {
+  it("returns the ids in the order the query yields them (deepest first)", async () => {
+    mockQueryRaw.mockResolvedValueOnce([{ id: "room", depth: 2 }, { id: "bldg", depth: 1 }, { id: "campus", depth: 0 }] as never);
+    expect(await getSubtreeIdsDeepestFirst("campus")).toEqual(["room", "bldg", "campus"]);
   });
 });
 

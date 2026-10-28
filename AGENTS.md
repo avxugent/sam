@@ -290,11 +290,11 @@ The project requires **Node 24** (pinned via `.nvmrc`). If `npm test` fails with
 The project enforces an 80% minimum threshold on **lines, functions, branches, and statements** for all covered files. The CI pipeline fails if coverage drops below this. Run `npm run test:coverage` before pushing.
 
 Coverage is measured on:
-- `lib/**/*.ts` — all shared utilities (excluding `lib/prisma.ts` and `lib/auth.ts`)
+- `lib/**/*.ts` — all shared utilities (excluding `lib/prisma.ts`); `lib/auth.ts` is tested by capturing the config it hands to `NextAuth()` (`__tests__/lib/auth.test.ts`)
 - `app/api/**/*.ts` — route handlers that have corresponding test files
 - `components/**/*.tsx` — UI components that have corresponding test files
 
-Coverage measurement excludes infrastructure-only files (PrismaClient singleton, NextAuth config), pass-through re-exports, and complex UI-only components that are tested functionally rather than by line coverage.
+Coverage measurement excludes infrastructure-only files (the PrismaClient singleton), pass-through re-exports, and complex UI-only components that are tested functionally rather than by line coverage.
 
 ### Test file location
 

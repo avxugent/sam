@@ -1,6 +1,6 @@
 /**
- * Pure decision logic for forced 2FA enrollment, kept out of lib/auth.ts
- * (which is excluded from coverage) so it can be unit-tested.
+ * Pure decision logic for forced 2FA enrollment, used by the credentials
+ * authorize() step in lib/auth.ts.
  *
  * Applies to credentials users only — Entra ID logins never reach the
  * credentials authorize() flow and their MFA is enforced by Entra itself.

@@ -32,7 +32,6 @@ export default defineConfig({
       exclude: [
         // Infrastructure / config — tested indirectly
         "lib/prisma.ts",
-        "lib/auth.ts",
         // UI-only components without meaningful logic (pass-through wrappers)
         "components/ui/toast.tsx",
         "components/ui/toaster.tsx",

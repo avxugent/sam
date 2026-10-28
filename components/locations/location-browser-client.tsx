@@ -164,7 +164,6 @@ export function LocationBrowserClient({
         )}
       </div>
 
-      {/* Tree */}
       <div className="bg-card border border-border rounded-[10px] overflow-hidden">
         {locationTree.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">

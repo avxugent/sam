@@ -317,7 +317,6 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
         <span className="font-bold text-[16px] text-foreground">{appTitle}</span>
       </Link>
 
-      {/* Search bar */}
       <div className="flex-1">
         <SearchBar />
       </div>
@@ -378,7 +377,6 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
           </DropdownMenu>
         )}
 
-        {/* Language switcher */}
         <LanguageSwitcher />
 
         {/* Avatar + user menu */}

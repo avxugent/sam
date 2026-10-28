@@ -144,7 +144,6 @@ export function StockItemTable({
 
   return (
     <div className="space-y-3">
-      {/* Search */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-subtle" />
@@ -182,7 +181,6 @@ export function StockItemTable({
         </div>
       )}
 
-      {/* Table */}
       <div className="border border-border rounded-[10px] overflow-hidden">
         <table className="w-full text-[13px]">
           <thead className="bg-background border-b border-border">
@@ -363,7 +361,6 @@ export function StockItemTable({
         />
       )}
 
-      {/* Bulk relocate dialog */}
       <BulkRelocateDialog
         open={bulkRelocateOpen}
         onOpenChange={setBulkRelocateOpen}

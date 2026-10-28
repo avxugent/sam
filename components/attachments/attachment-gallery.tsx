@@ -269,7 +269,6 @@ export function AttachmentGallery({
         </Button>
       )}
 
-      {/* Add link dialog */}
       <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -351,7 +350,6 @@ export function AttachmentGallery({
         </DialogContent>
       </Dialog>
 
-      {/* Lightbox */}
       <Dialog open={!!lightboxId} onOpenChange={(v) => { if (!v) setLightboxId(null); }}>
         <DialogContent className="max-w-4xl p-2">
           <DialogHeader className="p-3 pb-0">

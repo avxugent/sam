@@ -513,7 +513,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               )}
             </div>
 
-            {/* Serial number */}
             <div className="space-y-1.5">
               <Label htmlFor="serialNumber">{tField("serialNumber")}</Label>
               <Input
@@ -572,7 +571,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               )}
             </div>
 
-            {/* Installation date */}
             <div className="space-y-1.5">
               <Label htmlFor="installationDate">{tField("installationDate")}</Label>
               <Input
@@ -582,7 +580,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               />
             </div>
 
-            {/* Invoice number */}
             <div className="space-y-1.5">
               <Label htmlFor="invoiceNumber">{tField("invoiceNumber")}</Label>
               <Input
@@ -592,13 +589,11 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               />
             </div>
 
-            {/* Invoice date */}
             <div className="space-y-1.5">
               <Label htmlFor="invoiceDate">{tField("invoiceDate")}</Label>
               <Input id="invoiceDate" type="date" {...register("invoiceDate")} />
             </div>
 
-            {/* Owner */}
             <div className="space-y-1.5">
               <Label htmlFor="asset-owner">{tField("owner")}</Label>
               <Select
@@ -621,7 +616,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               </Select>
             </div>
 
-            {/* Supplier */}
             <div className="space-y-1.5">
               <Label htmlFor="asset-supplier">{tField("supplier")}</Label>
               <Select
@@ -644,7 +638,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               </Select>
             </div>
 
-            {/* Criticality */}
             <div className="space-y-1.5">
               <Label htmlFor="asset-criticality">{tField("criticality")}</Label>
               <Select
@@ -674,7 +667,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               </Select>
             </div>
 
-            {/* End of support */}
             <div className="space-y-1.5">
               <Label htmlFor="endOfSupportDate">{tField("endOfSupport")}</Label>
               <Input id="endOfSupportDate" type="date" {...register("endOfSupportDate")} />
@@ -692,7 +684,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             listError={macCrossError}
           />
 
-          {/* Notes */}
           <div className="space-y-1.5">
             <Label htmlFor="notes">{tField("notes")}</Label>
             <Textarea
@@ -703,7 +694,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             />
           </div>
 
-          {/* Custom fields */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>{tField("customFields")}</Label>

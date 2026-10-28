@@ -202,7 +202,6 @@ export function LocationDetailClient({
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumbs */}
       <nav className="flex items-center gap-1 text-[12px] text-muted-foreground flex-wrap">
         <Link href="/locations" className="hover:text-foreground transition-colors">{tCommon("home")}</Link>
         {breadcrumbs.map((crumb, i) => (
@@ -423,7 +422,6 @@ export function LocationDetailClient({
         <p className="text-[13px] text-muted-foreground">{location.description}</p>
       )}
 
-      {/* Tabs */}
       <Tabs defaultValue={defaultTab}>
         <TabsList className="flex-wrap h-auto gap-0 border-b border-border bg-transparent rounded-none p-0">
           <TabsTrigger

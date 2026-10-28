@@ -103,7 +103,6 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
         }
       />
 
-      {/* Table */}
       <div className="rounded-[10px] border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">

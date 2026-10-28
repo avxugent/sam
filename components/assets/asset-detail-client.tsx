@@ -173,7 +173,6 @@ export function AssetDetailClient({
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumbs */}
       <nav className="flex items-center gap-1 text-[12px] text-muted-foreground flex-wrap">
         <Link href="/locations" className="hover:text-foreground transition-colors">{tCommon("home")}</Link>
         {breadcrumbs.map((crumb) => (

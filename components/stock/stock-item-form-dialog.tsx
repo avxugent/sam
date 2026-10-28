@@ -226,7 +226,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
-          {/* Type */}
           <div className="space-y-1">
             <Label htmlFor="typeId">{tField("type")} <span className="text-destructive">*</span></Label>
             <Select
@@ -250,7 +249,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             {errors.typeId && <p className="text-xs text-destructive">{errors.typeId.message}</p>}
           </div>
 
-          {/* Manufacturer */}
           <div className="space-y-1">
             <Label htmlFor="manufacturerId">{tField("manufacturer")}</Label>
             <Select
@@ -273,7 +271,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             </Select>
           </div>
 
-          {/* Model */}
           <div className="space-y-1 relative">
             <Label htmlFor="model">{tField("model")} <span className="text-destructive">*</span></Label>
             <ModelAutocomplete
@@ -347,7 +344,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             onRemove={removeMac}
           />
 
-          {/* Invoice */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="invoiceNumber">{tField("invoiceNumber")}</Label>
@@ -359,7 +355,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             </div>
           </div>
 
-          {/* Notes */}
           <div className="space-y-1">
             <Label htmlFor="notes">{tField("notes")}</Label>
             <Textarea id="notes" {...register("notes")} rows={3} />

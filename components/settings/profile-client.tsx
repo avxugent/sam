@@ -132,7 +132,6 @@ export function ProfileClient({
 
   return (
     <div className="space-y-6 max-w-lg">
-      {/* Name */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t("profileTitle")}</CardTitle>

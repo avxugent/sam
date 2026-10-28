@@ -143,7 +143,6 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
 
   return (
     <div className="space-y-4">
-      {/* Add */}
       <div className="flex gap-2">
         <Input
           value={newName}
@@ -158,7 +157,6 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
         </Button>
       </div>
 
-      {/* Table */}
       <div className="border border-border rounded-[10px] overflow-x-auto bg-card">
         <table className="w-full min-w-[640px] text-[13px]">
           <thead>

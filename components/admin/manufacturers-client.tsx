@@ -137,7 +137,6 @@ export function ManufacturersClient({
         </Button>
       </div>
 
-      {/* List */}
       <div className="border rounded-lg divide-y">
         {items.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">{t("emptyList")}</div>
@@ -230,7 +229,6 @@ export function ManufacturersClient({
         )}
       </div>
 
-      {/* Asset drilldown dialog */}
       <AssetDrilldownDialog source={drilldown} column="type" onClose={() => setDrilldown(null)} />
 
       <MergeConfirmDialog

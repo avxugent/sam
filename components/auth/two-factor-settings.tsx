@@ -149,7 +149,6 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
         <CardContent className="space-y-4">
           <Separator />
 
-          {/* Reconfigure */}
           <div>
             <p className="text-sm font-medium mb-1">{t("twoFactorReconfigureTitle")}</p>
             <p className="text-xs text-muted-foreground mb-3">{t("twoFactorReconfigureHelp")}</p>
@@ -165,7 +164,6 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
 
           <Separator />
 
-          {/* Disable */}
           <div>
             <p className="text-sm font-medium mb-1">{t("twoFactorDisableTitle")}</p>
             <p className="text-xs text-muted-foreground mb-3">{t("twoFactorDisableHelp")}</p>
@@ -241,7 +239,6 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* QR code */}
           <div className="flex justify-center">
             {qrCode && (
               // eslint-disable-next-line @next/next/no-img-element

@@ -327,7 +327,6 @@ export function ReportBuilder({
         </div>
       </div>
 
-      {/* Report type */}
       <div className="space-y-3 bg-card border border-border rounded-[10px] p-5">
         <h2 className="text-[14px] font-semibold text-foreground">{t("reportType")}</h2>
         <Select value={source} onValueChange={(v) => setSource(v as ReportSource)}>
@@ -565,7 +564,6 @@ export function ReportBuilder({
         </div>
       </div>
 
-      {/* Group by */}
       <div className="space-y-3 bg-card border border-border rounded-[10px] p-5">
         <h2 className="text-[14px] font-semibold text-foreground">{t("groupBy")}</h2>
         <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupByField)}>
@@ -580,7 +578,6 @@ export function ReportBuilder({
         </Select>
       </div>
 
-      {/* Columns */}
       <div className="space-y-3 bg-card border border-border rounded-[10px] p-5">
         <h2 className="text-[14px] font-semibold text-foreground">{t("columns")}</h2>
         <div className="flex flex-wrap gap-2">

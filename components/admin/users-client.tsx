@@ -364,7 +364,6 @@ export function UsersClient({
                 <td className="px-4 py-[10px] text-muted-foreground text-[12px]">{formatDate(user.createdAt)}</td>
                 <td className="px-4 py-[10px]">
                   <div className="flex justify-end gap-1">
-                    {/* Edit */}
                     <Dialog
                       open={editUser?.id === user.id}
                       onOpenChange={(open) => { if (!open) setEditUser(null); }}

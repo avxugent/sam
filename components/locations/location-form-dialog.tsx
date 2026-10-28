@@ -243,7 +243,6 @@ export function LocationFormDialog({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Name */}
           <div className="space-y-1.5">
             <Label htmlFor="loc-name">
               {tField("name")} <span aria-hidden="true" className="text-destructive">*</span>
@@ -261,7 +260,6 @@ export function LocationFormDialog({
             )}
           </div>
 
-          {/* Description */}
           <div className="space-y-1.5">
             <Label htmlFor="loc-desc">{tField("description")}</Label>
             <Textarea
@@ -272,7 +270,6 @@ export function LocationFormDialog({
             />
           </div>
 
-          {/* FI Number */}
           <div className="space-y-1.5">
             <Label htmlFor="loc-fi" className="flex items-center gap-1.5">
               <Hash className="h-3.5 w-3.5 text-muted-foreground" />

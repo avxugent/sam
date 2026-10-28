@@ -199,7 +199,6 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
 
   return (
     <aside className="w-[248px] flex-shrink-0 border-r bg-card flex flex-col h-full overflow-hidden hidden lg:flex">
-      {/* Logo */}
       <div className="flex items-center gap-2 px-4 h-[56px] border-b flex-shrink-0">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

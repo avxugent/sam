@@ -162,7 +162,6 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
 
       <p className="text-[12px] text-muted-foreground">{filtered.length} {tCommon("of")} {initialLogs.length}</p>
 
-      {/* Table */}
       <div className="rounded-[10px] border border-border overflow-hidden bg-card">
         <table className="w-full text-[13px]">
           <caption className="sr-only">{t("title")}</caption>

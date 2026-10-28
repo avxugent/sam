@@ -220,7 +220,6 @@ export function CsvImportClient() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Detected columns */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                 {t("detectedColumns")}

@@ -147,7 +147,6 @@ export function ExportClient({
           </div>
         </div>
 
-        {/* Setup instructions */}
         <div className="mt-4 p-4 bg-background border border-border rounded-[8px] space-y-3">
           <p className="text-[12px] font-semibold text-secondary-foreground">{t("setupInstructions")}</p>
           <p className="text-[12px] text-muted-foreground">{t.rich("setupOptionHttp", { code: (chunks) => <code className="font-mono bg-muted px-1 rounded">{chunks}</code> })}</p>

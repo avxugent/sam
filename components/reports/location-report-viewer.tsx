@@ -55,7 +55,6 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
         }
       />
 
-      {/* Table */}
       <div className="rounded-[10px] border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">

@@ -229,7 +229,6 @@ export function BrandingSettingsClient({
         </div>
       </section>
 
-      {/* Logo */}
       <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
           <h2 className="text-[15px] font-semibold text-foreground">{t("logo")}</h2>
@@ -263,7 +262,6 @@ export function BrandingSettingsClient({
         </div>
       </section>
 
-      {/* Favicon */}
       <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
           <h2 className="text-[15px] font-semibold text-foreground">{t("favicon")}</h2>

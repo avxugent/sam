@@ -230,7 +230,6 @@ export function AssetTypesClient({
         </Button>
       </div>
 
-      {/* List */}
       <div className="border rounded-lg divide-y">
         {types.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">{t("emptyList")}</div>
@@ -405,7 +404,6 @@ export function AssetTypesClient({
                       </div>
                     </div>
 
-                    {/* Default criticality */}
                     <div className="pt-3 pb-3 border-b space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         {t("defaultCriticality")}
@@ -529,7 +527,6 @@ export function AssetTypesClient({
         )}
       </div>
 
-      {/* Asset drilldown dialog */}
       <AssetDrilldownDialog source={drilldown} column="manufacturer" onClose={() => setDrilldown(null)} />
 
       {/* Template editor dialog */}

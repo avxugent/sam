@@ -331,7 +331,6 @@ export function WorkLogFormDialog({
             </p>
           )}
 
-          {/* Description */}
           <div className="space-y-1.5">
             <Label htmlFor="wl-desc">
               {tField("description")}{" "}

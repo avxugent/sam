@@ -175,7 +175,7 @@ Fixed lookup table for the Asset/StockItem "model" field — replaces the former
 
 `(typeId, manufacturerId, name)` has a `@@unique` constraint, scoped rather than a bare unique on `name` — the same model name can legitimately recur under different type/manufacturer combinations. Known limitation: MySQL unique indexes treat multiple `NULL`s as distinct, so two manufacturer-less models with the same `(typeId, name)` don't collide at the DB level — the API pre-checks this explicitly, and the admin merge feature cleans up any residual duplicates (including punctuation/spacing variants, which a straight uniqueness check can't catch).
 
-Merging two Models (`POST /api/models/[id]/merge`) reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source — this fixes a gap the equivalent `Manufacturer` merge route still has, where only `Asset` rows are reassigned.
+Merging two Models (`POST /api/models/[id]/merge`) reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source. Merging an `AssetType` or a `Manufacturer` moves the source's models onto the target with `reassignModels()` (`lib/models/reassign.ts`); a model whose `(typeId, manufacturerId, name)` already exists under the target is folded into that model (its assets and stock repointed, the source model deleted). The `Manufacturer` merge also reassigns `StockItem.manufacturerId` — the `SET NULL` foreign keys would otherwise silently strip the brand.
 
 ### AssetTypeManufacturerTemplate
 

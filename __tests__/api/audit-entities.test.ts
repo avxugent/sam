@@ -99,7 +99,7 @@ describe("audit — manufacturer merge", () => {
     vi.mocked(prisma.manufacturer.findUnique)
       .mockResolvedValueOnce({ id: "m1", name: "Dell" } as never)
       .mockResolvedValueOnce({ id: "m2", name: "Dell Inc" } as never);
-    vi.mocked(prisma.$transaction).mockResolvedValue(3 as never);
+    vi.mocked(prisma.$transaction).mockResolvedValue({ movedCount: 3, stockMoved: 0, modelsMoved: 0, modelsFolded: 0 } as never);
 
     const res = await mergeManufacturer(
       req("http://localhost/api/manufacturers/m1/merge", { targetId: "m2" }),

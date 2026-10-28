@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/models/reassign", () => ({ reassignModels: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
@@ -16,6 +17,7 @@ vi.mock("@/lib/prisma", () => ({
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
+import { reassignModels } from "@/lib/models/reassign";
 import { GET as listAssets } from "@/app/api/asset-types/[id]/assets/route";
 import { POST as mergeType } from "@/app/api/asset-types/[id]/merge/route";
 import { POST as createPreset } from "@/app/api/asset-types/[id]/presets/route";
@@ -91,6 +93,27 @@ describe("POST /api/asset-types/[id]/merge", () => {
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "DELETE", entityType: "AssetType", entityId: "t1" })
     );
+  });
+  it("moves the source type's models before deleting it", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    vi.mocked(prisma.assetType.findUnique).mockResolvedValueOnce({ id: "t1", name: "A" } as never).mockResolvedValueOnce({ id: "t2", name: "B" } as never);
+    const order: string[] = [];
+    const tx = {
+      asset: { updateMany: vi.fn().mockResolvedValue({ count: 4 }) },
+      stockItem: { updateMany: vi.fn().mockResolvedValue({ count: 2 }) },
+      maintenancePreset: { deleteMany: vi.fn() },
+      assetType: { delete: vi.fn(async () => order.push("delete")) },
+    };
+    vi.mocked(reassignModels).mockImplementation(async () => {
+      order.push("models");
+      return { modelsMoved: 3, modelsFolded: 1 };
+    });
+    vi.mocked(prisma.$transaction).mockImplementation(((cb: (t: typeof tx) => unknown) => cb(tx)) as never);
+
+    const res = await mergeType(jreq("http://x", { targetId: "t2" }), { params: params("t1") });
+    expect(res.status).toBe(200);
+    expect(reassignModels).toHaveBeenCalledWith(tx, { typeId: "t1" }, { typeId: "t2" });
+    expect(order).toEqual(["models", "delete"]);
   });
 });
 

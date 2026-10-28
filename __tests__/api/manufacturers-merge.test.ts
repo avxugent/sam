@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/models/reassign", () => ({ reassignModels: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
@@ -14,6 +15,7 @@ vi.mock("@/lib/prisma", () => ({
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
+import { reassignModels } from "@/lib/models/reassign";
 import { POST } from "@/app/api/manufacturers/[id]/merge/route";
 
 const mockAuth = vi.mocked(auth);
@@ -31,6 +33,7 @@ function post(body: object) {
 // tx mock: asset.updateMany reports a moved count; overrides default to none.
 const tx = {
   asset: { updateMany: vi.fn().mockResolvedValue({ count: 3 }) },
+  stockItem: { updateMany: vi.fn().mockResolvedValue({ count: 2 }) },
   manufacturer: { delete: vi.fn().mockResolvedValue({}) },
   assetTypeManufacturerTemplate: {
     findMany: vi.fn().mockResolvedValue([]),
@@ -43,6 +46,8 @@ const tx = {
 beforeEach(() => {
   vi.clearAllMocks();
   tx.asset.updateMany.mockResolvedValue({ count: 3 });
+  tx.stockItem.updateMany.mockResolvedValue({ count: 2 });
+  vi.mocked(reassignModels).mockResolvedValue({ modelsMoved: 1, modelsFolded: 1 });
   tx.manufacturer.delete.mockResolvedValue({});
   tx.assetTypeManufacturerTemplate.findMany.mockResolvedValue([]);
   vi.mocked(prisma.$transaction).mockImplementation(((cb: (t: typeof tx) => unknown) => cb(tx)) as never);
@@ -75,7 +80,7 @@ describe("POST /api/manufacturers/[id]/merge", () => {
     expect((await POST(post({ targetId: "m2" }), { params: params() })).status).toBe(404);
   });
 
-  it("merges assets, deletes source, and audits when there are no overrides", async () => {
+  it("merges assets, stock and models, deletes source, and audits when there are no overrides", async () => {
     mockAuth.mockResolvedValue(session() as never);
     vi.mocked(prisma.manufacturer.findUnique)
       .mockResolvedValueOnce({ id: "m1", name: "Dell" } as never)
@@ -84,12 +89,19 @@ describe("POST /api/manufacturers/[id]/merge", () => {
     const res = await POST(post({ targetId: "m2" }), { params: params() });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, movedCount: 3 });
+    expect(tx.stockItem.updateMany).toHaveBeenCalledWith({ where: { manufacturerId: "m1" }, data: { manufacturerId: "m2" } });
+    expect(reassignModels).toHaveBeenCalledWith(tx, { manufacturerId: "m1" }, { manufacturerId: "m2" });
     expect(tx.assetTypeManufacturerTemplate.update).not.toHaveBeenCalled();
     expect(tx.assetTypeManufacturerTemplate.delete).not.toHaveBeenCalled();
     expect(tx.asset.updateMany).toHaveBeenCalledWith({ where: { manufacturerId: "m1" }, data: { manufacturerId: "m2" } });
     expect(tx.manufacturer.delete).toHaveBeenCalledWith({ where: { id: "m1" } });
     expect(mockLogAudit).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "DELETE", entityType: "Manufacturer", entityId: "m1" })
+      expect.objectContaining({
+        action: "DELETE",
+        entityType: "Manufacturer",
+        entityId: "m1",
+        detail: expect.objectContaining({ assetsMoved: 3, stockMoved: 2, modelsMoved: 1, modelsFolded: 1 }),
+      })
     );
   });
 

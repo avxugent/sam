@@ -2,7 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { AssetStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { resolveLocationPathsBatch, resolveAncestorChainsBatch } from "@/lib/location-path";
-import { effectiveCriticality } from "@/lib/criticality";
+import { effectiveCriticality, parseCriticality } from "@/lib/criticality";
 import type {
   ReportDefinition,
   AssetReportDefinition,
@@ -67,6 +67,21 @@ function parseDate(value: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+/** before/after an absolute date, or older/newer than N days or years; null otherwise. */
+function dateCondition(field: string, op: ReportFilter["op"], value: string | undefined): Prisma.AssetWhereInput | null {
+  if (op === "before" || op === "after") {
+    const d = value ? parseDate(value) : null;
+    return d && { [field]: op === "before" ? { lt: d } : { gt: d } };
+  }
+  const n = numberOrNull(value);
+  if (n === null) return null;
+  if (op === "olderThanDays") return { [field]: { lt: daysAgo(n) } };
+  if (op === "newerThanDays") return { [field]: { gt: daysAgo(n) } };
+  if (op === "olderThanYears") return { [field]: { lt: yearsAgo(n) } };
+  if (op === "newerThanYears") return { [field]: { gt: yearsAgo(n) } };
+  return null;
+}
+
 /**
  * The status a status filter actually applies, or null when translateFilters
  * ignores it (an op other than eq/neq, or a value outside the enum) — so a
@@ -93,10 +108,7 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
       // Effective semantics: the per-asset override wins, otherwise the asset
       // type's default applies. Validate the value against the enum so a bad
       // value can never widen the result set (status-branch precedent).
-      const level =
-        value === "LOW" || value === "MEDIUM" || value === "HIGH" || value === "CRITICAL"
-          ? value
-          : null;
+      const level = value ? parseCriticality(value) : null;
       const unclassified: Prisma.AssetWhereInput = {
         criticality: null,
         OR: [{ typeId: null }, { type: { defaultCriticality: null } }],
@@ -166,33 +178,10 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
       continue;
     }
 
-    if (field === "lastChanged") {
-      const days = numberOrNull(value);
-      if (op === "newerThanDays" && days !== null) {
-        conditions.push({ updatedAt: { gt: daysAgo(days) } });
-      } else if (op === "olderThanDays" && days !== null) {
-        conditions.push({ updatedAt: { lt: daysAgo(days) } });
-      } else if ((op === "before" || op === "after") && value) {
-        const d = parseDate(value);
-        if (d) conditions.push({ updatedAt: op === "before" ? { lt: d } : { gt: d } });
-      }
-      continue;
-    }
-
-    if (field === "installationDate" || field === "invoiceDate" || field === "endOfSupportDate") {
-      const years = numberOrNull(value);
-      if ((op === "before" || op === "after") && value) {
-        const d = parseDate(value);
-        if (d) conditions.push({ [field]: op === "before" ? { lt: d } : { gt: d } });
-      } else if (op === "olderThanYears" && years !== null) {
-        conditions.push({ [field]: { lt: yearsAgo(years) } });
-      } else if (op === "newerThanYears" && years !== null) {
-        conditions.push({ [field]: { gt: yearsAgo(years) } });
-      } else if (op === "isNull") {
-        conditions.push({ [field]: null });
-      } else if (op === "isNotNull") {
-        conditions.push({ [field]: { not: null } });
-      }
+    if (field === "lastChanged" || field === "installationDate" || field === "invoiceDate" || field === "endOfSupportDate") {
+      const column = field === "lastChanged" ? "updatedAt" : field;
+      const condition = dateCondition(column, op, value) ?? scalarCondition(column, op, undefined);
+      if (condition) conditions.push(condition);
       continue;
     }
   }
@@ -205,6 +194,23 @@ export async function runReport(definition: ReportDefinition): Promise<ReportRes
     return runLocationReport(definition);
   }
   return runAssetReport(definition);
+}
+
+/** Asset counts per value of `by`, labelled with the names `resolveNames` returns. */
+async function countGroups(
+  by: "typeId" | "manufacturerId" | "locationId",
+  where: Prisma.AssetWhereInput,
+  noneLabel: string,
+  resolveNames: (ids: string[]) => Promise<Map<string, string>>
+): Promise<GroupCount[]> {
+  const rows = await prisma.asset.groupBy({ by: [by], where, _count: { id: true } });
+  const keyed = rows.map((row) => ({ id: row[by] as string | null, count: row._count.id }));
+  const names = await resolveNames(keyed.map((row) => row.id).filter((id): id is string => id !== null));
+  return keyed.map(({ id, count }) => ({ label: id ? (names.get(id) ?? "Unknown") : noneLabel, count }));
+}
+
+async function namesById(rows: Promise<{ id: string; name: string }[]>): Promise<Map<string, string>> {
+  return new Map((await rows).map((row) => [row.id, row.name]));
 }
 
 /** Most rows an asset report returns; `total` still counts every match. */
@@ -265,25 +271,15 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
   let groups: GroupCount[] = [];
 
   if (definition.groupBy === "type") {
-    const gb = await prisma.asset.groupBy({ by: ["typeId"], where, _count: { id: true } });
-    const typeIds = gb.map((g) => g.typeId).filter(Boolean) as string[];
-    const types = await prisma.assetType.findMany({ where: { id: { in: typeIds } }, select: { id: true, name: true } });
-    const typeMap = Object.fromEntries(types.map((t) => [t.id, t.name]));
-    groups = gb.map((g) => ({ label: g.typeId ? (typeMap[g.typeId] ?? "Unknown") : "No type", count: g._count.id }));
+    groups = await countGroups("typeId", where, "No type", (ids) =>
+      namesById(prisma.assetType.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }))
+    );
   } else if (definition.groupBy === "manufacturer") {
-    const gb = await prisma.asset.groupBy({ by: ["manufacturerId"], where, _count: { id: true } });
-    const mfIds = gb.map((g) => g.manufacturerId).filter(Boolean) as string[];
-    const mfs = await prisma.manufacturer.findMany({ where: { id: { in: mfIds } }, select: { id: true, name: true } });
-    const mfMap = Object.fromEntries(mfs.map((m) => [m.id, m.name]));
-    groups = gb.map((g) => ({ label: g.manufacturerId ? (mfMap[g.manufacturerId] ?? "Unknown") : "No manufacturer", count: g._count.id }));
+    groups = await countGroups("manufacturerId", where, "No manufacturer", (ids) =>
+      namesById(prisma.manufacturer.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }))
+    );
   } else if (definition.groupBy === "location") {
-    const gb = await prisma.asset.groupBy({ by: ["locationId"], where, _count: { id: true } });
-    const locIds = gb.map((g) => g.locationId).filter((id): id is string => id !== null);
-    const groupPathMap = await resolveLocationPathsBatch(locIds);
-    groups = gb.map((g) => ({
-      label: g.locationId ? (groupPathMap.get(g.locationId) ?? "Unknown") : "No location",
-      count: g._count.id,
-    }));
+    groups = await countGroups("locationId", where, "No location", resolveLocationPathsBatch);
   } else if (definition.groupBy === "installationYear") {
     const yearMap = new Map<string, number>();
     const dated = truncated ? await prisma.asset.findMany({ where, select: { installationDate: true } }) : assets;

@@ -49,7 +49,6 @@ export default defineConfig({
         "components/layout/sidebar.tsx",
         "components/layout/app-footer.tsx",
         "components/layout/app-background.tsx",
-        "components/import/csv-import-client.tsx",
         "components/auth/**",
         "components/attachments/attachment-gallery.tsx",
         "components/admin/work-log-items-manager.tsx",

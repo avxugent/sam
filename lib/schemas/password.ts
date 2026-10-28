@@ -15,8 +15,11 @@ const ENGLISH: PasswordChangeMessages = {
 };
 
 /**
- * Self-service password change (profile page and forced change after an admin
- * reset). The API uses the English messages; forms pass translated ones.
+ * Self-service password change form (profile page and forced change after an
+ * admin reset); forms pass translated messages. PATCH /api/users/me keeps its
+ * own schema because it accepts profile fields and an optional password change
+ * in one body — keep its password rules (8–128 chars, confirm must match) in
+ * sync with these.
  */
 export function buildPasswordChangeSchema(messages: PasswordChangeMessages = ENGLISH) {
   return z

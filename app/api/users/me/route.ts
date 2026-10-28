@@ -8,9 +8,9 @@ import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({
   name: z.string().min(1).max(128).optional(),
-  currentPassword: z.string().optional(),
+  currentPassword: z.string().max(128).optional(),
   newPassword: z.string().min(8).max(128).optional(),
-  confirmPassword: z.string().optional(),
+  confirmPassword: z.string().max(128).optional(),
   locationDefaultTab: z.enum(["assets", "sublocations"]).optional(),
   theme: z.enum(["light", "dark", "system"]).optional(),
 }).superRefine(({ newPassword, confirmPassword }, ctx) => {

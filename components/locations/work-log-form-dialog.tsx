@@ -28,7 +28,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { JIRA_KEY_REGEX, createWorkLogSchema } from "@/lib/schemas/work-log";
 import { z } from "zod";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay, apiErrorMessage } from "@/lib/utils";
 
 type WorkLogFormValues = z.infer<typeof createWorkLogSchema>;
 
@@ -189,7 +189,7 @@ export function WorkLogFormDialog({
       const err = await res.json().catch(() => ({}));
       toast({
         title: tCommon("error"),
-        description: err.error || tCommon("somethingWentWrong"),
+        description: apiErrorMessage(err, tCommon("somethingWentWrong")),
         variant: "destructive",
       });
       return;

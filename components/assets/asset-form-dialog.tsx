@@ -298,7 +298,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     setVaultTestResult(null);
     try {
       const res = await fetch(`/api/vault/test?path=${encodeURIComponent(path)}`);
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       setVaultTestResult({
         ok: data.ok === true,
         message: data.message || data.error || t("vaultUnknown"),

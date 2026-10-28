@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Sun, Moon, Monitor } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, apiErrorMessage } from "@/lib/utils";
 import { useTheme, type Theme } from "@/components/theme-provider";
 import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
 
@@ -63,7 +63,7 @@ export function ProfileClient({
       });
       if (res.ok) return true;
       const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
     } catch {
       toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
     } finally {

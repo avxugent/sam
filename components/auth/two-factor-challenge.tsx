@@ -11,6 +11,7 @@ import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { normalizeTotpCode } from "@/lib/two-factor/enrollment-client";
+import { apiErrorMessage } from "@/lib/utils";
 
 export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolean }) {
   const t = useTranslations("auth");
@@ -39,11 +40,11 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
       body: JSON.stringify({ code: trimmed, rememberMe }),
     });
 
-    const data = await res.json();
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error || t("verificationFailed"));
+      const data = await res.json().catch(() => ({}));
+      setError(apiErrorMessage(data, t("verificationFailed")));
       setCode("");
       inputRef.current?.focus();
       return;
@@ -140,7 +141,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
                   onCheckedChange={(v) => setRememberMe(!!v)}
                 />
                 <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
-                  Remember this device for 30 days
+                  {t("twoFactorRememberDevice")}
                 </Label>
               </div>
 

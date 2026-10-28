@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
+import { apiErrorMessage } from "@/lib/utils";
 
 export type WorkLogItem = {
   id: string;
@@ -52,7 +53,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
     setAdding(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
     const item = await res.json();
@@ -79,7 +80,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
     const updated = await res.json();
@@ -96,7 +97,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
     const res = await fetch(`${API}/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));

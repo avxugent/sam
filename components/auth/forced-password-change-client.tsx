@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Monitor, Loader2, ShieldAlert } from "lucide-react";
 import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
+import { apiErrorMessage } from "@/lib/utils";
 
 export function ForcedPasswordChangeClient() {
   const t = useTranslations("auth");
@@ -47,7 +48,7 @@ export function ForcedPasswordChangeClient() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      setServerError(err.error || "Something went wrong.");
+      setServerError(apiErrorMessage(err, tCommon("somethingWentWrong")));
       return;
     }
 

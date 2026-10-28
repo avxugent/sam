@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatDate } from "@/lib/utils";
+import { formatDate, apiErrorMessage } from "@/lib/utils";
 
 type ReportSummary = {
   id: string;
@@ -47,7 +47,7 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
     const res = await fetch(`/api/reports/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
     setReports((prev) => prev.filter((r) => r.id !== id));

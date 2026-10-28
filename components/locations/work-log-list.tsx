@@ -20,7 +20,7 @@ import { Plus, Search, Pencil, Trash2, Wrench, Package } from "lucide-react";
 import { WorkLogFormDialog, type WorkLogAssetOption, type WorkLogUserOption, type WorkLogItemOption } from "@/components/locations/work-log-form-dialog";
 import { JiraIssueBadge } from "@/components/locations/jira-issue-badge";
 import { useTranslations } from "next-intl";
-import { formatDate, getInitials } from "@/lib/utils";
+import { formatDate, getInitials, apiErrorMessage } from "@/lib/utils";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 
@@ -98,7 +98,7 @@ export function WorkLogList({
     const res = await fetch(`/api/work-logs/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== id));

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Plus, Trash2, Wrench } from "lucide-react";
+import { apiErrorMessage } from "@/lib/utils";
 
 type Preset = {
   id: string;
@@ -43,7 +44,7 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
     setAdding(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
     const created = await res.json();
@@ -57,7 +58,7 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
     const res = await fetch(`/api/asset-types/presets/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
     setPresets((prev) => prev.filter((p) => p.id !== id));

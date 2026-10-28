@@ -8,7 +8,7 @@ import { canEdit } from "@/lib/permissions";
 import { getAllDescendantLocationIds } from "@/lib/location-path";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 import { assetListStatusFilter } from "@/lib/assets/list-status";
-import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/write";
+import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/input";
 
 export async function GET(
   req: NextRequest,

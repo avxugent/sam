@@ -8,7 +8,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
 import { buildDeployedAssetData } from "@/lib/assets/lifecycle-rules";
-import { hostnameTakenResponse } from "@/lib/assets/write";
+import { hostnameTakenResponse } from "@/lib/assets/input";
 
 const deploySchema = z
   .object({

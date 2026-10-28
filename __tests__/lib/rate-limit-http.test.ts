@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { clientIp, tooManyAttempts } from "@/lib/request-limits";
+import { clientIp, tooManyAttempts } from "@/lib/rate-limit-http";
 
 describe("clientIp()", () => {
   it("prefers the first X-Forwarded-For hop, then X-Real-IP", () => {

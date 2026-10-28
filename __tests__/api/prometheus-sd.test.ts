@@ -10,7 +10,7 @@ vi.mock("@/lib/tokens/integration", () => ({ integrationTokenError: vi.fn() }));
 // location-path is mocked to keep the test focused on target/address handling;
 // scrape-template is intentionally NOT mocked so template rendering is real.
 vi.mock("@/lib/location-path", () => ({
-  resolveLocationPath: vi.fn(async () => []),
+  getLocationPath: vi.fn(async () => []),
   parseFiNumber: vi.fn(() => null),
   buildLocationPathString: vi.fn(() => ""),
   findFiNumber: vi.fn(() => null),

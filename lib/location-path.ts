@@ -13,7 +13,7 @@ export type LocationAncestor = {
  *
  * Returns an array ordered from root (campus) to the location itself.
  */
-export async function resolveLocationPath(
+export async function getLocationPath(
   locationId: string
 ): Promise<LocationAncestor[]> {
   type Row = { id: string; name: string; fiNumber: string | null; depth: number };
@@ -42,7 +42,7 @@ export async function resolveLocationPath(
 
 /** Root → leaf `{ id, name }` crumbs for a location page header. */
 export async function locationBreadcrumbs(locationId: string): Promise<{ id: string; name: string }[]> {
-  return (await resolveLocationPath(locationId)).map(({ id, name }) => ({ id, name }));
+  return (await getLocationPath(locationId)).map(({ id, name }) => ({ id, name }));
 }
 
 /**
@@ -106,7 +106,7 @@ export function ancestorChain<T extends TreeRow>(id: string, byId: Map<string, T
  * for each requested ID. Returns a map of locationId → path string.
  * Separator defaults to " - " for display contexts like reports.
  */
-export async function resolveLocationPathsBatch(
+export async function getLocationPathsBatch(
   locationIds: string[],
   separator = " - "
 ): Promise<Map<string, string>> {
@@ -126,7 +126,7 @@ export async function resolveLocationPathsBatch(
 }
 
 /**
- * Like resolveLocationPathsBatch, but takes rows the caller already fetched
+ * Like getLocationPathsBatch, but takes rows the caller already fetched
  * (must include parentId) instead of issuing its own query — for callers
  * that need the full (id, name, parentId) row set for another purpose too,
  * so a second full-table scan isn't worth it just to get paths.
@@ -147,13 +147,13 @@ export function buildLocationPathsFromRows(
 export type AncestorChain = { ids: string[]; names: string[] };
 
 /**
- * Like resolveLocationPathsBatch, but returns the ordered ancestor *ids* and
+ * Like getLocationPathsBatch, but returns the ordered ancestor *ids* and
  * *names* (root → leaf, each including the location itself) for each
  * requested id in a single pass — one query, one tree walk. Lets callers
  * group by tree level (e.g. campus = [0], building = [1]) and test whether a
  * location falls under a given scope (e.g. a selected campus or building).
  */
-export async function resolveAncestorChainsBatch(
+export async function getAncestorChainsBatch(
   locationIds: string[]
 ): Promise<Map<string, AncestorChain>> {
   if (locationIds.length === 0) return new Map();

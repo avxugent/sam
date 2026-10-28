@@ -49,7 +49,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sessionOrIntegrationTokenError } from "@/lib/tokens/session-or-integration";
-import { resolveLocationPath } from "@/lib/location-path";
+import { getLocationPath } from "@/lib/location-path";
 import { samAssetLabels } from "@/lib/prometheus-labels";
 import {
   renderScrapeTemplate,
@@ -105,12 +105,12 @@ export async function GET(req: NextRequest) {
   // locationId → resolved ancestor array
   const locationPathCache = new Map<
     string,
-    Awaited<ReturnType<typeof resolveLocationPath>>
+    Awaited<ReturnType<typeof getLocationPath>>
   >();
 
-  async function getLocationPath(locationId: string) {
+  async function cachedLocationPath(locationId: string) {
     if (!locationPathCache.has(locationId)) {
-      locationPathCache.set(locationId, await resolveLocationPath(locationId));
+      locationPathCache.set(locationId, await getLocationPath(locationId));
     }
     return locationPathCache.get(locationId)!;
   }
@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
     // Room in maintenance — its assets are not scrape targets.
     if (asset.location?.inMaintenance) continue;
 
-    const ancestors = await getLocationPath(asset.locationId);
+    const ancestors = await cachedLocationPath(asset.locationId);
     const samLabels = samAssetLabels({ ...asset, hostname: asset.hostname }, ancestors);
     const labels: Record<string, string> = Object.fromEntries(
       Object.entries(samLabels)

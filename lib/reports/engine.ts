@@ -1,7 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { AssetStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
-import { resolveLocationPathsBatch, resolveAncestorChainsBatch } from "@/lib/location-path";
+import { getLocationPathsBatch, getAncestorChainsBatch } from "@/lib/location-path";
 import { effectiveCriticality, parseCriticality } from "@/lib/criticality";
 import type {
   ReportDefinition,
@@ -247,7 +247,7 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
   const uniqueLocationIds = [
     ...new Set(assets.map((a) => a.locationId).filter((id): id is string => id !== null)),
   ];
-  const locationPathMap = await resolveLocationPathsBatch(uniqueLocationIds);
+  const locationPathMap = await getLocationPathsBatch(uniqueLocationIds);
 
   const rows: ReportRow[] = assets.map((a) => ({
     id: a.id,
@@ -279,7 +279,7 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
       namesById(prisma.manufacturer.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }))
     );
   } else if (definition.groupBy === "location") {
-    groups = await countGroups("locationId", where, "No location", resolveLocationPathsBatch);
+    groups = await countGroups("locationId", where, "No location", getLocationPathsBatch);
   } else if (definition.groupBy === "installationYear") {
     const yearMap = new Map<string, number>();
     const dated = truncated ? await prisma.asset.findMany({ where, select: { installationDate: true } }) : assets;
@@ -328,7 +328,7 @@ export async function runLocationReport(
   // leaf in one query, so we can derive campus / building grouping labels,
   // the path string, and (optionally) whether a leaf falls in the selected
   // scope — all from a single tree walk.
-  const chainsById = await resolveAncestorChainsBatch(allLeafIds);
+  const chainsById = await getAncestorChainsBatch(allLeafIds);
   const ancestorsById = new Map(
     [...chainsById].map(([id, chain]) => [id, chain.names])
   );

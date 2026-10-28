@@ -5,7 +5,7 @@
 
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { ancestorChain, resolveLocationPathsBatch } from "@/lib/location-path";
+import { ancestorChain, getLocationPathsBatch } from "@/lib/location-path";
 import { escapeCsvCell } from "@/lib/csv/core";
 import { toIsoDay } from "@/lib/utils";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
@@ -225,7 +225,7 @@ export async function generateStockCsv(): Promise<string> {
   const storageIds = [
     ...new Set(items.map((i) => i.locationId).filter((id): id is string => !!id)),
   ];
-  const pathMap = await resolveLocationPathsBatch([...new Set([...reservedIds, ...storageIds])]);
+  const pathMap = await getLocationPathsBatch([...new Set([...reservedIds, ...storageIds])]);
   const reservedLocations = reservedIds.length
     ? await prisma.location.findMany({
         where: { id: { in: reservedIds } },

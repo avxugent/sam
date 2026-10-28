@@ -15,8 +15,8 @@ import {
   getSubtreeIdsDeepestFirst,
   ancestorChain,
   locationBreadcrumbs,
-  resolveLocationPath,
-  resolveAncestorChainsBatch,
+  getLocationPath,
+  getAncestorChainsBatch,
   buildLocationPathsFromRows,
   type LocationAncestor,
 } from "@/lib/location-path";
@@ -167,27 +167,27 @@ describe("getAllDescendantLocationIds()", () => {
   });
 });
 
-describe("resolveLocationPath()", () => {
+describe("getLocationPath()", () => {
   it("returns ancestors ordered root→leaf from the recursive query", async () => {
     mockQueryRaw.mockResolvedValueOnce([
       { id: "campus", name: "Campus", fiNumber: "14.00.000.000", depth: 2 },
       { id: "bldg", name: "Building", fiNumber: "14.10.000.000", depth: 1 },
       { id: "room", name: "Room", fiNumber: "14.10.100.013", depth: 0 },
     ] as never);
-    const result = await resolveLocationPath("room");
+    const result = await getLocationPath("room");
     expect(result.map((a) => a.id)).toEqual(["campus", "bldg", "room"]);
     expect(result[2].fiNumber).toBe("14.10.100.013");
   });
 
   it("returns an empty array when the location has no rows", async () => {
     mockQueryRaw.mockResolvedValueOnce([] as never);
-    expect(await resolveLocationPath("missing")).toEqual([]);
+    expect(await getLocationPath("missing")).toEqual([]);
   });
 });
 
-describe("resolveAncestorChainsBatch()", () => {
+describe("getAncestorChainsBatch()", () => {
   it("returns empty map for an empty input array", async () => {
-    expect(await resolveAncestorChainsBatch([])).toEqual(new Map());
+    expect(await getAncestorChainsBatch([])).toEqual(new Map());
   });
 
   it("returns the root→leaf id and name chains, including the location itself", async () => {
@@ -196,7 +196,7 @@ describe("resolveAncestorChainsBatch()", () => {
       { id: "b10", name: "Building 10", parentId: "c14" },
       { id: "room", name: "Room", parentId: "b10" },
     ] as never);
-    const result = await resolveAncestorChainsBatch(["room"]);
+    const result = await getAncestorChainsBatch(["room"]);
     expect(result.get("room")).toEqual({
       ids: ["c14", "b10", "room"],
       names: ["Campus 14", "Building 10", "Room"],
@@ -205,7 +205,7 @@ describe("resolveAncestorChainsBatch()", () => {
 
   it("omits ids that aren't found in the location table", async () => {
     mockQueryRaw.mockResolvedValueOnce([{ id: "c14", name: "Campus 14", parentId: null }] as never);
-    const result = await resolveAncestorChainsBatch(["missing"]);
+    const result = await getAncestorChainsBatch(["missing"]);
     expect(result.has("missing")).toBe(false);
   });
 });

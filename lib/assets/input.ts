@@ -3,8 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { isHostnameCompliant } from "@/lib/hostname/pattern";
 
 /**
- * Validation and nested-row glue shared by the asset create
- * (POST /api/locations/[id]/assets) and update (PUT /api/assets/[id]) routes.
+ * Checks on, and nested rows built from, the asset form input shared by the
+ * asset create (POST /api/locations/[id]/assets), update (PUT /api/assets/[id])
+ * and stock deploy routes. The writes themselves stay in the routes;
+ * lifecycle writes live in lib/assets/transitions.ts.
  * Each *Response helper returns the 400 to send back, or null to proceed.
  */
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import type { Prisma } from "@/generated/prisma/client";
-import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/write";
+import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/input";
 import { updateAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
 import { auditChanges, type FieldChange } from "@/lib/audit/diff";

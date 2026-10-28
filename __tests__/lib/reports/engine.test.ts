@@ -301,7 +301,7 @@ describe("runReport()", () => {
     expect(r.installationDate).toBeNull();
     expect(r.invoiceDate).toBeNull();
     expect(r.lastChanged).toBeNull();
-    // no location ids → resolveLocationPathsBatch not queried
+    // no location ids → getLocationPathsBatch not queried
     expect(mockQueryRaw).not.toHaveBeenCalled();
   });
 

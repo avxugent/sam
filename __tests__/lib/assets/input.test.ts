@@ -11,7 +11,7 @@ import {
   hostnameTakenResponse,
   macAddressRows,
   unknownSupplierResponse,
-} from "@/lib/assets/write";
+} from "@/lib/assets/input";
 
 beforeEach(() => vi.clearAllMocks());
 

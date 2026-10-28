@@ -28,7 +28,7 @@ beforeEach(() => {
     { id: "loc1", name: "Room 1", fiNumber: "14.10.100.001" },
     { id: "loc2", name: "Room 2", fiNumber: null },
   ] as never);
-  // Full tree read by resolveAncestorNamesBatch: campus → building → rooms.
+  // Full tree read by getAncestorChainsBatch: campus → building → rooms.
   mockQueryRaw.mockResolvedValue([
     { id: "c14", name: "Campus 14", parentId: null },
     { id: "b10", name: "Building 10", parentId: "c14" },

@@ -170,7 +170,7 @@ set, otherwise the asset type's default.
 
 ### Endpoint: Inventory Snapshot (`/api/export/snapshot`)
 
-Point-in-time JSON snapshot of the full inventory (assets including owner, criticality, end-of-support, supplier and disposal fields; suppliers; locations) with record counts and a generation timestamp. Authenticated with a session **or** `Bearer EXPORT_TOKEN`, so an external cron can archive dated snapshots as NIS2 evidence:
+Point-in-time JSON snapshot of the full inventory (assets including owner, criticality, end-of-support, supplier and disposal fields; suppliers; locations) with record counts and a generation timestamp. Authenticated with an ADMIN session **or** `Bearer EXPORT_TOKEN`, so an external cron can archive dated snapshots as NIS2 evidence:
 
 ```bash
 curl -H "Authorization: Bearer $EXPORT_TOKEN" \

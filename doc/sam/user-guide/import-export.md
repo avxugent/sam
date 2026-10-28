@@ -86,4 +86,4 @@ Click **Download stock CSV**. Contains the current stock inventory (items not ye
 
 ### Inventory snapshot (JSON)
 
-`GET /api/export/snapshot` returns a point-in-time JSON snapshot of the full inventory (assets with owner, criticality, end-of-support, supplier and disposal fields; suppliers; locations) — the audit-friendly "inventory as of date X" artifact. It accepts a session or the export API token, so it can be archived on a schedule. The nightly backup script writes the same snapshot alongside the CSV plus a manifest with SHA-256 checksums — see the technical [Scripts](../technical/scripts.md) page.
+`GET /api/export/snapshot` returns a point-in-time JSON snapshot of the full inventory (assets with owner, criticality, end-of-support, supplier and disposal fields; suppliers; locations) — the audit-friendly "inventory as of date X" artifact. It accepts an admin session or the export API token, so it can be archived on a schedule. The nightly backup script writes the same snapshot alongside the CSV plus a manifest with SHA-256 checksums — see the technical [Scripts](../technical/scripts.md) page.

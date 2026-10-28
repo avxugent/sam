@@ -57,8 +57,14 @@ describe("GET /api/export/snapshot", () => {
     expect(mockBuild).not.toHaveBeenCalled();
   });
 
-  it("200 with a session; logs an EXPORT audit entry with counts", async () => {
-    mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" } } as never);
+  it("403 for a non-admin session", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", role: "MAINTAINER" } } as never);
+    expect((await GET(req())).status).toBe(403);
+    expect(mockBuild).not.toHaveBeenCalled();
+  });
+
+  it("200 with an admin session; logs an EXPORT audit entry with counts", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", role: "ADMIN" } } as never);
     const res = await GET(req());
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Disposition")).toContain("sam-inventory-");

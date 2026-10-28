@@ -39,6 +39,17 @@ let _tokenCache: CachedToken | null = null;
 /** How many seconds before the Vault TTL expires we proactively re-authenticate */
 const EXPIRY_BUFFER_S = 60;
 
+/**
+ * When a cached AppRole token should be renewed. A lease_duration of 0 means
+ * the token does not expire (it is still dropped on a 403); a TTL shorter than
+ * twice the buffer renews at half-life instead of landing in the past.
+ */
+export function tokenExpiresAt(ttlSeconds: number, now = Date.now()): number {
+  if (ttlSeconds <= 0) return Number.POSITIVE_INFINITY;
+  const buffer = Math.min(EXPIRY_BUFFER_S, ttlSeconds / 2);
+  return now + (ttlSeconds - buffer) * 1000;
+}
+
 // ── Auth method detection ─────────────────────────────────────────────────────
 
 function isTokenAuth(): boolean {
@@ -99,7 +110,7 @@ async function loginWithApprole(): Promise<string | null> {
 
     _tokenCache = {
       token,
-      expiresAt: Date.now() + (ttl - EXPIRY_BUFFER_S) * 1000,
+      expiresAt: tokenExpiresAt(ttl),
       roleId,
       secretId,
     };

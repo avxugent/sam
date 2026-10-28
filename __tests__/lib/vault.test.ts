@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { isVaultConfigured, readVaultSecret, listVaultSecretKeys } from "@/lib/vault";
+import { isVaultConfigured, readVaultSecret, listVaultSecretKeys, tokenExpiresAt } from "@/lib/vault";
 
 // Store original env values
 const ORIGINAL_ADDR = process.env.VAULT_ADDR;
@@ -316,5 +316,17 @@ describe("listVaultSecretKeys()", () => {
     } as Response);
     const keys = await listVaultSecretKeys("secret/missing");
     expect(keys).toBeNull();
+  });
+});
+
+describe("tokenExpiresAt()", () => {
+  it("renews 60 s before a normal TTL expires", () => {
+    expect(tokenExpiresAt(3600, 0)).toBe(3540_000);
+  });
+  it("renews at half-life when the TTL is shorter than twice the buffer", () => {
+    expect(tokenExpiresAt(30, 0)).toBe(15_000);
+  });
+  it("never expires a token with lease_duration 0", () => {
+    expect(tokenExpiresAt(0, 0)).toBe(Number.POSITIVE_INFINITY);
   });
 });

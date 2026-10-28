@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 import { type FlatLocation } from "@/lib/location-tree";
 import { LocationSearchList } from "@/components/inventory/location-search-list";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
+import { apiErrorMessage } from "@/lib/utils";
 
 type Props = {
   open: boolean;
@@ -85,8 +86,8 @@ export function DeployStockDialog({
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: t("deployFailed"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: t("deployFailed"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
 

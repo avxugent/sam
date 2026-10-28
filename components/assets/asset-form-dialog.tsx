@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/model-autocomplete";
-import { cn, toIsoDay } from "@/lib/utils";
+import { cn, toIsoDay, apiErrorMessage } from "@/lib/utils";
 import { isHostnameCompliant } from "@/lib/hostname/pattern";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { isWindowActive } from "@/lib/suppliers/window";
@@ -344,10 +344,10 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     });
 
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       toast({
         title: tCommon("error"),
-        description: err.error || tCommon("somethingWentWrong"),
+        description: apiErrorMessage(err, tCommon("somethingWentWrong")),
         variant: "destructive",
       });
       return;

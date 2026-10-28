@@ -16,6 +16,7 @@ import {
   ChevronUp,
   X,
 } from "lucide-react";
+import { apiErrorMessage } from "@/lib/utils";
 
 type PreviewData = {
   totalRows: number;
@@ -86,8 +87,8 @@ export function CsvImportClient() {
     setPreviewLoading(false);
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: t("previewFailed"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: t("previewFailed"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setPreview(await res.json());

@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Plus, Trash2, Save, Search, X } from "lucide-react";
 import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey, ReportDefinition, ReportSource, LocationReportStatus, LocationReportPeriodUnit } from "@/lib/reports/types";
 import { isLocationReport } from "@/lib/reports/types";
+import { apiErrorMessage } from "@/lib/utils";
 
 
 const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
@@ -284,8 +285,8 @@ export function ReportBuilder({
         body: JSON.stringify({ name, description, definition }),
       });
       if (!res.ok) {
-        const err = await res.json();
-        toast({ title: t("errorSaving"), description: err.error, variant: "destructive" });
+        const err = await res.json().catch(() => ({}));
+        toast({ title: t("errorSaving"), description: apiErrorMessage(err), variant: "destructive" });
         return;
       }
       const saved = await res.json();

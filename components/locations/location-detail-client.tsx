@@ -170,7 +170,7 @@ export function LocationDetailClient({
       : `/api/locations/${location.id}`;
     const res = await fetch(url, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       const description = err.error === "HAS_SUBLOCATIONS"
         ? t("deleteHasSubLocations")
         : err.error === "HAS_STOCK"

@@ -111,7 +111,7 @@ describe("POST /api/suppliers", () => {
     const res = await POST(jsonReq("POST", { name: "X", defaultFrom: "2026-07-01", defaultUntil: "2026-07-31" }));
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toBe("supplierWindowOverlap");
+    expect(body.code).toBe("supplierWindowOverlap");
     expect(body.details).toEqual(["Other"]);
     expect(mockCreate).not.toHaveBeenCalled();
   });

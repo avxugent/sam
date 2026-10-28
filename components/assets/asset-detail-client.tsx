@@ -20,7 +20,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { AttachmentGallery, type Attachment } from "@/components/attachments/attachment-gallery";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { RemoveAssetDialog } from "@/components/assets/remove-asset-dialog";
-import { formatDate } from "@/lib/utils";
+import { formatDate, apiErrorMessage } from "@/lib/utils";
 import {
   ChevronRight,
   Pencil,
@@ -160,8 +160,8 @@ export function AssetDetailClient({
     const res = await fetch(`/api/assets/${asset.id}/reinstate`, { method: "POST" });
     setReinstating(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     toast({ title: tDecom("reinstated") });

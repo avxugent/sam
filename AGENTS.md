@@ -147,6 +147,7 @@ prisma/
 - All handlers return `NextResponse.json(...)`.
 - Auth errors: `401` for unauthenticated, `403` for insufficient role.
 - Read request bodies with `readJsonBody(req)` (malformed JSON becomes a Zod 400, not a 500) and return Zod failures with `invalidInput(parsed.error)` — `400` with `{ error: "Invalid input", details }`.
+- Error bodies are `{ error, code?, details? }`: `error` is readable English, `code` a stable id for a case the client localizes, `details` either `string[]` or the Zod flatten object. Clients read error bodies with `await res.json().catch(() => ({}))` (a 500 may have no JSON body) and show them with `apiErrorMessage()` from `lib/utils.ts`.
 - Conflict (unique constraint): `409`. Detect it with `isUniqueConstraintError(err)`; never map every caught error to one status — rethrow what you don't handle.
 - `DELETE` handlers return `200` with `{ ok: true }`.
 - All write endpoints validate input with Zod before touching the database.

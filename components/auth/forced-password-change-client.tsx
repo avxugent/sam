@@ -36,7 +36,7 @@ export function ForcedPasswordChangeClient() {
     });
 
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       setServerError(err.error || "Something went wrong.");
       return;
     }

@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { BulkResultSummary, type BulkResult } from "@/components/inventory/bulk-result-summary";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
+import { apiErrorMessage } from "@/lib/utils";
 
 type Props = {
   open: boolean;
@@ -43,8 +44,8 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
     setSubmitting(false);
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
 

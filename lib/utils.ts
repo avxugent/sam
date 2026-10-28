@@ -38,9 +38,12 @@ export function toIsoDay(date: Date | string | number | null | undefined): strin
 }
 
 /**
- * User-facing text for an API error body. Routes return `{ error }` plus, for
- * template and pattern checks, `details: string[]` with the specific problems;
- * Zod's structured `details` object is not meant for display and is ignored.
+ * User-facing text for an API error body. Every route answers
+ * `{ error: string, code?: string, details? }`: `error` is readable English,
+ * `code` a stable identifier for clients that localize a specific case (e.g.
+ * "supplierWindowOverlap"), and `details` is either `string[]` (template and
+ * pattern problems, conflicting names), appended here, or Zod's structured
+ * object from invalidInput, which is not meant for display and is ignored.
  */
 export function apiErrorMessage(body: { error?: string; details?: unknown }, fallback = ""): string {
   const details = Array.isArray(body.details) ? body.details.filter((d): d is string => typeof d === "string") : [];

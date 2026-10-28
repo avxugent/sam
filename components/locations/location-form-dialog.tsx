@@ -31,6 +31,7 @@ import { Loader2, Hash } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
+import { apiErrorMessage } from "@/lib/utils";
 
 type LocationFormTranslator = ReturnType<typeof useTranslations<"locationForm">>;
 
@@ -161,7 +162,7 @@ export function LocationFormDialog({
     });
 
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       // Renaming onto an existing sibling name — offer to merge instead of
       // creating a duplicate.
       if (err.error === "LOCATION_NAME_EXISTS" && err.targetId) {
@@ -170,7 +171,7 @@ export function LocationFormDialog({
       }
       toast({
         title: tCommon("error"),
-        description: err.error || tCommon("somethingWentWrong"),
+        description: apiErrorMessage(err, tCommon("somethingWentWrong")),
         variant: "destructive",
       });
       return;
@@ -195,10 +196,10 @@ export function LocationFormDialog({
     setMerging(false);
 
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       toast({
         title: tCommon("error"),
-        description: err.error || tCommon("somethingWentWrong"),
+        description: apiErrorMessage(err, tCommon("somethingWentWrong")),
         variant: "destructive",
       });
       return;

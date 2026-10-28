@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Package, ArchiveX, Trash2, ChevronRight, Wrench } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, apiErrorMessage } from "@/lib/utils";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { DisposalMethod } from "@/generated/prisma/enums";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
@@ -115,8 +115,8 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
     });
     setSubmitting(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     toast({ title: t("returnedToStock") });
@@ -133,8 +133,8 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
     });
     setSubmitting(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     toast({ title: tDecom("decommissionAsset") });
@@ -150,8 +150,8 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
     });
     setSubmitting(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     toast({ title: tRepair("assetSentForRepair") });
@@ -163,8 +163,8 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
     const res = await fetch(`/api/assets/${assetId}`, { method: "DELETE" });
     setSubmitting(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     toast({ title: t("assetDeleted") });

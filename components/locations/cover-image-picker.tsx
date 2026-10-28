@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Check, ImageOff, Loader2, Star } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, apiErrorMessage } from "@/lib/utils";
 import type { Attachment as GalleryAttachment } from "@/components/attachments/attachment-gallery";
 
 type Attachment = Pick<GalleryAttachment, "id" | "originalName" | "mimeType" | "size">;
@@ -41,8 +41,8 @@ export function CoverImagePicker({
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
 

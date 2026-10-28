@@ -38,7 +38,10 @@ export async function PUT(
     id
   );
   if (conflicts) {
-    return NextResponse.json({ error: "supplierWindowOverlap", details: conflicts }, { status: 400 });
+    return NextResponse.json(
+      { error: "Default window overlaps another supplier", code: "supplierWindowOverlap", details: conflicts },
+      { status: 400 }
+    );
   }
 
   try {

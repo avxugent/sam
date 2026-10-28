@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, ExternalLink } from "lucide-react";
 import { renderLocationUrl, renderMacAddressUrl } from "@/lib/url-templates";
+import { apiErrorMessage } from "@/lib/utils";
 
 export function GeneralSettingsClient({
   initialHostnameUrlTemplate,
@@ -36,8 +37,8 @@ export function GeneralSettingsClient({
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     toast({ title: t("saved") });

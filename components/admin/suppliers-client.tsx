@@ -20,7 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Plus, Loader2, Trash2, ChevronDown, ChevronUp, Save } from "lucide-react";
-import { formatDate, toIsoDay } from "@/lib/utils";
+import { apiErrorMessage, formatDate, toIsoDay } from "@/lib/utils";
 
 export type SupplierRow = {
   id: string;
@@ -55,11 +55,12 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
   } | null>(null);
   const [saving, setSaving] = useState(false);
 
-  function describeError(err: { error?: string; details?: string[] }): string {
-    if (err.error === "supplierWindowOverlap") {
-      return t("windowOverlap", { names: (err.details ?? []).join(", ") });
+  /** Localized text for the window-overlap conflict; anything else via apiErrorMessage. */
+  function describeError(err: { error?: string; code?: string; details?: unknown }): string {
+    if (err.code === "supplierWindowOverlap" && Array.isArray(err.details)) {
+      return t("windowOverlap", { names: err.details.join(", ") });
     }
-    return err.error ?? tCommon("error");
+    return apiErrorMessage(err, tCommon("error"));
   }
 
   async function handleAdd() {
@@ -72,7 +73,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
     });
     setAdding(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: describeError(await res.json()), variant: "destructive" });
+      toast({ title: tCommon("error"), description: describeError(await res.json().catch(() => ({}))), variant: "destructive" });
       return;
     }
     const created = await res.json();
@@ -115,7 +116,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
     });
     setSaving(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: describeError(await res.json()), variant: "destructive" });
+      toast({ title: tCommon("error"), description: describeError(await res.json().catch(() => ({}))), variant: "destructive" });
       return;
     }
     const updated = await res.json();
@@ -133,7 +134,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
   async function handleDelete(id: string) {
     const res = await fetch(`/api/suppliers/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: (await res.json()).error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(await res.json().catch(() => ({}))), variant: "destructive" });
       return;
     }
     setSuppliers((prev) => prev.filter((s) => s.id !== id));

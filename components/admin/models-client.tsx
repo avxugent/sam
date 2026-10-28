@@ -34,6 +34,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Plus, Merge, TriangleAlert } from "lucide-react";
 import type { AssetStatus } from "@/generated/prisma/enums";
+import { apiErrorMessage } from "@/lib/utils";
 
 type NameOption = { id: string; name: string };
 
@@ -178,7 +179,7 @@ export function ModelsClient({
     setSaving(false);
 
     if (res.status === 409) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       if (editingId) {
         setMergeConflict({
           editingId,
@@ -196,8 +197,8 @@ export function ModelsClient({
       return;
     }
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
 
@@ -233,8 +234,8 @@ export function ModelsClient({
   async function handleDelete(id: string) {
     const res = await fetch(`/api/models/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setModels((prev) => prev.filter((m) => m.id !== id));

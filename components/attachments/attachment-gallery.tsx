@@ -25,7 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { formatDate, formatFileSize } from "@/lib/utils";
+import { formatDate, formatFileSize, apiErrorMessage } from "@/lib/utils";
 import {
   FileText,
   File,
@@ -154,8 +154,8 @@ export function AttachmentGallery({
       if (assetId) formData.append("assetId", assetId);
       const res = await fetch("/api/attachments", { method: "POST", body: formData });
       if (!res.ok) {
-        const err = await res.json();
-        toast({ title: t("uploadFailed"), description: err.error || file.name, variant: "destructive" });
+        const err = await res.json().catch(() => ({}));
+        toast({ title: t("uploadFailed"), description: apiErrorMessage(err, file.name), variant: "destructive" });
       } else {
         const attachment = await res.json();
         updateAttachments([attachment, ...attachments]);
@@ -176,8 +176,8 @@ export function AttachmentGallery({
     });
     setAddingLink(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     const attachment = await res.json();
@@ -202,8 +202,8 @@ export function AttachmentGallery({
     });
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     const updated = await res.json();
@@ -215,8 +215,8 @@ export function AttachmentGallery({
   async function handleDelete(id: string) {
     const res = await fetch(`/api/attachments/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     toast({ title: t("deleted") });

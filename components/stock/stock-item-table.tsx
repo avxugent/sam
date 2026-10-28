@@ -39,7 +39,7 @@ import {
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { SortableTh } from "@/components/ui/sortable-th";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay, apiErrorMessage } from "@/lib/utils";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
 import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
 
@@ -133,8 +133,8 @@ export function StockItemTable({
   async function handleDelete(id: string) {
     const res = await fetch(`/api/stock/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));

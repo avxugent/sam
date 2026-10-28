@@ -88,8 +88,8 @@ export function AssetTypesClient({
     });
     setAdding(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     const item = await res.json();
@@ -155,8 +155,8 @@ export function AssetTypesClient({
     });
     setMerging(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setTypes((prev) => prev.filter((x) => x.id !== mergeConflict.sourceId));
@@ -208,8 +208,8 @@ export function AssetTypesClient({
   async function handleDelete(id: string) {
     const res = await fetch(`/api/asset-types/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setTypes((prev) => prev.filter((i) => i.id !== id));

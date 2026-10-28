@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
 import { AssetDrilldownDialog } from "@/components/admin/asset-drilldown-dialog";
+import { apiErrorMessage } from "@/lib/utils";
 
 type Manufacturer = {
   id: string;
@@ -60,8 +61,8 @@ export function ManufacturersClient({
     });
     setAdding(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     const item = await res.json();
@@ -81,7 +82,7 @@ export function ManufacturersClient({
     });
 
     if (res.status === 409) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       setMergeConflict({
         editingId: id,
         newName: editName.trim(),
@@ -93,8 +94,8 @@ export function ManufacturersClient({
     }
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     const updated = await res.json();
@@ -136,8 +137,8 @@ export function ManufacturersClient({
   async function handleDelete(id: string) {
     const res = await fetch(`/api/manufacturers/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, Upload, Trash2, Image as ImageIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, apiErrorMessage } from "@/lib/utils";
 import type { BackgroundMode } from "@/lib/background-mode";
 
 
@@ -63,8 +63,8 @@ export function BrandingSettingsClient({
     });
     setSavingTitle(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     toast({ title: t("saved") });
@@ -81,8 +81,8 @@ export function BrandingSettingsClient({
     setUploadingLogo(false);
     if (logoInputRef.current) logoInputRef.current.value = "";
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setHasLogo(true);
@@ -96,8 +96,8 @@ export function BrandingSettingsClient({
     const res = await fetch("/api/settings/branding/logo", { method: "DELETE" });
     setRemovingLogo(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setHasLogo(false);
@@ -116,8 +116,8 @@ export function BrandingSettingsClient({
     setUploadingFavicon(false);
     if (faviconInputRef.current) faviconInputRef.current.value = "";
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setHasFavicon(true);
@@ -131,8 +131,8 @@ export function BrandingSettingsClient({
     const res = await fetch("/api/settings/branding/favicon", { method: "DELETE" });
     setRemovingFavicon(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setHasFavicon(false);
@@ -154,8 +154,8 @@ export function BrandingSettingsClient({
     });
     setSavingBackground(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setBackgroundMode(mode);
@@ -173,8 +173,8 @@ export function BrandingSettingsClient({
     setUploadingBackground(false);
     if (backgroundInputRef.current) backgroundInputRef.current.value = "";
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setBackgroundMode("custom");
@@ -189,8 +189,8 @@ export function BrandingSettingsClient({
     const res = await fetch("/api/settings/branding/background", { method: "DELETE" });
     setRemovingBackground(false);
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setBackgroundMode("");

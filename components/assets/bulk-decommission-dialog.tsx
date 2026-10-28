@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { DISPOSAL_METHODS } from "@/components/assets/remove-asset-dialog";
 import { BulkResultSummary, type BulkResult } from "@/components/inventory/bulk-result-summary";
+import { apiErrorMessage } from "@/lib/utils";
 
 type Props = {
   open: boolean;
@@ -52,8 +53,8 @@ export function BulkDecommissionDialog({ open, onOpenChange, assetIds, onComplet
     setSubmitting(false);
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
 

@@ -122,7 +122,7 @@ Fixed lookup table for the Asset/StockItem "model" field, scoped by `(typeId, ma
 | Method | Path | Min role | Description |
 |---|---|---|---|
 | `GET` | `/api/suppliers` | VIEWER | List all (with active/INSTALLED asset counts — decommissioned assets are historical and excluded) |
-| `POST` | `/api/suppliers` | MAINTAINER | Create. Body: `{ name, contractReference?, contactInfo?, defaultFrom?, defaultUntil? }`. Overlapping default windows across suppliers return `400 supplierWindowOverlap`; duplicate name returns `409` |
+| `POST` | `/api/suppliers` | MAINTAINER | Create. Body: `{ name, contractReference?, contactInfo?, defaultFrom?, defaultUntil? }`. Overlapping default windows across suppliers return `400` with `code: "supplierWindowOverlap"` and the conflicting supplier names in `details`; duplicate name returns `409` |
 | `PUT` | `/api/suppliers/[id]` | MAINTAINER | Update (same body/validation as create) |
 | `DELETE` | `/api/suppliers/[id]` | MAINTAINER | Delete — blocked with `400` while assets reference the supplier |
 

@@ -36,7 +36,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { cn, formatDate, getInitials, toIsoDay } from "@/lib/utils";
+import { cn, formatDate, getInitials, toIsoDay, apiErrorMessage } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Loader2, ShieldOff, Download } from "lucide-react";
 import { SortableTh } from "@/components/ui/sortable-th";
@@ -142,8 +142,8 @@ export function UsersClient({
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     const user = await res.json();
@@ -165,8 +165,8 @@ export function UsersClient({
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     const updated = await res.json();
@@ -178,8 +178,8 @@ export function UsersClient({
   async function handleDelete(id: string) {
     const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     setUsers((prev) => prev.filter((u) => u.id !== id));

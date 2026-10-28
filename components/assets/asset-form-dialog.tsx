@@ -119,6 +119,17 @@ function buildAssetFormSchema(t: AssetFormTranslator, assetTypes: AssetType[]) {
 
 type AssetFormValues = z.infer<ReturnType<typeof buildAssetFormSchema>>;
 
+/** A blank form: the defaults, and what create mode and a successful save reset to. */
+const EMPTY_ASSET_FORM: Partial<AssetFormValues> = {
+  typeId: "",
+  manufacturerId: "",
+  modelId: "",
+  quantity: 1,
+  macAddresses: [],
+  customFields: [],
+  vaultPath: "",
+};
+
 type Props = {
   mode: "create" | "edit";
   locationId: string;
@@ -156,15 +167,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     formState: { errors, isSubmitting },
   } = useForm<AssetFormValues>({
     resolver: zodResolver(validationSchema),
-    defaultValues: {
-      typeId: "",
-      manufacturerId: "",
-      modelId: "",
-      quantity: 1,
-      macAddresses: [],
-      customFields: [],
-      vaultPath: "",
-    },
+    defaultValues: EMPTY_ASSET_FORM,
   });
 
   const { fields: macFields, append: appendMac, remove: removeMac } = useFieldArray({
@@ -193,10 +196,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   }, [hostnameValue, macFields.length, trigger]);
 
   // Lock quantity to 1 as soon as the asset gains an individual identity
-  const hasIdentityValue =
-    !!serialNumberValue?.trim() ||
-    !!hostnameValue?.trim() ||
-    macValues.some((m) => m.address.trim() !== "");
+  const hasAnyMac = macValues.some((m) => m.address.trim() !== "");
+  const hasIdentityValue = !!serialNumberValue?.trim() || !!hostnameValue?.trim() || hasAnyMac;
   useEffect(() => {
     if (hasIdentityValue) setValue("quantity", 1, { shouldValidate: true });
   }, [hasIdentityValue, setValue]);
@@ -262,7 +263,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         // Clear any values left over from a previous (e.g. cancelled) entry —
         // the form component stays mounted across open/close, so create mode
         // must reset explicitly rather than relying on defaultValues.
-        reset({ typeId: "", manufacturerId: "", modelId: "", quantity: 1, macAddresses: [], customFields: [], vaultPath: "" });
+        reset(EMPTY_ASSET_FORM);
         // Pre-select the supplier whose default window covers today (the API
         // would apply the same default; showing it keeps the form honest).
         dropdowns.then((fetched) => {
@@ -354,7 +355,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
     toast({ title: mode === "create" ? tAsset("assetCreated") : tAsset("assetUpdated") });
     setOpen(false);
-    reset({ typeId: "", manufacturerId: "", modelId: "", quantity: 1, macAddresses: [], customFields: [], vaultPath: "" });
+    reset(EMPTY_ASSET_FORM);
     router.refresh();
     onSuccess?.();
   }
@@ -365,7 +366,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
   // Derived state for contextual hints
   const hostnameSet = !!hostnameValue?.trim();
-  const hasAnyMac = macValues.some((m) => m.address.trim() !== "");
   const selectedTypePattern = assetTypes.find((at) => at.id === typeIdValue)?.hostnamePattern;
 
   // Cross-field error for mac addresses (from superRefine)

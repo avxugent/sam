@@ -104,9 +104,9 @@ export function CsvImportClient() {
     const res = await fetch("/api/import", { method: "POST", body: fd });
     setImporting(false);
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast({ title: t("importFailed"), description: data.error, variant: "destructive" });
+      toast({ title: t("importFailed"), description: apiErrorMessage(data), variant: "destructive" });
       return;
     }
     setResult(data);

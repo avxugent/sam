@@ -30,6 +30,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { confirmTotpSetup, normalizeTotpCode, requestTotpSetup } from "@/lib/two-factor/enrollment-client";
+import { apiErrorMessage } from "@/lib/utils";
 
 type Props = {
   provider: string;
@@ -113,9 +114,9 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
     });
     setLoading(false);
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast({ title: t("twoFactorInvalid"), description: data.error, variant: "destructive" });
+      toast({ title: t("twoFactorInvalid"), description: apiErrorMessage(data), variant: "destructive" });
       setDisableCode("");
       return;
     }

@@ -62,7 +62,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
 
     try {
       const optionsRes = await fetch("/api/auth/passkey/authentication-options", { method: "POST" });
-      const optionsData = await optionsRes.json();
+      const optionsData = await optionsRes.json().catch(() => ({}));
       if (!optionsRes.ok) {
         setError(optionsData.error || t("passkeyFailed"));
         return;
@@ -75,7 +75,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ response: assertion, rememberMe }),
       });
-      const verifyData = await verifyRes.json();
+      const verifyData = await verifyRes.json().catch(() => ({}));
       if (!verifyRes.ok) {
         setError(verifyData.error || t("passkeyFailed"));
         return;

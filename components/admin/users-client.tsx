@@ -491,9 +491,9 @@ export function UsersClient({
                                   headers: { "Content-Type": "application/json" },
                                   body: JSON.stringify({ userId: user.id }),
                                 });
-                                const data = await res.json();
+                                const data = await res.json().catch(() => ({}));
                                 if (!res.ok) {
-                                  toast({ title: tCommon("error"), description: data.error, variant: "destructive" });
+                                  toast({ title: tCommon("error"), description: apiErrorMessage(data), variant: "destructive" });
                                 } else {
                                   setUsers((prev) =>
                                     prev.map((u) =>

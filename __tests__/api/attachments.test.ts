@@ -135,6 +135,106 @@ describe("POST /api/attachments (file upload)", () => {
   });
 });
 
+// Binary signatures do not survive jsdom's multipart round trip, so these
+// tests hand the route a stubbed formData() with a File-like object.
+function stubUpload(file: { name: string; type: string; bytes: number[]; size?: number }, fields: Record<string, string>) {
+  const req = new NextRequest("http://localhost/api/attachments", { method: "POST" });
+  const fileLike = {
+    name: file.name,
+    type: file.type,
+    size: file.size ?? file.bytes.length,
+    arrayBuffer: async () => new Uint8Array(file.bytes).buffer,
+  };
+  const values: Record<string, unknown> = { file: fileLike, ...fields };
+  Object.assign(req, { formData: async () => ({ get: (key: string) => values[key] ?? null }) });
+  return req;
+}
+
+const pad = (bytes: number[]) => [...bytes, ...new Array(16).fill(0x20)];
+const SIGNATURES: [string, string, number[]][] = [
+  ["image/jpeg", "a.jpg", [0xff, 0xd8, 0xff, 0xe0]],
+  ["image/png", "a.png", [0x89, 0x50, 0x4e, 0x47]],
+  ["image/gif", "a.gif", [0x47, 0x49, 0x46, 0x38]],
+  ["image/webp", "a.webp", [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]],
+  ["application/pdf", "a.pdf", [0x25, 0x50, 0x44, 0x46]],
+  ["application/msword", "a.doc", [0xd0, 0xcf, 0x11, 0xe0]],
+  ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "a.docx", [0x50, 0x4b, 0x03, 0x04]],
+];
+
+describe("POST /api/attachments — upload validation", () => {
+  beforeEach(() => {
+    mockAuth.mockResolvedValue(editorSession() as never);
+    mockCreate.mockResolvedValue({ id: "att-1", originalName: "a", locationId: "loc-1", assetId: null } as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ name: "Room 1" } as never);
+  });
+
+  it.each(SIGNATURES)("accepts a real %s file and keeps its extension", async (type, name, bytes) => {
+    const res = await POST(stubUpload({ name, type, bytes: pad(bytes) }, { locationId: "loc-1" }));
+    expect(res.status).toBe(201);
+    expect(putObject.mock.calls[0][0]).toMatch(new RegExp(`^locations/loc-1/[0-9a-f-]{36}\\${name.slice(1)}$`));
+  });
+
+  it.each(SIGNATURES)("rejects %s content that has another file's signature", async (type, name) => {
+    const res = await POST(stubUpload({ name, type, bytes: pad([0x4d, 0x5a, 0x90, 0x00]) }, { locationId: "loc-1" }));
+    expect(res.status).toBe(400);
+    expect(putObject).not.toHaveBeenCalled();
+  });
+
+  it("rejects text that contains null bytes (binary posing as text)", async () => {
+    const res = await POST(stubUpload({ name: "a.txt", type: "text/plain", bytes: [0x41, 0x00, 0x42, 0x43] }, { locationId: "loc-1" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("drops a disallowed extension on a double-extension name (a.jpg.php)", async () => {
+    const res = await POST(stubUpload({ name: "a.jpg.php", type: "image/jpeg", bytes: pad([0xff, 0xd8, 0xff, 0xe0]) }, { locationId: "loc-1" }));
+    expect(res.status).toBe(201);
+    expect(putObject.mock.calls[0][0]).toMatch(/^locations\/loc-1\/[0-9a-f-]{36}$/);
+  });
+
+  it("rejects missing files, missing parents and oversized files", async () => {
+    const noFile = new NextRequest("http://localhost/api/attachments", { method: "POST" });
+    Object.assign(noFile, { formData: async () => ({ get: (key: string) => (key === "locationId" ? "loc-1" : null) }) });
+    expect((await POST(noFile)).status).toBe(400);
+    expect((await POST(stubUpload({ name: "a.txt", type: "text/plain", bytes: [0x41, 0x42, 0x43, 0x44] }, {}))).status).toBe(400);
+    const big = stubUpload({ name: "a.pdf", type: "application/pdf", bytes: [0x25, 0x50, 0x44, 0x46], size: 51 * 1024 * 1024 }, { locationId: "loc-1" });
+    expect((await POST(big)).status).toBe(400);
+    expect(putObject).not.toHaveBeenCalled();
+  });
+
+  it("stores the sanitised original name and audits the parent location", async () => {
+    await POST(stubUpload({ name: 'we"ird\\name.txt', type: "text/plain", bytes: [0x41, 0x42, 0x43, 0x44] }, { locationId: "loc-1", description: "note" }));
+    expect(mockCreate.mock.calls[0][0].data).toMatchObject({ originalName: "we_ird_name.txt", description: "note", locationId: "loc-1" });
+  });
+});
+
+describe("POST /api/attachments (link)", () => {
+  function linkReq(body: object) {
+    return new NextRequest("http://localhost/api/attachments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  beforeEach(() => {
+    mockAuth.mockResolvedValue(editorSession() as never);
+  });
+
+  it("rejects an invalid URL and a link without a parent", async () => {
+    expect((await POST(linkReq({ url: "not a url", label: "Docs", locationId: "loc-1" }))).status).toBe(400);
+    expect((await POST(linkReq({ url: "https://example.org", label: "Docs" }))).status).toBe(400);
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("creates a link on an asset and names the asset in the audit entry", async () => {
+    mockCreate.mockResolvedValue({ id: "att-2", originalName: "Docs" } as never);
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({ model: { name: "Pearl-2" } } as never);
+    const res = await POST(linkReq({ url: "https://example.org/manual", label: "Docs", assetId: "as-1" }));
+    expect(res.status).toBe(201);
+    expect(mockCreate.mock.calls[0][0].data).toMatchObject({ attachmentType: "link", url: "https://example.org/manual", assetId: "as-1", locationId: null });
+  });
+});
+
 // ── GET /api/attachments/[id] ────────────────────────────────────────────────
 
 describe("GET /api/attachments/[id]", () => {

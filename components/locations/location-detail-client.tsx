@@ -47,6 +47,7 @@ import {
 import { renderLocationUrl } from "@/lib/url-templates";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
+import { apiErrorMessage } from "@/lib/utils";
 
 type Breadcrumb = { id: string; name: string };
 
@@ -150,7 +151,7 @@ export function LocationDetailClient({
     setMaintPendingId(null);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(err), variant: "destructive" });
       return;
     }
     const next = !current;
@@ -175,7 +176,7 @@ export function LocationDetailClient({
         ? t("deleteHasSubLocations")
         : err.error === "HAS_STOCK"
         ? t("deleteHasStock")
-        : err.error;
+        : apiErrorMessage(err);
       toast({ title: tCommon("error"), description, variant: "destructive" });
       return;
     }
@@ -257,7 +258,7 @@ export function LocationDetailClient({
           {(location.fiNumber || monitoringUrl || selfMaintenance) && (
             <div className="flex flex-wrap items-center gap-2 mt-1">
               {location.fiNumber && (
-                <span className="inline-flex items-center font-mono text-[11px] leading-none text-white bg-card/20 border border-white/25 px-2 py-1 rounded-[5px]">
+                <span className="inline-flex items-center font-mono text-[11px] leading-none text-white bg-white/20 border border-white/25 px-2 py-1 rounded-[5px]">
                   {location.fiNumber}
                 </span>
               )}
@@ -266,7 +267,7 @@ export function LocationDetailClient({
                   href={monitoringUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-semibold text-[11px] leading-none text-white bg-card/20 border border-white/25 hover:bg-card/30 px-2 py-1 rounded-[5px]"
+                  className="inline-flex items-center gap-1 font-semibold text-[11px] leading-none text-white bg-white/20 border border-white/25 hover:bg-white/30 px-2 py-1 rounded-[5px]"
                 >
                   <Activity className="h-3 w-3" />
                   {t("monitoring")}
@@ -301,7 +302,7 @@ export function LocationDetailClient({
                 className={`h-8 rounded-[7px] border gap-1.5 text-[13px] backdrop-blur-[4px] ${
                   selfMaintenance
                     ? "border-amber-300 bg-amber-400 text-foreground hover:brightness-95"
-                    : "border-white/30 bg-card/15 text-white hover:bg-card/25"
+                    : "border-white/30 bg-white/15 text-white hover:bg-white/25"
                 }`}
               >
                 <Wrench className="h-3.5 w-3.5" />
@@ -322,7 +323,7 @@ export function LocationDetailClient({
             >
               <Button
                 size="sm"
-                className="h-8 rounded-[7px] border border-white/30 bg-card/15 text-white hover:bg-card/25 backdrop-blur-[4px] gap-1.5 text-[13px]"
+                className="h-8 rounded-[7px] border border-white/30 bg-white/15 text-white hover:bg-white/25 backdrop-blur-[4px] gap-1.5 text-[13px]"
                 variant="ghost"
               >
                 <Pencil className="h-3.5 w-3.5" />

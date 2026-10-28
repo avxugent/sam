@@ -196,9 +196,9 @@ export function ModelsClient({
       body: JSON.stringify({ targetId: mergeConflict.existingId }),
     });
     setMerging(false);
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: data.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(data), variant: "destructive" });
       setMergeConflict(null);
       return;
     }
@@ -231,9 +231,9 @@ export function ModelsClient({
       body: JSON.stringify({ targetId: dupMerge.targetId }),
     });
     setDupMerging(false);
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: data.error, variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(data), variant: "destructive" });
       setDupMerge(null);
       return;
     }

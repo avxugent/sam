@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { Session } from "next-auth";
+import type { AuditLog } from "@/generated/prisma/client";
 import { forwardAuditEntry, isSyslogConfigured } from "@/lib/audit/syslog";
 import { clientIp } from "@/lib/request-limits";
 
@@ -60,7 +61,7 @@ export async function logAudit({
     // it fails the row stays "unforwarded" and the catch-up retries. We do
     // not await the chain so HTTP responses are not delayed by syslog I/O.
     if (isSyslogConfigured()) {
-      void forwardAndMark(created.id);
+      void forwardAndMark(created);
     }
   } catch (err) {
     // Audit logging must never block or crash the main operation, but a broken
@@ -69,10 +70,8 @@ export async function logAudit({
   }
 }
 
-async function forwardAndMark(id: string): Promise<void> {
+async function forwardAndMark(row: AuditLog): Promise<void> {
   try {
-    const row = await prisma.auditLog.findUnique({ where: { id } });
-    if (!row) return;
     const ok = await forwardAuditEntry({
       id: row.id,
       timestamp: row.timestamp,
@@ -88,7 +87,7 @@ async function forwardAndMark(id: string): Promise<void> {
     });
     if (ok) {
       await prisma.auditLog.update({
-        where: { id },
+        where: { id: row.id },
         data: { forwardedAt: new Date() },
       });
     }

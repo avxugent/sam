@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
-    auditLog: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+    auditLog: { create: vi.fn(), update: vi.fn() },
   },
 }));
 
@@ -18,7 +18,6 @@ import { isSyslogConfigured, forwardAuditEntry } from "@/lib/audit/syslog";
 import { logAudit } from "@/lib/audit";
 
 const mockCreate = vi.mocked(prisma.auditLog.create);
-const mockFindUnique = vi.mocked(prisma.auditLog.findUnique);
 const mockUpdate = vi.mocked(prisma.auditLog.update);
 const mockConfigured = vi.mocked(isSyslogConfigured);
 const mockForward = vi.mocked(forwardAuditEntry);
@@ -106,18 +105,20 @@ describe("logAudit()", () => {
     mockConfigured.mockReturnValue(false);
     await logAudit({ session: SESSION, action: "CREATE", entityType: "Asset" });
     await flush();
-    expect(mockFindUnique).not.toHaveBeenCalled();
+    expect(mockForward).not.toHaveBeenCalled();
   });
 
   it("forwards and marks forwardedAt when syslog accepts the entry", async () => {
     mockConfigured.mockReturnValue(true);
-    mockFindUnique.mockResolvedValue({ id: "log1", timestamp: new Date(), userId: "u1", userEmail: "a@b.com", action: "CREATE", entityType: "Asset", entityId: null, entityName: null, detail: null, ipAddress: null, userAgent: null } as never);
+    const row = { id: "log1", timestamp: new Date(), userId: "u1", userEmail: "a@b.com", action: "CREATE", entityType: "Asset", entityId: null, entityName: null, detail: null, ipAddress: null, userAgent: null };
+    mockCreate.mockResolvedValue({ ...row, lineageId: null, forwardedAt: null } as never);
     mockForward.mockResolvedValue(true as never);
 
     await logAudit({ session: SESSION, action: "CREATE", entityType: "Asset" });
     await flush();
 
-    expect(mockForward).toHaveBeenCalled();
+    // Forwards the row create() returned, without reading it back.
+    expect(mockForward).toHaveBeenCalledWith(row);
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "log1" }, data: expect.objectContaining({ forwardedAt: expect.any(Date) }) })
     );
@@ -125,7 +126,6 @@ describe("logAudit()", () => {
 
   it("does not mark forwardedAt when syslog forwarding fails", async () => {
     mockConfigured.mockReturnValue(true);
-    mockFindUnique.mockResolvedValue({ id: "log1", timestamp: new Date() } as never);
     mockForward.mockResolvedValue(false as never);
 
     await logAudit({ session: SESSION, action: "CREATE", entityType: "Asset" });
@@ -138,7 +138,7 @@ describe("logAudit()", () => {
   it("swallows errors thrown during forwarding, but logs a warning", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     mockConfigured.mockReturnValue(true);
-    mockFindUnique.mockRejectedValue(new Error("boom"));
+    mockForward.mockRejectedValue(new Error("boom"));
     await logAudit({ session: SESSION, action: "CREATE", entityType: "Asset" });
     await flush();
     expect(mockUpdate).not.toHaveBeenCalled();

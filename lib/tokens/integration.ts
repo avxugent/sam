@@ -10,7 +10,7 @@ import { hasBearerToken } from "@/lib/tokens/bearer";
  * - If the Authorization header is missing or wrong, returns 401.
  * - Returns null when auth succeeds (caller should proceed).
  */
-export function checkIntegrationToken(req: NextRequest): NextResponse | null {
+export function integrationTokenError(req: NextRequest): NextResponse | null {
   const token = process.env.PROMETHEUS_SD_TOKEN;
 
   if (!token) {

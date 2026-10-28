@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
 import { Search, Package, Pencil, Trash2, ExternalLink, Download, ChevronLeft, ChevronRight } from "lucide-react";
-import { renderHostnameUrl } from "@/lib/hostname/template";
+import { renderHostnameUrl } from "@/lib/url-templates";
 import {
   Select,
   SelectContent,

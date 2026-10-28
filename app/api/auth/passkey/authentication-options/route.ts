@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildAuthenticationOptions, setChallengeCookie } from "@/lib/two-factor/webauthn";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { clientIp, tooManyAttempts } from "@/lib/request-limits";
 
 export async function POST(req: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   }
 
   const ip = clientIp(req.headers) ?? "unknown";
-  const rl = checkRateLimit(`passkey-auth-options:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
+  const rl = consumeRateLimit(`passkey-auth-options:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
   if (!rl.allowed) {
     return tooManyAttempts(rl.retryAfterMs);
   }

@@ -10,14 +10,14 @@ vi.mock("@/lib/auth", () => ({ __esModule: true, auth: vi.fn() }));
 vi.mock("@/lib/two-factor/session-upgrade", () => ({ upgradeSession: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ __esModule: true, logAudit: vi.fn() }));
 vi.mock("@/lib/two-factor/totp", () => ({ __esModule: true, verifyTotpCode: vi.fn() }));
-vi.mock("@/lib/rate-limit", () => ({ __esModule: true, checkRateLimit: vi.fn() }));
+vi.mock("@/lib/rate-limit", () => ({ __esModule: true, consumeRateLimit: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { logAudit } from "@/lib/audit";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { POST } from "@/app/api/auth/2fa/verify/route";
 import { NextRequest } from "next/server";
 
@@ -25,7 +25,7 @@ const mockAuth = vi.mocked(auth);
 const mockFindUnique = vi.mocked(prisma.user.findUnique);
 const mockLogAudit = vi.mocked(logAudit);
 const mockVerify = vi.mocked(verifyTotpCode);
-const mockRateLimit = vi.mocked(checkRateLimit);
+const mockRateLimit = vi.mocked(consumeRateLimit);
 
 function pendingSession() {
   return { user: { id: "u1", email: "a@b.c", role: "EDITOR" }, needs2FA: true } as never;

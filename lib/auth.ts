@@ -4,7 +4,7 @@ import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request-limits";
 import { logAudit } from "@/lib/audit";
 import { auditLoginFailure } from "@/lib/audit/login";
@@ -38,8 +38,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Rate-limit by IP (broad) and by email (per-account)
         const ip = clientIp(request.headers) ?? "unknown";
-        const ipRl = checkRateLimit(`login:ip:${ip}`, 20, 15 * 60 * 1000);
-        const emailRl = checkRateLimit(`login:email:${parsed.data.email}`, 10, 15 * 60 * 1000);
+        const ipRl = consumeRateLimit(`login:ip:${ip}`, 20, 15 * 60 * 1000);
+        const emailRl = consumeRateLimit(`login:email:${parsed.data.email}`, 10, 15 * 60 * 1000);
         if (!ipRl.allowed || !emailRl.allowed) {
           auditLoginFailure({ req: request, entityName: parsed.data.email, detail: { reason: "rate_limited" } });
           return null;

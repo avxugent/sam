@@ -3,14 +3,14 @@ import { auth } from "@/lib/auth";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { generateExportCsv } from "@/lib/csv/export";
 import { logAudit } from "@/lib/audit";
-import { checkExportToken } from "@/lib/tokens/export";
+import { hasValidExportToken } from "@/lib/tokens/export";
 import { isAdmin } from "@/lib/permissions";
 import { toIsoDay } from "@/lib/utils";
 import { csvDownload } from "@/lib/route-helpers";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  const hasToken = checkExportToken(req);
+  const hasToken = hasValidExportToken(req);
 
   if (!hasToken) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -84,7 +84,8 @@ SAMproject/
 │   ├── suppliers/            # Default-window rules + conflict lookup
 │   ├── tokens/               # Constant-time Bearer check, integration + export tokens
 │   ├── schemas/              # Zod schemas shared by routes and forms (no DB code)
-│   ├── hostname/             # Hostname rules, URL templates, compliance
+│   ├── hostname/             # Hostname rules, compliance
+│   ├── url-templates.ts      # Hostname / MAC / location link templates
 │   ├── reports/              # Report query executor + definition types
 │   └── two-factor/           # TOTP (RFC 6238 on node:crypto), passkeys, remember-device
 ├── prisma/

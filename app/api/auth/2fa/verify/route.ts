@@ -16,7 +16,7 @@ import { auth } from "@/lib/auth";
 import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { clientIp, tooManyAttempts } from "@/lib/request-limits";
 import { auditLoginFailure } from "@/lib/audit/login";
 import { setRememberMeCookie } from "@/lib/two-factor/remember-device";
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   // Rate-limit TOTP verification per user + IP to prevent brute-force of 6-digit codes
   const ip = clientIp(req.headers) ?? "unknown";
-  const rl = checkRateLimit(`2fa:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
+  const rl = consumeRateLimit(`2fa:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
   if (!rl.allowed) {
     auditLoginFailure({ req, actor: session.user, entityId: session.user.id, entityName: session.user.email, detail: { stage: "totp", reason: "rate_limited" } });
     return tooManyAttempts(rl.retryAfterMs);

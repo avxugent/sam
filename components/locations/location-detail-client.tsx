@@ -44,7 +44,7 @@ import {
   Activity,
   ExternalLink,
 } from "lucide-react";
-import { renderLocationUrl } from "@/lib/hostname/template";
+import { renderLocationUrl } from "@/lib/url-templates";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 

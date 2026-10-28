@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { checkExportToken } from "@/lib/tokens/export";
+import { hasValidExportToken } from "@/lib/tokens/export";
 
 function req(authHeader?: string) {
   return new Request("http://x", {
@@ -18,20 +18,20 @@ afterEach(() => {
   else process.env.EXPORT_TOKEN = ORIGINAL;
 });
 
-describe("checkExportToken()", () => {
+describe("hasValidExportToken()", () => {
   it("accepts a matching Bearer token (case-insensitive scheme)", () => {
-    expect(checkExportToken(req("Bearer secret-token"))).toBe(true);
-    expect(checkExportToken(req("bearer secret-token"))).toBe(true);
+    expect(hasValidExportToken(req("Bearer secret-token"))).toBe(true);
+    expect(hasValidExportToken(req("bearer secret-token"))).toBe(true);
   });
 
   it("rejects a wrong token, wrong scheme, or missing header", () => {
-    expect(checkExportToken(req("Bearer nope"))).toBe(false);
-    expect(checkExportToken(req("Basic secret-token"))).toBe(false);
-    expect(checkExportToken(req())).toBe(false);
+    expect(hasValidExportToken(req("Bearer nope"))).toBe(false);
+    expect(hasValidExportToken(req("Basic secret-token"))).toBe(false);
+    expect(hasValidExportToken(req())).toBe(false);
   });
 
   it("rejects everything when EXPORT_TOKEN is unset", () => {
     delete process.env.EXPORT_TOKEN;
-    expect(checkExportToken(req("Bearer secret-token"))).toBe(false);
+    expect(hasValidExportToken(req("Bearer secret-token"))).toBe(false);
   });
 });

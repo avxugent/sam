@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderHostnameUrl, renderLocationUrl, renderMacAddressUrl } from "@/lib/hostname/template";
+import { renderHostnameUrl, renderLocationUrl, renderMacAddressUrl } from "@/lib/url-templates";
 
 describe("renderHostnameUrl()", () => {
   it("substitutes all variables", () => {

@@ -162,10 +162,10 @@ The proxy:
 Authorization: Bearer <PROMETHEUS_SD_TOKEN>
 ```
 
-These endpoints are exempted from the session proxy and must authenticate in their route handlers — `checkIntegrationToken(req)` for the token-only routes, `hasBearerToken(req, process.env.PROMETHEUS_SD_TOKEN)` (`lib/tokens/bearer.ts`, constant-time) alongside `auth()` for by-hostname.
+These endpoints are exempted from the session proxy and must authenticate in their route handlers — `integrationTokenError(req)` for the token-only routes, `hasBearerToken(req, process.env.PROMETHEUS_SD_TOKEN)` (`lib/tokens/bearer.ts`, constant-time) alongside `auth()` for by-hostname.
 
 If `PROMETHEUS_SD_TOKEN` is not set, the endpoints return HTTP 503.
 
 ## Export Endpoints
 
-`/api/export/*` accept a session (ADMIN for the CSV exports; any role for the JSON snapshot) **or** `Bearer EXPORT_TOKEN` (checked via `checkExportToken(req)` in each handler) so external tooling can pull exports. They are likewise exempted from the session proxy; without valid credentials the handlers return HTTP 401. A session that has not finished signing in (see [Partly signed-in sessions](#partly-signed-in-sessions)) gets HTTP 403.
+`/api/export/*` accept a session (ADMIN for the CSV exports; any role for the JSON snapshot) **or** `Bearer EXPORT_TOKEN` (checked via `hasValidExportToken(req)` in each handler) so external tooling can pull exports. They are likewise exempted from the session proxy; without valid credentials the handlers return HTTP 401. A session that has not finished signing in (see [Partly signed-in sessions](#partly-signed-in-sessions)) gets HTTP 403.

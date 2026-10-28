@@ -5,7 +5,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: { passkey: { findMany: vi.fn() } },
 }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn() }));
+vi.mock("@/lib/rate-limit", () => ({ consumeRateLimit: vi.fn() }));
 vi.mock("@/lib/two-factor/webauthn", () => ({
   buildAuthenticationOptions: vi.fn(),
   setChallengeCookie: vi.fn(),
@@ -13,13 +13,13 @@ vi.mock("@/lib/two-factor/webauthn", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { buildAuthenticationOptions, setChallengeCookie } from "@/lib/two-factor/webauthn";
 import { POST } from "@/app/api/auth/passkey/authentication-options/route";
 
 const mockAuth = vi.mocked(auth);
 const mockFindMany = vi.mocked(prisma.passkey.findMany);
-const mockRateLimit = vi.mocked(checkRateLimit);
+const mockRateLimit = vi.mocked(consumeRateLimit);
 const mockBuildOptions = vi.mocked(buildAuthenticationOptions);
 const mockSetChallenge = vi.mocked(setChallengeCookie);
 

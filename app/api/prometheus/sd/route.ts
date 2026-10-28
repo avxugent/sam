@@ -48,7 +48,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { checkIntegrationToken } from "@/lib/tokens/integration";
+import { integrationTokenError } from "@/lib/tokens/integration";
 import { auth } from "@/lib/auth";
 import {
   resolveLocationPath,
@@ -72,11 +72,10 @@ function safeLabel(value: string | null | undefined): string {
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!isAdmin(session?.user?.role)) {
-    const authError = checkIntegrationToken(req);
+    const authError = integrationTokenError(req);
     if (authError) return authError;
   }
 
-  // Fetch all assets that have a hostname
   const assets = await prisma.asset.findMany({
     where: { hostname: { not: null }, status: "INSTALLED" },
     select: {

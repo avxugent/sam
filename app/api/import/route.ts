@@ -21,6 +21,22 @@ async function readCsvUpload(req: NextRequest): Promise<{ text: string } | { err
   return { text: await file.text() };
 }
 
+/**
+ * Case-insensitive name -> id lookup over `existing`; a name it has not seen
+ * is upserted once and remembered for later rows.
+ */
+function nameResolver(existing: { id: string; name: string }[], upsert: (name: string) => Promise<{ id: string }>) {
+  const cache = new Map(existing.map((r) => [r.name.toLowerCase(), r.id]));
+  return async (name: string): Promise<string> => {
+    const key = name.toLowerCase();
+    const cached = cache.get(key);
+    if (cached) return cached;
+    const { id } = await upsert(name);
+    cache.set(key, id);
+    return id;
+  };
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -35,22 +51,30 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Caches to avoid redundant DB lookups ──
-  const typeCache = new Map<string, string>();      // name -> id
-  const mfrCache = new Map<string, string>();       // name -> id
-  const modelCache = new Map<string, string>();     // "typeId|manufacturerId|name" -> id
+  const [existingTypes, existingMfrs, existingSuppliers, existingModels, existingUsers] = await Promise.all([
+    prisma.assetType.findMany({ select: { id: true, name: true } }),
+    prisma.manufacturer.findMany({ select: { id: true, name: true } }),
+    prisma.supplier.findMany({ select: { id: true, name: true } }),
+    prisma.model.findMany({ select: { id: true, typeId: true, manufacturerId: true, name: true } }),
+    prisma.user.findMany({ select: { id: true, email: true } }),
+  ]);
 
-  // Pre-load existing types and manufacturers
-  const existingTypes = await prisma.assetType.findMany({ select: { id: true, name: true } });
-  existingTypes.forEach((t) => typeCache.set(t.name.toLowerCase(), t.id));
-
-  const existingMfrs = await prisma.manufacturer.findMany({ select: { id: true, name: true } });
-  existingMfrs.forEach((m) => mfrCache.set(m.name.toLowerCase(), m.id));
+  // Types, manufacturers and suppliers named in the CSV are created on demand.
+  const getOrCreateType = nameResolver(existingTypes, (name) =>
+    prisma.assetType.upsert({ where: { name }, create: { name }, update: {} })
+  );
+  const getOrCreateManufacturer = nameResolver(existingMfrs, (name) =>
+    prisma.manufacturer.upsert({ where: { name }, create: { name }, update: {} })
+  );
+  const getOrCreateSupplier = nameResolver(existingSuppliers, (name) =>
+    prisma.supplier.upsert({ where: { name }, create: { name }, update: {} })
+  );
 
   // Models are admin-only to create (no fixed-list autocreate here, unlike
   // type/manufacturer above) — import only resolves a MODEL cell against an
   // existing Model scoped to the row's type/manufacturer; an unmatched value
   // leaves modelId unset and surfaces a row warning instead of guessing.
-  const existingModels = await prisma.model.findMany({ select: { id: true, typeId: true, manufacturerId: true, name: true } });
+  const modelCache = new Map<string, string>(); // "typeId|manufacturerId|name" -> id
   existingModels.forEach((m) =>
     modelCache.set(`${m.typeId}|${m.manufacturerId ?? ""}|${m.name.toLowerCase()}`, m.id)
   );
@@ -59,13 +83,7 @@ export async function POST(req: NextRequest) {
     return modelCache.get(`${typeId}|${manufacturerId ?? ""}|${name.toLowerCase()}`) ?? null;
   }
 
-  const supplierCache = new Map<string, string>(); // name -> id
-  const existingSuppliers = await prisma.supplier.findMany({ select: { id: true, name: true } });
-  existingSuppliers.forEach((s) => supplierCache.set(s.name.toLowerCase(), s.id));
-
-  const userIdByEmail = new Map<string, string>(); // email -> id
-  const existingUsers = await prisma.user.findMany({ select: { id: true, email: true } });
-  existingUsers.forEach((u) => userIdByEmail.set(u.email.toLowerCase(), u.id));
+  const userIdByEmail = new Map(existingUsers.map((u) => [u.email.toLowerCase(), u.id]));
 
   // Owner/supplier defaults are resolved once — the setting and the active
   // supplier window can't change mid-import.
@@ -115,42 +133,6 @@ export async function POST(req: NextRequest) {
     locationLookup.set(key, loc.id);
     if (safeFiNumber) fiNumberLookup.set(safeFiNumber, loc.id);
     return loc.id;
-  }
-
-  async function getOrCreateType(name: string): Promise<string> {
-    const key = name.toLowerCase();
-    if (typeCache.has(key)) return typeCache.get(key)!;
-    const t = await prisma.assetType.upsert({
-      where: { name },
-      create: { name },
-      update: {},
-    });
-    typeCache.set(key, t.id);
-    return t.id;
-  }
-
-  async function getOrCreateManufacturer(name: string): Promise<string> {
-    const key = name.toLowerCase();
-    if (mfrCache.has(key)) return mfrCache.get(key)!;
-    const m = await prisma.manufacturer.upsert({
-      where: { name },
-      create: { name },
-      update: {},
-    });
-    mfrCache.set(key, m.id);
-    return m.id;
-  }
-
-  async function getOrCreateSupplier(name: string): Promise<string> {
-    const key = name.toLowerCase();
-    if (supplierCache.has(key)) return supplierCache.get(key)!;
-    const s = await prisma.supplier.upsert({
-      where: { name },
-      create: { name },
-      update: {},
-    });
-    supplierCache.set(key, s.id);
-    return s.id;
   }
 
   for (let i = 0; i < rows.length; i++) {

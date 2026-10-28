@@ -9,13 +9,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { buildInventorySnapshot } from "@/lib/inventory-snapshot";
-import { checkExportToken } from "@/lib/tokens/export";
+import { hasValidExportToken } from "@/lib/tokens/export";
 import { logAudit } from "@/lib/audit";
 import { toIsoDay } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  const hasToken = checkExportToken(req);
+  const hasToken = hasValidExportToken(req);
 
   if (!hasToken) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

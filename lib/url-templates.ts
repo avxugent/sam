@@ -1,3 +1,7 @@
+/**
+ * Admin-configured link templates (AppSettings hostname/macAddress/location
+ * .urlTemplate) rendered into per-asset and per-location URLs.
+ */
 export function renderHostnameUrl(
   template: string,
   asset: {

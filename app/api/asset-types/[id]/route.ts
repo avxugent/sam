@@ -31,7 +31,6 @@ export async function PUT(
   const parsed = schema.safeParse(body);
   if (!parsed.success) return invalidInput(parsed.error);
 
-  // Validate template syntax if provided
   if (parsed.data.scrapeTargetTemplate) {
     const templateErrors = validateTemplate(parsed.data.scrapeTargetTemplate);
     if (templateErrors.length > 0) {
@@ -42,7 +41,6 @@ export async function PUT(
     }
   }
 
-  // Validate hostname regex syntax if provided
   if (parsed.data.hostnamePattern) {
     const patternError = validateHostnamePattern(parsed.data.hostnamePattern);
     if (patternError) {
@@ -58,7 +56,6 @@ export async function PUT(
     select: { name: true, scrapeTargetTemplate: true, prometheusExposed: true, hostnamePattern: true, defaultCriticality: true },
   });
 
-  // Check for name conflict before attempting update
   if (parsed.data.name !== undefined) {
     const conflict = await prisma.assetType.findFirst({
       where: { name: parsed.data.name, NOT: { id } },

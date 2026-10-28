@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkIntegrationToken } from "@/lib/tokens/integration";
+import { integrationTokenError } from "@/lib/tokens/integration";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { toIsoDay } from "@/lib/utils";
@@ -31,7 +31,7 @@ function tableResponse(columns: { text: string; type: string }[], rows: (string 
 }
 
 export async function POST(req: NextRequest) {
-  const authError = checkIntegrationToken(req);
+  const authError = integrationTokenError(req);
   if (authError) return authError;
 
   const parsed = grafanaQuerySchema.safeParse(await readJsonBody(req));

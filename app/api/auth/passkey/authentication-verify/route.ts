@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { clientIp, tooManyAttempts } from "@/lib/request-limits";
 import { auditLoginFailure } from "@/lib/audit/login";
 import { setRememberMeCookie } from "@/lib/two-factor/remember-device";
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   }
 
   const ip = clientIp(req.headers) ?? "unknown";
-  const rl = checkRateLimit(`passkey-auth-verify:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
+  const rl = consumeRateLimit(`passkey-auth-verify:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
   if (!rl.allowed) {
     auditLoginFailure({ req, actor: session.user, entityId: session.user.id, entityName: session.user.email, detail: { stage: "passkey", reason: "rate_limited" } });
     return tooManyAttempts(rl.retryAfterMs);

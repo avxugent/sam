@@ -41,7 +41,7 @@ function ensureSweep() {
  * @returns `allowed: true` when the request should proceed;
  *          `allowed: false` with `retryAfterMs` when the limit is exceeded
  */
-export function checkRateLimit(
+export function consumeRateLimit(
   key: string,
   maxRequests: number,
   windowMs: number

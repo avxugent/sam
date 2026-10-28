@@ -7,7 +7,7 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/two-factor/session-upgrade", () => ({ upgradeSession: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
-vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn() }));
+vi.mock("@/lib/rate-limit", () => ({ consumeRateLimit: vi.fn() }));
 vi.mock("@/lib/two-factor/remember-device", () => ({ setRememberMeCookie: vi.fn() }));
 vi.mock("@/lib/two-factor/webauthn", () => ({
   verifyAuthentication: vi.fn(),
@@ -19,7 +19,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { logAudit } from "@/lib/audit";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { setRememberMeCookie } from "@/lib/two-factor/remember-device";
 import { verifyAuthentication, readChallengeCookie, clearChallengeCookie } from "@/lib/two-factor/webauthn";
 import { POST } from "@/app/api/auth/passkey/authentication-verify/route";
@@ -29,7 +29,7 @@ const mockUpgrade = vi.mocked(upgradeSession);
 const mockFindUnique = vi.mocked(prisma.passkey.findUnique);
 const mockUpdate = vi.mocked(prisma.passkey.update);
 const mockLogAudit = vi.mocked(logAudit);
-const mockRateLimit = vi.mocked(checkRateLimit);
+const mockRateLimit = vi.mocked(consumeRateLimit);
 const mockSetRememberMe = vi.mocked(setRememberMeCookie);
 const mockVerify = vi.mocked(verifyAuthentication);
 const mockReadChallenge = vi.mocked(readChallengeCookie);

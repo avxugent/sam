@@ -43,11 +43,6 @@ export interface StorageDriver {
   deleteObject(key: string): Promise<void>;
 }
 
-/** True iff `STORAGE_DRIVER=s3` AND `S3_BUCKET` is set. */
-export function isS3Configured(): boolean {
-  return process.env.STORAGE_DRIVER === "s3" && !!process.env.S3_BUCKET;
-}
-
 let _driver: StorageDriver | null = null;
 
 export function getStorageDriver(): StorageDriver {

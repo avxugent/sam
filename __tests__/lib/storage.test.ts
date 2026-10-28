@@ -44,7 +44,6 @@ import * as awsS3 from "@aws-sdk/client-s3";
 import {
   assertSafePath,
   getStorageDriver,
-  isS3Configured,
   StorageNotFoundError,
   _resetStorageDriverForTest,
 } from "@/lib/storage";
@@ -77,29 +76,6 @@ function teardownLocalDriver() {
   vi.unstubAllEnvs();
   _resetStorageDriverForTest();
 }
-
-// ── isS3Configured ───────────────────────────────────────────────────────────
-
-describe("isS3Configured()", () => {
-  beforeEach(() => { vi.unstubAllEnvs(); });
-  afterEach(() => { vi.unstubAllEnvs(); });
-
-  it("returns false when STORAGE_DRIVER is unset", () => {
-    expect(isS3Configured()).toBe(false);
-  });
-
-  it("returns false when STORAGE_DRIVER=s3 but no bucket", () => {
-    vi.stubEnv("STORAGE_DRIVER", "s3");
-    vi.stubEnv("S3_BUCKET", "");
-    expect(isS3Configured()).toBe(false);
-  });
-
-  it("returns true when both are set", () => {
-    vi.stubEnv("STORAGE_DRIVER", "s3");
-    vi.stubEnv("S3_BUCKET", "my-bucket");
-    expect(isS3Configured()).toBe(true);
-  });
-});
 
 // ── getStorageDriver factory ─────────────────────────────────────────────────
 

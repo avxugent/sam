@@ -133,12 +133,8 @@ async function sendUdp(host: string, port: number, payloads: string[], timeoutMs
     };
     const timer = setTimeout(() => finish(new Error("UDP send timed out")), timeoutMs);
 
+    // forwardAuditBatch never sends an empty batch.
     let remaining = payloads.length;
-    if (remaining === 0) {
-      finish();
-      return;
-    }
-
     sock.on("error", finish);
 
     for (const p of payloads) {
@@ -169,9 +165,9 @@ async function sendStream(
       if (err) reject(err); else resolve();
     };
 
-    const tlsOpts =
+    const socket =
       kind === "tls"
-        ? {
+        ? tlsConnect({
             host,
             port,
             ...(process.env.SYSLOG_CA_BUNDLE
@@ -179,12 +175,7 @@ async function sendStream(
               : {}),
             rejectUnauthorized:
               process.env.SYSLOG_TLS_REJECT_UNAUTHORIZED !== "false",
-          }
-        : null;
-
-    const socket =
-      kind === "tls"
-        ? tlsConnect(tlsOpts!)
+          })
         : netConnect({ host, port });
 
     // One deadline for connect + send, so an unreachable host fails after
@@ -198,10 +189,6 @@ async function sendStream(
       // RFC 6587 octet-counting framing: "<length> <message>"
       // Works for both plain TCP and TLS rsyslog.
       let pending = payloads.length;
-      if (pending === 0) {
-        finish();
-        return;
-      }
       for (const p of payloads) {
         const buf = Buffer.from(p, "utf8");
         const framed = `${buf.length} `;

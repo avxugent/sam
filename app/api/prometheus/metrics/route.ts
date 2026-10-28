@@ -75,6 +75,9 @@ export async function GET(req: NextRequest) {
     assetsByLocation,
     workLogsByLocation,
     monitoredAssets,
+    typeNames,
+    mfrNames,
+    nis2,
   ] = await Promise.all([
     // Total asset count — decommissioned assets are historical, not current
     // inventory, so every inventory gauge below excludes them.
@@ -140,18 +143,15 @@ export async function GET(req: NextRequest) {
       },
       orderBy: { hostname: "asc" },
     }),
+
+    // typeId / manufacturerId → name
+    prisma.assetType.findMany({ select: { id: true, name: true } }),
+    prisma.manufacturer.findMany({ select: { id: true, name: true } }),
+
+    computeNis2Counts(),
   ]);
 
-  // Resolve typeId → name
-  const typeNames = await prisma.assetType.findMany({
-    select: { id: true, name: true },
-  });
   const typeMap = new Map(typeNames.map((t) => [t.id, t.name]));
-
-  // Resolve manufacturerId → name
-  const mfrNames = await prisma.manufacturer.findMany({
-    select: { id: true, name: true },
-  });
   const mfrMap = new Map(mfrNames.map((m) => [m.id, m.name]));
 
   const locationsById = new Map(allLocations.map((l) => [l.id, l]));
@@ -265,7 +265,6 @@ export async function GET(req: NextRequest) {
   );
 
   // 7. NIS2 compliance gauges
-  const nis2 = await computeNis2Counts();
   sections.push(
     gauge("sam_assets_missing_owner", "Installed assets without a responsible owner", [
       { value: nis2.assetsMissingOwner },

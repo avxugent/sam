@@ -1,3 +1,5 @@
+import type { NameConflictBody } from "@/lib/route-helpers";
+
 /**
  * Rename-onto-an-existing-name handling shared by the catalog admin clients
  * (asset types, manufacturers, models). The PUT routes answer such a rename
@@ -13,16 +15,11 @@ export type MergeConflict = {
   existingStockCount: number;
 };
 
-type ConflictBody = {
-  code?: string;
-  existingId?: string;
-  existingName?: string;
-  existingAssetCount?: number;
-  existingStockCount?: number;
-};
+/** An error body as read on the client: any field may be missing. */
+type ErrorBody = Partial<Omit<NameConflictBody, "code">> & { code?: string };
 
 /** The merge offer in an error body, or null when the error is something else. */
-export function readMergeConflict(err: ConflictBody, editingId: string, newName: string): MergeConflict | null {
+export function readMergeConflict(err: ErrorBody, editingId: string, newName: string): MergeConflict | null {
   if (err.code !== "nameConflict" || !err.existingId) return null;
   return {
     editingId,

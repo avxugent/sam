@@ -85,15 +85,24 @@ export function nameConflictResponse(
   message: string,
   existing: { id: string; name: string; _count: { assets: number; stockItems?: number } }
 ) {
-  return NextResponse.json(
-    {
-      error: message,
-      code: "nameConflict",
-      existingId: existing.id,
-      existingName: existing.name,
-      existingAssetCount: existing._count.assets,
-      ...(existing._count.stockItems !== undefined && { existingStockCount: existing._count.stockItems }),
-    },
-    { status: 409 }
-  );
+  const body: NameConflictBody = {
+    error: message,
+    code: "nameConflict",
+    existingId: existing.id,
+    existingName: existing.name,
+    existingAssetCount: existing._count.assets,
+    ...(existing._count.stockItems !== undefined && { existingStockCount: existing._count.stockItems }),
+  };
+  return NextResponse.json(body, { status: 409 });
 }
+
+/** The 409 body nameConflictResponse() sends; read on the client by readMergeConflict(). */
+export type NameConflictBody = {
+  error: string;
+  code: "nameConflict";
+  existingId: string;
+  existingName: string;
+  existingAssetCount: number;
+  /** Only for records that stock items reference (models). */
+  existingStockCount?: number;
+};

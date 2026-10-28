@@ -18,20 +18,47 @@ import type {
 import { isLocationReport } from "@/lib/reports/types";
 import { toIsoDay } from "@/lib/utils";
 
-function yearsAgo(n: number): Date {
-  return new Date(Date.now() - n * 365.25 * 24 * 60 * 60 * 1000);
-}
-
-function daysAgo(n: number): Date {
-  return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
-}
-
 function periodCutoff(count: number, unit: "days" | "months" | "years"): Date {
   const d = new Date();
   if (unit === "days") d.setDate(d.getDate() - count);
   else if (unit === "months") d.setMonth(d.getMonth() - count);
   else d.setFullYear(d.getFullYear() - count);
   return d;
+}
+
+// Fractional counts ("1.5 years") are allowed in asset filters, so these
+// offset by elapsed time; periodCutoff (whole calendar units) does not need to.
+function yearsAgo(n: number): Date {
+  return daysAgo(n * 365.25);
+}
+
+function daysAgo(n: number): Date {
+  return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+}
+
+/** A numeric filter value, or null when it is missing or not a number. */
+function numberOrNull(value: string | undefined): number | null {
+  const n = value ? parseFloat(value) : NaN;
+  return isNaN(n) ? null : n;
+}
+
+/**
+ * eq / neq / contains / isNull / isNotNull on a scalar column; `contains` only
+ * for text columns. Any other op (or a missing value) adds no condition.
+ */
+function scalarCondition(
+  field: string,
+  op: ReportFilter["op"],
+  value: string | undefined,
+  { text = false } = {}
+): Prisma.AssetWhereInput | null {
+  if (op === "isNull") return { [field]: null };
+  if (op === "isNotNull") return { [field]: { not: null } };
+  if (!value) return null;
+  if (op === "eq") return { [field]: value };
+  if (op === "neq") return { [field]: { not: value } };
+  if (op === "contains" && text) return { [field]: { contains: value } };
+  return null;
 }
 
 /** Parses a before/after filter value; null for an unparseable date. */
@@ -57,10 +84,8 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
     const { field, op, value } = f;
 
     if (field === "typeId" || field === "manufacturerId" || field === "locationId" || field === "supplierId") {
-      if (op === "eq" && value) conditions.push({ [field]: value });
-      else if (op === "neq" && value) conditions.push({ [field]: { not: value } });
-      else if (op === "isNull") conditions.push({ [field]: null });
-      else if (op === "isNotNull") conditions.push({ [field]: { not: null } });
+      const condition = scalarCondition(field, op, value);
+      if (condition) conditions.push(condition);
       continue;
     }
 
@@ -108,11 +133,8 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
     }
 
     if (field === "serialNumber" || field === "hostname") {
-      if (op === "eq" && value) conditions.push({ [field]: value });
-      else if (op === "neq" && value) conditions.push({ [field]: { not: value } });
-      else if (op === "contains" && value) conditions.push({ [field]: { contains: value } });
-      else if (op === "isNull") conditions.push({ [field]: null });
-      else if (op === "isNotNull") conditions.push({ [field]: { not: null } });
+      const condition = scalarCondition(field, op, value, { text: true });
+      if (condition) conditions.push(condition);
       continue;
     }
 
@@ -145,12 +167,11 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
     }
 
     if (field === "lastChanged") {
-      if (op === "newerThanDays" && value) {
-        const n = parseFloat(value);
-        if (!isNaN(n)) conditions.push({ updatedAt: { gt: daysAgo(n) } });
-      } else if (op === "olderThanDays" && value) {
-        const n = parseFloat(value);
-        if (!isNaN(n)) conditions.push({ updatedAt: { lt: daysAgo(n) } });
+      const days = numberOrNull(value);
+      if (op === "newerThanDays" && days !== null) {
+        conditions.push({ updatedAt: { gt: daysAgo(days) } });
+      } else if (op === "olderThanDays" && days !== null) {
+        conditions.push({ updatedAt: { lt: daysAgo(days) } });
       } else if ((op === "before" || op === "after") && value) {
         const d = parseDate(value);
         if (d) conditions.push({ updatedAt: op === "before" ? { lt: d } : { gt: d } });
@@ -159,15 +180,14 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
     }
 
     if (field === "installationDate" || field === "invoiceDate" || field === "endOfSupportDate") {
+      const years = numberOrNull(value);
       if ((op === "before" || op === "after") && value) {
         const d = parseDate(value);
         if (d) conditions.push({ [field]: op === "before" ? { lt: d } : { gt: d } });
-      } else if (op === "olderThanYears" && value) {
-        const n = parseFloat(value);
-        if (!isNaN(n)) conditions.push({ [field]: { lt: yearsAgo(n) } });
-      } else if (op === "newerThanYears" && value) {
-        const n = parseFloat(value);
-        if (!isNaN(n)) conditions.push({ [field]: { gt: yearsAgo(n) } });
+      } else if (op === "olderThanYears" && years !== null) {
+        conditions.push({ [field]: { lt: yearsAgo(years) } });
+      } else if (op === "newerThanYears" && years !== null) {
+        conditions.push({ [field]: { gt: yearsAgo(years) } });
       } else if (op === "isNull") {
         conditions.push({ [field]: null });
       } else if (op === "isNotNull") {

@@ -223,6 +223,7 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 
 | Method | Path | Min role | Description |
 |---|---|---|---|
+| `POST` | `/api/import/preview` | ADMIN | Parse an uploaded CSV without importing it: `{ totalRows, columns, preview }` (first 5 rows) |
 | `POST` | `/api/import` | ADMIN | Bulk CSV import (creates assets, validates per row) |
 | `GET` | `/api/export/csv` | ADMIN or Bearer `EXPORT_TOKEN` | Download active-asset CSV export (status `INSTALLED` only) |
 | `GET` | `/api/export/decommissioned` | ADMIN or Bearer `EXPORT_TOKEN` | Download decommissioned-asset CSV (adds decommission metadata columns) |

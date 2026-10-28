@@ -18,7 +18,8 @@ vi.mock("@/lib/prisma", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { POST, PUT } from "@/app/api/import/route";
+import { POST } from "@/app/api/import/route";
+import { POST as preview } from "@/app/api/import/preview/route";
 
 const mockAuth = vi.mocked(auth);
 const mockAssetCreate = vi.mocked(prisma.asset.create);
@@ -149,18 +150,19 @@ describe("POST /api/import — FI NUMMER applied to an existing room", () => {
   });
 });
 
-describe("PUT /api/import (preview)", () => {
+describe("POST /api/import/preview", () => {
   it("is admin-only like the import itself", async () => {
     mockAuth.mockResolvedValue(session("EDITOR"));
-    expect((await PUT(importReq(`${HEADER}\n`))).status).toBe(403);
+    expect((await preview(importReq(`${HEADER}\n`))).status).toBe(403);
   });
 
-  it("returns the column names and at most five preview rows", async () => {
+  it("returns the column names and at most five preview rows, writing nothing", async () => {
     const rows = Array.from({ length: 7 }, (_, i) => `C;B;Room ${i};;;;;;;;;;;;;;`);
-    const res = await PUT(importReq([HEADER, ...rows].join("\n")));
+    const res = await preview(importReq([HEADER, ...rows].join("\n")));
     const body = await res.json();
     expect(body.totalRows).toBe(7);
     expect(body.preview).toHaveLength(5);
     expect(body.columns).toContain("LOKAAL");
+    expect(mockAssetCreate).not.toHaveBeenCalled();
   });
 });

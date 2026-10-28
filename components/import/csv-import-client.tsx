@@ -83,7 +83,7 @@ export function CsvImportClient() {
     setPreviewLoading(true);
     const fd = new FormData();
     fd.append("file", f);
-    const res = await fetch("/api/import", { method: "PUT", body: fd });
+    const res = await fetch("/api/import/preview", { method: "POST", body: fd });
     setPreviewLoading(false);
 
     if (!res.ok) {

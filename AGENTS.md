@@ -97,7 +97,7 @@ lib/               — shared code; modules importing next/server are route-hand
   audit/           — logAudit (index), audit diffs, login-failure audit, syslog forwarding
   branding/        — logo/favicon/background upload + serve, background mode
   compliance/      — NIS2 and hostname compliance reports
-  csv/             — CSV cell/parse core, inventory export, import row parsing
+  csv/             — CSV cell/parse core, inventory export, import row parsing, import lookups, upload reading
   hostname/        — hostname pattern/FQDN rules
   locations/       — path.ts: recursive-CTE tree queries (server); tree.ts: nesting/flattening a location tree (client-safe)
   models/          — model clustering + name similarity

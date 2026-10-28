@@ -52,27 +52,32 @@ export function ProfileClient({
     formState: { errors: nameErrors },
   } = useForm<NameForm>({ resolver: zodResolver(nameSchema), defaultValues: { name } });
 
-  const [nameSaving, setNameSaving] = useState(false);
-
-  async function onNameSubmit(data: NameForm) {
-    setNameSaving(true);
+  /** PATCH /api/users/me with `saving` set meanwhile; toasts the error and returns false on failure. */
+  async function patchMe(body: object, setSaving: (saving: boolean) => void): Promise<boolean> {
+    setSaving(true);
     try {
       const res = await fetch("/api/users/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: data.name }),
+        body: JSON.stringify(body),
       });
-      if (!res.ok) {
-        const body = await res.json();
-        toast({ title: tCommon("error"), description: body.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
-      } else {
-        toast({ title: t("profileTitle") });
-        router.refresh();
-      }
+      if (res.ok) return true;
+      const err = await res.json().catch(() => ({}));
+      toast({ title: tCommon("error"), description: err.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
     } catch {
       toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
     } finally {
-      setNameSaving(false);
+      setSaving(false);
+    }
+    return false;
+  }
+
+  const [nameSaving, setNameSaving] = useState(false);
+
+  async function onNameSubmit(data: NameForm) {
+    if (await patchMe({ name: data.name }, setNameSaving)) {
+      toast({ title: t("profileTitle") });
+      router.refresh();
     }
   }
 
@@ -92,23 +97,8 @@ export function ProfileClient({
 
   async function saveTheme(value: Theme) {
     setTheme(value); // instant local update
-    setThemeSaving(true);
-    try {
-      const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: value }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        toast({ title: tCommon("error"), description: body.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
-      } else {
-        toast({ title: t("preferencesSaved") });
-      }
-    } catch {
-      toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
-    } finally {
-      setThemeSaving(false);
+    if (await patchMe({ theme: value }, setThemeSaving)) {
+      toast({ title: t("preferencesSaved") });
     }
   }
 
@@ -120,49 +110,16 @@ export function ProfileClient({
 
   async function saveLocTab(value: "assets" | "sublocations") {
     setLocTab(value);
-    setLocTabSaving(true);
-    try {
-      const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locationDefaultTab: value }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        toast({ title: tCommon("error"), description: body.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
-      } else {
-        toast({ title: t("preferencesSaved") });
-      }
-    } catch {
-      toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
-    } finally {
-      setLocTabSaving(false);
+    if (await patchMe({ locationDefaultTab: value }, setLocTabSaving)) {
+      toast({ title: t("preferencesSaved") });
     }
   }
 
   async function onPasswordSubmit(data: PasswordChangeValues) {
-    setPwSaving(true);
-    try {
-      const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPassword: data.currentPassword,
-          newPassword: data.newPassword,
-          confirmPassword: data.confirmPassword,
-        }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        toast({ title: tCommon("error"), description: body.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
-      } else {
-        toast({ title: t("passwordChanged") });
-        resetPw();
-      }
-    } catch {
-      toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
-    } finally {
-      setPwSaving(false);
+    const { currentPassword, newPassword, confirmPassword } = data;
+    if (await patchMe({ currentPassword, newPassword, confirmPassword }, setPwSaving)) {
+      toast({ title: t("passwordChanged") });
+      resetPw();
     }
   }
 

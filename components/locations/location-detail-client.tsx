@@ -428,7 +428,7 @@ export function LocationDetailClient({
         <TabsList className="flex-wrap h-auto gap-0 border-b border-border bg-transparent rounded-none p-0">
           <TabsTrigger
             value="assets"
-            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             {t("tabAssets")}
             {assets.length > 0 && (
@@ -437,7 +437,7 @@ export function LocationDetailClient({
           </TabsTrigger>
           <TabsTrigger
             value="sublocations"
-            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             {t("tabSubLocations")}
             {location.children.length > 0 && (
@@ -446,14 +446,14 @@ export function LocationDetailClient({
           </TabsTrigger>
           <TabsTrigger
             value="map"
-            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             <MapPin className="h-3.5 w-3.5 mr-1" />
             {t("tabMap")}
           </TabsTrigger>
           <TabsTrigger
             value="attachments"
-            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             {t("tabAttachments")}
             {attachments.length > 0 && (
@@ -462,7 +462,7 @@ export function LocationDetailClient({
           </TabsTrigger>
           <TabsTrigger
             value="worklog"
-            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             <Wrench className="h-3.5 w-3.5 mr-1" />
             {t("tabWorkLog")}
@@ -473,7 +473,7 @@ export function LocationDetailClient({
           {canEdit && (
             <TabsTrigger
               value="cover"
-              className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+              className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
             >
               <ImageIcon className="h-3.5 w-3.5 mr-1" />
               {t("tabCoverImage")}
@@ -520,7 +520,7 @@ export function LocationDetailClient({
                   >
                     <Link href={`/locations/${child.id}`} className="block cursor-pointer">
                       <div className="flex items-center gap-1.5 mb-1">
-                        <MapPin className="h-3.5 w-3.5 fill-[#1e64c8] stroke-[#1e64c8] flex-shrink-0" />
+                        <MapPin className="h-3.5 w-3.5 fill-primary stroke-primary flex-shrink-0" />
                         <span className="text-[13.5px] font-semibold text-foreground">{child.name}</span>
                         {child.inMaintenance && (
                           <span className="inline-flex items-center gap-1 font-semibold text-[10px] text-[#92400e] bg-amber-100 border border-amber-300 px-1.5 py-[1px] rounded-[4px]">
@@ -546,7 +546,7 @@ export function LocationDetailClient({
                           className={`inline-flex items-center gap-1 text-[12px] font-medium transition-colors ${
                             child.inMaintenance
                               ? "text-[#92400e] hover:text-[#78350f]"
-                              : "text-muted-foreground hover:text-[#1e64c8]"
+                              : "text-muted-foreground hover:text-primary"
                           }`}
                         >
                           <Wrench className="h-3 w-3" />
@@ -560,9 +560,9 @@ export function LocationDetailClient({
               {/* Add sub-location card */}
               {canEdit && (
                 <LocationFormDialog mode="create" parentId={location.id}>
-                  <div className="border-2 border-dashed border-border rounded-[10px] flex items-center justify-center gap-2 p-[18px_20px] cursor-pointer hover:border-[#94a3b8] transition-colors min-h-[80px]">
-                    <Plus className="h-4 w-4 text-[#94a3b8]" />
-                    <span className="text-[13px] text-[#94a3b8]">{t("addSubLocationCard")}</span>
+                  <div className="border-2 border-dashed border-border rounded-[10px] flex items-center justify-center gap-2 p-[18px_20px] cursor-pointer hover:border-subtle transition-colors min-h-[80px]">
+                    <Plus className="h-4 w-4 text-subtle" />
+                    <span className="text-[13px] text-subtle">{t("addSubLocationCard")}</span>
                   </div>
                 </LocationFormDialog>
               )}

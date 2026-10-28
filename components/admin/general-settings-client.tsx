@@ -98,7 +98,7 @@ export function GeneralSettingsClient({
               href={hostnamePreview}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#1e64c8] hover:underline font-mono inline-flex items-center gap-1"
+              className="text-primary hover:underline font-mono inline-flex items-center gap-1"
             >
               {hostnamePreview}
               <ExternalLink className="h-3 w-3" />
@@ -126,11 +126,11 @@ export function GeneralSettingsClient({
           <p className="text-[12px] text-muted-foreground">
             Available variables:{" "}
             <code className="font-mono bg-muted px-1 rounded">{"{mac}"}</code>{" "}
-            <span className="text-[#94a3b8]">(aa:bb:cc:dd:ee:ff)</span>{" "}
+            <span className="text-subtle">(aa:bb:cc:dd:ee:ff)</span>{" "}
             <code className="font-mono bg-muted px-1 rounded">{"{mac_plain}"}</code>{" "}
-            <span className="text-[#94a3b8]">(aabbccddeeff)</span>{" "}
+            <span className="text-subtle">(aabbccddeeff)</span>{" "}
             <code className="font-mono bg-muted px-1 rounded">{"{mac_dash}"}</code>{" "}
-            <span className="text-[#94a3b8]">(aa-bb-cc-dd-ee-ff)</span>
+            <span className="text-subtle">(aa-bb-cc-dd-ee-ff)</span>
           </p>
         </div>
 
@@ -141,7 +141,7 @@ export function GeneralSettingsClient({
               href={macPreview}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#1e64c8] hover:underline font-mono inline-flex items-center gap-1"
+              className="text-primary hover:underline font-mono inline-flex items-center gap-1"
             >
               {macPreview}
               <ExternalLink className="h-3 w-3" />
@@ -185,7 +185,7 @@ export function GeneralSettingsClient({
               href={locationPreview}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#1e64c8] hover:underline font-mono inline-flex items-center gap-1"
+              className="text-primary hover:underline font-mono inline-flex items-center gap-1"
             >
               {locationPreview}
               <ExternalLink className="h-3 w-3" />

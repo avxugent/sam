@@ -262,11 +262,11 @@ export function ProfileClient({
                   className={cn(
                     "flex flex-col items-center gap-2 rounded-[8px] border px-3 py-4 text-sm transition-colors",
                     active
-                      ? "border-[#1e64c8] bg-[#eff6ff] text-[#1e64c8] font-medium"
-                      : "border-border bg-card text-foreground hover:border-[#94a3b8]"
+                      ? "border-primary bg-[#eff6ff] text-primary font-medium"
+                      : "border-border bg-card text-foreground hover:border-subtle"
                   )}
                 >
-                  <Icon className={cn("h-5 w-5", active ? "text-[#1e64c8]" : "text-muted-foreground")} />
+                  <Icon className={cn("h-5 w-5", active ? "text-primary" : "text-muted-foreground")} />
                   <span className="text-xs">{t(labelKey)}</span>
                 </button>
               );
@@ -294,8 +294,8 @@ export function ProfileClient({
                 className={cn(
                   "w-full text-left rounded-[8px] border px-4 py-3 text-sm transition-colors",
                   active
-                    ? "border-[#1e64c8] bg-[#eff6ff] text-[#1e64c8] font-medium"
-                    : "border-border bg-card text-foreground hover:border-[#94a3b8]"
+                    ? "border-primary bg-[#eff6ff] text-primary font-medium"
+                    : "border-border bg-card text-foreground hover:border-subtle"
                 )}
               >
                 <span className="font-medium">

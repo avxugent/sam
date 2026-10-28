@@ -96,16 +96,16 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
                           <th
                             scope="colgroup"
                             colSpan={result.itemColumns.length + 3}
-                            className="text-left px-4 py-[6px] text-[11px] font-semibold uppercase tracking-wider text-[#475569]"
+                            className="text-left px-4 py-[6px] text-[11px] font-semibold uppercase tracking-wider text-secondary-foreground"
                           >
                             {groupLabel}
                           </th>
                         </tr>
                       )}
                       <tr className="border-b border-border last:border-0 hover:bg-background transition-colors">
-                        <td className="px-4 py-[10px] text-[#334155]">{row.name}</td>
+                        <td className="px-4 py-[10px] text-secondary-foreground">{row.name}</td>
                         <td className="px-4 py-[10px] font-mono text-[11.5px] text-muted-foreground">
-                          {row.fiNumber ?? <span className="italic text-[#94a3b8] font-sans">—</span>}
+                          {row.fiNumber ?? <span className="italic text-subtle font-sans">—</span>}
                         </td>
                         {result.itemColumns.map((c) => {
                           const s = row.items[c.id];
@@ -139,7 +139,7 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
                             asChild
                           >
                             <Link href={`/locations/${row.locationId}`}>
-                              <ExternalLink className="h-3.5 w-3.5 text-[#1e64c8]" />
+                              <ExternalLink className="h-3.5 w-3.5 text-primary" />
                             </Link>
                           </Button>
                         </td>

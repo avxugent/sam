@@ -47,7 +47,7 @@ export function LanguageSwitcher() {
             onClick={() => handleSelect(loc)}
             className={cn(
               "flex items-center justify-between cursor-pointer text-[13px]",
-              loc === current && "font-medium text-[#1e64c8]"
+              loc === current && "font-medium text-primary"
             )}
           >
             <span>{localeLabels[loc]}</span>

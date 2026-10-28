@@ -81,7 +81,7 @@ function Pagination({
       <button
         onClick={() => onPage(page - 1)}
         disabled={page <= 1}
-        className="flex items-center gap-1 text-[12px] text-[#1e64c8] font-medium disabled:text-[#94a3b8] disabled:cursor-not-allowed hover:underline"
+        className="flex items-center gap-1 text-[12px] text-primary font-medium disabled:text-subtle disabled:cursor-not-allowed hover:underline"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
         {tSearch("previous")}
@@ -92,7 +92,7 @@ function Pagination({
       <button
         onClick={() => onPage(page + 1)}
         disabled={page >= totalPages}
-        className="flex items-center gap-1 text-[12px] text-[#1e64c8] font-medium disabled:text-[#94a3b8] disabled:cursor-not-allowed hover:underline"
+        className="flex items-center gap-1 text-[12px] text-primary font-medium disabled:text-subtle disabled:cursor-not-allowed hover:underline"
       >
         {tCommon("next")}
         <ChevronRight className="h-3.5 w-3.5" />
@@ -163,7 +163,7 @@ export function SearchResults() {
       {/* Hero search bar */}
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground pointer-events-none" />
-        <div className="flex items-center h-[48px] pl-[44px] pr-4 text-[15px] bg-card border-[1.5px] border-[#1e64c8] rounded-[10px] shadow-[0_0_0_3px_#e8f0fc] text-foreground">
+        <div className="flex items-center h-[48px] pl-[44px] pr-4 text-[15px] bg-card border-[1.5px] border-primary rounded-[10px] shadow-[0_0_0_3px_var(--blue-tint)] text-foreground">
           <span className="flex-1 truncate">{q}</span>
           {results && (
             <span className="ml-3 text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded flex-shrink-0">
@@ -199,7 +199,7 @@ export function SearchResults() {
               <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground mb-[10px]">
                 {t("assets")}
                 {results.totalAssets > 0 && (
-                  <span className="ml-2 font-normal normal-case tracking-normal text-[#94a3b8]">
+                  <span className="ml-2 font-normal normal-case tracking-normal text-subtle">
                     ({results.totalAssets})
                   </span>
                 )}
@@ -213,8 +213,8 @@ export function SearchResults() {
                       href={`/locations/${asset.location.id}/assets/${asset.id}`}
                       className="flex items-center gap-[14px] px-[18px] py-[13px] hover:bg-background transition-colors border-b border-border last:border-0 group"
                     >
-                      <div className="w-[34px] h-[34px] rounded-[8px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-                        <Package className="h-4 w-4 text-[#1e64c8]" />
+                      <div className="w-[34px] h-[34px] rounded-[8px] bg-primary-tint flex items-center justify-center flex-shrink-0">
+                        <Package className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-[13.5px] font-semibold text-foreground truncate block">
@@ -226,7 +226,7 @@ export function SearchResults() {
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
                         {asset.type && (
-                          <span className="text-[11px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-2 py-0.5 rounded-[5px]">
+                          <span className="text-[11px] font-semibold bg-primary-tint text-primary px-2 py-0.5 rounded-[5px]">
                             <Highlight text={asset.type.name} query={q} />
                           </span>
                         )}
@@ -250,7 +250,7 @@ export function SearchResults() {
               <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground mb-[10px]">
                 {t("locations")}
                 {results.totalLocations > 0 && (
-                  <span className="ml-2 font-normal normal-case tracking-normal text-[#94a3b8]">
+                  <span className="ml-2 font-normal normal-case tracking-normal text-subtle">
                     ({results.totalLocations})
                   </span>
                 )}
@@ -263,7 +263,7 @@ export function SearchResults() {
                     className="flex items-center gap-[14px] px-[18px] py-[13px] hover:bg-background transition-colors border-b border-border last:border-0 group"
                   >
                     <div className="w-[34px] h-[34px] rounded-[8px] bg-muted flex items-center justify-center flex-shrink-0">
-                      <MapPin className="h-4 w-4 fill-[#1e64c8] stroke-[#1e64c8]" />
+                      <MapPin className="h-4 w-4 fill-primary stroke-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className="text-[13.5px] font-semibold text-foreground truncate block">

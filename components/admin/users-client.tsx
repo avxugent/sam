@@ -74,7 +74,7 @@ function RolePill({ role }: { role: Role }) {
   }
   if (role === "EDITOR") {
     return (
-      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#e8f0fc] text-[#1e64c8]">
+      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-primary-tint text-primary">
         EDITOR
       </span>
     );
@@ -329,7 +329,7 @@ export function UsersClient({
               <tr key={user.id} className="border-b border-border last:border-0 hover:bg-background transition-colors">
                 <td className="px-4 py-[10px]">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-[#1e64c8] text-white text-[10.5px] font-bold flex items-center justify-center flex-shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-primary text-white text-[10.5px] font-bold flex items-center justify-center flex-shrink-0">
                       {getInitials(user.name)}
                     </div>
                     <span className="font-medium text-[13px] text-foreground">
@@ -386,7 +386,7 @@ export function UsersClient({
                             });
                           }}
                         >
-                          <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
+                          <Pencil className="h-3.5 w-3.5 text-primary" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent>

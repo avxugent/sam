@@ -63,7 +63,7 @@ export function MobileBottomNav({ showAdminTab }: { showAdminTab: boolean }) {
             href={tab.href}
             className={cn(
               "flex-1 flex flex-col items-center justify-center gap-0.5 h-full",
-              active ? "text-[#1e64c8]" : "text-muted-foreground"
+              active ? "text-primary" : "text-muted-foreground"
             )}
           >
             <div
@@ -74,7 +74,7 @@ export function MobileBottomNav({ showAdminTab }: { showAdminTab: boolean }) {
             >
               {tab.icon}
             </div>
-            <span className={cn("text-[10px]", active ? "font-semibold text-[#1e64c8]" : "font-normal text-muted-foreground")}>
+            <span className={cn("text-[10px]", active ? "font-semibold text-primary" : "font-normal text-muted-foreground")}>
               {labelOf(tab.labelKey)}
             </span>
           </Link>

@@ -96,12 +96,12 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
               {reports.map((r) => (
                 <tr key={r.id} className="border-b border-border last:border-0 hover:bg-background transition-colors">
                   <td className="px-4 py-[11px] font-medium text-foreground">
-                    <Link href={`/reports/${r.id}`} className="hover:text-[#1e64c8] hover:underline">
+                    <Link href={`/reports/${r.id}`} className="hover:text-primary hover:underline">
                       {r.name}
                     </Link>
                   </td>
                   <td className="px-4 py-[11px] text-muted-foreground hidden sm:table-cell">
-                    {r.description || <span className="italic text-[#94a3b8]">—</span>}
+                    {r.description || <span className="italic text-subtle">—</span>}
                   </td>
                   <td className="px-4 py-[11px] text-muted-foreground hidden md:table-cell">
                     {formatDate(r.updatedAt)}
@@ -110,7 +110,7 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="sm" className="h-[28px] w-[28px] p-0" asChild>
                         <Link href={`/reports/${r.id}`} aria-label={`${t("run")} ${r.name}`}>
-                          <Play className="h-3.5 w-3.5 text-[#1e64c8]" />
+                          <Play className="h-3.5 w-3.5 text-primary" />
                         </Link>
                       </Button>
                       {canEdit && (

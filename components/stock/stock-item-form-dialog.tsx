@@ -369,7 +369,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             <Button type="button" variant="outline" size="sm" onClick={handleClose} disabled={isSubmitting}>
               {tCommon("cancel")}
             </Button>
-            <Button type="submit" size="sm" disabled={isSubmitting} className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white">
+            <Button type="submit" size="sm" disabled={isSubmitting} className="bg-primary hover:bg-primary-hover text-white">
               {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
               {mode === "create" ? t("createSubmit") : t("updateSubmit")}
             </Button>

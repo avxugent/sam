@@ -315,7 +315,7 @@ export function WorkLogFormDialog({
                     key={p.id}
                     type="button"
                     onClick={() => applyPreset(p)}
-                    className="px-2.5 py-1 text-[12px] rounded-full bg-card border border-border text-[#334155] hover:border-[#1e64c8] hover:text-[#1e64c8] transition-colors"
+                    className="px-2.5 py-1 text-[12px] rounded-full bg-card border border-border text-secondary-foreground hover:border-primary hover:text-primary transition-colors"
                     title={p.description ?? p.name}
                   >
                     {p.name}

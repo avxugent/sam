@@ -149,15 +149,15 @@ export function ExportClient({
 
         {/* Setup instructions */}
         <div className="mt-4 p-4 bg-background border border-border rounded-[8px] space-y-3">
-          <p className="text-[12px] font-semibold text-[#334155]">{t("setupInstructions")}</p>
+          <p className="text-[12px] font-semibold text-secondary-foreground">{t("setupInstructions")}</p>
           <p className="text-[12px] text-muted-foreground">{t.rich("setupOptionHttp", { code: (chunks) => <code className="font-mono bg-muted px-1 rounded">{chunks}</code> })}</p>
-          <pre className="text-[11.5px] font-mono text-[#334155] bg-muted p-3 rounded-[6px] overflow-x-auto whitespace-pre-wrap break-all">
+          <pre className="text-[11.5px] font-mono text-secondary-foreground bg-muted p-3 rounded-[6px] overflow-x-auto whitespace-pre-wrap break-all">
 {`${cronExpression} curl -s -H "Authorization: Bearer $EXPORT_TOKEN" \\
   http://localhost:3000/api/export/csv \\
   > ${outputDir}/sam-$(date +%Y%m%d).csv`}
           </pre>
           <p className="text-[12px] text-muted-foreground">{t("setupOptionCli")}</p>
-          <pre className="text-[11.5px] font-mono text-[#334155] bg-muted p-3 rounded-[6px] overflow-x-auto">
+          <pre className="text-[11.5px] font-mono text-secondary-foreground bg-muted p-3 rounded-[6px] overflow-x-auto">
 {`${cronExpression} cd /app && node scripts/export-backup.mjs --output ${outputDir}`}
           </pre>
         </div>

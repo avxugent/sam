@@ -38,7 +38,7 @@ export function StockLocationFilter({ locations }: { locations: LocationOption[]
             display:-webkit-box on a direct child span, which stacks flex
             children vertically instead of side by side */}
         <div className="flex items-center gap-1.5 truncate">
-          <MapPin className="h-3.5 w-3.5 text-[#94a3b8] flex-shrink-0" />
+          <MapPin className="h-3.5 w-3.5 text-subtle flex-shrink-0" />
           <span className="truncate">{currentLabel}</span>
         </div>
       </SelectTrigger>

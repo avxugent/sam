@@ -147,7 +147,7 @@ export function StockItemTable({
       {/* Search */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-subtle" />
           <Input
             placeholder={t("searchStock")}
             value={query}
@@ -155,18 +155,18 @@ export function StockItemTable({
             className="pl-8 h-8 text-[13px]"
           />
         </div>
-        <span className="text-[12px] text-[#94a3b8] ml-auto">
+        <span className="text-[12px] text-subtle ml-auto">
           {filtered.length} {filtered.length !== 1 ? t("items") : t("item")}
         </span>
       </div>
 
       {/* Bulk actions toolbar */}
       {canEdit && selected.size > 0 && (
-        <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-[#e8f0fc] text-[12.5px] text-[#1e64c8]">
+        <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-primary-tint text-[12.5px] text-primary">
           <span className="font-medium">{t("itemsSelected", { count: selected.size })}</span>
           <Button
             size="sm"
-            className="h-7 bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+            className="h-7 bg-primary hover:bg-primary-hover text-white"
             onClick={() => setBulkRelocateOpen(true)}
           >
             {t("relocateSelected")}
@@ -174,7 +174,7 @@ export function StockItemTable({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-[#1e64c8] hover:bg-[#dbe9fb]"
+            className="h-7 text-primary hover:bg-[#dbe9fb]"
             onClick={() => setSelected(new Set())}
           >
             {t("clearSelection")}
@@ -210,7 +210,7 @@ export function StockItemTable({
           <tbody className="divide-y divide-muted">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={canEdit ? 8 : 6} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">
+                <td colSpan={canEdit ? 8 : 6} className="px-3 py-8 text-center text-[13px] text-subtle">
                   {t("noStockItems")}
                 </td>
               </tr>
@@ -227,7 +227,7 @@ export function StockItemTable({
                     </td>
                   )}
                   <td className="px-3 py-2.5">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#e8f0fc] text-[#1e64c8] text-[11px] font-medium">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-tint text-primary text-[11px] font-medium">
                       {item.type.name}
                     </span>
                   </td>
@@ -252,7 +252,7 @@ export function StockItemTable({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-[#1e64c8] hover:bg-[#e8f0fc]"
+                          className="h-7 w-7 p-0 text-primary hover:bg-primary-tint"
                           title={t("deployTo")}
                           onClick={() => setDeployItem(item)}
                         >

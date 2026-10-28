@@ -175,7 +175,7 @@ export function DeployStockDialog({
             size="sm"
             onClick={handleDeploy}
             disabled={!selected || saving || isPending}
-            className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+            className="bg-primary hover:bg-primary-hover text-white"
           >
             {saving || isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
             {tStock("deployTo")}

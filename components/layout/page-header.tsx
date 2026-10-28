@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TONES = {
-  brand: { tile: "bg-[#e8f0fc]", icon: "text-[#1e64c8]" },
+  brand: { tile: "bg-primary-tint", icon: "text-primary" },
   info: { tile: "bg-[#eff6ff]", icon: "text-[#1e40af]" },
   neutral: { tile: "bg-muted", icon: "text-muted-foreground" },
 } as const;
@@ -28,7 +28,7 @@ export function PageHeader({ icon: Icon, title, subtitle, back, tone = "brand" }
       <div className="min-w-0">
         {back && (
           <div className="flex items-center gap-2 mb-0.5">
-            <Link href={back.href} className="text-[12px] text-muted-foreground hover:text-[#1e64c8] flex items-center gap-0.5">
+            <Link href={back.href} className="text-[12px] text-muted-foreground hover:text-primary flex items-center gap-0.5">
               <ChevronLeft className="h-3 w-3" />
               {back.label}
             </Link>

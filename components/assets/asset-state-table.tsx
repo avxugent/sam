@@ -82,7 +82,7 @@ export function AssetStateTable({
   return (
     <div className="space-y-3">
       <div className="relative max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-subtle" />
         <Input
           placeholder={labels.search}
           value={query}
@@ -107,7 +107,7 @@ export function AssetStateTable({
           <tbody className="divide-y divide-muted">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={columnCount} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">
+                <td colSpan={columnCount} className="px-3 py-8 text-center text-[13px] text-subtle">
                   {labels.empty}
                 </td>
               </tr>
@@ -124,12 +124,12 @@ export function AssetStateTable({
                   <td className="px-3 py-2.5">
                     <Link
                       href={`/locations/${asset.locationId}/assets/${asset.id}`}
-                      className="font-medium text-foreground hover:text-[#1e64c8] hover:underline"
+                      className="font-medium text-foreground hover:text-primary hover:underline"
                     >
                       {asset.model?.name || asset.serialNumber || tAsset("unnamedAsset")}
                     </Link>
                     {asset.manufacturer && (
-                      <span className="text-[11.5px] text-[#94a3b8] ml-1.5">{asset.manufacturer.name}</span>
+                      <span className="text-[11.5px] text-subtle ml-1.5">{asset.manufacturer.name}</span>
                     )}
                   </td>
                   <td className="px-3 py-2.5">
@@ -138,9 +138,9 @@ export function AssetStateTable({
                       : <span className="text-[#cbd5e1]">—</span>}
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">
-                    <span className="text-[#334155]">{asset.locationName ?? "—"}</span>
+                    <span className="text-secondary-foreground">{asset.locationName ?? "—"}</span>
                     {asset.locationFiNumber && (
-                      <span className="ml-1.5 font-mono text-[11px] text-[#94a3b8]">{asset.locationFiNumber}</span>
+                      <span className="ml-1.5 font-mono text-[11px] text-subtle">{asset.locationFiNumber}</span>
                     )}
                   </td>
                   <td className="px-3 py-2.5 text-[12px] text-muted-foreground">

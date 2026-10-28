@@ -242,7 +242,7 @@ export function BrandingSettingsClient({
             <img src={`/api/branding/logo?v=${logoVersion}`} alt="Logo" className="h-8 w-8 object-contain" />
           </div>
         ) : (
-          <div className="p-4 bg-background border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
+          <div className="p-4 bg-background border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-subtle">
             <ImageIcon className="h-6 w-6" />
             <span className="text-[13px]">{t("noLogoUploaded")}</span>
           </div>
@@ -276,7 +276,7 @@ export function BrandingSettingsClient({
             <img src={`/api/branding/favicon?v=${faviconVersion}`} alt="Favicon" className="h-8 w-8 object-contain" />
           </div>
         ) : (
-          <div className="p-4 bg-background border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
+          <div className="p-4 bg-background border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-subtle">
             <ImageIcon className="h-6 w-6" />
             <span className="text-[13px]">{t("noFaviconUploaded")}</span>
           </div>
@@ -321,8 +321,8 @@ export function BrandingSettingsClient({
               className={cn(
                 "px-3 py-1.5 rounded-[8px] text-[13px] border transition-colors",
                 backgroundMode === value || (value === "custom" && backgroundMode === "custom")
-                  ? "border-[#1e64c8] bg-[#eff6ff] text-[#1e64c8] font-medium"
-                  : "border-border bg-card text-[#334155] hover:border-[#94a3b8]"
+                  ? "border-primary bg-[#eff6ff] text-primary font-medium"
+                  : "border-border bg-card text-secondary-foreground hover:border-subtle"
               )}
             >
               {label}
@@ -366,7 +366,7 @@ export function BrandingSettingsClient({
         {backgroundMode === "custom" && !hasCustomBackground && (
           <div className="space-y-3">
             <p className="text-[12px] text-muted-foreground">{t("backgroundImageHelp")}</p>
-            <div className="p-4 bg-background border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-[#94a3b8]">
+            <div className="p-4 bg-background border border-dashed border-[#cbd5e1] rounded-[8px] flex items-center gap-3 text-subtle">
               <ImageIcon className="h-6 w-6" />
               <span className="text-[13px]">{t("noBackgroundUploaded")}</span>
             </div>

@@ -386,7 +386,7 @@ export function LocationFormDialog({
               void handleMerge();
             }}
             disabled={merging}
-            className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+            className="bg-primary hover:bg-primary-hover text-white"
           >
             {merging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {tLoc("mergeButton")}

@@ -216,14 +216,14 @@ function SearchBar() {
           onKeyDown={handleKeyDown}
           onFocus={() => { if (quickResults.length > 0) setOpen(true); }}
           placeholder={t("searchPlaceholder")}
-          className="w-full h-[36px] pl-9 pr-8 text-[13px] bg-background border border-border rounded-[8px] text-foreground placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_3px_#e8f0fc] transition-shadow"
+          className="w-full h-[36px] pl-9 pr-8 text-[13px] bg-background border border-border rounded-[8px] text-foreground placeholder:text-subtle outline-none focus:border-primary focus:shadow-[0_0_0_3px_var(--blue-tint)] transition-shadow"
         />
         {query && (
           <button
             type="button"
             onClick={handleClear}
             aria-label={loading ? `${tc("search")}…` : tc("close")}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-subtle hover:text-secondary-foreground"
           >
             {loading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -249,7 +249,7 @@ function SearchBar() {
               aria-selected={idx === activeIndex}
               className={cn(
                 "flex items-start gap-3 px-3 py-2.5 cursor-pointer transition-colors",
-                idx === activeIndex ? "bg-[#e8f0fc]" : "hover:bg-background"
+                idx === activeIndex ? "bg-primary-tint" : "hover:bg-background"
               )}
               onMouseEnter={() => setActiveIndex(idx)}
               onMouseDown={(e) => { e.preventDefault(); handleSelect(r.href); }}
@@ -258,13 +258,13 @@ function SearchBar() {
                 aria-hidden="true"
                 className={cn(
                   "w-[34px] h-[34px] rounded-[8px] flex items-center justify-center flex-shrink-0",
-                  r.kind === "asset" ? "bg-[#e8f0fc]" : "bg-muted"
+                  r.kind === "asset" ? "bg-primary-tint" : "bg-muted"
                 )}
               >
                 {r.kind === "asset" ? (
-                  <Package className="h-4 w-4 text-[#1e64c8]" />
+                  <Package className="h-4 w-4 text-primary" />
                 ) : (
-                  <MapPin className="h-4 w-4 fill-[#1e64c8] stroke-[#1e64c8]" />
+                  <MapPin className="h-4 w-4 fill-primary stroke-primary" />
                 )}
               </div>
               <div className="min-w-0">
@@ -278,7 +278,7 @@ function SearchBar() {
           <li role="presentation" className="border-t border-border px-3 py-2 bg-background">
             <button
               type="button"
-              className="text-xs text-[#1e64c8] hover:underline w-full text-left"
+              className="text-xs text-primary hover:underline w-full text-left"
               onMouseDown={(e) => {
                 e.preventDefault();
                 setOpen(false);
@@ -312,7 +312,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="h-5 w-5 object-contain flex-shrink-0" />
         ) : (
-          <Monitor className="h-5 w-5 text-[#1e64c8] flex-shrink-0" strokeWidth={2} />
+          <Monitor className="h-5 w-5 text-primary flex-shrink-0" strokeWidth={2} />
         )}
         <span className="font-bold text-[16px] text-foreground">{appTitle}</span>
       </Link>
@@ -329,7 +329,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
           size="sm"
           className={cn(
             "text-[13px] h-[34px] px-[14px] rounded-[6px] gap-1.5 hidden sm:flex",
-            pathname.startsWith("/reports") && "bg-[#e8f0fc] text-[#1e64c8]"
+            pathname.startsWith("/reports") && "bg-primary-tint text-primary"
           )}
           asChild
         >
@@ -348,7 +348,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
                 aria-label={t("administration")}
                 className={cn(
                   "text-[13px] h-[34px] px-[14px] rounded-[6px] border-border gap-1.5",
-                  isInAdmin && "bg-[#e8f0fc] border-[#1e64c8] text-[#1e64c8]"
+                  isInAdmin && "bg-primary-tint border-primary text-primary"
                 )}
               >
                 <ShieldCheck className="h-4 w-4" aria-hidden="true" />
@@ -356,7 +356,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-              <DropdownMenuLabel className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.08em]">
+              <DropdownMenuLabel className="text-[10px] font-semibold text-subtle uppercase tracking-[0.08em]">
                 {t("administration")}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -366,7 +366,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
                     href={item.href}
                     className={cn(
                       "flex items-center gap-2 cursor-pointer text-[13px]",
-                      pathname.startsWith(item.href) && "font-medium text-[#1e64c8]"
+                      pathname.startsWith(item.href) && "font-medium text-primary"
                     )}
                   >
                     {item.icon}
@@ -387,7 +387,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
             <button
               type="button"
               aria-label={`Account menu for ${user.name ?? user.email ?? "user"}`}
-              className="w-8 h-8 rounded-full bg-[#1e64c8] text-white text-[13px] font-semibold flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1e64c8]"
+              className="w-8 h-8 rounded-full bg-primary text-white text-[13px] font-semibold flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
             >
               <span aria-hidden="true">{initials}</span>
             </button>

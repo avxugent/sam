@@ -340,7 +340,7 @@ export function ReportBuilder({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-[12px] text-[#94a3b8]">
+        <p className="text-[12px] text-subtle">
           {source === "location" ? t("sourceLocationHelp") : t("sourceAssetHelp")}
         </p>
       </div>
@@ -350,14 +350,14 @@ export function ReportBuilder({
         <div className="space-y-4 bg-card border border-border rounded-[10px] p-5">
           <div className="space-y-2">
             <h2 className="text-[14px] font-semibold text-foreground">{t("locationScope")}</h2>
-            <p className="text-[12px] text-[#94a3b8]">{t("locationScopeHelp")}</p>
+            <p className="text-[12px] text-subtle">{t("locationScopeHelp")}</p>
 
             {locationScopeIds.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {locationScopeIds.map((id) => (
                   <span
                     key={id}
-                    className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 rounded-full text-[11.5px] font-medium bg-[#e8f0fc] text-[#1e64c8]"
+                    className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 rounded-full text-[11.5px] font-medium bg-primary-tint text-primary"
                   >
                     {scopeNameById.get(id) ?? id}
                     <button
@@ -374,7 +374,7 @@ export function ReportBuilder({
             )}
 
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-subtle" />
               <Input
                 value={scopeQuery}
                 onChange={(e) => setScopeQuery(e.target.value)}
@@ -384,7 +384,7 @@ export function ReportBuilder({
             </div>
             <div className="border border-border rounded-[8px] overflow-y-auto max-h-48">
               {filteredScopeOptions.length === 0 ? (
-                <div className="flex items-center justify-center h-16 text-[12.5px] text-[#94a3b8]">
+                <div className="flex items-center justify-center h-16 text-[12.5px] text-subtle">
                   {tLocation("noLocationsFound")}
                 </div>
               ) : (
@@ -397,7 +397,7 @@ export function ReportBuilder({
                           type="button"
                           onClick={() => toggleScopeLocation(o.id)}
                           className={`w-full text-left px-3 py-2 text-[12.5px] transition-colors ${
-                            active ? "bg-[#e8f0fc] text-[#1e64c8] font-medium" : "hover:bg-background text-[#334155]"
+                            active ? "bg-primary-tint text-primary font-medium" : "hover:bg-background text-secondary-foreground"
                           }`}
                         >
                           {o.name}
@@ -412,7 +412,7 @@ export function ReportBuilder({
           <div className="space-y-2">
             <h2 className="text-[14px] font-semibold text-foreground">{t("workLogItems")}</h2>
             {workLogItems.length === 0 ? (
-              <p className="text-[12.5px] text-[#94a3b8]">{t("noWorkLogItems")}</p>
+              <p className="text-[12.5px] text-subtle">{t("noWorkLogItems")}</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {workLogItems.map((it) => {
@@ -424,8 +424,8 @@ export function ReportBuilder({
                       onClick={() => toggleItem(it.id)}
                       className={`px-3 py-1 rounded-full text-[12px] font-medium border transition-colors ${
                         active
-                          ? "bg-[#1e64c8] text-white border-[#1e64c8]"
-                          : "bg-card text-muted-foreground border-border hover:border-[#1e64c8] hover:text-[#1e64c8]"
+                          ? "bg-primary text-white border-primary"
+                          : "bg-card text-muted-foreground border-border hover:border-primary hover:text-primary"
                       }`}
                     >
                       {it.name}
@@ -475,7 +475,7 @@ export function ReportBuilder({
                 </SelectContent>
               </Select>
             </div>
-            <p className="text-[12px] text-[#94a3b8]">{t("timeWindowHelp")}</p>
+            <p className="text-[12px] text-subtle">{t("timeWindowHelp")}</p>
           </div>
         </div>
       )}
@@ -493,7 +493,7 @@ export function ReportBuilder({
         </div>
 
         {filters.length === 0 && (
-          <p className="text-[12.5px] text-[#94a3b8]">{t("noFilters")}</p>
+          <p className="text-[12.5px] text-subtle">{t("noFilters")}</p>
         )}
 
         <div className="space-y-2">
@@ -554,7 +554,7 @@ export function ReportBuilder({
                   variant="ghost"
                   size="sm"
                   aria-label={t("removeFilter", { n: i + 1 })}
-                  className="h-[34px] w-[34px] p-0 text-[#94a3b8] hover:text-destructive"
+                  className="h-[34px] w-[34px] p-0 text-subtle hover:text-destructive"
                   onClick={() => removeFilter(i)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -592,8 +592,8 @@ export function ReportBuilder({
                 onClick={() => toggleColumn(c.value)}
                 className={`px-3 py-1 rounded-full text-[12px] font-medium border transition-colors ${
                   active
-                    ? "bg-[#1e64c8] text-white border-[#1e64c8]"
-                    : "bg-card text-muted-foreground border-border hover:border-[#1e64c8] hover:text-[#1e64c8]"
+                    ? "bg-primary text-white border-primary"
+                    : "bg-card text-muted-foreground border-border hover:border-primary hover:text-primary"
                 }`}
               >
                 {c.label}

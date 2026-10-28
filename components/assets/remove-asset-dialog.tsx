@@ -191,7 +191,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
                 />
               )}
               <OptionRow
-                icon={<Package className="h-4 w-4 text-[#1e64c8]" />}
+                icon={<Package className="h-4 w-4 text-primary" />}
                 title={t("returnToStock")}
                 description={t("returnToStockOptionDescription")}
                 onClick={() => setStep("stock")}
@@ -276,7 +276,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
               <Button
                 onClick={handleStock}
                 disabled={submitting || !selectedLocationId}
-                className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+                className="bg-primary hover:bg-primary-hover text-white"
               >
                 {submitting ? t("returningToStock") : t("returnToStock")}
               </Button>

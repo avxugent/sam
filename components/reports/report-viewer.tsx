@@ -11,8 +11,8 @@ import { ReportToolbar } from "@/components/reports/report-toolbar";
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
   return dir === "asc"
-    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
-    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
+    ? <ChevronUp className="h-2.5 w-2.5 text-primary" />
+    : <ChevronDown className="h-2.5 w-2.5 text-primary" />;
 }
 
 type Props = {
@@ -88,14 +88,14 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                 {result.groups.slice(0, 8).map((g) => (
                   <span
                     key={g.label}
-                    className="inline-flex items-center gap-1 text-[11px] bg-muted text-[#334155] px-2 py-0.5 rounded-full"
+                    className="inline-flex items-center gap-1 text-[11px] bg-muted text-secondary-foreground px-2 py-0.5 rounded-full"
                   >
                     <span className="font-medium">{g.label}</span>
-                    <span className="text-[#94a3b8]">{g.count}</span>
+                    <span className="text-subtle">{g.count}</span>
                   </span>
                 ))}
                 {result.groups.length > 8 && (
-                  <span className="text-[11px] text-[#94a3b8]">{t("moreGroups", { count: result.groups.length - 8 })}</span>
+                  <span className="text-[11px] text-subtle">{t("moreGroups", { count: result.groups.length - 8 })}</span>
                 )}
               </div>
             )}
@@ -148,7 +148,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                       if (col === "type" && val) {
                         return (
                           <td key={col} className="px-4 py-[10px]">
-                            <span className="inline-flex items-center text-[11px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-2 py-0.5 rounded-[5px]">
+                            <span className="inline-flex items-center text-[11px] font-semibold bg-primary-tint text-primary px-2 py-0.5 rounded-[5px]">
                               {val}
                             </span>
                           </td>
@@ -163,7 +163,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                       }
                       return (
                         <td key={col} className="px-4 py-[10px] text-muted-foreground">
-                          {val ?? <span className="italic text-[#94a3b8]">—</span>}
+                          {val ?? <span className="italic text-subtle">—</span>}
                         </td>
                       );
                     })}
@@ -177,7 +177,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                           asChild
                         >
                           <Link href={`/locations/${row.locationId}/assets/${row.id}`}>
-                            <ExternalLink className="h-3.5 w-3.5 text-[#1e64c8]" />
+                            <ExternalLink className="h-3.5 w-3.5 text-primary" />
                           </Link>
                         </Button>
                       )}

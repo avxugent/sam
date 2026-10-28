@@ -11,7 +11,7 @@
     --card-foreground: 222 84% 5%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 84% 5%;
-    --primary: 219 82% 45%;             /* #1e64c8 */
+    --primary: 215.3 73.9% 45.1%;      /* #1e64c8 */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 215 25% 27%;
@@ -23,10 +23,13 @@
     --destructive-foreground: 0 0% 100%;
     --border: 214 32% 91%;              /* #e2e8f0 */
     --input: 214 32% 91%;
-    --ring: 219 82% 45%;
+    --ring: 215.3 73.9% 45.1%;
     --radius: 0.5rem;
     --brand-yellow: #ffd200;
     --blue-tint: #e8f0fc;
+    --primary-hover: #1a56b0;           /* hover shade of the brand blue */
+    --primary-tint: #e8f0fc;            /* active / selected surface */
+    --subtle: #94a3b8;                  /* slate-400: icons, hints, placeholders */
   }
 
   .dark {
@@ -36,7 +39,7 @@
     --card-foreground: 210 40% 96%;
     --popover: 217 33% 17%;
     --popover-foreground: 210 40% 96%;
-    --primary: 219 82% 45%;             /* keep brand blue */
+    --primary: 215.3 73.9% 45.1%;      /* keep brand blue */
     --primary-foreground: 0 0% 100%;
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 96%;
@@ -48,8 +51,9 @@
     --destructive-foreground: 0 0% 100%;
     --border: 215 25% 27%;              /* #334155 slate-700 */
     --input: 215 25% 27%;
-    --ring: 219 82% 45%;
+    --ring: 215.3 73.9% 45.1%;
     --blue-tint: #172554;               /* blue-950 */
+    --primary-tint: #1e3a8a;            /* blue-900 */
   }
 }
 
@@ -86,6 +90,9 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-tint: var(--primary-tint);
+  --color-subtle: var(--subtle);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -94,28 +101,25 @@
 }
 
 /* ─── Dark-mode overrides for the remaining hardcoded hex colours ─── */
-/* Slate greys use the theme tokens (text-foreground, text-muted-foreground,
-   bg-card, bg-muted, bg-background, border-border), which switch with the
-   theme on their own. Only the brand blue and amber/red accents below still
-   need a manual dark value; prefer a token for anything new.               */
+/* Slate greys and the brand blues use theme tokens (text-foreground,
+   text-secondary-foreground, text-muted-foreground, text-subtle, bg-card,
+   bg-muted, border-border, *-primary, bg-primary-hover, bg-primary-tint),
+   which switch with the theme on their own. Only the status accents below
+   (red/amber, a few light-blue hover shades) are still hex with a manual dark
+   value; prefer a token for anything new.                                    */
 
-/* Surfaces */
-/* Active-state blue: blue-900 bg + white text (14:1 contrast vs prior 2.9:1) */
-.dark .bg-\[\#e8f0fc\]                  { background-color: #1e3a8a; color: hsl(var(--foreground)); }
+/* Text on the active-state tint stays readable on its dark blue-900 surface. */
+.dark .bg-primary-tint                  { color: hsl(var(--foreground)); }
 
-/* Hover surfaces */
-.dark .hover\:bg-\[\#e8f0fc\]:hover     { background-color: #1e3a8a; }
 /* Danger/warning button hovers: replace light bg with dark tinted bg.
    Outline variant injects hover:text-accent-foreground (near-white);
    near-white on dark bg gives ~15:1 contrast vs invisible on light bg. */
 .dark .hover\:bg-red-50:hover           { background-color: #450a0a; }
 .dark .hover\:bg-\[\#fef9c3\]:hover     { background-color: #422006; } /* amber-950 */
 
-/* Text (the yellow brand buttons keep text-[#0f172a] in both themes) */
-.dark .text-\[\#334155\]                         { color: hsl(var(--foreground)); }
+/* The yellow brand buttons keep text-[#0f172a] in both themes. */
 
 /* Borders */
-.dark .border-\[\#e8f0fc\]              { border-color: #1e3a8a; }
 .dark .border-\[\#fecaca\]              { border-color: #7f1d1d; }
 .dark .border-\[\#fde047\]              { border-color: #854d0e; } /* amber border */
 
@@ -131,6 +135,3 @@
 /* Destructive text — hardcoded red used in delete buttons */
 .dark .text-\[\#ef4444\]                { color: hsl(var(--destructive)); }
 
-/* Input backgrounds / focus rings that reference light palette */
-.dark .focus\:shadow-\[0_0_0_2px_\#e8f0fc\]:focus  { box-shadow: 0 0 0 2px #172554; }
-.dark .focus\:shadow-\[0_0_0_3px_\#e8f0fc\]:focus  { box-shadow: 0 0 0 3px #172554; }

@@ -86,32 +86,32 @@ function LocationTreeItem({
         className={cn(
           "flex items-center gap-1 py-[5px] text-[12.5px] group relative cursor-pointer select-none",
           isActive
-            ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
-            : "text-[#334155] hover:bg-background"
+            ? "bg-primary-tint text-primary font-semibold border-r-[3px] border-primary"
+            : "text-secondary-foreground hover:bg-background"
         )}
         style={{ paddingLeft: `${12 + depth * 14}px`, paddingRight: "10px" }}
       >
         <button
           type="button"
-          className="flex-shrink-0 h-4 w-4 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
+          className="flex-shrink-0 h-4 w-4 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? `Collapse ${location.name}` : `Expand ${location.name}`}
           aria-expanded={hasChildren ? open : undefined}
           disabled={!hasChildren}
         >
           {useDot ? (
-            <span className={cn("block w-[5px] h-[5px] rounded-full", isActive ? "bg-[#1e64c8]" : "bg-[#cbd5e1]")} />
+            <span className={cn("block w-[5px] h-[5px] rounded-full", isActive ? "bg-primary" : "bg-[#cbd5e1]")} />
           ) : hasChildren ? (
             open
-              ? <ChevronDown className={cn("h-3 w-3", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
-              : <ChevronRight className={cn("h-3 w-3", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
+              ? <ChevronDown className={cn("h-3 w-3", isActive ? "stroke-primary" : "stroke-subtle")} />
+              : <ChevronRight className={cn("h-3 w-3", isActive ? "stroke-primary" : "stroke-subtle")} />
           ) : (
             <span className="h-3 w-3" />
           )}
         </button>
 
         <Link href={`/locations/${location.id}`} className="flex-1 flex items-center gap-1.5 min-w-0">
-          <MapPin className={cn("h-3 w-3 flex-shrink-0", isActive ? "fill-[#1e64c8] stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
+          <MapPin className={cn("h-3 w-3 flex-shrink-0", isActive ? "fill-primary stroke-primary" : "stroke-subtle")} />
           <span className="truncate">
             {selfMatches ? <mark className="bg-yellow-100 text-inherit rounded-[2px]">{location.name}</mark> : location.name}
           </span>
@@ -155,11 +155,11 @@ function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
       className={cn(
         "flex items-center gap-1.5 px-3 py-[5px] text-[12.5px] select-none",
         isActive
-          ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
-          : "text-[#334155] hover:bg-background"
+          ? "bg-primary-tint text-primary font-semibold border-r-[3px] border-primary"
+          : "text-secondary-foreground hover:bg-background"
       )}
     >
-      <Layers className={cn("h-3 w-3 flex-shrink-0", isActive ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
+      <Layers className={cn("h-3 w-3 flex-shrink-0", isActive ? "text-primary" : "text-subtle")} />
       <span className="flex-1 truncate">{t("allLocations")}</span>
       {totalAssets > 0 && (
         <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0 rounded flex-shrink-0 leading-5">
@@ -205,7 +205,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="h-5 w-5 object-contain flex-shrink-0" />
         ) : (
-          <Monitor className="h-5 w-5 text-[#1e64c8] flex-shrink-0" strokeWidth={2} />
+          <Monitor className="h-5 w-5 text-primary flex-shrink-0" strokeWidth={2} />
         )}
         <span className="font-bold text-[16px] text-foreground tracking-tight">{appTitle}</span>
       </div>
@@ -220,13 +220,13 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
             <button
               type="button"
               onClick={openLocations}
-              className="flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
+              className="flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
               aria-expanded={locationOpen}
             >
               {locationOpen
-                ? <ChevronDown className="h-2.5 w-2.5 text-[#94a3b8]" />
-                : <ChevronRight className="h-2.5 w-2.5 text-[#94a3b8]" />}
-              <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.08em] ml-0.5">
+                ? <ChevronDown className="h-2.5 w-2.5 text-subtle" />
+                : <ChevronRight className="h-2.5 w-2.5 text-subtle" />}
+              <span className="text-[10px] font-semibold text-subtle uppercase tracking-[0.08em] ml-0.5">
                 {t("locations")}
               </span>
             </button>
@@ -242,7 +242,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
           {locationOpen && (
             <>
               <div className="px-3 mb-2 relative">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-3 w-3 text-[#94a3b8] pointer-events-none" aria-hidden="true" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-3 w-3 text-subtle pointer-events-none" aria-hidden="true" />
                 <label htmlFor="sidebar-location-filter" className="sr-only">Filter locations</label>
                 <input
                   id="sidebar-location-filter"
@@ -250,14 +250,14 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
                   value={filterQuery}
                   onChange={(e) => setFilterQuery(e.target.value)}
                   placeholder={t("filterLocations")}
-                  className="w-full h-[28px] pl-7 pr-6 text-[12px] bg-background border border-border rounded-[6px] text-foreground placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_2px_#e8f0fc] transition-shadow"
+                  className="w-full h-[28px] pl-7 pr-6 text-[12px] bg-background border border-border rounded-[6px] text-foreground placeholder:text-subtle outline-none focus:border-primary focus:shadow-[0_0_0_2px_var(--blue-tint)] transition-shadow"
                 />
                 {filterQuery && (
                   <button
                     type="button"
                     aria-label="Clear location filter"
                     onClick={() => setFilterQuery("")}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-subtle hover:text-secondary-foreground"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -267,7 +267,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
               <AllLocationsEntry totalAssets={totalAssets} />
 
               {filterQuery && locationTree.every((l) => !nodeMatchesFilter(l, filterQuery.toLowerCase().trim())) && (
-                <p className="px-3 py-3 text-[12px] text-[#94a3b8] text-center">{t("noLocationsMatch")}</p>
+                <p className="px-3 py-3 text-[12px] text-subtle text-center">{t("noLocationsMatch")}</p>
               )}
 
               {locationTree.length === 0 ? (
@@ -304,13 +304,13 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
           <div
             className={cn(
               "flex items-center gap-1 py-[5px] pl-[12px] pr-[10px] text-[12.5px] select-none",
-              isStockPath ? "text-[#1e64c8] font-semibold" : "text-[#334155]"
+              isStockPath ? "text-primary font-semibold" : "text-secondary-foreground"
             )}
           >
             {/* Chevron: toggle stock, collapse locations */}
             <button
               type="button"
-              className="flex-shrink-0 h-4 w-4 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
+              className="flex-shrink-0 h-4 w-4 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
               onClick={() => stockOpen ? setStockOpen(false) : openStock()}
               disabled={!hasStockTypes}
               aria-label={stockOpen ? t("collapseStock") : t("expandStock")}
@@ -318,8 +318,8 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
             >
               {hasStockTypes ? (
                 stockOpen
-                  ? <ChevronDown className={cn("h-3 w-3", isStockPath ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
-                  : <ChevronRight className={cn("h-3 w-3", isStockPath ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
+                  ? <ChevronDown className={cn("h-3 w-3", isStockPath ? "stroke-primary" : "stroke-subtle")} />
+                  : <ChevronRight className={cn("h-3 w-3", isStockPath ? "stroke-primary" : "stroke-subtle")} />
               ) : (
                 <span className="h-3 w-3" />
               )}
@@ -331,7 +331,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
               onClick={openStock}
               className="flex-1 flex items-center gap-1.5 min-w-0"
             >
-              <Package className={cn("h-3 w-3 flex-shrink-0", isStockPath ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
+              <Package className={cn("h-3 w-3 flex-shrink-0", isStockPath ? "text-primary" : "text-subtle")} />
               <span className="truncate">{t("stock")}</span>
               {stockItemCount > 0 && (
                 <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0 rounded flex-shrink-0 leading-5 ml-auto">

@@ -109,7 +109,7 @@ export function HostnameComplianceClient({ result }: { result: HostnameComplianc
                         aria-label={canExpand ? `${t("showNonCompliant")} — ${row.typeName}` : undefined}
                         className={cn(
                           "border-b border-border last:border-0",
-                          canExpand && "cursor-pointer hover:bg-background focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
+                          canExpand && "cursor-pointer hover:bg-background focus-visible:outline-none focus-visible:bg-primary-tint"
                         )}
                         onClick={() => canExpand && setExpanded(isOpen ? null : key)}
                         onKeyDown={(e) => {
@@ -153,7 +153,7 @@ export function HostnameComplianceClient({ result }: { result: HostnameComplianc
                                 {row.nonCompliantAssets.map((a) => (
                                   <tr key={a.id} className="align-top">
                                     <td className="pr-4 py-0.5 font-mono text-[#dc2626] break-all">{a.hostname}</td>
-                                    <td className="pr-4 py-0.5 text-[#334155]">{a.model ?? "—"}</td>
+                                    <td className="pr-4 py-0.5 text-secondary-foreground">{a.model ?? "—"}</td>
                                     <td className="pr-4 py-0.5 text-muted-foreground font-mono">{a.serialNumber ?? "—"}</td>
                                     <td className="py-0.5 text-muted-foreground">{a.locationPath ?? a.fiNumber ?? "—"}</td>
                                   </tr>

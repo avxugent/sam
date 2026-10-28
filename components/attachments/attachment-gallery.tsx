@@ -223,7 +223,7 @@ export function AttachmentGallery({
       {canEdit && (
         <div
           className={`border-2 border-dashed rounded-[10px] px-5 py-7 text-center transition-colors cursor-pointer bg-card ${
-            dragOver ? "border-[#1e64c8] bg-[#e8f0fc]" : "border-[#cbd5e1]"
+            dragOver ? "border-primary bg-primary-tint" : "border-[#cbd5e1]"
           }`}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -245,12 +245,12 @@ export function AttachmentGallery({
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Upload className="h-7 w-7 mx-auto text-[#94a3b8]" />
+              <Upload className="h-7 w-7 mx-auto text-subtle" />
               <p className="text-[13px] text-muted-foreground">
                 Drag &amp; drop files here, or{" "}
-                <span className="text-[#1e64c8] hover:underline">browse</span>
+                <span className="text-primary hover:underline">browse</span>
               </p>
-              <p className="text-[11.5px] text-[#94a3b8]">Images, PDF, Word, Excel, CSV — max 50 MB</p>
+              <p className="text-[11.5px] text-subtle">Images, PDF, Word, Excel, CSV — max 50 MB</p>
             </div>
           )}
         </div>
@@ -261,7 +261,7 @@ export function AttachmentGallery({
         <Button
           variant="outline"
           size="sm"
-          className="gap-2 border-border text-[#334155] text-[12px]"
+          className="gap-2 border-border text-secondary-foreground text-[12px]"
           onClick={() => setShowLinkDialog(true)}
         >
           <Plus className="h-3.5 w-3.5" />
@@ -392,7 +392,7 @@ export function AttachmentGallery({
                 )}
               </div>
               {hasMultiple && (
-                <p className="text-[11.5px] text-[#94a3b8]">{lightboxIndex + 1} / {previewable.length}</p>
+                <p className="text-[11.5px] text-subtle">{lightboxIndex + 1} / {previewable.length}</p>
               )}
               {lightboxAttachment.description && (
                 <p className="text-[13px] text-muted-foreground text-center max-w-lg">{lightboxAttachment.description}</p>
@@ -428,7 +428,7 @@ export function AttachmentGallery({
                 {isImage ? (
                   <button
                     type="button"
-                    className="flex-shrink-0 w-[52px] h-[52px] rounded-[7px] overflow-hidden border border-border bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] group relative"
+                    className="flex-shrink-0 w-[52px] h-[52px] rounded-[7px] overflow-hidden border border-border bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary group relative"
                     onClick={() => setLightboxId(attachment.id)}
                     aria-label={t("previewAlt", { name: displayName })}
                   >
@@ -463,7 +463,7 @@ export function AttachmentGallery({
                       href={attachment.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[13px] font-medium text-[#1e64c8] hover:underline truncate flex items-center gap-1"
+                      className="text-[13px] font-medium text-primary hover:underline truncate flex items-center gap-1"
                     >
                       {displayName}
                       <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-60" />
@@ -473,7 +473,7 @@ export function AttachmentGallery({
                   )}
                   {/* Show originalName as subtitle if displayName overrides it */}
                   {attachment.displayName?.trim() && (
-                    <p className="text-[11px] text-[#94a3b8] truncate">{attachment.originalName}</p>
+                    <p className="text-[11px] text-subtle truncate">{attachment.originalName}</p>
                   )}
                   <p className="text-[11.5px] text-muted-foreground">
                     {isLink ? t("linkType") : formatFileSize(attachment.size ?? 0)}
@@ -492,7 +492,7 @@ export function AttachmentGallery({
                       variant="ghost"
                       size="icon"
                       aria-label={`Download ${displayName}`}
-                      className="h-[30px] w-[30px] text-muted-foreground hover:text-[#334155]"
+                      className="h-[30px] w-[30px] text-muted-foreground hover:text-secondary-foreground"
                       onClick={() => window.open(`/api/attachments/${attachment.id}`, "_blank")}
                     >
                       <Download className="h-4 w-4" />
@@ -503,7 +503,7 @@ export function AttachmentGallery({
                       variant="ghost"
                       size="icon"
                       aria-label={`${t("editAttachment")} ${displayName}`}
-                      className="h-[30px] w-[30px] text-muted-foreground hover:text-[#334155]"
+                      className="h-[30px] w-[30px] text-muted-foreground hover:text-secondary-foreground"
                       onClick={() => openEdit(attachment)}
                     >
                       <Pencil className="h-4 w-4" />

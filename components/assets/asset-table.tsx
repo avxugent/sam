@@ -215,7 +215,7 @@ export function AssetTable({
       </div>
 
       {canEdit && selected.size > 0 && (
-        <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-[#e8f0fc] text-[12.5px] text-[#1e64c8]">
+        <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-primary-tint text-[12.5px] text-primary">
           <span className="font-medium">{t("itemsSelected", { count: selected.size })}</span>
           <Button
             size="sm"
@@ -226,7 +226,7 @@ export function AssetTable({
           </Button>
           <Button
             size="sm"
-            className="h-7 bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+            className="h-7 bg-primary hover:bg-primary-hover text-white"
             onClick={() => setBulkReturnToStockOpen(true)}
           >
             {t("returnToStock")}
@@ -234,7 +234,7 @@ export function AssetTable({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-[#1e64c8] hover:bg-[#dbe9fb]"
+            className="h-7 text-primary hover:bg-[#dbe9fb]"
             onClick={() => setSelected(new Set())}
           >
             {t("clearSelection")}
@@ -283,7 +283,7 @@ export function AssetTable({
                   role="link"
                   tabIndex={0}
                   aria-label={`Open asset ${asset.model?.name || asset.hostname || asset.serialNumber || "details"}`}
-                  className="border-b border-border last:border-0 hover:bg-background transition-colors duration-75 cursor-pointer focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
+                  className="border-b border-border last:border-0 hover:bg-background transition-colors duration-75 cursor-pointer focus-visible:outline-none focus-visible:bg-primary-tint"
                   onClick={() => router.push(assetHref)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") { e.preventDefault(); router.push(assetHref); }
@@ -300,7 +300,7 @@ export function AssetTable({
                   )}
                   <td className="px-4 py-[11px]">
                     {asset.type ? (
-                      <span className="inline-flex items-center text-[11px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-2 py-0.5 rounded-[5px]">
+                      <span className="inline-flex items-center text-[11px] font-semibold bg-primary-tint text-primary px-2 py-0.5 rounded-[5px]">
                         {asset.type.name}
                       </span>
                     ) : (
@@ -325,7 +325,7 @@ export function AssetTable({
                         href={renderHostnameUrl(hostnameUrlTemplate, asset)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="hover:text-[#1e64c8] underline inline-flex items-center gap-1"
+                        className="hover:text-primary underline inline-flex items-center gap-1"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {asset.hostname}
@@ -338,7 +338,7 @@ export function AssetTable({
                   {showLocation && (
                     <td className="px-4 py-[11px] text-muted-foreground" onClick={(e) => e.stopPropagation()}>
                       {asset.location ? (
-                        <Link href={`/locations/${asset.location.id}`} className="hover:text-[#1e64c8]">
+                        <Link href={`/locations/${asset.location.id}`} className="hover:text-primary">
                           {asset.location.name}
                         </Link>
                       ) : "—"}
@@ -363,7 +363,7 @@ export function AssetTable({
                               aria-label={`Edit asset ${asset.model?.name || asset.hostname || asset.serialNumber || asset.id}`}
                               className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card"
                             >
-                              <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
+                              <Pencil className="h-3.5 w-3.5 text-primary" />
                             </Button>
                           </AssetFormDialog>
 
@@ -445,7 +445,7 @@ export function AssetTable({
               }, [])
               .map((p, i) =>
                 p === "…" ? (
-                  <span key={`ellipsis-${i}`} className="text-[12px] text-[#94a3b8] px-1" aria-hidden="true">…</span>
+                  <span key={`ellipsis-${i}`} className="text-[12px] text-subtle px-1" aria-hidden="true">…</span>
                 ) : (
                   <Button
                     key={p}

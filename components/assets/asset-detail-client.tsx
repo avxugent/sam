@@ -231,7 +231,7 @@ export function AssetDetailClient({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleReinstate} disabled={reinstating} className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white">
+                  <AlertDialogAction onClick={handleReinstate} disabled={reinstating} className="bg-primary hover:bg-primary-hover text-white">
                     {reinstating ? tDecom("reinstating") : tDecom("reinstate")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -269,14 +269,14 @@ export function AssetDetailClient({
       {/* Page header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-            {createElement(getAssetTypeIcon(asset.type?.name), { className: "h-4 w-4 text-[#1e64c8]" })}
+          <div className="w-9 h-9 rounded-[9px] bg-primary-tint flex items-center justify-center flex-shrink-0">
+            {createElement(getAssetTypeIcon(asset.type?.name), { className: "h-4 w-4 text-primary" })}
           </div>
           <div>
             <h1 className="text-[22px] font-bold text-foreground tracking-[-0.01em]">{displayName}</h1>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {asset.type && (
-                <span className="text-[11px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-[10px] py-[3px] rounded-[5px]">
+                <span className="text-[11px] font-semibold bg-primary-tint text-primary px-[10px] py-[3px] rounded-[5px]">
                   {asset.type.name}
                 </span>
               )}
@@ -390,7 +390,7 @@ export function AssetDetailClient({
                       href={renderHostnameUrl(hostnameUrlTemplate, asset)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#1e64c8] hover:underline inline-flex items-center gap-1"
+                      className="text-primary hover:underline inline-flex items-center gap-1"
                     >
                       {asset.hostname}
                       <ExternalLink className="h-3 w-3 opacity-60" />
@@ -403,7 +403,7 @@ export function AssetDetailClient({
               <div>
                 <FieldLabel>{tField("location")}</FieldLabel>
                 <FieldValue>
-                  <Link href={`/locations/${asset.location.id}`} className="text-[#1e64c8] hover:underline inline-flex items-center gap-1">
+                  <Link href={`/locations/${asset.location.id}`} className="text-primary hover:underline inline-flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
                     {asset.location.name}
                   </Link>
@@ -474,13 +474,13 @@ export function AssetDetailClient({
                         href={renderMacAddressUrl(macAddressUrlTemplate, mac.address)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-mono text-[11.5px] bg-[#e8f0fc] text-[#1e64c8] px-[10px] py-[3px] rounded-[5px] inline-flex items-center gap-1 hover:underline"
+                        className="font-mono text-[11.5px] bg-primary-tint text-primary px-[10px] py-[3px] rounded-[5px] inline-flex items-center gap-1 hover:underline"
                       >
                         {mac.address}
                         <ExternalLink className="h-2.5 w-2.5 opacity-60" />
                       </a>
                     ) : (
-                      <span key={mac.id} className="font-mono text-[11.5px] bg-muted text-[#334155] px-[10px] py-[3px] rounded-[5px]">
+                      <span key={mac.id} className="font-mono text-[11.5px] bg-muted text-secondary-foreground px-[10px] py-[3px] rounded-[5px]">
                         {mac.address}
                       </span>
                     )
@@ -492,7 +492,7 @@ export function AssetDetailClient({
             {asset.notes && (
               <div className="border-t border-border mt-4 pt-4">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground mb-2">{tField("notes")}</p>
-                <p className="text-[13px] text-[#334155] leading-relaxed whitespace-pre-wrap">{asset.notes}</p>
+                <p className="text-[13px] text-secondary-foreground leading-relaxed whitespace-pre-wrap">{asset.notes}</p>
               </div>
             )}
 
@@ -501,7 +501,7 @@ export function AssetDetailClient({
                 <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                   <Lock className="h-3.5 w-3.5 flex-shrink-0" />
                   <span className="font-medium text-foreground">{tField("vaultPath")}:</span>
-                  <code className="font-mono bg-muted text-[#334155] px-2 py-0.5 rounded-[4px] text-[11.5px]">
+                  <code className="font-mono bg-muted text-secondary-foreground px-2 py-0.5 rounded-[4px] text-[11.5px]">
                     {asset.vaultPath}
                   </code>
                 </div>
@@ -541,7 +541,7 @@ export function AssetDetailClient({
                       href={asset.model.documentationUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#1e64c8] hover:underline inline-flex items-center gap-1"
+                      className="text-primary hover:underline inline-flex items-center gap-1"
                     >
                       {t("modelDocumentation")}
                       <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-60" />
@@ -569,24 +569,24 @@ export function AssetDetailClient({
           <InfoCard icon={<Clock className="h-3.5 w-3.5" />} title={t("recordInfo")}>
             <div className="space-y-3">
               <div>
-                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">{tField("created")}</p>
-                <p className="text-[12.5px] text-[#334155]">{formatDate(asset.createdAt)}</p>
+                <p className="text-[10.5px] text-subtle uppercase tracking-[0.07em] mb-0.5">{tField("created")}</p>
+                <p className="text-[12.5px] text-secondary-foreground">{formatDate(asset.createdAt)}</p>
               </div>
               <div>
-                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">{tField("lastModified")}</p>
-                <p className="text-[12.5px] text-[#334155]">{formatDate(asset.updatedAt)}</p>
+                <p className="text-[10.5px] text-subtle uppercase tracking-[0.07em] mb-0.5">{tField("lastModified")}</p>
+                <p className="text-[12.5px] text-secondary-foreground">{formatDate(asset.updatedAt)}</p>
               </div>
               <div>
-                <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">{tField("location")}</p>
-                <Link href={`/locations/${asset.location.id}`} className="text-[12.5px] text-[#1e64c8] hover:underline inline-flex items-center gap-1">
-                  <MapPin className="h-3 w-3 fill-[#1e64c8] stroke-[#1e64c8]" />
+                <p className="text-[10.5px] text-subtle uppercase tracking-[0.07em] mb-0.5">{tField("location")}</p>
+                <Link href={`/locations/${asset.location.id}`} className="text-[12.5px] text-primary hover:underline inline-flex items-center gap-1">
+                  <MapPin className="h-3 w-3 fill-primary stroke-primary" />
                   {asset.location.name}
                 </Link>
               </div>
               {asset.installationDate && (
                 <div>
-                  <p className="text-[10.5px] text-[#94a3b8] uppercase tracking-[0.07em] mb-0.5">{tField("installed")}</p>
-                  <p className="text-[12.5px] text-[#334155] inline-flex items-center gap-1">
+                  <p className="text-[10.5px] text-subtle uppercase tracking-[0.07em] mb-0.5">{tField("installed")}</p>
+                  <p className="text-[12.5px] text-secondary-foreground inline-flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     {formatDate(asset.installationDate)}
                   </p>

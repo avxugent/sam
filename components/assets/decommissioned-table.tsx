@@ -64,8 +64,8 @@ export function DecommissionedTable({
   const renderReinstate = (asset: AssetStateRow) => (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-[#e8f0fc]" title={t("reinstate")}>
-          <RotateCcw className="h-3.5 w-3.5 text-[#1e64c8]" />
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-primary-tint" title={t("reinstate")}>
+          <RotateCcw className="h-3.5 w-3.5 text-primary" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -81,7 +81,7 @@ export function DecommissionedTable({
           <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => handleReinstate(asset.id)}
-            className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+            className="bg-primary hover:bg-primary-hover text-white"
           >
             {t("reinstate")}
           </AlertDialogAction>

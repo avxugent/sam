@@ -119,7 +119,7 @@ export function MoveLocationDialog({
               size="sm"
               onClick={handleMoveClick}
               disabled={!selected || saving}
-              className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+              className="bg-primary hover:bg-primary-hover text-white"
             >
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
               {t("moveToLocationButton")}
@@ -144,7 +144,7 @@ export function MoveLocationDialog({
                 void doMove();
               }}
               disabled={saving}
-              className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+              className="bg-primary hover:bg-primary-hover text-white"
             >
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
               {t("moveWithAssets")}

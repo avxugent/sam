@@ -29,7 +29,7 @@ const ACTION_COLORS: Record<string, string> = {
   EXPORT: "bg-[#f3e8ff] text-[#7c3aed]",
   LOGIN_SUCCESS: "bg-[#dcfce7] text-[#15803d]",
   LOGIN_FAILED: "bg-[#fee2e2] text-[#b91c1c]",
-  LOGOUT: "bg-border text-[#475569]",
+  LOGOUT: "bg-border text-secondary-foreground",
 };
 
 type SortCol = "timestamp" | "user" | "action" | "entity";
@@ -44,9 +44,9 @@ function ActionBadge({ action }: { action: string }) {
 
 function DetailRenderer({ detail }: { detail: string }) {
   let parsed: unknown;
-  try { parsed = JSON.parse(detail); } catch { return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{detail}</pre>; }
+  try { parsed = JSON.parse(detail); } catch { return <pre className="text-[11.5px] font-mono text-secondary-foreground whitespace-pre-wrap break-all">{detail}</pre>; }
   if (typeof parsed !== "object" || parsed === null) {
-    return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{JSON.stringify(parsed, null, 2)}</pre>;
+    return <pre className="text-[11.5px] font-mono text-secondary-foreground whitespace-pre-wrap break-all">{JSON.stringify(parsed, null, 2)}</pre>;
   }
   const obj = parsed as Record<string, unknown>;
   if (obj.changes && typeof obj.changes === "object" && obj.changes !== null) {
@@ -74,14 +74,14 @@ function DetailRenderer({ detail }: { detail: string }) {
           {Object.entries(snapshot).map(([field, value]) => (
             <tr key={field}>
               <td className="pr-4 text-muted-foreground font-medium whitespace-nowrap">{field}</td>
-              <td className="text-[#334155] break-all">{String(value ?? "—")}</td>
+              <td className="text-secondary-foreground break-all">{String(value ?? "—")}</td>
             </tr>
           ))}
         </tbody>
       </table>
     );
   }
-  return <pre className="text-[11.5px] font-mono text-[#334155] whitespace-pre-wrap break-all">{JSON.stringify(parsed, null, 2)}</pre>;
+  return <pre className="text-[11.5px] font-mono text-secondary-foreground whitespace-pre-wrap break-all">{JSON.stringify(parsed, null, 2)}</pre>;
 }
 
 export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
@@ -145,7 +145,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
         <select
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
-          className="h-[36px] rounded-[8px] border border-input bg-background px-3 text-[13px] text-[#334155]"
+          className="h-[36px] rounded-[8px] border border-input bg-background px-3 text-[13px] text-secondary-foreground"
         >
           <option value="">{t("filterByAction")}</option>
           {actions.map((a) => <option key={a} value={a}>{a}</option>)}
@@ -153,7 +153,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
         <select
           value={entityFilter}
           onChange={(e) => setEntityFilter(e.target.value)}
-          className="h-[36px] rounded-[8px] border border-input bg-background px-3 text-[13px] text-[#334155]"
+          className="h-[36px] rounded-[8px] border border-input bg-background px-3 text-[13px] text-secondary-foreground"
         >
           <option value="">{t("filterByEntity")}</option>
           {entityTypes.map((e) => <option key={e} value={e}>{e}</option>)}
@@ -189,7 +189,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
                     tabIndex={log.detail ? 0 : undefined}
                     aria-expanded={log.detail ? expandedId === log.id : undefined}
                     aria-label={log.detail ? `${t("showDetails")} ${log.action} ${log.entityType}` : undefined}
-                    className="border-b border-border last:border-0 hover:bg-background cursor-pointer focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
+                    className="border-b border-border last:border-0 hover:bg-background cursor-pointer focus-visible:outline-none focus-visible:bg-primary-tint"
                     onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
                     onKeyDown={(e) => {
                       if (!log.detail) return;

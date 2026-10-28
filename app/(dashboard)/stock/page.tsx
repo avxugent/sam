@@ -77,7 +77,7 @@ export default async function StockPage({
           <StockLocationFilter locations={locationOptions} />
           {canEdit && (
             <StockItemFormDialog mode="create">
-              <Button size="sm" className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white flex items-center gap-1.5">
+              <Button size="sm" className="bg-primary hover:bg-primary-hover text-white flex items-center gap-1.5">
                 <Plus className="h-3.5 w-3.5" />
                 {t("addItem")}
               </Button>

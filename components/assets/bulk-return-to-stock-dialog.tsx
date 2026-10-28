@@ -99,7 +99,7 @@ export function BulkReturnToStockDialog({ open, onOpenChange, assetIds, onComple
                 size="sm"
                 disabled={submitting || !selectedLocationId}
                 onClick={handleSubmit}
-                className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+                className="bg-primary hover:bg-primary-hover text-white"
               >
                 {submitting ? t("returningToStock") : t("returnToStock")}
               </Button>

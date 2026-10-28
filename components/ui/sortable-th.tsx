@@ -6,8 +6,8 @@ type SortDir = "asc" | "desc";
 export function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" aria-hidden="true" />;
   return dir === "asc"
-    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" aria-hidden="true" />
-    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" aria-hidden="true" />;
+    ? <ChevronUp className="h-2.5 w-2.5 text-primary" aria-hidden="true" />
+    : <ChevronDown className="h-2.5 w-2.5 text-primary" aria-hidden="true" />;
 }
 
 type SortableThProps<C extends string> = {
@@ -42,13 +42,13 @@ export function SortableTh<C extends string>({
         type="button"
         onClick={() => onSort(col)}
         className={cn(
-          "w-full inline-flex items-center gap-1 text-left select-none hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm",
+          "w-full inline-flex items-center gap-1 text-left select-none hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm",
           variant === "compact"
             ? "px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide"
             : "px-4 py-[10px] text-[12px] font-medium"
         )}
       >
-        <span className={active ? "text-[#1e64c8]" : undefined}>{label}</span>
+        <span className={active ? "text-primary" : undefined}>{label}</span>
         <SortIcon active={active} dir={sortDir} />
       </button>
     </th>

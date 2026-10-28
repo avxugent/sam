@@ -56,15 +56,15 @@ function LocationTreeItem({
         className={cn(
           "flex items-center gap-2 py-[10px] text-[14px] rounded-[8px] transition-colors",
           isActive
-            ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold"
-            : "text-[#334155] hover:bg-background active:bg-muted"
+            ? "bg-primary-tint text-primary font-semibold"
+            : "text-secondary-foreground hover:bg-background active:bg-muted"
         )}
         style={{ paddingLeft: `${12 + depth * 20}px`, paddingRight: "12px" }}
       >
         {/* Expand/collapse button — larger hit target for touch */}
         <button
           type="button"
-          className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8]"
+          className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           onClick={() => setOpen((v) => !v)}
           aria-label={(forceOpen || open) ? `Collapse ${location.name}` : `Expand ${location.name}`}
           aria-expanded={hasChildren ? (forceOpen || open) : undefined}
@@ -72,8 +72,8 @@ function LocationTreeItem({
         >
           {hasChildren ? (
             (forceOpen || open)
-              ? <ChevronDown className={cn("h-4 w-4", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
-              : <ChevronRight className={cn("h-4 w-4", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
+              ? <ChevronDown className={cn("h-4 w-4", isActive ? "stroke-primary" : "stroke-subtle")} />
+              : <ChevronRight className={cn("h-4 w-4", isActive ? "stroke-primary" : "stroke-subtle")} />
           ) : (
             <span className="h-4 w-4" />
           )}
@@ -87,7 +87,7 @@ function LocationTreeItem({
           <MapPin
             className={cn(
               "h-4 w-4 flex-shrink-0",
-              isActive ? "fill-[#1e64c8] stroke-[#1e64c8]" : "stroke-[#94a3b8]"
+              isActive ? "fill-primary stroke-primary" : "stroke-subtle"
             )}
           />
           <div className="min-w-0">
@@ -99,7 +99,7 @@ function LocationTreeItem({
               )}
             </span>
             {location.fiNumber && (
-              <span className="text-[11px] text-[#94a3b8] font-mono block truncate">
+              <span className="text-[11px] text-subtle font-mono block truncate">
                 {location.fiNumber}
               </span>
             )}
@@ -145,7 +145,7 @@ export function LocationBrowserClient({
     <div className="space-y-3">
       {/* Search/filter */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94a3b8]" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-subtle" />
         <Input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -157,7 +157,7 @@ export function LocationBrowserClient({
             type="button"
             onClick={() => setFilter("")}
             aria-label="Clear filter"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-secondary-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -185,7 +185,7 @@ export function LocationBrowserClient({
               )
             )}
             {query && locationTree.every((loc) => !nodeMatchesFilter(loc, query)) && (
-              <p className="text-[13px] text-[#94a3b8] text-center py-6">
+              <p className="text-[13px] text-subtle text-center py-6">
                 {t("noLocationsMatch")}
               </p>
             )}

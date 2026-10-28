@@ -70,7 +70,7 @@ export default async function DashboardLayout({
       {/* Skip link — visible only on focus, jumps over the sidebar + header */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:bg-card focus:text-foreground focus:border focus:border-[#1e64c8] focus:rounded-md focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-md"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:bg-card focus:text-foreground focus:border focus:border-primary focus:rounded-md focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-md"
       >
         Skip to main content
       </a>

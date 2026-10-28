@@ -65,7 +65,7 @@ function StatCard({
         )}
       </div>
       {href && linkLabel && (
-        <Link href={href} className="text-[12px] text-[#1e64c8] hover:underline mt-2 inline-block">
+        <Link href={href} className="text-[12px] text-primary hover:underline mt-2 inline-block">
           {linkLabel}
         </Link>
       )}
@@ -82,7 +82,7 @@ function AssetSampleList({ sample, total }: { sample: AssetSample[]; total: numb
           <li key={a.id}>
             <Link
               href={`/locations/${a.locationId}/assets/${a.id}`}
-              className="text-[#1e64c8] hover:underline"
+              className="text-primary hover:underline"
             >
               {a.model ?? a.serialNumber ?? a.hostname ?? a.id}
             </Link>
@@ -108,7 +108,7 @@ function LocationSampleList({ sample, total }: { sample: LocationSample[]; total
       <ul className="space-y-1">
         {sample.map((l) => (
           <li key={l.id}>
-            <Link href={`/locations/${l.id}`} className="text-[#1e64c8] hover:underline">
+            <Link href={`/locations/${l.id}`} className="text-primary hover:underline">
               {l.path}
             </Link>
           </li>

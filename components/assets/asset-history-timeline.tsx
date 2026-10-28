@@ -90,13 +90,13 @@ export function AssetHistoryTimeline({ assetId }: { assetId: string }) {
   }, [assetId]);
 
   if (error) {
-    return <p className="text-[12.5px] text-[#94a3b8]">{t("error")}</p>;
+    return <p className="text-[12.5px] text-subtle">{t("error")}</p>;
   }
   if (entries === null) {
-    return <p className="text-[12.5px] text-[#94a3b8]">{t("loading")}</p>;
+    return <p className="text-[12.5px] text-subtle">{t("loading")}</p>;
   }
   if (entries.length === 0) {
-    return <p className="text-[12.5px] text-[#94a3b8]">{t("empty")}</p>;
+    return <p className="text-[12.5px] text-subtle">{t("empty")}</p>;
   }
 
   return (
@@ -104,7 +104,7 @@ export function AssetHistoryTimeline({ assetId }: { assetId: string }) {
       {entries.map((entry) => (
         <li key={entry.id} className="border-l-2 border-border pl-3">
           <p className="text-[12.5px] font-medium text-foreground">{t(historyLabelKey(entry))}</p>
-          <p className="text-[11px] text-[#94a3b8]">
+          <p className="text-[11px] text-subtle">
             {new Date(entry.timestamp).toLocaleString("sv-SE")}
             {entry.userEmail && ` · ${t("byUser", { email: entry.userEmail })}`}
           </p>

@@ -145,9 +145,9 @@ export function WorkLogList({
       {/* Empty state */}
       {entries.length === 0 ? (
         <div className="text-center py-12 border border-border rounded-[10px] bg-card">
-          <Wrench className="h-10 w-10 mx-auto mb-3 text-[#94a3b8] opacity-60" />
+          <Wrench className="h-10 w-10 mx-auto mb-3 text-subtle opacity-60" />
           <p className="text-[14px] text-muted-foreground mb-1">{t("noEntries")}</p>
-          <p className="text-[12px] text-[#94a3b8]">
+          <p className="text-[12px] text-subtle">
             {canCreate ? t("noEntriesHint") : t("noEntriesViewerHint")}
           </p>
         </div>
@@ -168,7 +168,7 @@ export function WorkLogList({
                 <div className="flex items-start gap-3">
                   {/* Avatar — name appears as text below, so the avatar is decorative */}
                   <div
-                    className="w-9 h-9 rounded-full bg-[#1e64c8] text-white text-[12px] font-semibold flex items-center justify-center flex-shrink-0"
+                    className="w-9 h-9 rounded-full bg-primary text-white text-[12px] font-semibold flex items-center justify-center flex-shrink-0"
                     aria-hidden="true"
                   >
                     {initials}
@@ -194,13 +194,13 @@ export function WorkLogList({
                           <span className="text-[12px] text-muted-foreground">•</span>
                           <Link
                             href={`/locations/${locationId}/assets/${entry.asset.id}`}
-                            className="inline-flex items-center gap-1 text-[12px] text-[#1e64c8] hover:underline"
+                            className="inline-flex items-center gap-1 text-[12px] text-primary hover:underline"
                           >
                             <Package className="h-3 w-3" />
                             {assetText}
                           </Link>
                           {entry.asset.type && (
-                            <span className="inline-flex items-center text-[10px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-1.5 py-0 rounded-[4px]">
+                            <span className="inline-flex items-center text-[10px] font-semibold bg-primary-tint text-primary px-1.5 py-0 rounded-[4px]">
                               {entry.asset.type.name}
                             </span>
                           )}
@@ -214,7 +214,7 @@ export function WorkLogList({
 
                     {/* Description */}
                     {entry.description && (
-                      <p className="text-[13px] text-[#334155] whitespace-pre-wrap break-words">
+                      <p className="text-[13px] text-secondary-foreground whitespace-pre-wrap break-words">
                         {entry.description}
                       </p>
                     )}
@@ -247,7 +247,7 @@ export function WorkLogList({
                           className="h-[28px] w-[28px]"
                           title={t("editEntry")}
                         >
-                          <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
+                          <Pencil className="h-3.5 w-3.5 text-primary" />
                         </Button>
                       </WorkLogFormDialog>
 
@@ -255,7 +255,7 @@ export function WorkLogList({
                         variant="ghost"
                         size="icon"
                         aria-label={`${t("deleteEntry")} by ${entry.performedBy.name}`}
-                        className="h-[28px] w-[28px] text-[#94a3b8] hover:text-destructive"
+                        className="h-[28px] w-[28px] text-subtle hover:text-destructive"
                         title={t("deleteEntry")}
                         onClick={() => setDeleteId(entry.id)}
                       >

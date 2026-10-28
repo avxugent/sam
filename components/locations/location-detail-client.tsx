@@ -161,8 +161,6 @@ export function LocationDetailClient({
     router.refresh();
   }
 
-  const handleAttachmentUpdate = (updated: Attachment[]) => setAttachments(updated);
-
   const coverImage = attachments.find((a) => a.id === coverImageId && a.mimeType?.startsWith("image/"));
 
   async function handleDelete() {
@@ -592,7 +590,7 @@ export function LocationDetailClient({
             attachments={attachments}
             locationId={location.id}
             canEdit={canEdit}
-            onUpdate={handleAttachmentUpdate}
+            onUpdate={setAttachments}
           />
         </TabsContent>
 

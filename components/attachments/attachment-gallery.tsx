@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type Dispatch, type SetStateAction } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,8 +68,9 @@ function isPreviewableImage(mimeType?: string | null) {
   );
 }
 
+/** Controlled: the parent owns the list; changes go through `onUpdate` as updaters. */
 export function AttachmentGallery({
-  attachments: initialAttachments,
+  attachments,
   locationId,
   assetId,
   canEdit,
@@ -79,14 +80,12 @@ export function AttachmentGallery({
   locationId?: string;
   assetId?: string;
   canEdit: boolean;
-  onUpdate?: (attachments: Attachment[]) => void;
+  onUpdate: Dispatch<SetStateAction<Attachment[]>>;
 }) {
   const t = useTranslations("attachment");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [attachments, setAttachments] = useState(initialAttachments);
-  useEffect(() => { setAttachments(initialAttachments); }, [initialAttachments]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
@@ -131,11 +130,6 @@ export function AttachmentGallery({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lightboxId, previewable.length]);
 
-  function updateAttachments(next: Attachment[]) {
-    setAttachments(next);
-    onUpdate?.(next);
-  }
-
   function openEdit(att: Attachment) {
     setEditingId(att.id);
     setEditDisplayName(att.displayName ?? "");
@@ -158,7 +152,7 @@ export function AttachmentGallery({
         toast({ title: t("uploadFailed"), description: apiErrorMessage(err, file.name), variant: "destructive" });
       } else {
         const attachment = await res.json();
-        updateAttachments([attachment, ...attachments]);
+        onUpdate((current) => [attachment, ...current]);
       }
     }
     setUploading(false);
@@ -181,7 +175,7 @@ export function AttachmentGallery({
       return;
     }
     const attachment = await res.json();
-    updateAttachments([attachment, ...attachments]);
+    onUpdate((current) => [attachment, ...current]);
     setShowLinkDialog(false);
     setLinkUrl(""); setLinkLabel(""); setLinkDesc("");
     toast({ title: t("linked") });
@@ -207,7 +201,7 @@ export function AttachmentGallery({
       return;
     }
     const updated = await res.json();
-    updateAttachments(attachments.map((a) => (a.id === editingId ? updated : a)));
+    onUpdate((current) => current.map((a) => (a.id === editingId ? updated : a)));
     setEditingId(null);
     toast({ title: t("attachmentUpdated") });
   }
@@ -220,7 +214,7 @@ export function AttachmentGallery({
       return;
     }
     toast({ title: t("deleted") });
-    updateAttachments(attachments.filter((a) => a.id !== id));
+    onUpdate((current) => current.filter((a) => a.id !== id));
   }
 
   return (

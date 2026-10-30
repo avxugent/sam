@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { validateTemplate } from "@/lib/prometheus/scrape-template";
-import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 
 /**
  * Per-asset-type scrape template overrides, either per manufacturer or per
@@ -155,7 +155,7 @@ export async function createTemplateOverride(req: Request, session: Session, sto
     where: { id: parsed.data.manufacturerId },
     select: { name: true },
   });
-  if (!manufacturer) return NextResponse.json({ error: "Manufacturer not found" }, { status: 404 });
+  if (!manufacturer) return unknownReferenceResponse("The manufacturer");
   const name = overrideName({ manufacturerName: manufacturer.name, model: parsed.data.model });
 
   let created: TemplateOverride;

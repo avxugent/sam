@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, readJsonBody, unknownReferenceResponse, isForeignKeyError } from "@/lib/route-helpers";
 import { serializeStockMetadata } from "@/lib/stock-metadata";
 import { createStockItemSchema } from "@/lib/schemas/stock";
 
@@ -54,7 +54,9 @@ export async function POST(req: NextRequest) {
   }
 
   const { invoiceDate, macAddresses, ...rest } = parsed.data;
-  const item = await prisma.stockItem.create({
+  let item;
+  try {
+    item = await prisma.stockItem.create({
     data: {
       ...rest,
       manufacturerId: rest.manufacturerId ?? null,
@@ -67,7 +69,11 @@ export async function POST(req: NextRequest) {
       metadata: serializeStockMetadata({ macAddresses: macAddresses?.map((address) => ({ address })) }),
     },
     include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
-  });
+    });
+  } catch (err) {
+    if (isForeignKeyError(err)) return unknownReferenceResponse();
+    throw err;
+  }
 
   await logAudit({
     session,

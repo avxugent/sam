@@ -103,6 +103,14 @@ describe("GET /api/stock", () => {
 // ── POST /api/stock ────────────────────────────────────────────────────────────
 
 describe("POST /api/stock", () => {
+  it("returns 400 when a referenced type, model or location no longer exists", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.stockItem.create).mockRejectedValueOnce(Object.assign(new Error("Foreign key constraint violated"), { code: "P2003" }));
+    const res = await POST(req("POST", "http://localhost/api/stock", { typeId: "t1", modelId: "gone", quantity: 1 }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("unknownReference");
+  });
+
   it("returns 401 when unauthenticated", async () => {
     mockAuth.mockResolvedValue(null as never);
     const res = await POST(req("POST", "http://localhost/api/stock", { typeId: "t1", modelId: "mo1", quantity: 1 }));

@@ -7,7 +7,7 @@ import { updateAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
 import { auditChanges, type FieldChange } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, readJsonBody, unknownReferenceResponse, isForeignKeyError } from "@/lib/route-helpers";
 import { toIsoDay } from "@/lib/utils";
 import { ASSET_ROW_INCLUDE } from "@/lib/assets/include";
 
@@ -156,6 +156,7 @@ export async function PUT(
     });
   } catch (err: unknown) {
     if (isUniqueConstraintError(err)) return hostnameTakenResponse();
+    if (isForeignKeyError(err)) return unknownReferenceResponse();
     throw err;
   }
 

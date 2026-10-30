@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 
 const createSchema = z.object({
   typeId: z.string().min(1),
@@ -68,11 +68,11 @@ export async function POST(req: NextRequest) {
   const documentationUrl = parsed.data.documentationUrl || null;
 
   const type = await prisma.assetType.findUnique({ where: { id: typeId }, select: { name: true } });
-  if (!type) return NextResponse.json({ error: "Asset type not found." }, { status: 404 });
+  if (!type) return unknownReferenceResponse("The asset type");
   let manufacturer: { name: string } | null = null;
   if (manufacturerId) {
     manufacturer = await prisma.manufacturer.findUnique({ where: { id: manufacturerId }, select: { name: true } });
-    if (!manufacturer) return NextResponse.json({ error: "Manufacturer not found." }, { status: 404 });
+    if (!manufacturer) return unknownReferenceResponse("The manufacturer");
   }
 
   // Explicit pre-check rather than relying solely on the

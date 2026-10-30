@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, readJsonBody, unknownReferenceResponse, isForeignKeyError } from "@/lib/route-helpers";
 import { parseStockMetadata, serializeStockMetadata } from "@/lib/stock-metadata";
 import { updateStockItemSchema } from "@/lib/schemas/stock";
 
@@ -68,7 +68,9 @@ export async function PUT(
     };
   }
 
-  const item = await prisma.stockItem.update({
+  let item;
+  try {
+    item = await prisma.stockItem.update({
     where: { id },
     data: {
       ...rest,
@@ -78,7 +80,11 @@ export async function PUT(
       ...metadataUpdate,
     },
     include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
-  });
+    });
+  } catch (err) {
+    if (isForeignKeyError(err)) return unknownReferenceResponse();
+    throw err;
+  }
 
   const d = parsed.data;
   const changes = auditChanges([

@@ -106,11 +106,11 @@ describe("POST /api/models", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 404 when the asset type doesn't exist", async () => {
+  it("returns 400 when the body names an unknown asset type", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     mockTypeFindUnique.mockResolvedValue(null as never);
     const res = await POST(postReq({ typeId: "missing", name: "X" }));
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(400);
   });
 
   it("returns 409 when a model with the same type/manufacturer/name already exists", async () => {

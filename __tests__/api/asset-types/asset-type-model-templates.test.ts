@@ -93,12 +93,13 @@ describe("POST /api/asset-types/[id]/model-templates", () => {
     expect((await res.json()).error).toBe("Template syntax error");
   });
 
-  it("404 when manufacturer missing", async () => {
+  it("400 when the body names an unknown manufacturer", async () => {
     mockAuth.mockResolvedValue(session() as never);
     vi.mocked(prisma.assetType.findUnique).mockResolvedValue({ id: "t1", name: "T" } as never);
     vi.mocked(prisma.manufacturer.findUnique).mockResolvedValue(null as never);
     const res = await createOverride(jreq("http://x", body), { params: params("t1") });
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("unknownReference");
   });
 
   it("409 on duplicate override", async () => {

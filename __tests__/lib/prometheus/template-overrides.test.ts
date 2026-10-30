@@ -43,11 +43,11 @@ describe("createTemplateOverride()", () => {
     vi.mocked(prisma.manufacturer.findUnique).mockResolvedValue({ name: "Dell" } as never);
   });
 
-  it("404 for an unknown asset type or manufacturer", async () => {
+  it("404 for an unknown asset type (path), 400 for an unknown manufacturer (body)", async () => {
     vi.mocked(prisma.assetType.findUnique).mockResolvedValueOnce(null as never);
     expect((await createTemplateOverride(post({}), session, manufacturerTemplates, "t1")).status).toBe(404);
     vi.mocked(prisma.manufacturer.findUnique).mockResolvedValueOnce(null as never);
-    expect((await createTemplateOverride(post({ manufacturerId: "m1", scrapeTargetTemplate: tpl }), session, manufacturerTemplates, "t1")).status).toBe(404);
+    expect((await createTemplateOverride(post({ manufacturerId: "m1", scrapeTargetTemplate: tpl }), session, manufacturerTemplates, "t1")).status).toBe(400);
   });
 
   it("400 for template syntax errors, with the problems as details", async () => {

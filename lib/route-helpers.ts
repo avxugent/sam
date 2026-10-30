@@ -35,6 +35,19 @@ export function isRecordNotFoundError(err: unknown): boolean {
   return hasPrismaCode(err, "P2025");
 }
 
+export function isForeignKeyError(err: unknown): boolean {
+  return hasPrismaCode(err, "P2003");
+}
+
+/**
+ * 400 for an id in the request body that names no record (a stale location,
+ * type, model, …). The record in the URL path is the 404 case; a body
+ * reference is invalid input.
+ */
+export function unknownReferenceResponse(what = "A referenced record"): NextResponse {
+  return NextResponse.json({ error: `${what} does not exist.`, code: "unknownReference" }, { status: 400 });
+}
+
 /** The Prisma error code (e.g. "P2002") of a known request error, or null. */
 export function prismaErrorCode(err: unknown): string | null {
   return typeof err === "object" && err !== null && "code" in err && typeof err.code === "string" ? err.code : null;

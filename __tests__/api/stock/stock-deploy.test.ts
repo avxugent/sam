@@ -85,12 +85,12 @@ describe("POST /api/stock/[id]/deploy", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 404 if location not found", async () => {
+  it("returns 400 if the body names an unknown location", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockLocationFindUnique.mockResolvedValue(null as never);
     mockStockFindUnique.mockResolvedValue(BULK_ITEM as never);
     const res = await POST(req({ locationId: "loc-missing", quantity: 1 }), { params: PARAMS });
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(400);
   });
 
   it("returns 404 if stock item not found", async () => {

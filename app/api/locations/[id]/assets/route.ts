@@ -6,7 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { resolveAssetCreationDefaults } from "@/lib/assets/defaults";
 import { canEdit } from "@/lib/permissions";
 import { getAllDescendantLocationIds } from "@/lib/locations/path";
-import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, readJsonBody, unknownReferenceResponse, isForeignKeyError } from "@/lib/route-helpers";
 import { assetListStatusFilter } from "@/lib/assets/list-status";
 import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/input";
 import { ASSET_LIST_INCLUDE, ASSET_ROW_INCLUDE } from "@/lib/assets/include";
@@ -78,6 +78,7 @@ export async function POST(
     });
   } catch (err: unknown) {
     if (isUniqueConstraintError(err)) return hostnameTakenResponse();
+    if (isForeignKeyError(err)) return unknownReferenceResponse();
     throw err;
   }
 

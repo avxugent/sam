@@ -46,8 +46,8 @@ describe.runIf(enabled)("location-path SQL (integration)", () => {
     await prisma.$disconnect();
   });
 
-  it("getLocationPath returns the ancestors root → leaf", async () => {
-    const path = await lib.getLocationPath(ids.room);
+  it("getLocationAncestors returns the ancestors root → leaf", async () => {
+    const path = await lib.getLocationAncestors(ids.room);
     expect(path.map((p) => p.id)).toEqual([ids.campus, ids.building, ids.room]);
   });
 

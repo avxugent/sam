@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { integrationTokenError } from "@/lib/tokens/integration";
+import { integrationTokenResponse } from "@/lib/tokens/integration";
 
 export async function GET(req: NextRequest) {
-  const authError = integrationTokenError(req);
+  const authError = integrationTokenResponse(req);
   if (authError) return authError;
   return NextResponse.json({ status: "ok" });
 }

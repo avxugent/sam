@@ -12,7 +12,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { generateExportCsv, generateDecommissionedCsv, generateStockCsv } from "@/lib/csv/export";
+import { generateActiveAssetsCsv, generateDecommissionedCsv, generateStockCsv } from "@/lib/csv/export";
 
 const mockLocFind = vi.mocked(prisma.location.findMany);
 const mockAssetFind = vi.mocked(prisma.asset.findMany);
@@ -53,9 +53,9 @@ beforeEach(() => {
   vi.mocked(prisma.user.findMany).mockResolvedValue([] as never);
 });
 
-describe("generateExportCsv()", () => {
+describe("generateActiveAssetsCsv()", () => {
   it("emits a header row first", async () => {
-    const csv = await generateExportCsv();
+    const csv = await generateActiveAssetsCsv();
     const header = csv.split("\r\n")[0];
     expect(header.startsWith("CAMPUS;GEBOUW;LOKAAL;FI NUMMER;")).toBe(true);
     expect(header).toContain("GUID");
@@ -63,7 +63,7 @@ describe("generateExportCsv()", () => {
   });
 
   it("maps an asset row with full hierarchy, mac, dates, and custom fields", async () => {
-    const csv = await generateExportCsv();
+    const csv = await generateActiveAssetsCsv();
     const row = csv.split("\r\n")[1].split(";");
     expect(row[0]).toBe("Campus A");
     expect(row[1]).toBe("Building B");
@@ -85,13 +85,13 @@ describe("generateExportCsv()", () => {
 
   it("exports the physical unit count for a bulk item", async () => {
     mockAssetFind.mockResolvedValue([asset({ quantity: 12, serialNumber: null })] as never);
-    const csv = await generateExportCsv();
+    const csv = await generateActiveAssetsCsv();
     const row = csv.split("\r\n")[1].split(";");
     expect(row[8]).toBe("12");
   });
 
   it("exports installed assets only", async () => {
-    await generateExportCsv();
+    await generateActiveAssetsCsv();
     expect(mockAssetFind).toHaveBeenCalledWith(
       expect.objectContaining({ where: { status: "INSTALLED" } })
     );
@@ -101,7 +101,7 @@ describe("generateExportCsv()", () => {
     mockAssetFind.mockResolvedValue([
       asset({ model: { name: 'has;semi' }, serialNumber: 'a"b', hostname: "line\nbreak" }),
     ] as never);
-    const csv = await generateExportCsv();
+    const csv = await generateActiveAssetsCsv();
     const row = csv.split("\r\n")[1];
     expect(row).toContain('"has;semi"');
     expect(row).toContain('"a""b"'); // doubled quote
@@ -112,7 +112,7 @@ describe("generateExportCsv()", () => {
     const flat = [{ id: "solo", name: "Standalone", fiNumber: null, parentId: null }];
     mockLocFind.mockResolvedValue(flat as never);
     mockAssetFind.mockResolvedValue([asset({ location: flat[0] })] as never);
-    const csv = await generateExportCsv();
+    const csv = await generateActiveAssetsCsv();
     const row = csv.split("\r\n")[1].split(";");
     // campus=Standalone, building="", room falls back to loc.name
     expect(row[0]).toBe("Standalone");
@@ -121,7 +121,7 @@ describe("generateExportCsv()", () => {
 
   it("appends asset-less leaf locations, skipping non-leaf ones", async () => {
     mockAssetFind.mockResolvedValue([] as never); // no assets at all
-    const csv = await generateExportCsv();
+    const csv = await generateActiveAssetsCsv();
     const lines = csv.split("\r\n");
     // header + one row for the leaf "room"; campus & bldg are non-leaf → skipped
     expect(lines).toHaveLength(2);
@@ -134,14 +134,14 @@ describe("generateExportCsv()", () => {
     mockAssetFind.mockResolvedValue([
       asset({ installationDate: null, invoiceDate: null }),
     ] as never);
-    const csv = await generateExportCsv();
+    const csv = await generateActiveAssetsCsv();
     const row = csv.split("\r\n")[1].split(";");
     expect(row[11]).toBe("");
     expect(row[12]).toBe("");
   });
 
   it("filters on status only — never excludes maintenance-room assets", async () => {
-    await generateExportCsv();
+    await generateActiveAssetsCsv();
     const call = mockAssetFind.mock.calls[0][0] as { where: Record<string, unknown> };
     // Exactly the status filter: no location / inMaintenance constraint that
     // could drop assets sitting in a room that is in maintenance.
@@ -354,7 +354,7 @@ describe("CSV round-trip contract", () => {
   ];
 
   it("export headers are a subset of import-recognized headers", async () => {
-    const csv = await generateExportCsv();
+    const csv = await generateActiveAssetsCsv();
     const headers = csv.split("\r\n")[0].split(";");
     const unknown = headers.filter((h) => !IMPORT_RECOGNIZED.includes(h));
     expect(unknown).toEqual([]);
@@ -371,7 +371,7 @@ describe("CSV round-trip contract", () => {
     ] as never);
     vi.mocked(prisma.user.findMany).mockResolvedValue([{ id: "u1", email: "jane@x.y" }] as never);
 
-    const csv = await generateExportCsv();
+    const csv = await generateActiveAssetsCsv();
     const lines = csv.split("\r\n");
     expect(lines[0].endsWith("OWNER;CRITICALITY;END_OF_SUPPORT;SUPPLIER")).toBe(true);
     const row = lines[1].split(";");

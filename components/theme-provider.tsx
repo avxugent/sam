@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-import { toTheme, type Theme } from "@/lib/user-preferences";
+import { parseTheme, type Theme } from "@/lib/user-preferences";
 
 export type { Theme };
 
@@ -41,7 +41,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
-    const stored = toTheme(localStorage.getItem(THEME_STORAGE_KEY));
+    const stored = parseTheme(localStorage.getItem(THEME_STORAGE_KEY));
     setThemeState(stored);
     const resolved = resolveTheme(stored);
     setResolvedTheme(resolved);
@@ -49,7 +49,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     function handleSystemChange() {
-      const current = toTheme(localStorage.getItem(THEME_STORAGE_KEY));
+      const current = parseTheme(localStorage.getItem(THEME_STORAGE_KEY));
       if (current === "system") {
         const newResolved = mq.matches ? "dark" : "light";
         setResolvedTheme(newResolved);

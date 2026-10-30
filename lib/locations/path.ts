@@ -13,7 +13,7 @@ export type LocationAncestor = {
  *
  * Returns an array ordered from root (campus) to the location itself.
  */
-export async function getLocationPath(
+export async function getLocationAncestors(
   locationId: string
 ): Promise<LocationAncestor[]> {
   type Row = { id: string; name: string; fiNumber: string | null; depth: number };
@@ -42,7 +42,7 @@ export async function getLocationPath(
 
 /** Root → leaf `{ id, name }` crumbs for a location page header. */
 export async function locationBreadcrumbs(locationId: string): Promise<{ id: string; name: string }[]> {
-  return (await getLocationPath(locationId)).map(({ id, name }) => ({ id, name }));
+  return (await getLocationAncestors(locationId)).map(({ id, name }) => ({ id, name }));
 }
 
 /**

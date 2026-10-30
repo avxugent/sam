@@ -35,9 +35,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sessionOrIntegrationTokenError } from "@/lib/tokens/session-or-integration";
+import { sessionOrIntegrationTokenResponse } from "@/lib/tokens/session-or-integration";
 import {
-  getLocationPath,
+  getLocationAncestors,
   buildLocationPathString,
   findFiNumber,
   parseFiNumber,
@@ -46,7 +46,7 @@ import { toIsoDay } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   // Any signed-in role, or the integration token (Grafana server-side queries).
-  const authError = await sessionOrIntegrationTokenError(req, () => true);
+  const authError = await sessionOrIntegrationTokenResponse(req, () => true);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
   // Enrich each asset with the resolved location path
   const enriched = await Promise.all(
     assets.map(async (asset) => {
-      const ancestors = await getLocationPath(asset.locationId);
+      const ancestors = await getLocationAncestors(asset.locationId);
       const fiNumber = findFiNumber(ancestors);
       const fiParts = parseFiNumber(fiNumber);
       const pathString = buildLocationPathString(ancestors);

@@ -12,7 +12,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 vi.mock("@/lib/tokens/integration", () => ({
   __esModule: true,
-  integrationTokenError: vi.fn(),
+  integrationTokenResponse: vi.fn(),
 }));
 vi.mock("@/lib/compliance/nis2", () => ({
   __esModule: true,
@@ -20,12 +20,12 @@ vi.mock("@/lib/compliance/nis2", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { integrationTokenError } from "@/lib/tokens/integration";
+import { integrationTokenResponse } from "@/lib/tokens/integration";
 import { computeNis2Counts } from "@/lib/compliance/nis2";
 import { GET } from "@/app/api/prometheus/metrics/route";
 import { NextRequest, NextResponse } from "next/server";
 
-const mockAuth = vi.mocked(integrationTokenError);
+const mockAuth = vi.mocked(integrationTokenResponse);
 const mockCounts = vi.mocked(computeNis2Counts);
 
 function req() {

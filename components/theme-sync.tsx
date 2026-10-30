@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useTheme, THEME_STORAGE_KEY } from "@/components/theme-provider";
-import { toTheme } from "@/lib/user-preferences";
+import { parseTheme } from "@/lib/user-preferences";
 
 export function ThemeSync({ serverTheme }: { serverTheme: string }) {
   const { setTheme } = useTheme();
@@ -11,7 +11,7 @@ export function ThemeSync({ serverTheme }: { serverTheme: string }) {
     // Only sync if the user has no local preference stored yet (new device/browser)
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (!stored) {
-      setTheme(toTheme(serverTheme));
+      setTheme(parseTheme(serverTheme));
     }
   // Run once on mount
   // eslint-disable-next-line react-hooks/exhaustive-deps

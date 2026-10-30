@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { integrationTokenError } from "@/lib/tokens/integration";
+import { integrationTokenResponse } from "@/lib/tokens/integration";
 import { prisma } from "@/lib/prisma";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 import { grafanaTagValuesSchema, type AdhocFilterKey } from "@/lib/schemas/grafana";
@@ -25,7 +25,7 @@ const TAG_VALUES: Record<AdhocFilterKey, () => Promise<string[]>> = {
 };
 
 export async function POST(req: NextRequest) {
-  const authError = integrationTokenError(req);
+  const authError = integrationTokenResponse(req);
   if (authError) return authError;
 
   const parsed = grafanaTagValuesSchema.safeParse(await readJsonBody(req));

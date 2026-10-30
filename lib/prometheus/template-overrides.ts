@@ -131,7 +131,7 @@ export const modelTemplates: OverrideStore = {
   },
 };
 
-function templateSyntaxError(template: string) {
+function templateSyntaxResponse(template: string) {
   const errors = validateTemplate(template);
   return errors.length > 0
     ? NextResponse.json({ error: "Template syntax error", details: errors }, { status: 400 })
@@ -148,7 +148,7 @@ export async function createTemplateOverride(req: Request, session: Session, sto
 
   const parsed = store.createSchema.safeParse(await readJsonBody(req));
   if (!parsed.success) return invalidInput(parsed.error);
-  const syntaxError = templateSyntaxError(parsed.data.scrapeTargetTemplate);
+  const syntaxError = templateSyntaxResponse(parsed.data.scrapeTargetTemplate);
   if (syntaxError) return syntaxError;
 
   const manufacturer = await prisma.manufacturer.findUnique({
@@ -188,7 +188,7 @@ export async function updateTemplateOverride(req: Request, session: Session, sto
 
   const parsed = updateSchema.safeParse(await readJsonBody(req));
   if (!parsed.success) return invalidInput(parsed.error);
-  const syntaxError = templateSyntaxError(parsed.data.scrapeTargetTemplate);
+  const syntaxError = templateSyntaxResponse(parsed.data.scrapeTargetTemplate);
   if (syntaxError) return syntaxError;
 
   const { typeName, ...override } = existing;

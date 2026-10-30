@@ -4,7 +4,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: { asset: { findMany: vi.fn() } } }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
 vi.mock("@/lib/locations/path", () => ({
-  getLocationPath: vi.fn(async () => [
+  getLocationAncestors: vi.fn(async () => [
     { id: "root", name: "Campus", fiNumber: null },
     { id: "l1", name: "Room 1", fiNumber: "AB.01.02.003" },
   ]),

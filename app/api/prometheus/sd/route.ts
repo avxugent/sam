@@ -48,8 +48,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sessionOrIntegrationTokenError } from "@/lib/tokens/session-or-integration";
-import { getLocationPath } from "@/lib/locations/path";
+import { sessionOrIntegrationTokenResponse } from "@/lib/tokens/session-or-integration";
+import { getLocationAncestors } from "@/lib/locations/path";
 import { samAssetLabels } from "@/lib/prometheus/labels";
 import {
   renderScrapeTemplate,
@@ -68,7 +68,7 @@ function safeLabel(value: string | null | undefined): string {
 }
 
 export async function GET(req: NextRequest) {
-  const authError = await sessionOrIntegrationTokenError(req, isAdmin);
+  const authError = await sessionOrIntegrationTokenResponse(req, isAdmin);
   if (authError) return authError;
 
   const assets = await prisma.asset.findMany({
@@ -105,12 +105,12 @@ export async function GET(req: NextRequest) {
   // locationId → resolved ancestor array
   const locationPathCache = new Map<
     string,
-    Awaited<ReturnType<typeof getLocationPath>>
+    Awaited<ReturnType<typeof getLocationAncestors>>
   >();
 
   async function cachedLocationPath(locationId: string) {
     if (!locationPathCache.has(locationId)) {
-      locationPathCache.set(locationId, await getLocationPath(locationId));
+      locationPathCache.set(locationId, await getLocationAncestors(locationId));
     }
     return locationPathCache.get(locationId)!;
   }

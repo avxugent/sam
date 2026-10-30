@@ -14,7 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Sun, Moon, Monitor } from "lucide-react";
 import { cn, apiErrorMessage } from "@/lib/utils";
 import { useTheme, type Theme } from "@/components/theme-provider";
-import { LOCATION_TABS, toLocationTab, type LocationTab } from "@/lib/user-preferences";
+import { LOCATION_TABS, parseLocationTab, type LocationTab } from "@/lib/user-preferences";
 import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 
@@ -103,7 +103,7 @@ export function ProfileClient({
   }
 
   // ── Location preference ────────────────────────────────────────────────────
-  const [locTab, setLocTab] = useState<LocationTab>(toLocationTab(locationDefaultTab));
+  const [locTab, setLocTab] = useState<LocationTab>(parseLocationTab(locationDefaultTab));
   const [locTabSaving, setLocTabSaving] = useState(false);
 
   async function saveLocTab(value: LocationTab) {

@@ -2,7 +2,7 @@ import type { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import type { Role } from "@/lib/permissions";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
-import { integrationTokenError } from "@/lib/tokens/integration";
+import { integrationTokenResponse } from "@/lib/tokens/integration";
 
 /**
  * Auth for integration endpoints that people may also open in the browser:
@@ -11,7 +11,7 @@ import { integrationTokenError } from "@/lib/tokens/integration";
  * so a partly signed-in session (still owing a login step) never counts.
  * Returns null when the request may proceed.
  */
-export async function sessionOrIntegrationTokenError(
+export async function sessionOrIntegrationTokenResponse(
   req: Request,
   sessionAllowed: (role: Role) => boolean
 ): Promise<NextResponse | null> {
@@ -19,5 +19,5 @@ export async function sessionOrIntegrationTokenError(
   if (session?.user && sessionAllowed(session.user.role) && !(await signInIncompleteResponse(session))) {
     return null;
   }
-  return integrationTokenError(req);
+  return integrationTokenResponse(req);
 }

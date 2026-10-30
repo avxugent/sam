@@ -7,7 +7,7 @@ vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: { report: { findUnique: vi.fn() } },
 }));
-vi.mock("@/lib/csv/export", () => ({ generateExportCsv: vi.fn() }));
+vi.mock("@/lib/csv/export", () => ({ generateActiveAssetsCsv: vi.fn() }));
 vi.mock("@/lib/reports/engine", () => ({ runReport: vi.fn() }));
 vi.mock("@/lib/jira", () => ({
   isJiraConfigured: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock("@/lib/jira", () => ({
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generateExportCsv } from "@/lib/csv/export";
+import { generateActiveAssetsCsv } from "@/lib/csv/export";
 import { runReport } from "@/lib/reports/engine";
 import { isJiraConfigured, isValidJiraKey, fetchJiraIssue } from "@/lib/jira";
 
@@ -42,18 +42,18 @@ describe("GET /api/export/csv", () => {
   it("403 for a non-admin session", async () => {
     mockAuth.mockResolvedValue(session("MAINTAINER") as never);
     expect((await exportCsv(req())).status).toBe(403);
-    expect(generateExportCsv).not.toHaveBeenCalled();
+    expect(generateActiveAssetsCsv).not.toHaveBeenCalled();
   });
   it("200 with a valid EXPORT_TOKEN and no session", async () => {
     process.env.EXPORT_TOKEN = "export-token";
     mockAuth.mockResolvedValue(null as never);
-    vi.mocked(generateExportCsv).mockResolvedValue("A");
+    vi.mocked(generateActiveAssetsCsv).mockResolvedValue("A");
     expect((await exportCsv(req({ authorization: "Bearer export-token" }))).status).toBe(200);
     delete process.env.EXPORT_TOKEN;
   });
   it("streams CSV with download headers for an admin", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
-    vi.mocked(generateExportCsv).mockResolvedValue("A;B\r\n1;2");
+    vi.mocked(generateActiveAssetsCsv).mockResolvedValue("A;B\r\n1;2");
     const res = await exportCsv(req());
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toContain("text/csv");

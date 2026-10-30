@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
-import { generateExportCsv } from "@/lib/csv/export";
+import { generateActiveAssetsCsv } from "@/lib/csv/export";
 import { logAudit } from "@/lib/audit";
 import { hasValidExportToken } from "@/lib/tokens/export";
 import { isAdmin } from "@/lib/permissions";
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const csv = await generateExportCsv();
+  const csv = await generateActiveAssetsCsv();
 
   const date = toIsoDay(new Date());
   const filename = `sam-export-${date}.csv`;

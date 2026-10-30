@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/locations/path";
 import { isJiraConfigured } from "@/lib/jira";
-import { toLocationTab } from "@/lib/user-preferences";
+import { parseLocationTab } from "@/lib/user-preferences";
 import { ASSET_LIST_INCLUDE } from "@/lib/assets/include";
 
 
@@ -60,7 +60,7 @@ export default async function LocationPage({
   const breadcrumbs = await locationBreadcrumbs(id);
 
   const hasChildren = location._count.children > 0;
-  const defaultTab = hasChildren ? toLocationTab(locationDefaultTab) : "assets";
+  const defaultTab = hasChildren ? parseLocationTab(locationDefaultTab) : "assets";
   const locationIds = hasChildren
     ? [id, ...(await getAllDescendantLocationIds(id))]
     : [id];

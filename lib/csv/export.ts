@@ -111,7 +111,7 @@ function csvLine(cells: string[]): string {
  * decommissioned assets are not current inventory for re-import purposes and
  * have their own pages (decommissioned also its own export).
  */
-export async function generateExportCsv(): Promise<string> {
+export async function generateActiveAssetsCsv(): Promise<string> {
   // Fetch all locations into a map for hierarchy lookup
   const allLocations = await prisma.location.findMany({
     select: { id: true, name: true, fiNumber: true, parentId: true },

@@ -2,7 +2,8 @@
  * GET /api/users/lite
  *
  * Minimal user list ({id, name} only) for the asset form's owner dropdown.
- * EDITOR and ADMIN — deliberately narrower payload than the ADMIN-only
+ * Any role that can edit assets (EDITOR, MAINTAINER, ADMIN) — deliberately
+ * narrower payload than the ADMIN-only
  * /api/users (no emails, roles or 2FA state).
  */
 import { NextResponse } from "next/server";

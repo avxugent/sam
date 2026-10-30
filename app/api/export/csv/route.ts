@@ -1,23 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
+import type { NextRequest } from "next/server";
+import { adminSessionOrExportToken } from "@/lib/tokens/session-or-export";
 import { generateActiveAssetsCsv } from "@/lib/csv/export";
 import { logAudit } from "@/lib/audit";
-import { hasValidExportToken } from "@/lib/tokens/export";
-import { isAdmin } from "@/lib/permissions";
 import { toIsoDay } from "@/lib/utils";
 import { csvDownload } from "@/lib/route-helpers";
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  const hasToken = hasValidExportToken(req);
-
-  if (!hasToken) {
-    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const incomplete = await signInIncompleteResponse(session);
-    if (incomplete) return incomplete;
-    if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const access = await adminSessionOrExportToken(req);
+  if (access.response) return access.response;
+  const { session } = access;
 
   const csv = await generateActiveAssetsCsv();
 

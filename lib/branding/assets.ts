@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { getStorageDriver, StorageNotFoundError } from "@/lib/storage";
+import { attemptStorage, getStorageDriver, StorageNotFoundError } from "@/lib/storage";
 import { logAudit } from "@/lib/audit";
 import { writeSettings } from "@/lib/app-settings";
 
@@ -114,7 +114,10 @@ export async function uploadBrandingAsset(req: Request, session: Session, asset:
     );
   }
 
-  await getStorageDriver().putObject(config.storageKey, buffer, file.type);
+  const stored = await attemptStorage(`${config.label} write`, "Could not store the file. Please try again.", () =>
+    getStorageDriver().putObject(config.storageKey, buffer, file.type)
+  );
+  if (!stored.ok) return stored.response;
 
   const keys = settingKeys(asset);
   const settings: Record<string, string> = {
@@ -139,7 +142,11 @@ export async function uploadBrandingAsset(req: Request, session: Session, asset:
 /** Admin DELETE: remove the stored file and its settings. Caller must have checked the role. */
 export async function removeBrandingAsset(req: Request, session: Session, asset: BrandingAsset) {
   const config: BrandingAssetConfig = BRANDING_ASSETS[asset];
-  await getStorageDriver().deleteObject(config.storageKey);
+  // A storage failure keeps the settings, so the removal can be retried.
+  const removed = await attemptStorage(`${config.label} delete`, "Could not delete the stored file. Please try again.", () =>
+    getStorageDriver().deleteObject(config.storageKey)
+  );
+  if (!removed.ok) return removed.response;
 
   const keys = settingKeys(asset);
   const settingKeysToDelete = [keys.storageKey, keys.contentType, ...Object.keys(config.extraSettings ?? {})];

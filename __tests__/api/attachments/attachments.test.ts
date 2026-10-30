@@ -133,6 +133,23 @@ describe("POST /api/attachments (file upload)", () => {
     expect(key).toMatch(/^locations\/loc-1\/[0-9a-f-]{36}/);
     expect(contentType).toBe("text/plain");
   });
+  it("returns a logged 502 and writes no row when storage refuses the file", async () => {
+    mockAuth.mockResolvedValue(editorSession() as never);
+    putObject.mockRejectedValueOnce(new Error("S3 down"));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await POST(makeMultipartReq(new File([TEXT_BODY], "x.txt", { type: "text/plain" }), { locationId: "loc-1" }));
+    expect(res.status).toBe(502);
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(errSpy).toHaveBeenCalledWith("[storage] attachment write failed", expect.any(Error));
+    errSpy.mockRestore();
+  });
+
+  it("removes the stored file again when the database row cannot be written", async () => {
+    mockAuth.mockResolvedValue(editorSession() as never);
+    mockCreate.mockRejectedValueOnce(new Error("db down"));
+    await expect(POST(makeMultipartReq(new File([TEXT_BODY], "x.txt", { type: "text/plain" }), { locationId: "loc-1" }))).rejects.toThrow("db down");
+    expect(deleteObject).toHaveBeenCalledWith(putObject.mock.calls[0][0]);
+  });
 });
 
 // Binary signatures do not survive jsdom's multipart round trip, so these

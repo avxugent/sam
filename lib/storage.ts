@@ -214,3 +214,21 @@ class S3Driver implements StorageDriver {
     }
   }
 }
+
+/**
+ * Runs a storage write/read for a route handler. A failure is logged and
+ * becomes the 502 to send back (`{ ok: false, response }`), so a storage
+ * outage never surfaces as an unlogged 500.
+ */
+export async function attemptStorage<T>(
+  label: string,
+  userMessage: string,
+  op: () => Promise<T>
+): Promise<{ ok: true; value: T } | { ok: false; response: Response }> {
+  try {
+    return { ok: true, value: await op() };
+  } catch (err) {
+    console.error(`[storage] ${label} failed`, err);
+    return { ok: false, response: Response.json({ error: userMessage, code: "storageUnavailable" }, { status: 502 }) };
+  }
+}

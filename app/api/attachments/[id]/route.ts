@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
-import { getStorageDriver, StorageNotFoundError } from "@/lib/storage";
+import { attemptStorage, getStorageDriver, StorageNotFoundError } from "@/lib/storage";
 import { z } from "zod";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
@@ -96,15 +96,13 @@ export async function DELETE(
     // Drivers already treat a missing file as deleted. Any other storage
     // failure keeps the row, so the delete can be retried instead of leaving
     // an orphaned file nothing points at.
-    try {
-      await getStorageDriver().deleteObject(attachment.path);
-    } catch (err) {
-      console.error("[attachments] storage delete failed", err);
-      return NextResponse.json(
-        { error: "Could not delete the stored file. The attachment was kept; please try again." },
-        { status: 502 }
-      );
-    }
+    const path = attachment.path;
+    const removed = await attemptStorage(
+      "attachment delete",
+      "Could not delete the stored file. The attachment was kept; please try again.",
+      () => getStorageDriver().deleteObject(path)
+    );
+    if (!removed.ok) return removed.response;
   }
 
   await prisma.attachment.delete({ where: { id } });

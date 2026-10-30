@@ -17,7 +17,8 @@ vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 
 const putObject = vi.fn();
 const deleteObject = vi.fn();
-vi.mock("@/lib/storage", () => ({
+vi.mock("@/lib/storage", async () => ({
+  ...(await vi.importActual<typeof import("@/lib/storage")>("@/lib/storage")),
   getStorageDriver: () => ({ putObject, deleteObject, getObject: vi.fn() }),
 }));
 

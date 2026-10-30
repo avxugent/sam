@@ -6,7 +6,8 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 const putObject = vi.fn();
 const deleteObject = vi.fn();
-vi.mock("@/lib/storage", () => ({
+vi.mock("@/lib/storage", async () => ({
+  ...(await vi.importActual<typeof import("@/lib/storage")>("@/lib/storage")),
   getStorageDriver: () => ({ getObject: vi.fn(), putObject, deleteObject }),
   StorageNotFoundError: class extends Error {},
 }));
@@ -61,6 +62,24 @@ describe("uploadBrandingAsset()", () => {
     await uploadBrandingAsset(uploadReq({ type: "image/png", size: 10 }), session, "background");
     const upserts = vi.mocked(prisma.appSetting.upsert).mock.calls.map(([arg]) => [arg.where.key, arg.update.value]);
     expect(upserts).toContainEqual(["branding.backgroundMode", "custom"]);
+  });
+});
+
+describe("storage failures", () => {
+  it("upload: 502 and no settings written", async () => {
+    putObject.mockRejectedValueOnce(new Error("disk full"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await uploadBrandingAsset(uploadReq({ type: "image/webp", size: 10 }), session, "logo");
+    expect(res.status).toBe(502);
+    expect(prisma.appSetting.upsert).not.toHaveBeenCalled();
+  });
+
+  it("remove: 502 and the settings are kept for a retry", async () => {
+    deleteObject.mockRejectedValueOnce(new Error("S3 down"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await removeBrandingAsset(new Request("http://x"), session, "logo");
+    expect(res.status).toBe(502);
+    expect(prisma.appSetting.deleteMany).not.toHaveBeenCalled();
   });
 });
 

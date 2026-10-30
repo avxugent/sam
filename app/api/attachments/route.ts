@@ -6,7 +6,7 @@ import { extname } from "path";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { getStorageDriver } from "@/lib/storage";
+import { attemptStorage, getStorageDriver } from "@/lib/storage";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
@@ -192,11 +192,15 @@ async function createFileAttachment(req: NextRequest, session: Session) {
     return NextResponse.json({ error: "File content does not match declared type." }, { status: 400 });
   }
 
-  await getStorageDriver().putObject(relativePath, buffer, file.type);
+  const stored = await attemptStorage("attachment write", "Could not store the file. Please try again.", () =>
+    getStorageDriver().putObject(relativePath, buffer, file.type)
+  );
+  if (!stored.ok) return stored.response;
 
   // Sanitize original name stored in DB (strip control chars)
   const safeOriginalName = file.name.replace(/[\r\n\\"]/g, "_").slice(0, 255);
 
+  // Remove the stored file again if the row cannot be written, so it is not orphaned.
   const attachment = await prisma.attachment.create({
     data: {
       filename,
@@ -212,6 +216,9 @@ async function createFileAttachment(req: NextRequest, session: Session) {
     include: {
       uploadedBy: { select: { id: true, name: true } },
     },
+  }).catch(async (err) => {
+    await getStorageDriver().deleteObject(relativePath).catch(() => {});
+    throw err;
   });
 
   await logAudit({

@@ -35,6 +35,11 @@ export function isRecordNotFoundError(err: unknown): boolean {
   return hasPrismaCode(err, "P2025");
 }
 
+/** The Prisma error code (e.g. "P2002") of a known request error, or null. */
+export function prismaErrorCode(err: unknown): string | null {
+  return typeof err === "object" && err !== null && "code" in err && typeof err.code === "string" ? err.code : null;
+}
+
 function hasPrismaCode(err: unknown, code: string): boolean {
   return typeof err === "object" && err !== null && "code" in err && err.code === code;
 }

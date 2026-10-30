@@ -224,7 +224,7 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | Method | Path | Min role | Description |
 |---|---|---|---|
 | `POST` | `/api/import/preview` | ADMIN | Parse an uploaded CSV without importing it: `{ totalRows, columns, preview }` (first 5 rows) |
-| `POST` | `/api/import` | ADMIN | Bulk CSV import (creates assets, validates per row) |
+| `POST` | `/api/import` | ADMIN | Bulk CSV import (creates assets, validates per row). Returns `{ ok, created, skipped, aborted, errors }`: a row the database rejects for its own data (duplicate hostname, value too long) is skipped with a reason; any other server error stops the import there (`aborted: true`) and the rows before it stay imported |
 | `GET` | `/api/export/csv` | ADMIN or Bearer `EXPORT_TOKEN` | Download active-asset CSV export (status `INSTALLED` only) |
 | `GET` | `/api/export/decommissioned` | ADMIN or Bearer `EXPORT_TOKEN` | Download decommissioned-asset CSV (adds decommission metadata columns) |
 | `GET` | `/api/export/stock` | ADMIN or Bearer `EXPORT_TOKEN` | Download current stock inventory CSV |

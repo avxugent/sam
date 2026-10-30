@@ -166,3 +166,29 @@ describe("POST /api/import/preview", () => {
     expect(mockAssetCreate).not.toHaveBeenCalled();
   });
 });
+
+describe("POST /api/import — database errors", () => {
+  const rows = [1, 2, 3].map((n) => `C;G;Room ${n};;Display;Dell;;SN${n};;;;;;;;;`);
+
+  it("skips a row whose own data the database rejects, with a readable reason", async () => {
+    vi.mocked(prisma.location.findMany).mockResolvedValue([] as never);
+    mockAssetCreate
+      .mockResolvedValueOnce({ id: "a1" } as never)
+      .mockRejectedValueOnce(Object.assign(new Error("Unique constraint failed on the fields: (`hostname`)"), { code: "P2002" }))
+      .mockResolvedValueOnce({ id: "a3" } as never);
+    const body = await (await POST(importReq([HEADER, ...rows].join("\n")))).json();
+    expect(body).toMatchObject({ created: 2, skipped: 1, aborted: false });
+    expect(body.errors).toEqual(["Row 3: skipped, its hostname (or another unique value) is already used by another asset."]);
+  });
+
+  it("stops at a server error instead of skipping every remaining row", async () => {
+    vi.mocked(prisma.location.findMany).mockResolvedValue([] as never);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockAssetCreate.mockResolvedValueOnce({ id: "a1" } as never).mockRejectedValue(new Error("Can't reach database server"));
+    const body = await (await POST(importReq([HEADER, ...rows].join("\n")))).json();
+    expect(body).toMatchObject({ created: 1, skipped: 2, aborted: true });
+    expect(mockAssetCreate).toHaveBeenCalledTimes(2);
+    expect(body.errors[0]).toMatch(/^Row 3: the import stopped because of a server error/);
+    expect(JSON.stringify(body)).not.toContain("Can't reach database server");
+  });
+});

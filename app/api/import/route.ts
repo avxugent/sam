@@ -7,6 +7,14 @@ import { loadImportContext } from "@/lib/csv/import-context";
 import { readCsvUpload } from "@/lib/csv/upload";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
+import { prismaErrorCode } from "@/lib/route-helpers";
+
+/** Database errors caused by a row's own data: that row is skipped, the import goes on. */
+const ROW_ERROR_REASONS: Record<string, string> = {
+  P2000: "a value is too long for its column",
+  P2002: "its hostname (or another unique value) is already used by another asset",
+  P2003: "it refers to a record that no longer exists",
+};
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -23,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   const ctx = await loadImportContext();
 
-  const stats = { created: 0, skipped: 0, errors: [] as string[] };
+  const stats = { created: 0, skipped: 0, aborted: false, errors: [] as string[] };
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -76,9 +84,19 @@ export async function POST(req: NextRequest) {
 
       stats.created++;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      stats.errors.push(`Row ${rowNum}: ${msg}`);
-      stats.skipped++;
+      const reason = ROW_ERROR_REASONS[prismaErrorCode(err) ?? ""];
+      if (reason) {
+        stats.errors.push(`Row ${rowNum}: skipped, ${reason}.`);
+        stats.skipped++;
+        continue;
+      }
+      // Anything else (e.g. the database went away) is not about this row:
+      // stop instead of marking every remaining row as skipped.
+      console.error("[import] stopped at row", rowNum, err);
+      stats.errors.push(`Row ${rowNum}: the import stopped because of a server error. Rows before it were imported; this row and the ones after it were not.`);
+      stats.skipped += rows.length - i;
+      stats.aborted = true;
+      break;
     }
   }
 
@@ -87,13 +105,14 @@ export async function POST(req: NextRequest) {
     req,
     action: "IMPORT",
     entityType: "Asset",
-    detail: { created: stats.created, skipped: stats.skipped, errorCount: stats.errors.length },
+    detail: { created: stats.created, skipped: stats.skipped, errorCount: stats.errors.length, ...(stats.aborted && { aborted: true }) },
   });
 
   return NextResponse.json({
     ok: true,
     created: stats.created,
     skipped: stats.skipped,
+    aborted: stats.aborted,
     errors: stats.errors,
   });
 }

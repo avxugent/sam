@@ -139,7 +139,7 @@ export function ExportClient({
           </pre>
           <p className="text-[12px] text-muted-foreground">{t("setupOptionCli")}</p>
           <pre className="text-[11.5px] font-mono text-secondary-foreground bg-muted p-3 rounded-[6px] overflow-x-auto">
-{`${cronExpression} cd /app && node scripts/export-backup.mjs --output ${outputDir}`}
+{`${cronExpression} cd /app && node --import tsx/esm scripts/export-backup.mjs --output ${outputDir}`}
           </pre>
         </div>
 

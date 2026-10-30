@@ -6,9 +6,10 @@
  * value alone — this script clears the field and preserves the original
  * (unreliable) value in a custom field for manual follow-up.
  *
- * Usage: node scripts/fix-scientific-notation-serials.mjs [--dry-run]
+ * Usage: node --import tsx/esm scripts/fix-scientific-notation-serials.mjs [--dry-run]
  */
-import { prisma } from "./_prisma.mjs";
+import "./_env.mjs";
+import { prisma } from "@/lib/prisma";
 
 const SCI_NOTATION_RE = /^[0-9]+(?:[.,][0-9]+)?E\+?[0-9]+$/i;
 const dryRun = process.argv.includes("--dry-run");

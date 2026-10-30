@@ -388,7 +388,7 @@ SYSLOG_TRANSPORT="udp"   # udp | tcp | tls
 Failed forwards (network errors, timeouts) are retried by `scripts/forward-audit.mjs`. Run it as a cron job:
 
 ```cron
-*/5 * * * * node /app/scripts/forward-audit.mjs
+*/5 * * * * cd /app && node --import tsx/esm scripts/forward-audit.mjs
 ```
 
 The script picks up all `AuditLog` rows where `forwardedAt IS NULL` and retries delivery.

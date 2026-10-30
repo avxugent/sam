@@ -13,9 +13,10 @@
  * The source custom field row is deleted once handled (applied or flagged)
  * so the script is idempotent — a second run finds nothing left to do.
  *
- * Usage: node scripts/migrate-quantity-custom-field.mjs [--dry-run]
+ * Usage: node --import tsx/esm scripts/migrate-quantity-custom-field.mjs [--dry-run]
  */
-import { prisma } from "./_prisma.mjs";
+import "./_env.mjs";
+import { prisma } from "@/lib/prisma";
 
 const dryRun = process.argv.includes("--dry-run");
 

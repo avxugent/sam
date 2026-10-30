@@ -16,18 +16,19 @@
  * Use --force to re-download images even when images already exist.
  *
  * Usage:
- *   node scripts/sync-lokalen.mjs                           # all locations
- *   node scripts/sync-lokalen.mjs --dry-run                 # preview, no writes
- *   node scripts/sync-lokalen.mjs --fi-number 14.10.100.013 # single location
- *   node scripts/sync-lokalen.mjs --skip-images             # metadata only
- *   node scripts/sync-lokalen.mjs --force                   # re-download existing images
- *   node scripts/sync-lokalen.mjs --user-id <id>            # attachment owner (default: first ADMIN)
- *   node scripts/sync-lokalen.mjs --debug                   # dump raw HTML + selector matches
+ *   node --import tsx/esm scripts/sync-lokalen.mjs                           # all locations
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --dry-run                 # preview, no writes
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --fi-number 14.10.100.013 # single location
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --skip-images             # metadata only
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --force                   # re-download existing images
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --user-id <id>            # attachment owner (default: first ADMIN)
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --debug                   # dump raw HTML + selector matches
  *
  * Run from the project root so that the .env file is found automatically.
  */
 
-import { prisma } from "./_prisma.mjs";
+import "./_env.mjs";
+import { prisma } from "@/lib/prisma";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { JSDOM } from "jsdom";
 import { mkdir, writeFile } from "fs/promises";

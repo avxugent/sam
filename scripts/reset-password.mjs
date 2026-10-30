@@ -10,7 +10,8 @@
  * Run from the project root so that the .env file is found automatically.
  */
 
-import { prisma } from "./_prisma.mjs";
+import "./_env.mjs";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { createInterface } from "readline";
 

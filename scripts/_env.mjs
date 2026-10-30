@@ -1,7 +1,7 @@
 /**
  * Loads .env into process.env (without overriding variables already set),
- * mirroring prisma.config.ts. Import this before PrismaClient in any CLI
- * script; _prisma.mjs builds its MariaDB adapter from the DB_* vars.
+ * mirroring prisma.config.ts. Import it first in every CLI script: the
+ * prisma client from lib/prisma.ts reads the DB_* vars on first use.
  */
 import { existsSync, readFileSync } from "fs";
 

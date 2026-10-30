@@ -5,13 +5,13 @@
  * to a configurable base URL. Defaults to the UGent lokalen portal.
  *
  * Usage:
- *   node scripts/add-location-links.mjs                    # process all locations with fiNumber
- *   node scripts/add-location-links.mjs --dry-run          # preview without writing
- *   node scripts/add-location-links.mjs --location-id <id> # single location
- *   node scripts/add-location-links.mjs --base-url https://custom.example.com/{fiNumber}
- *   node scripts/add-location-links.mjs --label "Custom label"
- *   node scripts/add-location-links.mjs --force            # overwrite existing link
- *   node scripts/add-location-links.mjs --user-id <id>     # specify uploader user ID
+ *   node --import tsx/esm scripts/add-location-links.mjs                    # process all locations with fiNumber
+ *   node --import tsx/esm scripts/add-location-links.mjs --dry-run          # preview without writing
+ *   node --import tsx/esm scripts/add-location-links.mjs --location-id <id> # single location
+ *   node --import tsx/esm scripts/add-location-links.mjs --base-url https://custom.example.com/{fiNumber}
+ *   node --import tsx/esm scripts/add-location-links.mjs --label "Custom label"
+ *   node --import tsx/esm scripts/add-location-links.mjs --force            # overwrite existing link
+ *   node --import tsx/esm scripts/add-location-links.mjs --user-id <id>     # specify uploader user ID
  *
  * The default base URL template is: https://lokalen.ugent.be/lokaal/{fiNumber}
  * Use {fiNumber} as the placeholder for the location's FI number.
@@ -19,7 +19,8 @@
  * Run from the project root so that the .env file is found automatically.
  */
 
-import { prisma } from "./_prisma.mjs";
+import "./_env.mjs";
+import { prisma } from "@/lib/prisma";
 
 // ── arg parsing ───────────────────────────────────────────────────────────────
 

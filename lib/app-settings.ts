@@ -29,8 +29,8 @@ export async function writeSettings(entries: Record<string, string | undefined>)
 // ── Setting groups ───────────────────────────────────────────────────────────
 // Each group owns its keys, defaults and decoding, so every reader (settings
 // page, settings API, layouts, auth, asset defaults, compliance report) sees
-// the same values. The plain-JS maintenance scripts (purge-audit,
-// export-backup) cannot import this module and read their one key directly.
+// the same values, including the maintenance scripts (purge-audit,
+// export-backup).
 
 function intSetting(value: string | undefined, fallback: number): number {
   const n = parseInt(value ?? "", 10);

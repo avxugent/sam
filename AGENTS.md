@@ -225,7 +225,8 @@ prisma/
 
 ## Docker
 
-- The `Dockerfile` uses a four-stage multi-stage build: `deps → prod-deps → builder → runner`. `prod-deps` (production-only `node_modules`) is copied to `scripts/node_modules` for the Nomad maintenance actions and also provides the Prisma CLI used by `prisma migrate deploy`.
+- The `Dockerfile` uses a four-stage multi-stage build: `deps → scripts-deps → builder → runner`. `scripts-deps` installs `scripts/package.json` (the maintenance scripts' few dependencies, pinned to the root lockfile's versions — `__tests__/scripts/manifest.test.ts` checks it) into `scripts/node_modules` for the Nomad maintenance actions; it also provides the Prisma CLI used by `prisma migrate deploy`. The runner copies `lib/` and `generated/prisma/` into `scripts/` too.
+- Maintenance scripts import shared code from `lib/` (`@/lib/...`) instead of re-implementing it; run them with `node --import tsx/esm scripts/<name>.mjs` (the npm shorthands and Nomad actions do). A new dependency of a script — or of a `lib/` module a script imports — goes into `scripts/package.json` too.
 - The runner image runs as non-root user `nextjs` (uid 1001). Do not run as root.
 - `NEXT_TELEMETRY_DISABLED=1` is set at build time and runtime.
 - The standalone output (`next.config.ts`: `output: "standalone"`) is used. The entrypoint is `node server.js`.

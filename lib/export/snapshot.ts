@@ -1,6 +1,6 @@
 /**
  * Point-in-time JSON inventory snapshot (NIS2 evidence). Consumed by
- * GET /api/export/snapshot and mirrored by scripts/export-backup.mjs.
+ * GET /api/export/snapshot and scripts/export-backup.mjs.
  */
 import { prisma } from "@/lib/prisma";
 import { effectiveCriticality } from "@/lib/criticality";

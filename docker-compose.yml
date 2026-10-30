@@ -45,7 +45,7 @@ services:
       # Audit-log forwarding (optional — leave SYSLOG_HOST blank to disable).
       # When set, audit entries are forwarded to the configured rsyslog
       # server in real time and unforwarded rows can be replayed via
-      # `node scripts/forward-audit.mjs` (run from cron).
+      # `node --import tsx/esm scripts/forward-audit.mjs` (run from cron).
       SYSLOG_HOST: "${SYSLOG_HOST:-}"
       SYSLOG_PORT: "${SYSLOG_PORT:-}"
       SYSLOG_TRANSPORT: "${SYSLOG_TRANSPORT:-udp}"

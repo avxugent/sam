@@ -16,13 +16,14 @@
  *   - manufacturers (same)
  *
  * Usage:
- *   node scripts/clear-import-data.mjs           # asks for confirmation
- *   node scripts/clear-import-data.mjs --force   # skips confirmation prompt
+ *   node --import tsx/esm scripts/clear-import-data.mjs           # asks for confirmation
+ *   node --import tsx/esm scripts/clear-import-data.mjs --force   # skips confirmation prompt
  *
  * Run from the project root so that the .env file is found automatically.
  */
 
-import { prisma } from "./_prisma.mjs";
+import "./_env.mjs";
+import { prisma } from "@/lib/prisma";
 import { createInterface } from "readline";
 import { unlink } from "fs/promises";
 import { resolve } from "path";

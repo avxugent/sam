@@ -50,3 +50,4 @@ app/.next/
 # desloppify local state
 .desloppify/
 scorecard.png
+/scripts/node_modules

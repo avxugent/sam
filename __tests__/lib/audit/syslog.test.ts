@@ -98,6 +98,7 @@ import * as net from "net";
 import * as tls from "tls";
 import {
   isSyslogConfigured,
+  syslogDestination,
   formatRfc5424,
   forwardAuditEntry,
   forwardAuditBatch,
@@ -138,6 +139,23 @@ describe("isSyslogConfigured()", () => {
   it("returns true with SYSLOG_HOST set", () => {
     vi.stubEnv("SYSLOG_HOST", "logs.example.com");
     expect(isSyslogConfigured()).toBe(true);
+  });
+});
+
+describe("syslogDestination()", () => {
+  it("defaults to UDP on port 514", () => {
+    vi.stubEnv("SYSLOG_HOST", "logs.example.com");
+    vi.stubEnv("SYSLOG_TRANSPORT", "");
+    vi.stubEnv("SYSLOG_PORT", "");
+    expect(syslogDestination()).toBe("udp://logs.example.com:514");
+  });
+  it("uses port 6514 for TLS and honours SYSLOG_PORT", () => {
+    vi.stubEnv("SYSLOG_HOST", "logs.example.com");
+    vi.stubEnv("SYSLOG_TRANSPORT", "tls");
+    vi.stubEnv("SYSLOG_PORT", "");
+    expect(syslogDestination()).toBe("tls://logs.example.com:6514");
+    vi.stubEnv("SYSLOG_PORT", "1514");
+    expect(syslogDestination()).toBe("tls://logs.example.com:1514");
   });
 });
 

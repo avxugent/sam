@@ -4,15 +4,16 @@
  * Generic CLI to programmatically add a link attachment to a location or asset.
  *
  * Usage:
- *   node scripts/add-attachment.mjs --location-id <id> --url <url> --label <label>
- *   node scripts/add-attachment.mjs --asset-id <id> --url <url> --label <label>
- *   node scripts/add-attachment.mjs ... --user-id <id>  # specify uploader (default: first ADMIN)
- *   node scripts/add-attachment.mjs ... --dry-run       # preview only
+ *   node --import tsx/esm scripts/add-attachment.mjs --location-id <id> --url <url> --label <label>
+ *   node --import tsx/esm scripts/add-attachment.mjs --asset-id <id> --url <url> --label <label>
+ *   node --import tsx/esm scripts/add-attachment.mjs ... --user-id <id>  # specify uploader (default: first ADMIN)
+ *   node --import tsx/esm scripts/add-attachment.mjs ... --dry-run       # preview only
  *
  * Run from the project root so that the .env file is found automatically.
  */
 
-import { prisma } from "./_prisma.mjs";
+import "./_env.mjs";
+import { prisma } from "@/lib/prisma";
 
 function getArg(flag, defaultValue = null) {
   const idx = process.argv.indexOf(flag);

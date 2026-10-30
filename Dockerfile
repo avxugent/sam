@@ -19,19 +19,19 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
 # ─────────────────────────────────────────────────────────────
-# Stage 2: Production-only dependencies
+# Stage 2: Maintenance-script dependencies
 #
-# Installs only non-dev dependencies. Copied into the runner image
-# under scripts/node_modules/ so maintenance scripts can run in the
-# production container (required for Nomad Actions). This tree also
-# provides the Prisma CLI for `prisma migrate deploy` (prisma is a
-# runtime dependency), so the image carries a single copy of it.
+# Installs scripts/package.json (pinned to the root lockfile's versions):
+# the handful of packages the maintenance scripts and the lib/ code they
+# import need (Prisma client + CLI, tsx, S3, jsdom, bcryptjs, zod, …).
+# Copied into the runner under scripts/node_modules for the Nomad Actions;
+# it also provides the Prisma CLI for `prisma migrate deploy`.
 # openssl lets Prisma's postinstall pick the matching engine build.
 # ─────────────────────────────────────────────────────────────
-FROM base AS prod-deps
+FROM base AS scripts-deps
 RUN apk add --no-cache openssl
-WORKDIR /app
-COPY package.json package-lock.json ./
+WORKDIR /app/scripts
+COPY scripts/package.json scripts/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --omit=dev
 
@@ -98,25 +98,25 @@ RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 
 # ── Maintenance scripts (for Nomad Actions) ───────────────────────────────────
 # Scripts are isolated under /app/scripts/ with their own node_modules so they
-# don't interfere with the standalone bundle. Node resolves bare imports from
-# the closest node_modules/ ancestor, so scripts/node_modules/ is picked up
-# automatically when running any script under /app/scripts/.
+# don't interfere with the standalone bundle. They import the shared TypeScript
+# code (`@/lib/...`, `@/generated/prisma/...`), so lib/ and the generated
+# Prisma client are copied next to them, and tsx (preloaded with
+# `node --import tsx/esm`) maps `@/*` to /app/scripts/* via
+# scripts/tsconfig.image.json. Bare imports from scripts/lib resolve to
+# scripts/node_modules, the closest node_modules/ ancestor.
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
-
-# Production node_modules (no devDeps) give scripts access to @prisma/client,
-# @aws-sdk/client-s3, jsdom, and other runtime dependencies.
-COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./scripts/node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/lib ./scripts/lib
+COPY --from=builder --chown=nextjs:nodejs /app/generated/prisma ./scripts/generated/prisma
+COPY --from=scripts-deps --chown=nextjs:nodejs /app/scripts/node_modules ./scripts/node_modules
+ENV TSX_TSCONFIG_PATH=/app/scripts/tsconfig.image.json
 
 # The Prisma CLI for migrations comes from that same tree. prisma.config.ts
-# imports "prisma/config", resolved from /app/node_modules. Both links are
-# created before switching to the non-root user.
+# imports "prisma/config", resolved from /app/node_modules, and
+# `--import tsx/esm` is resolved from the working directory (/app). The links
+# are created before switching to the non-root user.
 RUN ln -sf /app/scripts/node_modules/.bin/prisma /usr/local/bin/prisma \
- && ln -sf /app/scripts/node_modules/prisma /app/node_modules/prisma
-
-# Prisma 7 generates TypeScript source to generated/prisma/ (no longer in
-# node_modules/.prisma).  The _prisma.mjs helper registers tsx at runtime so
-# the generated .ts files can be imported without a separate compile step.
-COPY --from=builder --chown=nextjs:nodejs /app/generated/prisma ./scripts/generated/prisma
+ && ln -sf /app/scripts/node_modules/prisma /app/node_modules/prisma \
+ && ln -sf /app/scripts/node_modules/tsx /app/node_modules/tsx
 
 USER nextjs
 

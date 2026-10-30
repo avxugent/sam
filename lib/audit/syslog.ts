@@ -74,6 +74,11 @@ export function isSyslogConfigured(): boolean {
   return !!process.env.SYSLOG_HOST;
 }
 
+/** Where forwardAuditBatch sends to, as `transport://host:port` (for log output). */
+export function syslogDestination(): string {
+  return `${parseTransport()}://${process.env.SYSLOG_HOST ?? ""}:${getPort()}`;
+}
+
 /**
  * Build an RFC 5424 message:
  *   <PRI>1 TIMESTAMP HOSTNAME APP-NAME PROCID MSGID - MSG

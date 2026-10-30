@@ -10,18 +10,19 @@
  * IP) are left untouched and reported as "unresolved".
  *
  * Usage:
- *   node scripts/resolve-ip-hostnames.mjs                  # resolve all IP hostnames
- *   node scripts/resolve-ip-hostnames.mjs --dry-run        # preview, no writes
- *   node scripts/resolve-ip-hostnames.mjs --asset-id <id>  # single asset
- *   node scripts/resolve-ip-hostnames.mjs --dns-server 10.0.0.1   # override resolver(s), comma-separated
- *   node scripts/resolve-ip-hostnames.mjs --timeout 8000   # per-lookup timeout in ms (default 5000)
+ *   node --import tsx/esm scripts/resolve-ip-hostnames.mjs                  # resolve all IP hostnames
+ *   node --import tsx/esm scripts/resolve-ip-hostnames.mjs --dry-run        # preview, no writes
+ *   node --import tsx/esm scripts/resolve-ip-hostnames.mjs --asset-id <id>  # single asset
+ *   node --import tsx/esm scripts/resolve-ip-hostnames.mjs --dns-server 10.0.0.1   # override resolver(s), comma-separated
+ *   node --import tsx/esm scripts/resolve-ip-hostnames.mjs --timeout 8000   # per-lookup timeout in ms (default 5000)
  *
  * Run from the project root so that the .env file is found automatically.
  */
 
 import { isIP } from "node:net";
 import dns from "node:dns/promises";
-import { prisma } from "./_prisma.mjs";
+import "./_env.mjs";
+import { prisma } from "@/lib/prisma";
 
 // ── arg parsing ───────────────────────────────────────────────────────────────
 

@@ -14,6 +14,7 @@ import {
   buildSendForRepairUpdateData,
   buildStockItemFromReturn,
   type LifecycleViolation,
+  type Returnable,
 } from "@/lib/assets/lifecycle-rules";
 
 /**
@@ -30,6 +31,8 @@ import {
  */
 
 /** A lifecycle violation as the 400 a single-asset route sends back. */
+export function lifecycleViolationResponse(violation: LifecycleViolation): NextResponse;
+export function lifecycleViolationResponse(violation: LifecycleViolation | null): NextResponse | null;
 export function lifecycleViolationResponse(violation: LifecycleViolation | null): NextResponse | null {
   return violation && NextResponse.json({ error: violation.message }, { status: 400 });
 }
@@ -178,7 +181,7 @@ export const RETURN_TO_STOCK_INCLUDE = {
 type ReturnCandidate = Prisma.AssetGetPayload<{ include: typeof RETURN_TO_STOCK_INCLUDE }>;
 
 /** Replaces the asset by a stock item at `locationId` and audits both sides of the move. */
-export async function returnAssetToStock(req: Request, session: Session, asset: ReturnCandidate, locationId: string) {
+export async function returnAssetToStock(req: Request, session: Session, asset: Returnable<ReturnCandidate>, locationId: string) {
   const stockItem = await unlessStatusChanged(() =>
     prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const item = await tx.stockItem.create({ data: buildStockItemFromReturn(asset, locationId) });

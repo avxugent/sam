@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, type PathValue } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -35,7 +35,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { MacAddressFields } from "@/components/inventory/mac-address-fields";
 import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
-import type { Criticality } from "@/generated/prisma/enums";
+import { Criticality } from "@/generated/prisma/enums";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 
 
@@ -91,14 +91,15 @@ function buildAssetFormSchema(t: AssetFormTranslator, assetTypes: AssetType[]) {
     modelId: z.string().min(1, t("errModelRequired")),
     serialNumber: z.string().max(100).optional(),
     hostname: z.string().max(255).optional(),
-    quantity: z.number().int().min(1, t("errQuantityMin")),
+    quantity: z.number().int().min(1, t("errQuantityMin")).max(9999),
     installationDate: z.string().optional(),
     invoiceNumber: z.string().max(100).optional(),
     invoiceDate: z.string().optional(),
     notes: z.string().max(5000).optional(),
     vaultPath: z.string().max(500).optional(),
     ownerId: z.string().max(64).optional(),
-    criticality: z.string().max(20).optional(),
+    // "" is the "inherit from type" choice.
+    criticality: z.union([z.enum(Criticality), z.literal("")]).optional(),
     endOfSupportDate: z.string().optional(),
     supplierId: z.string().max(64).optional(),
     macAddresses: z.array(macSchema),
@@ -193,6 +194,21 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     defaultValues: EMPTY_ASSET_FORM,
   });
 
+  /**
+   * onValueChange for a Select whose "clear" option is `sentinel`. Radix can
+   * fire onValueChange("") on its own — e.g. when an option list finishes
+   * loading after fetchAsset()'s reset() already set the value. No SelectItem
+   * ever has value="", so a raw "" is that internal noise, not a user pick:
+   * ignore it rather than silently wiping the field. Item values are the
+   * field's own option values, hence the cast.
+   */
+  function pickSelect<K extends "typeId" | "ownerId" | "supplierId" | "criticality">(field: K, sentinel: string) {
+    return (v: string) => {
+      if (v === "") return;
+      setValue(field, (v === sentinel ? "" : v) as PathValue<AssetFormValues, K>, { shouldValidate: true });
+    };
+  }
+
   const { fields: macFields, append: appendMac, remove: removeMac } = useFieldArray({
     control,
     name: "macAddresses",
@@ -250,20 +266,14 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       serialNumber: asset.serialNumber || "",
       hostname: asset.hostname || "",
       quantity: asset.quantity ?? 1,
-      installationDate: asset.installationDate
-        ? toIsoDay(asset.installationDate)
-        : "",
+      installationDate: toIsoDay(asset.installationDate) ?? "",
       invoiceNumber: asset.invoiceNumber || "",
-      invoiceDate: asset.invoiceDate
-        ? toIsoDay(asset.invoiceDate)
-        : "",
+      invoiceDate: toIsoDay(asset.invoiceDate) ?? "",
       notes: asset.notes || "",
       vaultPath: asset.vaultPath || "",
       ownerId: asset.ownerId || "",
       criticality: asset.criticality || "",
-      endOfSupportDate: asset.endOfSupportDate
-        ? toIsoDay(asset.endOfSupportDate)
-        : "",
+      endOfSupportDate: toIsoDay(asset.endOfSupportDate) ?? "",
       supplierId: asset.supplierId || "",
       macAddresses: asset.macAddresses.map((m) => ({ address: m.address })),
       customFields: asset.customFields.map((f) => ({ key: f.key, value: f.value })),
@@ -400,16 +410,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               </Label>
               <Select
                 value={typeIdValue || ""}
-                onValueChange={(v) => {
-                  // Radix can fire onValueChange("") on its own — e.g. when the
-                  // asset types list finishes loading after this field's value
-                  // was already set by fetchAsset()'s reset(). No SelectItem
-                  // ever has value="" (the clear option is "_none"), so a raw
-                  // "" here is always that internal noise, not a user pick —
-                  // ignore it rather than silently wiping the field.
-                  if (v === "") return;
-                  setValue("typeId", v === "_none" ? "" : v, { shouldValidate: true });
-                }}
+                onValueChange={pickSelect("typeId", "_none")}
               >
                 <SelectTrigger
                   id="asset-type"
@@ -607,11 +608,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               <Label htmlFor="asset-owner">{tField("owner")}</Label>
               <Select
                 value={ownerIdValue || "_none"}
-                onValueChange={(v) => {
-                  // See the Type select above — Radix can spuriously fire "".
-                  if (v === "") return;
-                  setValue("ownerId", v === "_none" ? "" : v, { shouldValidate: true });
-                }}
+                onValueChange={pickSelect("ownerId", "_none")}
               >
                 <SelectTrigger id="asset-owner">
                   <SelectValue placeholder={t("ownerDefault")} />
@@ -629,11 +626,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               <Label htmlFor="asset-supplier">{tField("supplier")}</Label>
               <Select
                 value={supplierIdValue || "_none"}
-                onValueChange={(v) => {
-                  // See the Type select above — Radix can spuriously fire "".
-                  if (v === "") return;
-                  setValue("supplierId", v === "_none" ? "" : v, { shouldValidate: true });
-                }}
+                onValueChange={pickSelect("supplierId", "_none")}
               >
                 <SelectTrigger id="asset-supplier">
                   <SelectValue placeholder={t("noneSupplier")} />
@@ -651,11 +644,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               <Label htmlFor="asset-criticality">{tField("criticality")}</Label>
               <Select
                 value={criticalityValue || "_inherit"}
-                onValueChange={(v) => {
-                  // See the Type select above — Radix can spuriously fire "".
-                  if (v === "") return;
-                  setValue("criticality", v === "_inherit" ? "" : v, { shouldValidate: true });
-                }}
+                onValueChange={pickSelect("criticality", "_inherit")}
               >
                 <SelectTrigger id="asset-criticality">
                   <SelectValue placeholder={t("criticalityInherit")} />

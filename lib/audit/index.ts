@@ -14,6 +14,28 @@ export type AuditAction =
   | "LOGIN_FAILED"
   | "LOGOUT";
 
+/** What an audit entry is about; the asset history and audit log UI branch on these. */
+export type AuditEntityType =
+  | "Asset"
+  | "AssetType"
+  | "AssetTypeManufacturerTemplate"
+  | "AssetTypeModelTemplate"
+  | "Attachment"
+  | "Auth"
+  | "ComplianceReport"
+  | "Inventory"
+  | "Location"
+  | "MaintenancePreset"
+  | "Manufacturer"
+  | "Model"
+  | "Report"
+  | "Setting"
+  | "StockItem"
+  | "Supplier"
+  | "User"
+  | "WorkLog"
+  | "WorkLogItem";
+
 export async function logAudit({
   session,
   actor,
@@ -30,7 +52,7 @@ export async function logAudit({
   actor?: { id?: string | null; email?: string | null };
   req?: Request;
   action: AuditAction;
-  entityType: string;
+  entityType: AuditEntityType;
   entityId?: string;
   entityName?: string;
   detail?: Record<string, unknown>;

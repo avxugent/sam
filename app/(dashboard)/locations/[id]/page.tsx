@@ -7,6 +7,7 @@ import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/location
 import { isJiraConfigured } from "@/lib/jira";
 import { parseLocationTab } from "@/lib/user-preferences";
 import { ASSET_LIST_INCLUDE } from "@/lib/assets/include";
+import { WORK_LOG_INCLUDE } from "@/lib/work-log-include";
 
 
 async function getUrlTemplates(): Promise<{
@@ -99,19 +100,7 @@ export default async function LocationPage({
 
   const workLogs = await prisma.workLog.findMany({
     where: { locationId: id },
-    include: {
-      performedBy: { select: { id: true, name: true, email: true } },
-      item: { select: { id: true, name: true } },
-      asset: {
-        select: {
-          id: true,
-          model: { select: { name: true } },
-          serialNumber: true,
-          hostname: true,
-          type: { select: { id: true, name: true } },
-        },
-      },
-    },
+    include: WORK_LOG_INCLUDE,
     orderBy: [{ performedAt: "desc" }, { createdAt: "desc" }],
   });
 

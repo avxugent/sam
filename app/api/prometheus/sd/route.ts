@@ -49,7 +49,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sessionOrIntegrationTokenResponse } from "@/lib/tokens/session-or-integration";
-import { getLocationAncestors } from "@/lib/locations/path";
+import { ancestorChain } from "@/lib/locations/path";
 import { samAssetLabels } from "@/lib/prometheus/labels";
 import {
   renderScrapeTemplate,
@@ -71,51 +71,39 @@ export async function GET(req: NextRequest) {
   const authError = await sessionOrIntegrationTokenResponse(req, isAdmin);
   if (authError) return authError;
 
-  const assets = await prisma.asset.findMany({
-    where: { hostname: { not: null }, status: "INSTALLED" },
-    select: {
-      id: true,
-      hostname: true,
-      model: { select: { name: true } },
-      serialNumber: true,
-      vaultPath: true,
-      locationId: true,
-      manufacturerId: true,
-      location: { select: { inMaintenance: true } },
-      type: {
-        select: {
-          name: true,
-          scrapeTargetTemplate: true,
-          prometheusExposed: true,
-          manufacturerTemplates: {
-            select: { manufacturerId: true, scrapeTargetTemplate: true },
-          },
-          modelTemplates: {
-            select: { manufacturerId: true, model: true, scrapeTargetTemplate: true },
+  const [assets, locations] = await Promise.all([
+    prisma.asset.findMany({
+      where: { hostname: { not: null }, status: "INSTALLED" },
+      select: {
+        id: true,
+        hostname: true,
+        model: { select: { name: true } },
+        serialNumber: true,
+        vaultPath: true,
+        locationId: true,
+        manufacturerId: true,
+        location: { select: { inMaintenance: true } },
+        type: {
+          select: {
+            name: true,
+            scrapeTargetTemplate: true,
+            prometheusExposed: true,
+            manufacturerTemplates: {
+              select: { manufacturerId: true, scrapeTargetTemplate: true },
+            },
+            modelTemplates: {
+              select: { manufacturerId: true, model: true, scrapeTargetTemplate: true },
+            },
           },
         },
+        manufacturer: { select: { name: true } },
       },
-      manufacturer: { select: { name: true } },
-    },
-    orderBy: { hostname: "asc" },
-  });
-
-  // ── Caches (keyed by id/path) to avoid redundant lookups ──────────────────
-
-  // locationId → resolved ancestor array
-  const locationPathCache = new Map<
-    string,
-    Awaited<ReturnType<typeof getLocationAncestors>>
-  >();
-
-  async function cachedLocationPath(locationId: string) {
-    if (!locationPathCache.has(locationId)) {
-      locationPathCache.set(locationId, await getLocationAncestors(locationId));
-    }
-    return locationPathCache.get(locationId)!;
-  }
-
-  // ── Build target groups ────────────────────────────────────────────────────
+      orderBy: { hostname: "asc" },
+    }),
+    // One query for the whole tree; each asset's ancestor chain is walked in memory.
+    prisma.location.findMany({ select: { id: true, name: true, fiNumber: true, parentId: true } }),
+  ]);
+  const locationsById = new Map(locations.map((l) => [l.id, l]));
 
   type TargetGroup = {
     targets: string[];
@@ -130,7 +118,7 @@ export async function GET(req: NextRequest) {
     // Room in maintenance — its assets are not scrape targets.
     if (asset.location?.inMaintenance) continue;
 
-    const ancestors = await cachedLocationPath(asset.locationId);
+    const ancestors = ancestorChain(asset.locationId, locationsById);
     const samLabels = samAssetLabels({ ...asset, hostname: asset.hostname }, ancestors);
     const labels: Record<string, string> = Object.fromEntries(
       Object.entries(samLabels)
@@ -138,7 +126,6 @@ export async function GET(req: NextRequest) {
         .filter(([key, value]) => value || ALWAYS_PRESENT.has(key))
     );
 
-    // ── Scrape target template ───────────────────────────────────────────────
     // Most specific override wins: model+manufacturer → manufacturer → type default.
     const template = asset.type
       ? resolveScrapeTemplate(asset.type, asset.manufacturerId, asset.model?.name ?? null)

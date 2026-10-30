@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { returnToStockViolation } from "@/lib/assets/lifecycle-rules";
+import { checkReturnToStock } from "@/lib/assets/lifecycle-rules";
 import { RETURN_TO_STOCK_INCLUDE, STATUS_CHANGED, returnAssetToStock } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
@@ -28,13 +28,17 @@ export async function POST(req: NextRequest) {
   const failed: { id: string; reason: string }[] = [];
 
   for (const id of ids) {
-    const asset = await prisma.asset.findUnique({ where: { id }, include: RETURN_TO_STOCK_INCLUDE });
-    const reason = asset ? (returnToStockViolation(asset)?.code ?? null) : "NOT_FOUND";
-    if (!asset || reason) {
-      failed.push({ id, reason: reason ?? "NOT_FOUND" });
+    const found = await prisma.asset.findUnique({ where: { id }, include: RETURN_TO_STOCK_INCLUDE });
+    if (!found) {
+      failed.push({ id, reason: "NOT_FOUND" });
       continue;
     }
-    if (!(await returnAssetToStock(req, session, asset, locationId))) {
+    const check = checkReturnToStock(found);
+    if (check.violation) {
+      failed.push({ id, reason: check.violation.code });
+      continue;
+    }
+    if (!(await returnAssetToStock(req, session, check.asset, locationId))) {
       failed.push({ id, reason: STATUS_CHANGED });
       continue;
     }

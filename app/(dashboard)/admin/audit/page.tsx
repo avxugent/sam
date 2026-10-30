@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { AuditLogClient } from "@/components/admin/audit-log-client";
 import { isAdmin } from "@/lib/permissions";
+import type { AuditEntityType } from "@/lib/audit";
 
 export default async function AuditLogPage() {
   const session = await auth();
@@ -22,7 +23,10 @@ export default async function AuditLogPage() {
         <h1 className="text-2xl font-bold">{t("audit.title")}</h1>
         <p className="text-muted-foreground mt-1">{t("audit.subtitle")}</p>
       </div>
-      <AuditLogClient initialLogs={logs.map((l) => ({ ...l, timestamp: l.timestamp.toISOString() }))} />
+      <AuditLogClient
+        // Rows are only ever written by logAudit(), whose entityType is an AuditEntityType.
+        initialLogs={logs.map((l) => ({ ...l, entityType: l.entityType as AuditEntityType, timestamp: l.timestamp.toISOString() }))}
+      />
     </div>
   );
 }

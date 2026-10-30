@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { returnToStockViolation } from "@/lib/assets/lifecycle-rules";
+import { checkReturnToStock } from "@/lib/assets/lifecycle-rules";
 import { RETURN_TO_STOCK_INCLUDE, lifecycleViolationResponse, returnAssetToStock, statusChangedResponse } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
@@ -28,11 +28,11 @@ export async function POST(
 
   const { id } = await params;
 
-  const asset = await prisma.asset.findUnique({ where: { id }, include: RETURN_TO_STOCK_INCLUDE });
-  if (!asset) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const violation = lifecycleViolationResponse(returnToStockViolation(asset));
-  if (violation) return violation;
+  const found = await prisma.asset.findUnique({ where: { id }, include: RETURN_TO_STOCK_INCLUDE });
+  if (!found) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const check = checkReturnToStock(found);
+  if (check.violation) return lifecycleViolationResponse(check.violation);
 
-  const stockItem = await returnAssetToStock(req, session, asset, locationId);
+  const stockItem = await returnAssetToStock(req, session, check.asset, locationId);
   return stockItem ? NextResponse.json({ stockItemId: stockItem.id }) : statusChangedResponse();
 }

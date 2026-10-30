@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
 import { SortableTh } from "@/components/ui/sortable-th";
+import type { AuditEntityType } from "@/lib/audit";
 
 type AuditLog = {
   id: string;
@@ -14,7 +15,7 @@ type AuditLog = {
   userId: string | null;
   userEmail: string | null;
   action: string;
-  entityType: string;
+  entityType: AuditEntityType;
   entityId: string | null;
   entityName: string | null;
   detail: string | null;

@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api-client";
+import type { AuditEntityType } from "@/lib/audit";
 
 export type AuditLogEntry = {
   id: string;
   timestamp: string;
   userEmail: string | null;
   action: string;
-  entityType: string;
+  entityType: AuditEntityType;
   detail: string | null;
 };
 

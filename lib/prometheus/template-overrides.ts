@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { validateTemplate } from "@/lib/prometheus/scrape-template";
 import { invalidInput, isUniqueConstraintError, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import type { AuditEntityType } from "@/lib/audit";
 
 /**
  * Per-asset-type scrape template overrides, either per manufacturer or per
@@ -24,7 +25,7 @@ export type TemplateOverride = {
 type CreateInput = { manufacturerId: string; scrapeTargetTemplate: string; model?: string };
 
 type OverrideStore = {
-  entityType: string;
+  entityType: AuditEntityType;
   createSchema: z.ZodType<CreateInput>;
   list(typeId: string): Promise<TemplateOverride[]>;
   find(id: string): Promise<(TemplateOverride & { typeName: string }) | null>;

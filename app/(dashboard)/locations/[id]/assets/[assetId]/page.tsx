@@ -4,6 +4,7 @@ import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
 import { locationBreadcrumbs } from "@/lib/locations/path";
+import { ASSET_ROW_INCLUDE } from "@/lib/assets/include";
 
 
 export default async function AssetPage({
@@ -21,12 +22,8 @@ export default async function AssetPage({
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },
     include: {
-      type: true,
-      manufacturer: true,
-      model: true,
+      ...ASSET_ROW_INCLUDE,
       supplier: true,
-      macAddresses: true,
-      customFields: true,
       location: { select: { id: true, name: true, parentId: true } },
       attachments: {
         include: { uploadedBy: { select: { id: true, name: true } } },

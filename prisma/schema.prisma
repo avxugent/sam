@@ -396,8 +396,8 @@ model AuditLog {
   timestamp   DateTime  @default(now())
   userId      String?
   userEmail   String?
-  action      String // CREATE | UPDATE | DELETE | IMPORT | EXPORT
-  entityType  String // Asset | Location | User | AssetType | Manufacturer | Attachment
+  action      String // AuditAction in lib/audit/index.ts
+  entityType  String // AuditEntityType in lib/audit/index.ts
   entityId    String?
   entityName  String?
   detail      String?   @db.Text // JSON

@@ -221,6 +221,8 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 
 ## Import / Export
 
+Where an export lives: whole-inventory exports (active assets, decommissioned assets, stock, the JSON snapshot) are under `/api/export/*` and accept the `EXPORT_TOKEN` for scheduled pulls. An export of one resource's own list stays under that resource — `/api/users/export`, `/api/compliance/hostname/export`, `/api/reports/[id]/export` — and needs a session.
+
 | Method | Path | Min role | Description |
 |---|---|---|---|
 | `POST` | `/api/import/preview` | ADMIN | Parse an uploaded CSV without importing it: `{ totalRows, columns, preview }` (first 5 rows) |

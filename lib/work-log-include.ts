@@ -1,6 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 
-/** Relations returned with every work log entry by the work-log API routes. */
+/** Relations of every work log entry: the work-log API routes and the location page. */
 export const WORK_LOG_INCLUDE = {
   performedBy: { select: { id: true, name: true, email: true } },
   item: { select: { id: true, name: true } },

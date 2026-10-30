@@ -91,13 +91,13 @@ function assetCells(
     String(asset.quantity),
     asset.macAddresses.map((m) => m.address).join(";"),
     asset.hostname ?? "",
-    formatDateCell(asset.installationDate ?? null),
-    formatDateCell(asset.invoiceDate ?? null),
+    formatDateCell(asset.installationDate),
+    formatDateCell(asset.invoiceDate),
     asset.invoiceNumber ?? "",
     ...CUSTOM_FIELD_COLUMNS.map((col) => customFieldMap[col] ?? ""),
     asset.ownerId ? ownerEmailById.get(asset.ownerId) ?? asset.ownerId : "",
     asset.criticality ?? "",
-    formatDateCell(asset.endOfSupportDate ?? null),
+    formatDateCell(asset.endOfSupportDate),
     asset.supplier?.name ?? "",
   ];
 }
@@ -186,7 +186,7 @@ export async function generateDecommissionedCsv(): Promise<string> {
     rows.push(
       csvLine([
         ...assetCells(asset, locationMap, ownerEmailById),
-        formatDateCell(asset.decommissionedAt ?? null),
+        formatDateCell(asset.decommissionedAt),
         asset.decommissionNote ?? "",
         asset.disposalMethod ?? "",
         asset.decommissionedById
@@ -256,7 +256,7 @@ export async function generateStockCsv(): Promise<string> {
       reservedFi,
       stockMetadataMacs(item.metadata).join(";"),
       item.notes ?? "",
-      formatDateCell(item.invoiceDate ?? null),
+      formatDateCell(item.invoiceDate),
       item.invoiceNumber ?? "",
     ];
 

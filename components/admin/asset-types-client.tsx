@@ -23,6 +23,7 @@ import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
 import type { Criticality } from "@/generated/prisma/enums";
 import { CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import type { ManufacturerOption } from "@/components/inventory/use-type-scoped-manufacturers";
 
 type AssetType = {
   id: string;
@@ -34,7 +35,6 @@ type AssetType = {
   _count: { assets: number };
 };
 
-type ManufacturerOption = { id: string; name: string };
 
 
 export function AssetTypesClient({

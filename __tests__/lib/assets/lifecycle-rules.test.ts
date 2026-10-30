@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  checkReturnToStock,
   decommissionViolation,
   repairViolation,
   returnToStockViolation,
@@ -33,6 +34,14 @@ describe("repairViolation", () => {
 
   it("is null for an installed asset", () => {
     expect(repairViolation({ status: "INSTALLED" })).toBeNull();
+  });
+});
+
+describe("checkReturnToStock", () => {
+  it("returns the asset when it can go back to stock, the violation otherwise", () => {
+    const ok = { id: "a1", status: "INSTALLED" as const, typeId: "t1", modelId: "m1" };
+    expect(checkReturnToStock(ok)).toEqual({ violation: null, asset: ok });
+    expect(checkReturnToStock({ ...ok, modelId: null }).violation?.code).toBe("MISSING_MODEL");
   });
 });
 

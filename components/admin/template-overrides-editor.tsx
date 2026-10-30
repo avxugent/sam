@@ -18,8 +18,8 @@ import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields"
 import { apiErrorMessage } from "@/lib/utils";
 import type { TemplateOverride } from "@/lib/prometheus/template-overrides";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import type { ManufacturerOption } from "@/components/inventory/use-type-scoped-manufacturers";
 
-type ManufacturerOption = { id: string; name: string };
 type Kind = "manufacturer" | "model";
 
 /** Per-kind API path segment, icon and translation keys (namespace "assetTypes"). */

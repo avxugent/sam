@@ -45,6 +45,17 @@ export function returnToStockViolation(asset: {
   return null;
 }
 
+/** An asset that passed returnToStockViolation: it has a type and a model. */
+export type Returnable<T> = T & { typeId: string; modelId: string };
+
+/** returnToStockViolation(), plus the asset narrowed to Returnable when there is none. */
+export function checkReturnToStock<T extends { status: AssetStatus; typeId: string | null; modelId: string | null }>(
+  asset: T
+): { violation: LifecycleViolation; asset?: undefined } | { violation: null; asset: Returnable<T> } {
+  const violation = returnToStockViolation(asset);
+  return violation ? { violation } : { violation: null, asset: asset as Returnable<T> };
+}
+
 export function reinstateViolation(asset: { status: AssetStatus }): LifecycleViolation | null {
   if (asset.status !== "DECOMMISSIONED") return violation("NOT_DECOMMISSIONED", "Asset is not decommissioned.");
   return null;
@@ -79,17 +90,14 @@ type ReturnableAsset = {
 
 /** The exact `tx.stockItem.create({ data })` payload for a returned asset. */
 export function buildStockItemFromReturn(
-  asset: ReturnableAsset,
+  asset: Returnable<ReturnableAsset>,
   locationId: string
 ): Prisma.StockItemUncheckedCreateInput {
-
   return {
     lineageId: asset.lineageId,
-    typeId: asset.typeId!,
+    typeId: asset.typeId,
     manufacturerId: asset.manufacturerId,
-    // returnToStockViolation (checked by every caller before this) already
-    // reports MISSING_MODEL when null — same guarantee as typeId above.
-    modelId: asset.modelId!,
+    modelId: asset.modelId,
     serialNumber: asset.serialNumber,
     invoiceNumber: asset.invoiceNumber,
     invoiceDate: asset.invoiceDate,

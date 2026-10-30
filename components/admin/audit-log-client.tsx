@@ -23,12 +23,12 @@ type AuditLog = {
 
 const ACTION_COLORS: Record<string, string> = {
   CREATE: "bg-[#dcfce7] text-[#16a34a]",
-  UPDATE: "bg-[#dbeafe] text-[#1d4ed8]",
-  DELETE: "bg-[#fee2e2] text-[#dc2626]",
+  UPDATE: "bg-info-surface text-[#1d4ed8]",
+  DELETE: "bg-[#fee2e2] text-destructive",
   IMPORT: "bg-[#fef9c3] text-[#ca8a04]",
   EXPORT: "bg-[#f3e8ff] text-[#7c3aed]",
   LOGIN_SUCCESS: "bg-[#dcfce7] text-[#15803d]",
-  LOGIN_FAILED: "bg-[#fee2e2] text-[#b91c1c]",
+  LOGIN_FAILED: "bg-[#fee2e2] text-destructive",
   LOGOUT: "bg-border text-secondary-foreground",
 };
 
@@ -57,7 +57,7 @@ function DetailRenderer({ detail }: { detail: string }) {
           {Object.entries(changes).map(([field, { from, to }]) => (
             <tr key={field}>
               <td className="pr-4 text-muted-foreground font-medium whitespace-nowrap align-top">{field}</td>
-              <td className="pr-2 text-[#dc2626] line-through align-top break-all max-w-[220px]">{String(from ?? "—")}</td>
+              <td className="pr-2 text-destructive line-through align-top break-all max-w-[220px]">{String(from ?? "—")}</td>
               <td className="pr-2 text-muted-foreground align-top">→</td>
               <td className="text-[#16a34a] font-medium align-top break-all max-w-[220px]">{String(to ?? "—")}</td>
             </tr>

@@ -46,7 +46,7 @@ export function JiraIssueBadge({ issueKey, jiraBaseUrl }: { issueKey: string; ji
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => { if (!fallbackUrl) e.preventDefault(); }}
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-primary-tint text-primary hover:bg-[#d4e3f7] transition-colors max-w-[280px] group"
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-primary-tint text-primary hover:bg-primary-tint-hover transition-colors max-w-[280px] group"
       title={issue?.summary ?? issueKey}
     >
       <span className="font-mono">{issueKey}</span>

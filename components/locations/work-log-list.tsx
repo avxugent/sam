@@ -134,7 +134,7 @@ export function WorkLogList({
             items={items}
             currentUserId={currentUserId}
           >
-            <Button size="sm" className="h-[36px] gap-1.5 bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
+            <Button size="sm" className="h-[36px] gap-1.5 bg-brand-yellow text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
               <Plus className="h-4 w-4" />
               {t("addEntry")}
             </Button>
@@ -163,7 +163,7 @@ export function WorkLogList({
             return (
               <div
                 key={entry.id}
-                className="bg-card border border-border rounded-[10px] p-4 hover:border-[#cbd5e1] transition-colors"
+                className="bg-card border border-border rounded-[10px] p-4 hover:border-subtle transition-colors"
               >
                 <div className="flex items-start gap-3">
                   {/* Avatar — name appears as text below, so the avatar is decorative */}

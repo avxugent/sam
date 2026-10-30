@@ -330,7 +330,7 @@ export function LocationDetailClient({
             >
               <Button
                 size="sm"
-                className="h-8 rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 gap-1.5 text-[13px]"
+                className="h-8 rounded-[7px] bg-brand-yellow text-[#0f172a] font-bold hover:brightness-95 gap-1.5 text-[13px]"
               >
                 <Plus className="h-3.5 w-3.5" />
                 {tNav("addAsset")}
@@ -373,7 +373,7 @@ export function LocationDetailClient({
               }}
             >
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 text-[#ef4444] border-[#fecaca] hover:bg-red-50 text-[13px] rounded-[7px]">
+                <Button variant="outline" size="sm" className="h-8 text-destructive border-[#fecaca] hover:bg-red-50 text-[13px] rounded-[7px]">
                   <Trash2 className="h-3.5 w-3.5 mr-1" />
                   {tCommon("delete")}
                 </Button>
@@ -490,7 +490,7 @@ export function LocationDetailClient({
             <h2 className="text-[18px] font-semibold text-foreground">{t("subLocationsHeading")}</h2>
             {canEdit && (
               <LocationFormDialog mode="create" parentId={location.id}>
-                <Button size="sm" className="h-[34px] rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
+                <Button size="sm" className="h-[34px] rounded-[7px] bg-brand-yellow text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
                   <Plus className="h-4 w-4 mr-1" />
                   {tNav("addSubLocation")}
                 </Button>

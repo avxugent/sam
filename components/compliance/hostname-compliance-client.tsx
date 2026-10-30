@@ -18,7 +18,7 @@ function rateColor(rate: number | null): string {
   if (rate === null) return "text-muted-foreground";
   if (rate >= 0.95) return "text-[#16a34a]";
   if (rate >= 0.8) return "text-[#ca8a04]";
-  return "text-[#dc2626]";
+  return "text-destructive";
 }
 
 export function HostnameComplianceClient({ result }: { result: HostnameComplianceResult }) {
@@ -113,7 +113,7 @@ export function HostnameComplianceClient({ result }: { result: HostnameComplianc
                         </td>
                         <td className="px-4 py-[10px] text-right text-muted-foreground tabular-nums">{row.measured}</td>
                         <td className="px-4 py-[10px] text-right text-muted-foreground tabular-nums">{row.compliant}</td>
-                        <td className="px-4 py-[10px] text-right tabular-nums font-medium text-[#dc2626]">{row.nonCompliant || <span className="text-muted-foreground font-normal">0</span>}</td>
+                        <td className="px-4 py-[10px] text-right tabular-nums font-medium text-destructive">{row.nonCompliant || <span className="text-muted-foreground font-normal">0</span>}</td>
                         <td className="px-4 py-[10px] text-right text-muted-foreground tabular-nums hidden sm:table-cell">{row.noHostname}</td>
                         <td className={cn("px-4 py-[10px] text-right tabular-nums font-semibold", rateColor(row.rate))}>
                           {formatRate(row.rate) ?? t("notApplicable")}
@@ -139,7 +139,7 @@ export function HostnameComplianceClient({ result }: { result: HostnameComplianc
                               <tbody>
                                 {row.nonCompliantAssets.map((a) => (
                                   <tr key={a.id} className="align-top">
-                                    <td className="pr-4 py-0.5 font-mono text-[#dc2626] break-all">{a.hostname}</td>
+                                    <td className="pr-4 py-0.5 font-mono text-destructive break-all">{a.hostname}</td>
                                     <td className="pr-4 py-0.5 text-secondary-foreground">{a.model ?? "—"}</td>
                                     <td className="pr-4 py-0.5 text-muted-foreground font-mono">{a.serialNumber ?? "—"}</td>
                                     <td className="py-0.5 text-muted-foreground">{a.locationPath ?? a.fiNumber ?? "—"}</td>

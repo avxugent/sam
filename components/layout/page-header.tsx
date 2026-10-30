@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 const TONES = {
   brand: { tile: "bg-primary-tint", icon: "text-primary" },
-  info: { tile: "bg-[#eff6ff]", icon: "text-[#1e40af]" },
+  info: { tile: "bg-info-surface", icon: "text-info-foreground" },
   neutral: { tile: "bg-muted", icon: "text-muted-foreground" },
 } as const;
 

@@ -100,7 +100,7 @@ function LocationTreeItem({
           disabled={!hasChildren}
         >
           {useDot ? (
-            <span className={cn("block w-[5px] h-[5px] rounded-full", isActive ? "bg-primary" : "bg-[#cbd5e1]")} />
+            <span className={cn("block w-[5px] h-[5px] rounded-full", isActive ? "bg-primary" : "bg-subtle")} />
           ) : hasChildren ? (
             open
               ? <ChevronDown className={cn("h-3 w-3", isActive ? "stroke-primary" : "stroke-subtle")} />

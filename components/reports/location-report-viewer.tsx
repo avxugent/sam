@@ -47,7 +47,7 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
               <Check className="h-3 w-3" />
               {t("filledCount", { count: result.filledCount })}
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] bg-[#fee2e2] text-[#991b1b] px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-[11px] bg-[#fee2e2] text-destructive px-2 py-0.5 rounded-full">
               <X className="h-3 w-3" />
               {t("notFilledCount", { count: result.notFilledCount })}
             </span>

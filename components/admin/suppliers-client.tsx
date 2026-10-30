@@ -199,7 +199,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
                             size="icon"
                             aria-label={tCommon("delete")}
                             disabled={supplier._count.assets > 0}
-                            className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card text-[#dc2626] disabled:opacity-40"
+                            className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card text-destructive disabled:opacity-40"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

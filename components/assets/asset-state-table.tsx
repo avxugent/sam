@@ -119,7 +119,7 @@ export function AssetStateTable({
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-medium">
                         {asset.type.name}
                       </span>
-                    ) : <span className="text-[#cbd5e1]">—</span>}
+                    ) : <span className="text-subtle">—</span>}
                   </td>
                   <td className="px-3 py-2.5">
                     <Link
@@ -135,7 +135,7 @@ export function AssetStateTable({
                   <td className="px-3 py-2.5">
                     {asset.serialNumber
                       ? <span className="font-mono text-[11.5px] text-muted-foreground">{asset.serialNumber}</span>
-                      : <span className="text-[#cbd5e1]">—</span>}
+                      : <span className="text-subtle">—</span>}
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">
                     <span className="text-secondary-foreground">{asset.locationName ?? "—"}</span>
@@ -147,7 +147,7 @@ export function AssetStateTable({
                     {asset.since ? formatDate(asset.since) : "—"}
                   </td>
                   <td className="px-3 py-2.5 text-[12px] text-muted-foreground max-w-[200px] truncate">
-                    {asset.note || <span className="text-[#cbd5e1]">—</span>}
+                    {asset.note || <span className="text-subtle">—</span>}
                   </td>
                   {renderActions && <td className="px-3 py-2.5">{renderActions(asset)}</td>}
                 </tr>

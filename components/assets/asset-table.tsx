@@ -234,7 +234,7 @@ export function AssetTable({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-primary hover:bg-[#dbe9fb]"
+            className="h-7 text-primary hover:bg-primary-tint-hover"
             onClick={() => setSelected(new Set())}
           >
             {t("clearSelection")}

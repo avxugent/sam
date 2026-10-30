@@ -212,7 +212,7 @@ export function AttachmentGallery({
       {canEdit && (
         <div
           className={`border-2 border-dashed rounded-[10px] px-5 py-7 text-center transition-colors cursor-pointer bg-card ${
-            dragOver ? "border-primary bg-primary-tint" : "border-[#cbd5e1]"
+            dragOver ? "border-primary bg-primary-tint" : "border-input"
           }`}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -503,7 +503,7 @@ export function AttachmentGallery({
                           variant="ghost"
                           size="icon"
                           aria-label={`${t(isLink ? "deleteLinkTitle" : "deleteConfirmTitle").replace("?", "")} ${displayName}`}
-                          className="h-[30px] w-[30px] text-[#ef4444] hover:text-[#ef4444] hover:bg-red-50"
+                          className="h-[30px] w-[30px] text-destructive hover:text-destructive hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

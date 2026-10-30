@@ -252,7 +252,7 @@ export function ProfileClient({
                   className={cn(
                     "flex flex-col items-center gap-2 rounded-[8px] border px-3 py-4 text-sm transition-colors",
                     active
-                      ? "border-primary bg-[#eff6ff] text-primary font-medium"
+                      ? "border-primary bg-info-surface text-primary font-medium"
                       : "border-border bg-card text-foreground hover:border-subtle"
                   )}
                 >
@@ -284,7 +284,7 @@ export function ProfileClient({
                 className={cn(
                   "w-full text-left rounded-[8px] border px-4 py-3 text-sm transition-colors",
                   active
-                    ? "border-primary bg-[#eff6ff] text-primary font-medium"
+                    ? "border-primary bg-info-surface text-primary font-medium"
                     : "border-border bg-card text-foreground hover:border-subtle"
                 )}
               >

@@ -128,7 +128,7 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
                           className="h-[28px] px-2 text-[12px] hover:bg-[#fee2e2]"
                           onClick={() => setDeleteId(r.id)}
                         >
-                          <Trash2 className="h-3 w-3 text-[#ef4444]" />
+                          <Trash2 className="h-3 w-3 text-destructive" />
                         </Button>
                       )}
                     </div>

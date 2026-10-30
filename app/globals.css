@@ -30,6 +30,10 @@
     --primary-hover: #1a56b0;           /* hover shade of the brand blue */
     --primary-tint: #e8f0fc;            /* active / selected surface */
     --subtle: #94a3b8;                  /* slate-400: icons, hints, placeholders */
+    --primary-tint-hover: #dbe9fb;      /* hover on a primary-tint chip/button */
+    --info-surface: #eff6ff;            /* informational callouts and badges */
+    --info-border: #bfdbfe;
+    --info-foreground: #1e40af;
   }
 
   .dark {
@@ -54,6 +58,10 @@
     --ring: 215.3 73.9% 45.1%;
     --blue-tint: #172554;               /* blue-950 */
     --primary-tint: #1e3a8a;            /* blue-900 */
+    --primary-tint-hover: #1e40af;      /* blue-800 */
+    --info-surface: #172554;            /* blue-950 */
+    --info-border: #1e3a8a;
+    --info-foreground: #93c5fd;         /* blue-300 */
   }
 }
 
@@ -93,6 +101,11 @@
   --color-primary-hover: var(--primary-hover);
   --color-primary-tint: var(--primary-tint);
   --color-subtle: var(--subtle);
+  --color-primary-tint-hover: var(--primary-tint-hover);
+  --color-info-surface: var(--info-surface);
+  --color-info-border: var(--info-border);
+  --color-info-foreground: var(--info-foreground);
+  --color-brand-yellow: var(--brand-yellow);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -104,9 +117,11 @@
 /* Slate greys and the brand blues use theme tokens (text-foreground,
    text-secondary-foreground, text-muted-foreground, text-subtle, bg-card,
    bg-muted, border-border, *-primary, bg-primary-hover, bg-primary-tint),
-   which switch with the theme on their own. Only the status accents below
-   (red/amber, a few light-blue hover shades) are still hex with a manual dark
-   value; prefer a token for anything new.                                    */
+   which switch with the theme on their own; danger UI uses *-destructive,
+   info callouts *-info-surface / *-info-border / *-info-foreground, and the
+   yellow brand buttons bg-brand-yellow (with text-[#0f172a] in both themes).
+   Only the amber/green/red status badge palettes below are still hex with a
+   manual dark value; prefer a token for anything new.                        */
 
 /* Text on the active-state tint stays readable on its dark blue-900 surface. */
 .dark .bg-primary-tint                  { color: hsl(var(--foreground)); }
@@ -132,6 +147,5 @@
 .dark .text-\[\#92400e\]                { color: #fcd34d; } /* amber-300 — readable on dark bg */
 .dark .text-\[\#ca8a04\]                { color: #fbbf24; } /* amber-400 */
 
-/* Destructive text — hardcoded red used in delete buttons */
-.dark .text-\[\#ef4444\]                { color: hsl(var(--destructive)); }
+
 

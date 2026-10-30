@@ -242,24 +242,24 @@ export function AssetDetailClient({
 
       {/* In-repair banner */}
       {isInRepair && (
-        <div className="flex items-start gap-3 bg-[#eff6ff] border border-[#bfdbfe] rounded-[10px] px-4 py-3">
-          <Wrench className="h-4 w-4 text-[#1e40af] mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-3 bg-info-surface border border-info-border rounded-[10px] px-4 py-3">
+          <Wrench className="h-4 w-4 text-info-foreground mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-[#1e3a8a]">
+            <p className="text-[13px] font-semibold text-info-foreground">
               {tRepair("bannerLabel")}
               {asset.repairStartedAt && (
-                <span className="font-normal ml-1.5 text-[#1e40af]">
+                <span className="font-normal ml-1.5 text-info-foreground">
                   · {new Date(asset.repairStartedAt).toLocaleDateString("sv-SE")}
                 </span>
               )}
             </p>
             {sentForRepairByName && (
-              <p className="text-[12px] text-[#1e40af] mt-0.5">
+              <p className="text-[12px] text-info-foreground mt-0.5">
                 {tRepair("sentForRepairBy", { name: sentForRepairByName })}
               </p>
             )}
             {asset.repairNote && (
-              <p className="text-[12px] text-[#1e40af] mt-0.5">{asset.repairNote}</p>
+              <p className="text-[12px] text-info-foreground mt-0.5">{asset.repairNote}</p>
             )}
           </div>
         </div>
@@ -333,7 +333,7 @@ export function AssetDetailClient({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-[34px] rounded-[7px] border-[#fecaca] text-[#ef4444] hover:bg-red-50 text-[13px] gap-1.5"
+                className="h-[34px] rounded-[7px] border-[#fecaca] text-destructive hover:bg-red-50 text-[13px] gap-1.5"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 {t("removeAsset")}
@@ -451,7 +451,7 @@ export function AssetDetailClient({
               <div>
                 <FieldLabel>{tField("endOfSupport")}</FieldLabel>
                 {asset.endOfSupportDate && new Date(asset.endOfSupportDate) < new Date() ? (
-                  <dd className="text-[13px] text-[#dc2626] font-medium">
+                  <dd className="text-[13px] text-destructive font-medium">
                     {formatDate(asset.endOfSupportDate)} · {t("endOfSupportPassed")}
                   </dd>
                 ) : (
@@ -611,7 +611,7 @@ export function AssetDetailClient({
                       target="_blank"
                       rel="noopener noreferrer"
                       className={`w-[52px] h-[52px] rounded-[7px] flex items-center justify-center text-[10px] text-center font-medium overflow-hidden ${
-                        isImage ? "bg-[#dbeafe]" : isPdf ? "bg-[#fee2e2]" : "bg-muted"
+                        isImage ? "bg-info-surface" : isPdf ? "bg-[#fee2e2]" : "bg-muted"
                       }`}
                     >
                       {isImage ? (

@@ -359,7 +359,7 @@ export function ReportBuilder({
                       type="button"
                       onClick={() => toggleScopeLocation(id)}
                       aria-label={t("removeScopeLocation", { name: scopeNameById.get(id) ?? id })}
-                      className="hover:bg-[#d6e4f7] rounded-full p-0.5"
+                      className="hover:bg-primary-tint-hover rounded-full p-0.5"
                     >
                       <X className="h-3 w-3" />
                     </button>

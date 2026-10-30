@@ -198,7 +198,7 @@ export function UsersClient({
         </Button>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="h-[36px] px-4 rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
+            <Button className="h-[36px] px-4 rounded-[7px] bg-brand-yellow text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
               <Plus className="h-4 w-4 mr-1" />
               {t("addUser")}
             </Button>
@@ -493,7 +493,7 @@ export function UsersClient({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-[30px] w-[30px] border border-[#fecaca] rounded-md text-[#ef4444] hover:bg-red-50"
+                          className="h-[30px] w-[30px] border border-[#fecaca] rounded-md text-destructive hover:bg-red-50"
                           title={t("deleteUser")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />

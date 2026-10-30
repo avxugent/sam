@@ -173,7 +173,7 @@ export function StockItemTable({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-primary hover:bg-[#dbe9fb]"
+            className="h-7 text-primary hover:bg-primary-tint-hover"
             onClick={() => setSelected(new Set())}
           >
             {t("clearSelection")}
@@ -234,7 +234,7 @@ export function StockItemTable({
                   <td className="px-3 py-2.5">
                     {item.serialNumber
                       ? <span className="font-mono text-[11.5px] text-muted-foreground">{item.serialNumber}</span>
-                      : <span className="text-[#cbd5e1]">—</span>}
+                      : <span className="text-subtle">—</span>}
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">
                     {item.serialNumber ? "—" : <span className="font-medium text-foreground">×{item.quantity}</span>}
@@ -242,7 +242,7 @@ export function StockItemTable({
                   <td className="px-3 py-2.5 text-muted-foreground text-[12.5px]">
                     {item.locationId
                       ? locationBreadcrumbs[item.locationId] ?? item.location?.name ?? "—"
-                      : <span className="text-[#cbd5e1]">{t("unassigned")}</span>}
+                      : <span className="text-subtle">{t("unassigned")}</span>}
                   </td>
                   {canEdit && (
                     <td className="px-3 py-2.5">
@@ -287,7 +287,7 @@ export function StockItemTable({
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-[#fee2e2]">
-                              <Trash2 className="h-3.5 w-3.5 text-[#ef4444]" />
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -301,7 +301,7 @@ export function StockItemTable({
                               <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleDelete(item.id)}
-                                className="bg-[#ef4444] hover:bg-[#dc2626] text-white"
+                                className="bg-destructive hover:bg-destructive/90 text-white"
                               >
                                 {tCommon("delete")}
                               </AlertDialogAction>

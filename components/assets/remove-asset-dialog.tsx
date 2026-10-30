@@ -169,7 +169,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
             <div className="space-y-2">
               {assetStatus === "INSTALLED" && (
                 <OptionRow
-                  icon={<Wrench className="h-4 w-4 text-[#1e40af]" />}
+                  icon={<Wrench className="h-4 w-4 text-info-foreground" />}
                   title={tRepair("sendForRepair")}
                   description={tRepair("sendForRepairOptionDescription")}
                   onClick={() => setStep("repair")}
@@ -188,7 +188,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
                 onClick={() => setStep("decommission")}
               />
               <OptionRow
-                icon={<Trash2 className="h-4 w-4 text-[#ef4444]" />}
+                icon={<Trash2 className="h-4 w-4 text-destructive" />}
                 title={tCommon("delete")}
                 description={t("deleteOptionDescription")}
                 onClick={() => setStep("delete")}
@@ -226,7 +226,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
               <Button
                 onClick={handleSendForRepair}
                 disabled={submitting}
-                className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white"
+                className="bg-primary hover:bg-primary-hover text-white"
               >
                 {submitting ? tRepair("sendingForRepair") : tRepair("sendForRepair")}
               </Button>

@@ -6,8 +6,10 @@ import type { AssetStatus, Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { isRecordNotFoundError } from "@/lib/route-helpers";
+import { resolveAssetCreationDefaults } from "@/lib/assets/defaults";
 import {
   buildDecommissionUpdateData,
+  buildDeployedAssetData,
   buildReinstateUpdateData,
   buildSendForRepairUpdateData,
   buildStockItemFromReturn,
@@ -16,7 +18,7 @@ import {
 
 /**
  * Persisting half of the asset state transitions (decommission, repair,
- * reinstate, return to stock) shared by the single-asset and bulk routes: what
+ * reinstate, return to stock, deploy from stock) shared by the single-asset and bulk routes: what
  * to load, how to validate the request, and the write + audit trail, built on
  * the pure rules in lib/assets/lifecycle-rules.ts. Routes keep their own auth
  * checks and decide how a rule violation is reported (400 vs. a per-id
@@ -34,6 +36,14 @@ export function lifecycleViolationResponse(violation: LifecycleViolation | null)
 
 /** Bulk failure reason when another request changed the asset first. */
 export const STATUS_CHANGED = "STATUS_CHANGED";
+
+/** The 409 for a stock deploy that lost the race to a concurrent change of the stock item. */
+export function stockChangedResponse(): NextResponse {
+  return NextResponse.json(
+    { error: "The stock item changed in the meantime. Reload and try again.", code: "stockChanged" },
+    { status: 409 }
+  );
+}
 
 /** The 409 for a transition that lost the race to a concurrent change. */
 export function statusChangedResponse(): NextResponse {
@@ -201,4 +211,82 @@ export async function returnAssetToStock(req: Request, session: Session, asset: 
     }),
   ]);
   return stockItem;
+}
+
+// ── Deploy from stock ────────────────────────────────────────────────────────
+
+export const DEPLOY_INCLUDE = { model: { select: { name: true } } } satisfies Prisma.StockItemInclude;
+
+type DeployCandidate = Prisma.StockItemGetPayload<{ include: typeof DEPLOY_INCLUDE }>;
+
+/**
+ * Turns `quantity` units of a stock item into assets at `location` and audits
+ * both sides. The stock write only applies while the item still holds the
+ * quantity the route checked, so two concurrent deploys cannot both draw the
+ * same units; a lost race returns null. A unique-constraint error from the
+ * asset create can only be the hostname (the one unique Asset column) and is
+ * left to the caller.
+ */
+export async function deployStockItem(
+  req: Request,
+  session: Session,
+  stockItem: DeployCandidate,
+  location: { id: string; name: string },
+  input: { quantity: number; serialNumbers?: string[] }
+) {
+  const { quantity, serialNumbers } = input;
+  const remainingQuantity = stockItem.quantity - quantity;
+  const createdAssets = await unlessStatusChanged(() =>
+    prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // Owner/supplier defaults apply to every copy (deploy = creation).
+      const defaults = await resolveAssetCreationDefaults(tx, {});
+      const guard = { id: stockItem.id, quantity: stockItem.quantity };
+      if (remainingQuantity === 0) {
+        await tx.stockItem.delete({ where: guard });
+      } else {
+        await tx.stockItem.update({ where: guard, data: { quantity: remainingQuantity } });
+      }
+      return Promise.all(
+        Array.from({ length: quantity }, (_, i) =>
+          tx.asset.create({
+            data: buildDeployedAssetData(stockItem, {
+              locationId: location.id,
+              serialNumber: stockItem.serialNumber ?? serialNumbers?.[i] ?? null,
+              deployedQuantity: quantity,
+              remainingQuantity,
+              ...defaults,
+            }),
+            select: { id: true, lineageId: true },
+          })
+        )
+      );
+    })
+  );
+  if (!createdAssets) return null;
+
+  await Promise.all(
+    createdAssets.map((created) =>
+      logAudit({
+        session,
+        req,
+        action: "CREATE",
+        entityType: "Asset",
+        entityId: created.id,
+        entityName: stockItem.model?.name,
+        detail: { snapshot: { "Deployed from stock": stockItem.model?.name ?? null, "Location": location.name } },
+        lineageId: created.lineageId,
+      })
+    )
+  );
+  await logAudit({
+    session,
+    req,
+    action: remainingQuantity === 0 ? "DELETE" : "UPDATE",
+    entityType: "StockItem",
+    entityId: stockItem.id,
+    entityName: stockItem.model?.name,
+    detail: { snapshot: { "Deployed quantity": String(quantity), "To location": location.name } },
+    lineageId: stockItem.lineageId,
+  });
+  return createdAssets;
 }

@@ -4,9 +4,10 @@ import { isHostnameCompliant } from "@/lib/hostname/pattern";
 
 /**
  * Checks on, and nested rows built from, the asset form input shared by the
- * asset create (POST /api/locations/[id]/assets), update (PUT /api/assets/[id])
- * and stock deploy routes. The writes themselves stay in the routes;
- * lifecycle writes live in lib/assets/transitions.ts.
+ * asset create (POST /api/locations/[id]/assets) and update (PUT
+ * /api/assets/[id]) routes, which do their own writes; the deploy route only
+ * uses hostnameTakenResponse(). Lifecycle writes (including deploy from
+ * stock) live in lib/assets/transitions.ts.
  * Each *Response helper returns the 400 to send back, or null to proceed.
  */
 
@@ -33,7 +34,7 @@ export async function hostnameFormatResponse(
   );
 }
 
-/** 409 for the unique-hostname violation both routes can hit. */
+/** 409 for the unique-hostname violation (hostname is the only unique Asset column) on create, update and deploy. */
 export function hostnameTakenResponse(): NextResponse {
   return NextResponse.json({ error: "This hostname is already assigned to another asset." }, { status: 409 });
 }

@@ -2,12 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { logAudit } from "@/lib/audit";
-import { resolveAssetCreationDefaults } from "@/lib/assets/defaults";
-import type { Prisma } from "@/generated/prisma/client";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
-import { buildDeployedAssetData } from "@/lib/assets/lifecycle-rules";
+import { DEPLOY_INCLUDE, deployStockItem, stockChangedResponse } from "@/lib/assets/transitions";
 import { hostnameTakenResponse } from "@/lib/assets/input";
 
 const deploySchema = z
@@ -46,10 +43,7 @@ export async function POST(
   const location = await prisma.location.findUnique({ where: { id: locationId } });
   if (!location) return NextResponse.json({ error: "Location not found" }, { status: 404 });
 
-  const stockItem = await prisma.stockItem.findUnique({
-    where: { id },
-    include: { model: { select: { name: true } } },
-  });
+  const stockItem = await prisma.stockItem.findUnique({ where: { id }, include: DEPLOY_INCLUDE });
   if (!stockItem) return NextResponse.json({ error: "Stock item not found" }, { status: 404 });
 
   if (quantity > stockItem.quantity) {
@@ -67,64 +61,15 @@ export async function POST(
     );
   }
 
-  let createdAssets: { id: string; lineageId: string }[];
+  let createdAssets;
   try {
-    createdAssets = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Owner/supplier defaults apply to every copy (deploy = creation).
-      const defaults = await resolveAssetCreationDefaults(tx, {});
-      const remainingQuantity = stockItem.quantity - quantity;
-
-      if (remainingQuantity === 0) {
-        await tx.stockItem.delete({ where: { id } });
-      } else {
-        await tx.stockItem.update({ where: { id }, data: { quantity: remainingQuantity } });
-      }
-
-      return Promise.all(
-        Array.from({ length: quantity }, (_, i) =>
-          tx.asset.create({
-            data: buildDeployedAssetData(stockItem, {
-              locationId,
-              serialNumber: stockItem.serialNumber ?? serialNumbers?.[i] ?? null,
-              deployedQuantity: quantity,
-              remainingQuantity,
-              ...defaults,
-            }),
-            select: { id: true, lineageId: true },
-          })
-        )
-      );
-    });
+    createdAssets = await deployStockItem(req, session, stockItem, location, { quantity, serialNumbers });
   } catch (err: unknown) {
+    // hostname is the only unique Asset column a deployed copy can collide on
     if (isUniqueConstraintError(err)) return hostnameTakenResponse();
     throw err;
   }
-
-  // Audit each created asset + the stock item mutation
-  await Promise.all(
-    createdAssets.map((created) =>
-      logAudit({
-        session,
-        req,
-        action: "CREATE",
-        entityType: "Asset",
-        entityId: created.id,
-        entityName: stockItem.model?.name,
-        detail: { snapshot: { "Deployed from stock": stockItem.model?.name ?? null, "Location": location.name } },
-        lineageId: created.lineageId,
-      })
-    )
-  );
-  await logAudit({
-    session,
-    req,
-    action: stockItem.quantity - quantity === 0 ? "DELETE" : "UPDATE",
-    entityType: "StockItem",
-    entityId: id,
-    entityName: stockItem.model?.name,
-    detail: { snapshot: { "Deployed quantity": String(quantity), "To location": location.name } },
-    lineageId: stockItem.lineageId,
-  });
+  if (!createdAssets) return stockChangedResponse();
 
   return NextResponse.json({ assetIds: createdAssets.map((a) => a.id), locationId });
 }

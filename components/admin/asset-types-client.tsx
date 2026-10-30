@@ -22,7 +22,7 @@ import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
 import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
 import type { Criticality } from "@/generated/prisma/enums";
 import { CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type AssetType = {
   id: string;
@@ -81,11 +81,7 @@ export function AssetTypesClient({
   async function handleAdd() {
     if (!newName.trim()) return;
     setAdding(true);
-    const res = await apiFetch<AssetType>("/api/asset-types", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim() }),
-    });
+    const res = await apiFetch<AssetType>("/api/asset-types", jsonBody("POST", { name: newName.trim() }));
     setAdding(false);
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
@@ -110,11 +106,7 @@ export function AssetTypesClient({
     patch: Partial<AssetType>,
     onError?: (err: Parameters<typeof readMergeConflict>[0]) => boolean
   ): Promise<boolean> {
-    const res = await apiFetch<AssetType>(`/api/asset-types/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
+    const res = await apiFetch<AssetType>(`/api/asset-types/${id}`, jsonBody("PUT", patch));
     if (!res.ok) {
       if (!onError?.(res.error)) {
         toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });

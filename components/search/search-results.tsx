@@ -12,6 +12,7 @@ import {
   ChevronRight,
   ChevronLeft,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api-client";
 
 type AssetResult = {
   id: string;
@@ -116,15 +117,11 @@ export function SearchResults() {
     if (query.length < 2) { setResults(null); return; }
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&page=${pg}`, { signal });
-      if (!res.ok) throw new Error("Search failed");
-      setResults(await res.json());
-    } catch {
-      // An aborted request was superseded by a newer query or page
-      if (signal.aborted) return;
-      setError(t("searchFailed"));
-    }
+    const res = await apiFetch<SearchResponse>(`/api/search?q=${encodeURIComponent(query)}&page=${pg}`, { signal });
+    // An aborted request was superseded by a newer query or page
+    if (signal.aborted) return;
+    if (res.ok) setResults(res.data);
+    else setError(t("searchFailed"));
     setLoading(false);
   }, [t]);
 

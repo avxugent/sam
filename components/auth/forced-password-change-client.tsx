@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Monitor, Loader2, ShieldAlert } from "lucide-react";
 import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
 import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 export function ForcedPasswordChangeClient() {
   const t = useTranslations("auth");
@@ -37,15 +37,11 @@ export function ForcedPasswordChangeClient() {
 
   async function onSubmit(data: PasswordChangeValues) {
     setServerError("");
-    const res = await apiFetch("/api/users/me", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const res = await apiFetch("/api/users/me", jsonBody("PATCH", {
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
         confirmPassword: data.confirmPassword,
-      }),
-    });
+      }));
 
     if (!res.ok) {
       setServerError(apiErrorMessage(res.error, tCommon("somethingWentWrong")));

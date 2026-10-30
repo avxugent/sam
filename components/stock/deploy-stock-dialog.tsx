@@ -13,7 +13,7 @@ import { type FlatLocation } from "@/lib/locations/tree";
 import { LocationSearchList } from "@/components/inventory/location-search-list";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
 import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type Props = {
   open: boolean;
@@ -79,11 +79,7 @@ export function DeployStockDialog({
       body.serialNumbers = serialInputs.map((s) => s.trim());
     }
 
-    const res = await apiFetch(`/api/stock/${itemId}/deploy`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const res = await apiFetch(`/api/stock/${itemId}/deploy`, jsonBody("POST", body));
     setSaving(false);
 
     if (!res.ok) {

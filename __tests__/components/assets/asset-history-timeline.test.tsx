@@ -120,7 +120,7 @@ describe("<AssetHistoryTimeline />", () => {
     render(<AssetHistoryTimeline assetId="a1" />);
     expect(screen.getByText("loading")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("created")).toBeInTheDocument());
-    expect(mockFetch).toHaveBeenCalledWith("/api/assets/a1/history");
+    expect(mockFetch).toHaveBeenCalledWith("/api/assets/a1/history", undefined);
   });
 
   it("shows an empty state when there is no history", async () => {

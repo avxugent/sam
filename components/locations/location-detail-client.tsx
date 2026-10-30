@@ -48,7 +48,7 @@ import { renderLocationUrl } from "@/lib/url-templates";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type Breadcrumb = { id: string; name: string };
 
@@ -144,11 +144,7 @@ export function LocationDetailClient({
   // status; the API rejects setting it on a location with sub-locations.
   async function toggleMaintenance(targetId: string, current: boolean) {
     setMaintPendingId(targetId);
-    const res = await apiFetch(`/api/locations/${targetId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inMaintenance: !current }),
-    });
+    const res = await apiFetch(`/api/locations/${targetId}`, jsonBody("PUT", { inMaintenance: !current }));
     setMaintPendingId(null);
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });

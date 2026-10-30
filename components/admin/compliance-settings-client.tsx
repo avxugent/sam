@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 export function ComplianceSettingsClient({
   initialRequireTwoFactor,
@@ -51,17 +51,13 @@ export function ComplianceSettingsClient({
     }
 
     setSaving(true);
-    const res = await apiFetch("/api/settings/compliance", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const res = await apiFetch("/api/settings/compliance", jsonBody("PUT", {
         requireTwoFactor,
         auditRetentionDays: retention,
         defaultOwnerId: defaultOwnerId || null,
         reviewWorkLogItemId: reviewWorkLogItemId || null,
         reviewPeriodMonths: period,
-      }),
-    });
+      }));
     setSaving(false);
 
     if (!res.ok) {

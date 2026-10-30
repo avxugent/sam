@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
+import { apiFetch } from "@/lib/api-client";
 
 type FetchedIssue = {
   found: boolean;
@@ -26,11 +27,11 @@ export function JiraIssueBadge({ issueKey, jiraBaseUrl }: { issueKey: string; ji
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/jira/issue/${encodeURIComponent(issueKey)}`)
-      .then((r) => (r.ok ? r.json() : { found: false }))
-      .then((data) => { if (!cancelled) setIssue(data); })
-      .catch(() => { if (!cancelled) setIssue({ found: false }); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+    apiFetch<FetchedIssue>(`/api/jira/issue/${encodeURIComponent(issueKey)}`).then((res) => {
+      if (cancelled) return;
+      setIssue(res.ok ? res.data : { found: false });
+      setLoading(false);
+    });
     return () => { cancelled = true; };
   }, [issueKey]);
 

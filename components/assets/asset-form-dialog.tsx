@@ -36,7 +36,7 @@ import { useTranslations } from "next-intl";
 import { MacAddressFields } from "@/components/inventory/mac-address-fields";
 import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
 import type { Criticality } from "@/generated/prisma/enums";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 
 type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: Criticality | null };
@@ -352,11 +352,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         : `/api/assets/${assetId}`;
     const method = mode === "create" ? "POST" : "PUT";
 
-    const res = await apiFetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await apiFetch(url, jsonBody(method, payload));
 
     if (!res.ok) {
       toast({

@@ -13,7 +13,7 @@ import { apiErrorMessage } from "@/lib/utils";
 import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
 import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
 import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type Manufacturer = {
   id: string;
@@ -50,11 +50,7 @@ export function ManufacturersClient({
   async function handleAdd() {
     if (!newName.trim()) return;
     setAdding(true);
-    const res = await apiFetch<Manufacturer>("/api/manufacturers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim() }),
-    });
+    const res = await apiFetch<Manufacturer>("/api/manufacturers", jsonBody("POST", { name: newName.trim() }));
     setAdding(false);
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
@@ -70,11 +66,7 @@ export function ManufacturersClient({
 
   async function handleEdit(id: string) {
     if (!editName.trim()) return;
-    const res = await apiFetch<Manufacturer>(`/api/manufacturers/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editName.trim() }),
-    });
+    const res = await apiFetch<Manufacturer>(`/api/manufacturers/${id}`, jsonBody("PUT", { name: editName.trim() }));
 
     if (!res.ok) {
       const conflict = readMergeConflict(res.error, id, editName.trim());

@@ -20,7 +20,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 export type WorkLogItem = {
   id: string;
@@ -46,11 +46,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
   async function handleAdd() {
     if (!newName.trim()) return;
     setAdding(true);
-    const res = await apiFetch<WorkLogItem>(API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim(), description: newDescription.trim() || null }),
-    });
+    const res = await apiFetch<WorkLogItem>(API, jsonBody("POST", { name: newName.trim(), description: newDescription.trim() || null }));
     setAdding(false);
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
@@ -73,11 +69,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
 
   async function handleEdit(id: string) {
     if (!editName.trim()) return;
-    const res = await apiFetch<WorkLogItem>(`${API}/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editName.trim(), description: editDescription.trim() || null }),
-    });
+    const res = await apiFetch<WorkLogItem>(`${API}/${id}`, jsonBody("PUT", { name: editName.trim(), description: editDescription.trim() || null }));
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
       return;

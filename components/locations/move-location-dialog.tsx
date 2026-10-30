@@ -12,7 +12,7 @@ import { flattenLocations, collectSubtreeIds, type FlatLocation } from "@/lib/lo
 import { LocationSearchList } from "@/components/inventory/location-search-list";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
 import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type Props = {
   open: boolean;
@@ -63,11 +63,7 @@ export function MoveLocationDialog({
   async function doMove() {
     if (!selected) return;
     setSaving(true);
-    const res = await apiFetch(`/api/locations/${locationId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ parentId: selected.id }),
-    });
+    const res = await apiFetch(`/api/locations/${locationId}`, jsonBody("PUT", { parentId: selected.id }));
     setSaving(false);
 
     if (!res.ok) {

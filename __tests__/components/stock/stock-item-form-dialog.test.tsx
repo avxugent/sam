@@ -77,7 +77,7 @@ describe("<StockItemFormDialog /> create", () => {
     await waitFor(() =>
       expect(mockFetch.mock.calls.some(([url]) => (url as string).startsWith("/api/manufacturers"))).toBe(true)
     );
-    expect(mockFetch).toHaveBeenCalledWith("/api/locations");
+    expect(mockFetch).toHaveBeenCalledWith("/api/locations", undefined);
   });
 
   it("defaults the storage location to Unassigned and lets you pick one from the list", async () => {

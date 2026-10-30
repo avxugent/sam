@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, Upload, Trash2, Image as ImageIcon } from "lucide-react";
 import { cn, apiErrorMessage } from "@/lib/utils";
 import type { BackgroundMode } from "@/lib/branding/background-mode";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 
 export function BrandingSettingsClient({
@@ -57,11 +57,7 @@ export function BrandingSettingsClient({
   async function handleSaveTitle() {
     if (!appTitle.trim()) return;
     setSavingTitle(true);
-    const res = await apiFetch("/api/settings/branding", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ appTitle: appTitle.trim() }),
-    });
+    const res = await apiFetch("/api/settings/branding", jsonBody("PUT", { appTitle: appTitle.trim() }));
     setSavingTitle(false);
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
@@ -143,11 +139,7 @@ export function BrandingSettingsClient({
       return;
     }
     setSavingBackground(true);
-    const res = await apiFetch("/api/settings/branding", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ backgroundMode: mode }),
-    });
+    const res = await apiFetch("/api/settings/branding", jsonBody("PUT", { backgroundMode: mode }));
     setSavingBackground(false);
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });

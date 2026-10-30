@@ -44,7 +44,7 @@ export async function POST(
   if (!location) return NextResponse.json({ error: "Location not found" }, { status: 404 });
 
   const data = parsed.data;
-  const performedById = data.performedById || session.user.id!;
+  const performedById = data.performedById || session.user.id;
   const performedAt = data.performedAt ? new Date(data.performedAt) : new Date();
 
   const created = await prisma.workLog.create({

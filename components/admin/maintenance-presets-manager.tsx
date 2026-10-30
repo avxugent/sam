@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Plus, Trash2, Wrench } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type Preset = {
   id: string;
@@ -37,11 +37,7 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
   async function handleAdd() {
     if (!newName.trim()) return;
     setAdding(true);
-    const res = await apiFetch<Preset>(`/api/asset-types/${assetTypeId}/presets`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim(), description: newDesc.trim() || null }),
-    });
+    const res = await apiFetch<Preset>(`/api/asset-types/${assetTypeId}/presets`, jsonBody("POST", { name: newName.trim(), description: newDesc.trim() || null }));
     setAdding(false);
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });

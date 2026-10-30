@@ -42,7 +42,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 export type Attachment = {
   id: string;
@@ -163,11 +163,7 @@ export function AttachmentGallery({
     e.preventDefault();
     if (!linkUrl || !linkLabel) return;
     setAddingLink(true);
-    const res = await apiFetch<Attachment>("/api/attachments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: linkUrl, label: linkLabel, description: linkDesc || null, locationId, assetId }),
-    });
+    const res = await apiFetch<Attachment>("/api/attachments", jsonBody("POST", { url: linkUrl, label: linkLabel, description: linkDesc || null, locationId, assetId }));
     setAddingLink(false);
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
@@ -184,15 +180,11 @@ export function AttachmentGallery({
     e.preventDefault();
     if (!editingId) return;
     setSaving(true);
-    const res = await apiFetch<Attachment>(`/api/attachments/${editingId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const res = await apiFetch<Attachment>(`/api/attachments/${editingId}`, jsonBody("PATCH", {
         displayName: editDisplayName.trim() || null,
         description: editDescription.trim() || null,
         ...(editIsLink && { url: editUrl.trim() || null }),
-      }),
-    });
+      }));
     setSaving(false);
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });

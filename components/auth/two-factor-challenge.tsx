@@ -35,11 +35,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
     setLoading(true);
     setError("");
 
-    const res = await apiFetch("/api/auth/2fa/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: trimmed, rememberMe }),
-    });
+    const res = await apiFetch("/api/auth/2fa/verify", jsonBody("POST", { code: trimmed, rememberMe }));
 
     setLoading(false);
 

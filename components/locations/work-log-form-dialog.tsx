@@ -29,7 +29,7 @@ import { useTranslations } from "next-intl";
 import { JIRA_KEY_REGEX, createWorkLogSchema } from "@/lib/schemas/work-log";
 import { z } from "zod";
 import { toIsoDay, apiErrorMessage } from "@/lib/utils";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type WorkLogFormValues = z.infer<typeof createWorkLogSchema>;
 
@@ -180,11 +180,7 @@ export function WorkLogFormDialog({
       jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null,
     };
 
-    const res = await apiFetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await apiFetch(url, jsonBody(method, payload));
 
     if (!res.ok) {
       toast({

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, MapPin, Search, Save, ExternalLink } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type Props = {
   locationId: string;
@@ -104,17 +104,13 @@ export function LocationMap({
 
   async function handleSave() {
     setSaving(true);
-    const res = await apiFetch(`/api/locations/${locationId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const res = await apiFetch(`/api/locations/${locationId}`, jsonBody("PUT", {
         address: address || null,
         city: city || null,
         country: country || null,
         latitude: lat,
         longitude: lng,
-      }),
-    });
+      }));
     setSaving(false);
 
     if (!res.ok) {

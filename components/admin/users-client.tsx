@@ -137,11 +137,7 @@ export function UsersClient({
   const editTwoFactorRequired = useWatch({ control: editForm.control, name: "twoFactorRequired" });
 
   async function handleCreate(data: z.output<typeof createUserSchema>) {
-    const res = await apiFetch<User>("/api/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    const res = await apiFetch<User>("/api/users", jsonBody("POST", data));
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;
@@ -159,11 +155,7 @@ export function UsersClient({
     if (data.password) payload.password = data.password;
     if (data.twoFactorRequired !== undefined) payload.twoFactorRequired = data.twoFactorRequired;
 
-    const res = await apiFetch<User>(`/api/users/${editUser.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await apiFetch<User>(`/api/users/${editUser.id}`, jsonBody("PUT", payload));
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
       return;

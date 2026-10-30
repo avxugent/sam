@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { apiFetch } from "@/lib/api-client";
 
 export type AuditLogEntry = {
   id: string;
@@ -73,17 +74,11 @@ export function AssetHistoryTimeline({ assetId }: { assetId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/assets/${assetId}/history`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load history");
-        return res.json() as Promise<AuditLogEntry[]>;
-      })
-      .then((data) => {
-        if (!cancelled) setEntries(data);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      });
+    apiFetch<AuditLogEntry[]>(`/api/assets/${assetId}/history`).then((res) => {
+      if (cancelled) return;
+      if (res.ok) setEntries(res.data);
+      else setError(true);
+    });
     return () => {
       cancelled = true;
     };

@@ -32,7 +32,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
 import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type LocationFormTranslator = ReturnType<typeof useTranslations<"locationForm">>;
 
@@ -156,11 +156,7 @@ export function LocationFormDialog({
       fiNumber: data.fiNumber || null,
     };
 
-    const res = await apiFetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await apiFetch(url, jsonBody(method, payload));
 
     if (!res.ok) {
       // Renaming onto an existing sibling name — offer to merge instead of
@@ -189,11 +185,7 @@ export function LocationFormDialog({
   async function handleMerge() {
     if (!mergeTarget) return;
     setMerging(true);
-    const res = await apiFetch(`/api/locations/${locationId}/merge`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetId: mergeTarget.id }),
-    });
+    const res = await apiFetch(`/api/locations/${locationId}/merge`, jsonBody("POST", { targetId: mergeTarget.id }));
     setMerging(false);
 
     if (!res.ok) {

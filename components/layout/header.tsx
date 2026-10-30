@@ -39,6 +39,7 @@ import {
   Truck,
 } from "lucide-react";
 import { canManageCatalog, isAdmin, type Role } from "@/lib/permissions";
+import { apiFetch } from "@/lib/api-client";
 
 type HeaderUser = {
   name?: string | null;
@@ -46,6 +47,19 @@ type HeaderUser = {
   role?: Role;
   provider?: string;
   totpEnabled?: boolean;
+};
+
+/** The parts of GET /api/search the quick results use. */
+type QuickSearchResponse = {
+  assets?: {
+    id: string;
+    hostname: string | null;
+    serialNumber: string | null;
+    model?: { name: string } | null;
+    type?: { name: string } | null;
+    location: { id: string; name: string };
+  }[];
+  locations?: { id: string; name: string; fiNumber: string | null; _count: { assets: number } }[];
 };
 
 type QuickResult = {
@@ -103,9 +117,16 @@ function SearchBar() {
     if (q.length < 2) { setQuickResults([]); setOpen(false); return; }
     setLoading(true);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal });
-      if (!res.ok) return;
-      const data = await res.json();
+      const res = await apiFetch<QuickSearchResponse>(`/api/search?q=${encodeURIComponent(q)}`, { signal });
+      // Aborted because a newer query superseded this one, or the request
+      // failed: either way the dropdown simply shows no quick results.
+      if (signal.aborted) return;
+      if (!res.ok) {
+        setQuickResults([]);
+        setOpen(false);
+        return;
+      }
+      const data = res.data;
       const results: QuickResult[] = [];
 
       for (const a of (data.assets ?? []).slice(0, 4)) {
@@ -129,13 +150,6 @@ function SearchBar() {
 
       setQuickResults(results);
       setOpen(results.length > 0);
-    } catch {
-      // Aborted because a newer query superseded this one, or the request
-      // failed: either way the dropdown simply shows no quick results.
-      if (!signal.aborted) {
-        setQuickResults([]);
-        setOpen(false);
-      }
     } finally {
       if (!signal.aborted) setLoading(false);
     }

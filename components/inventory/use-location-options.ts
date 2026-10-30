@@ -4,6 +4,7 @@ import { useEffect, useEffectEvent, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useToast } from "@/components/ui/use-toast";
 import { flattenLocations, type FlatLocation, type LocationTreeNode } from "@/lib/locations/tree";
+import { apiFetch } from "@/lib/api-client";
 
 /**
  * The location tree as flat picker options, (re)loaded each time `enabled`
@@ -27,20 +28,12 @@ export function useLocationOptions(
     if (!enabled) return;
     let cancelled = false;
     setLoading(true);
-    fetch("/api/locations")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((tree: LocationTreeNode[]) => {
-        if (!cancelled) setLocations(shape(tree));
-      })
-      .catch(() => {
-        if (!cancelled) reportFailure();
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    apiFetch<LocationTreeNode[]>("/api/locations").then((res) => {
+      if (cancelled) return;
+      if (res.ok) setLocations(shape(res.data));
+      else reportFailure();
+      setLoading(false);
+    });
     return () => {
       cancelled = true;
     };

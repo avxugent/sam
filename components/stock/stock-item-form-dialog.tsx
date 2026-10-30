@@ -21,7 +21,7 @@ import { MacAddressFields } from "@/components/inventory/mac-address-fields";
 import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type StockItemFormValues = {
   typeId: string;
@@ -178,10 +178,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     const url = mode === "create" ? "/api/stock" : `/api/stock/${itemId}`;
     const method = mode === "create" ? "POST" : "PUT";
 
-    const res = await apiFetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const res = await apiFetch(url, jsonBody(method, {
         ...data,
         manufacturerId: data.manufacturerId || null,
         serialNumber: data.serialNumber || null,
@@ -190,8 +187,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
         invoiceNumber: data.invoiceNumber || null,
         invoiceDate: data.invoiceDate || null,
         macAddresses: data.macAddresses.map((m) => m.address.trim()).filter(Boolean),
-      }),
-    });
+      }));
 
     if (!res.ok) {
       toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });

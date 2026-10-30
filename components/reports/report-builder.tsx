@@ -19,7 +19,7 @@ import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey
 import { isLocationReport } from "@/lib/reports/types";
 import { apiErrorMessage } from "@/lib/utils";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, jsonBody } from "@/lib/api-client";
 
 
 const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
@@ -278,11 +278,7 @@ export function ReportBuilder({
     try {
       const url = reportId ? `/api/reports/${reportId}` : "/api/reports";
       const method = reportId ? "PUT" : "POST";
-      const res = await apiFetch<{ id: string }>(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description, definition }),
-      });
+      const res = await apiFetch<{ id: string }>(url, jsonBody(method, { name, description, definition }));
       if (!res.ok) {
         toast({ title: t("errorSaving"), description: apiErrorMessage(res.error), variant: "destructive" });
         return;

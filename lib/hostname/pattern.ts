@@ -12,19 +12,25 @@ export function validateHostnamePattern(pattern: string): string | null {
   }
 }
 
+/** The pattern as a case-insensitive RegExp, or null when it is empty or invalid. */
+function compilePattern(pattern: string | null | undefined): RegExp | null {
+  if (!pattern) return null;
+  try {
+    return new RegExp(pattern, "i");
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Tests a hostname against an asset type's pattern. Matching is
  * case-insensitive and not auto-anchored — the pattern author controls
  * whether ^/$ are required for a full-string match. A null/empty/invalid
- * pattern always matches (falls through to the caller's generic check).
+ * pattern always matches; isHostnameCompliant() then applies the generic
+ * FQDN check instead.
  */
 export function matchesHostnamePattern(hostname: string, pattern: string | null | undefined): boolean {
-  if (!pattern) return true;
-  try {
-    return new RegExp(pattern, "i").test(hostname);
-  } catch {
-    return true;
-  }
+  return compilePattern(pattern)?.test(hostname) ?? true;
 }
 
 /**
@@ -37,9 +43,12 @@ export const HOSTNAME_FQDN_REGEX =
 
 /**
  * Whether a hostname is compliant for an asset type: its configured pattern
- * when one is set, otherwise the generic FQDN check. Used by the asset API
- * routes, the asset form and the hostname compliance report.
+ * when one is set and valid, otherwise the generic FQDN check (a stored
+ * pattern that no longer compiles must not wave every hostname through).
+ * Used by the asset API routes, the asset form and the hostname compliance
+ * report.
  */
 export function isHostnameCompliant(hostname: string, pattern: string | null | undefined): boolean {
-  return pattern ? matchesHostnamePattern(hostname, pattern) : HOSTNAME_FQDN_REGEX.test(hostname);
+  const compiled = compilePattern(pattern);
+  return compiled ? compiled.test(hostname) : HOSTNAME_FQDN_REGEX.test(hostname);
 }

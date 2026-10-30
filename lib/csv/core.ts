@@ -125,9 +125,7 @@ export function parseCsv(text: string): CsvRow[] {
   const firstLine = lines[0];
   const delimiter = firstLine.includes(";") ? ";" : ",";
 
-  const headers = firstLine
-    .split(delimiter)
-    .map((h) => h.trim().replace(/^"|"$/g, ""));
+  const headers = splitCsvLine(firstLine, delimiter).map((h) => h.trim());
 
   const rows: CsvRow[] = [];
 

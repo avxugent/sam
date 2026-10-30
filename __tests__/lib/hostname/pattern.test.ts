@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateHostnamePattern, matchesHostnamePattern } from "@/lib/hostname/pattern";
+import { validateHostnamePattern, matchesHostnamePattern, isHostnameCompliant } from "@/lib/hostname/pattern";
 
 describe("validateHostnamePattern()", () => {
   it("returns null for a valid pattern", () => {
@@ -34,5 +34,19 @@ describe("matchesHostnamePattern()", () => {
 
   it("returns true (fail open) when pattern is an invalid regex", () => {
     expect(matchesHostnamePattern("anything", "(unclosed")).toBe(true);
+  });
+});
+
+describe("isHostnameCompliant()", () => {
+  it("uses the type's pattern when it is valid", () => {
+    expect(isHostnameCompliant("rec-01", "^rec-\\d+$")).toBe(true);
+    expect(isHostnameCompliant("rec-01.example.org", "^rec-\\d+$")).toBe(false);
+  });
+
+  it("falls back to the generic FQDN check for no pattern or an invalid one", () => {
+    for (const pattern of [null, "", "(unclosed"]) {
+      expect(isHostnameCompliant("rec-01.example.org", pattern)).toBe(true);
+      expect(isHostnameCompliant("not a hostname", pattern)).toBe(false);
+    }
   });
 });

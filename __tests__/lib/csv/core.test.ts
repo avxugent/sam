@@ -137,6 +137,11 @@ describe("parseCsv()", () => {
     expect(rows[0]["A"]).toBe("foo");
   });
 
+  it("keeps a delimiter that sits inside a quoted header", () => {
+    const rows = parseCsv(`"ROOM;NAME";TYPE\nR1;Beamer`);
+    expect(rows[0]).toEqual({ "ROOM;NAME": "R1", TYPE: "Beamer" });
+  });
+
   it("handles quoted headers", () => {
     const text = `"NAME";"TYPE"\nProjector;Beamer`;
     const rows = parseCsv(text);

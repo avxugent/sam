@@ -56,7 +56,8 @@ function scalarCondition(
   if (op === "isNotNull") return { [field]: { not: null } };
   if (!value) return null;
   if (op === "eq") return { [field]: value };
-  if (op === "neq") return { [field]: { not: value } };
+  // SQL `<>` never matches NULL; "is not X" should still include rows with no value.
+  if (op === "neq") return { OR: [{ [field]: { not: value } }, { [field]: null }] };
   if (op === "contains" && text) return { [field]: { contains: value } };
   return null;
 }
@@ -287,12 +288,11 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
       const year = a.installationDate ? String(a.installationDate.getFullYear()) : "Unknown";
       yearMap.set(year, (yearMap.get(year) ?? 0) + 1);
     }
-    groups = Array.from(yearMap.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([label, count]) => ({ label, count }));
+    groups = Array.from(yearMap, ([label, count]) => ({ label, count }));
   }
 
-  groups.sort((a, b) => b.count - a.count);
+  // Largest groups first (the viewer shows the top eight); ties by label.
+  groups.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 
   return { source: "asset", rows, groups, total };
 }

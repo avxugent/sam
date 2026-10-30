@@ -184,6 +184,12 @@ describe("translateFilters()", () => {
     expect(result).toEqual({ AND: [{ status: "INSTALLED" }] });
   });
 
+  it("neq on a nullable field keeps rows where the field is empty", () => {
+    expect(translateFilters([{ field: "supplierId", op: "neq", value: "s1" }])).toEqual({
+      AND: [{ OR: [{ supplierId: { not: "s1" } }, { supplierId: null }] }],
+    });
+  });
+
   it("translates status neq DECOMMISSIONED", () => {
     const result = translateFilters([{ field: "status", op: "neq", value: "DECOMMISSIONED" }]);
     expect(result).toEqual({ AND: [{ status: { not: "DECOMMISSIONED" } }] });

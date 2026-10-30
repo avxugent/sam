@@ -28,6 +28,7 @@ import { integrationTokenError } from "@/lib/tokens/integration";
 import { ancestorChain, findFiNumber, parseFiNumber } from "@/lib/locations/path";
 import { samAssetLabels, samLocationLabels } from "@/lib/prometheus/labels";
 import { computeNis2Counts } from "@/lib/compliance/nis2";
+import { effectiveCriticality } from "@/lib/criticality";
 
 // ─── Text format helpers ─────────────────────────────────────────────────────
 
@@ -335,9 +336,7 @@ export async function GET(req: NextRequest) {
     infoSamples.push({
       labels: {
         ...samAssetLabels({ ...asset, hostname: asset.hostname! }, ancestorChain(asset.locationId, locationsById)),
-        // Effective criticality: per-asset override wins over the type default
-        sam_criticality:
-          asset.criticality ?? asset.type?.defaultCriticality ?? "",
+        sam_criticality: effectiveCriticality(asset.criticality, asset.type?.defaultCriticality) ?? "",
       },
       value: 1,
     });

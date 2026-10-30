@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
-import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/route-helpers";
+import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/catalog/merge";
 
 export async function POST(
   req: NextRequest,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isHostnameCompliant } from "@/lib/hostname/pattern";
+import { isHostnameCompliant } from "@/lib/hostname";
 
 /**
  * Checks on, and nested rows built from, the asset form input shared by the

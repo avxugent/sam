@@ -3,14 +3,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("@/lib/auth", () => ({ __esModule: true, auth: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
 vi.mock("@/lib/audit", () => ({ __esModule: true, logAudit: vi.fn() }));
-vi.mock("@/lib/inventory-snapshot", () => ({
+vi.mock("@/lib/export/snapshot", () => ({
   __esModule: true,
   buildInventorySnapshot: vi.fn(),
 }));
 
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { buildInventorySnapshot } from "@/lib/inventory-snapshot";
+import { buildInventorySnapshot } from "@/lib/export/snapshot";
 import { GET } from "@/app/api/export/snapshot/route";
 import { NextRequest } from "next/server";
 

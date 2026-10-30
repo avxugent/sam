@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus, Activity, ChevronDown, ChevronRight, Info, Hash } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
 import { validateTemplate } from "@/lib/prometheus/scrape-template";
-import { validateHostnamePattern } from "@/lib/hostname/pattern";
+import { validateHostnamePattern } from "@/lib/hostname";
 import { MaintenancePresetsManager } from "@/components/admin/maintenance-presets-manager";
 import { TemplateOverridesEditor } from "@/components/admin/template-overrides-editor";
 import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";

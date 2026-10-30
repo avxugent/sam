@@ -1,4 +1,4 @@
-import type { NameConflictBody } from "@/lib/route-helpers";
+import type { NameConflictBody } from "@/lib/catalog/merge";
 
 /**
  * Rename-onto-an-existing-name handling shared by the catalog admin clients

@@ -4,7 +4,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
-import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/route-helpers";
+import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/catalog/merge";
 import { reassignModels } from "@/lib/models/reassign";
 
 export async function POST(

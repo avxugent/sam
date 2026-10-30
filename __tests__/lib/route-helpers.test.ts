@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { csvDownload, invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody, readMergeRequest, nameConflictResponse } from "@/lib/route-helpers";
+import { csvDownload, invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { readMergeRequest, nameConflictResponse } from "@/lib/catalog/merge";
 
 describe("readJsonBody()", () => {
   it("returns the parsed body", async () => {

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { Session } from "next-auth";
 import type { AuditLog } from "@/generated/prisma/client";
 import { forwardAuditEntry, isSyslogConfigured } from "@/lib/audit/syslog";
-import { clientIp } from "@/lib/rate-limit-http";
+import { clientIp } from "@/lib/rate-limit/http";
 
 export type AuditAction =
   | "CREATE"

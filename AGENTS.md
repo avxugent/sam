@@ -79,35 +79,35 @@ proxy.ts           — NextAuth session guard (replaces middleware.ts)
 lib/               — shared code; modules importing next/server are route-handler helpers (server only)
   auth.ts          — NextAuth config + ssoEnabled flag
   permissions.ts   — role predicates (isAdmin, canManageCatalog, canEdit); client-safe
-  route-helpers.ts — readJsonBody, invalidInput, isUniqueConstraintError, isRecordNotFoundError
+  route-helpers.ts — readJsonBody, invalidInput, Prisma error checks, unknownReferenceResponse, csvDownload
   prisma.ts        — PrismaClient singleton
   storage.ts       — upload storage driver (local filesystem or S3)
-  vault.ts         — HashiCorp Vault KV client (native fetch, no extra deps)
-  jira.ts          — read-only Jira REST client (work-log issue keys)
   app-settings.ts  — AppSetting key/value table: readSettings / writeSettings, plus typed groups (compliance, general, branding, export) that own each key, default and decoding
-  rate-limit.ts    — in-memory rate limiter; rate-limit-http.ts — client IP key + 429 response
   criticality.ts   — criticality levels, parseCriticality, effectiveCriticality; client-safe
   user-preferences.ts — theme / location-tab value sets; client-safe
   stock-metadata.ts — StockItem.metadata JSON (an asset's identity while in stock); client-safe
   mac-address.ts   — canonical MAC address form + validation; client-safe
   url-templates.ts — hostname / MAC / location link templates
   api-client.ts    — apiFetch / jsonBody / downloadFile for client components; client-safe
-  inventory-snapshot.ts — JSON inventory snapshot (export route + backup script)
-  work-log-include.ts — relations returned with every work-log entry
   assets/          — lifecycle rules (pure), state transitions (writes + audit), input checks + nested rows, shared response includes, creation defaults, type icons
   audit/           — logAudit (index), audit diffs, login-failure audit, syslog forwarding
   branding/        — logo/favicon/background upload + serve, background mode
+  catalog/         — merge + rename-conflict protocol (merge routes, rename routes, admin merge UI)
   compliance/      — NIS2 and hostname compliance reports
   csv/             — CSV cell/parse core, inventory export, import row parsing, import lookups, upload reading
-  hostname/        — hostname pattern/FQDN rules
+  export/          — JSON inventory snapshot (export route + backup script)
+  hostname.ts      — hostname pattern/FQDN rules
+  integrations/    — HashiCorp Vault KV client, read-only Jira client (native fetch, never throw)
   locations/       — path.ts: recursive-CTE tree queries (server); tree.ts: nesting/flattening a location tree (client-safe)
   models/          — model clustering + name similarity
   prometheus/      — sam_* labels, scrape template renderer, per-brand/model template overrides
+  rate-limit/      — in-memory rate limiter (index) + client IP key and 429 response (http)
   reports/         — report engine + definition types
   schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …); no DB code
   suppliers/       — default-window rules and conflict lookup
   tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), session-or-token, export token
   two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy, sign-in steps
+  work-logs/       — relations returned with every work-log entry
 components/
   layout/          — Sidebar (locations only) + Header (search + admin + user)
   ui/              — shadcn-style primitives (Button, Input, Dialog, …)
@@ -115,13 +115,11 @@ components/
   inventory/       — widgets shared by assets, stock and locations (location pickers, model autocomplete, MAC fields, bulk results)
   locations/       — LocationFormDialog, LocationDetailClient, LocationMap, CoverImagePicker
   attachments/     — AttachmentGallery
-  admin/           — clients for the /admin pages (UsersClient, AssetTypesClient, ManufacturersClient, …)
+  admin/           — clients for every /admin page (users, catalog, settings, CSV import/export, compliance + NIS2 dashboards, …)
   settings/        — ProfileClient (per-user settings)
   stock/           — stock item table and dialogs
-  compliance/      — hostname compliance + NIS2 dashboards
   reports/         — report builder, viewers, list
   search/          — SearchResults
-  import/          — CsvImportClient
   auth/            — login, forced password change / 2FA setup, 2FA challenge, 2FA and passkey settings
 prisma/
   schema.prisma    — MySQL schema, source of truth
@@ -208,7 +206,7 @@ prisma/
 - `/api/prometheus/metrics` — Prometheus text format inventory metrics. No `prom-client` dependency — the format is built as a plain string.
 - `/api/assets/by-hostname` — Grafana Infinity datasource lookup. Accepts session cookie OR Bearer token.
 - Template syntax: newline-separated `key=value` pairs. Variables: `{hostname_fqdn}`, `{serial}`, `{model}`, `{manufacturer}`, `{fi_number}`, `{vault_path}` (the asset's Vault path reference, never the secret itself). Validated server-side via `validateTemplate()` in `lib/prometheus/scrape-template.ts`.
-- Vault client (`lib/vault.ts`) uses native `fetch`. Returns `null` on any error — never throws. It backs the Vault path check in the asset form (`/api/vault/test`, any role that can edit assets; it returns key names, never values); the SD endpoint only passes the non-secret `{vault_path}` reference and never reads Vault.
+- Vault client (`lib/integrations/vault.ts`) uses native `fetch`. Returns `null` on any error — never throws. It backs the Vault path check in the asset form (`/api/vault/test`, any role that can edit assets; it returns key names, never values); the SD endpoint only passes the non-secret `{vault_path}` reference and never reads Vault.
 
 ---
 

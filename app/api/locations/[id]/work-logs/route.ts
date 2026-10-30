@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { createWorkLogSchema } from "@/lib/schemas/work-log";
-import { WORK_LOG_INCLUDE } from "@/lib/work-log-include";
+import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 

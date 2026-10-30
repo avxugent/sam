@@ -9,7 +9,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 vi.mock("@/lib/csv/export", () => ({ generateActiveAssetsCsv: vi.fn() }));
 vi.mock("@/lib/reports/engine", () => ({ runReport: vi.fn() }));
-vi.mock("@/lib/jira", () => ({
+vi.mock("@/lib/integrations/jira", () => ({
   isJiraConfigured: vi.fn(),
   isValidJiraKey: vi.fn(),
   fetchJiraIssue: vi.fn(),
@@ -19,7 +19,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateActiveAssetsCsv } from "@/lib/csv/export";
 import { runReport } from "@/lib/reports/engine";
-import { isJiraConfigured, isValidJiraKey, fetchJiraIssue } from "@/lib/jira";
+import { isJiraConfigured, isValidJiraKey, fetchJiraIssue } from "@/lib/integrations/jira";
 
 import { GET as exportCsv } from "@/app/api/export/csv/route";
 import { GET as exportReport } from "@/app/api/reports/[id]/export/route";

@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { updateWorkLogSchema } from "@/lib/schemas/work-log";
-import { WORK_LOG_INCLUDE } from "@/lib/work-log-include";
+import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 import { toIsoDay } from "@/lib/utils";

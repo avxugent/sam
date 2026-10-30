@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/inventory/model-autocomplete";
 import { cn, toIsoDay, apiErrorMessage } from "@/lib/utils";
-import { isHostnameCompliant } from "@/lib/hostname/pattern";
+import { isHostnameCompliant } from "@/lib/hostname";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { isWindowActive } from "@/lib/suppliers/window";
 import { CRITICALITY_VALUES } from "@/lib/criticality";

@@ -7,7 +7,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { adminSessionOrExportToken } from "@/lib/tokens/session-or-export";
-import { buildInventorySnapshot } from "@/lib/inventory-snapshot";
+import { buildInventorySnapshot } from "@/lib/export/snapshot";
 import { logAudit } from "@/lib/audit";
 import { toIsoDay } from "@/lib/utils";
 

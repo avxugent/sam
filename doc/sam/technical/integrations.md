@@ -304,7 +304,7 @@ The SD endpoint never reads Vault, so Vault availability does not affect SD
 generation. If the exporter cannot resolve a secret at scrape time, the device's
 probe simply fails — alertable in Prometheus via `up == 0`.
 
-The Vault client (`lib/vault.ts`, used by the Test button) uses native `fetch`,
+The Vault client (`lib/integrations/vault.ts`, used by the Test button) uses native `fetch`,
 returns `null` on any error, and never throws.
 
 ---

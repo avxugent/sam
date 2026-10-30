@@ -9,7 +9,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { isVaultConfigured, listVaultSecretKeys } from "@/lib/vault";
+import { isVaultConfigured, listVaultSecretKeys } from "@/lib/integrations/vault";
 import { canEdit } from "@/lib/permissions";
 
 export async function GET(req: NextRequest) {

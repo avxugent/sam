@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { isJiraConfigured, isValidJiraKey, fetchJiraIssue } from "@/lib/jira";
+import { isJiraConfigured, isValidJiraKey, fetchJiraIssue } from "@/lib/integrations/jira";
 
 export async function GET(
   _req: NextRequest,

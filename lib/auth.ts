@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { consumeRateLimit } from "@/lib/rate-limit";
-import { clientIp } from "@/lib/rate-limit-http";
+import { clientIp } from "@/lib/rate-limit/http";
 import { logAudit } from "@/lib/audit";
 import { auditLoginFailure } from "@/lib/audit/login";
 import { isTwoFactorSetupRequired } from "@/lib/two-factor/policy";

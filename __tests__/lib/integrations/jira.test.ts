@@ -6,7 +6,7 @@ import {
   jiraIssueUrl,
   fetchJiraIssue,
   _clearJiraCacheForTest,
-} from "@/lib/jira";
+} from "@/lib/integrations/jira";
 
 const origFetch = global.fetch;
 

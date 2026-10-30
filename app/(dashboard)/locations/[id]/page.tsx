@@ -4,10 +4,10 @@ import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/locations/path";
-import { isJiraConfigured } from "@/lib/jira";
+import { isJiraConfigured } from "@/lib/integrations/jira";
 import { parseLocationTab } from "@/lib/user-preferences";
 import { ASSET_LIST_INCLUDE } from "@/lib/assets/include";
-import { WORK_LOG_INCLUDE } from "@/lib/work-log-include";
+import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
 
 
 async function getUrlTemplates(): Promise<{

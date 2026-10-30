@@ -17,7 +17,7 @@ import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { consumeRateLimit } from "@/lib/rate-limit";
-import { clientIp, tooManyAttempts } from "@/lib/rate-limit-http";
+import { clientIp, tooManyAttempts } from "@/lib/rate-limit/http";
 import { auditLoginFailure } from "@/lib/audit/login";
 import { setRememberMeCookie } from "@/lib/two-factor/remember-device";
 import { z } from "zod";

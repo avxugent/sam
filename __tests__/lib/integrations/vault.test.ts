@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { isVaultConfigured, readVaultSecret, listVaultSecretKeys, tokenExpiresAt } from "@/lib/vault";
+import { isVaultConfigured, readVaultSecret, listVaultSecretKeys, tokenExpiresAt } from "@/lib/integrations/vault";
 
 // Store original env values
 const ORIGINAL_ADDR = process.env.VAULT_ADDR;

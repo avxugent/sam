@@ -4,7 +4,8 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody, nameConflictResponse } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { nameConflictResponse } from "@/lib/catalog/merge";
 
 const schema = z.object({ name: z.string().min(1).max(255) });
 

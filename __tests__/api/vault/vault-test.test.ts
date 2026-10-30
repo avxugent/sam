@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/vault", () => ({ isVaultConfigured: vi.fn(), listVaultSecretKeys: vi.fn() }));
+vi.mock("@/lib/integrations/vault", () => ({ isVaultConfigured: vi.fn(), listVaultSecretKeys: vi.fn() }));
 
 import { auth } from "@/lib/auth";
-import { isVaultConfigured, listVaultSecretKeys } from "@/lib/vault";
+import { isVaultConfigured, listVaultSecretKeys } from "@/lib/integrations/vault";
 import { GET } from "@/app/api/vault/test/route";
 
 const get = (query = "?path=secret/av/rec01") => GET(new NextRequest(`http://localhost/api/vault/test${query}`));

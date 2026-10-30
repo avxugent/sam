@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-// HTTP side of the in-memory limiter in lib/rate-limit.ts: the client key and
-// the 429 a limited route returns. Kept apart so rate-limit.ts stays free of
+// HTTP side of the in-memory limiter in lib/rate-limit/index.ts: the client key and
+// the 429 a limited route returns. Kept apart so index.ts stays free of
 // next/server.
 
 /** Client IP from the reverse proxy headers (first X-Forwarded-For hop, else X-Real-IP), or null. */

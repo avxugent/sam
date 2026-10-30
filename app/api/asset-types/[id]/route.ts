@@ -3,12 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { validateTemplate } from "@/lib/prometheus/scrape-template";
-import { validateHostnamePattern } from "@/lib/hostname/pattern";
+import { validateHostnamePattern } from "@/lib/hostname";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { Criticality } from "@/generated/prisma/enums";
 import { isAdmin } from "@/lib/permissions";
-import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody, nameConflictResponse } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { nameConflictResponse } from "@/lib/catalog/merge";
 
 const schema = z.object({
   name: z.string().min(1).max(255).optional(),

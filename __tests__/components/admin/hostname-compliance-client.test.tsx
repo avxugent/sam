@@ -6,7 +6,7 @@ vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
-import { HostnameComplianceClient } from "@/components/compliance/hostname-compliance-client";
+import { HostnameComplianceClient } from "@/components/admin/hostname-compliance-client";
 import type { HostnameComplianceResult } from "@/lib/compliance/hostname";
 
 const RESULT: HostnameComplianceResult = {

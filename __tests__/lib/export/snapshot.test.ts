@@ -10,7 +10,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { buildInventorySnapshot } from "@/lib/inventory-snapshot";
+import { buildInventorySnapshot } from "@/lib/export/snapshot";
 
 beforeEach(() => {
   vi.clearAllMocks();

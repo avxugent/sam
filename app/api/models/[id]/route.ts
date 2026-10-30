@@ -5,7 +5,8 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, readJsonBody, nameConflictResponse } from "@/lib/route-helpers";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { nameConflictResponse } from "@/lib/catalog/merge";
 
 const updateSchema = z.object({
   typeId: z.string().min(1),

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useToast } from "@/components/ui/use-toast";
 import { apiErrorMessage } from "@/lib/utils";
-import type { MergeResult } from "@/lib/route-helpers";
+import type { MergeResult } from "@/lib/catalog/merge";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 
 /**

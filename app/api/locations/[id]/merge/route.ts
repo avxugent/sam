@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import type { Prisma } from "@/generated/prisma/client";
 import { canEdit } from "@/lib/permissions";
-import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/route-helpers";
+import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/catalog/merge";
 
 /**
  * Merge the location identified by [id] (the source) into another location

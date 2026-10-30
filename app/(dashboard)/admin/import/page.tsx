@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { CsvImportClient } from "@/components/import/csv-import-client";
+import { CsvImportClient } from "@/components/admin/csv-import-client";
 import { isAdmin } from "@/lib/permissions";
 
 export default async function ImportPage() {

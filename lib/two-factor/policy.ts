@@ -7,8 +7,7 @@
  */
 export function isTwoFactorSetupRequired(
   user: { twoFactorRequired: boolean; totpEnabled: boolean; hasPasskey: boolean },
-  globalRequireSetting: string | null | undefined
+  globallyRequired: boolean
 ): boolean {
-  const globallyRequired = globalRequireSetting === "true";
   return (user.twoFactorRequired || globallyRequired) && !user.totpEnabled && !user.hasPasskey;
 }

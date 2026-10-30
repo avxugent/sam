@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { findCurrentDefaultSupplier } from "@/lib/suppliers/window";
+import { readComplianceSetting } from "@/lib/app-settings";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -22,13 +23,10 @@ export async function resolveAssetCreationDefaults(
   let supplierId = provided.supplierId ?? null;
 
   if (provided.ownerId === undefined) {
-    const setting = await db.appSetting.findUnique({
-      where: { key: "assets.defaultOwnerId" },
-      select: { value: true },
-    });
-    if (setting?.value) {
+    const defaultOwnerId = await readComplianceSetting("defaultOwnerId", db);
+    if (defaultOwnerId) {
       const user = await db.user.findUnique({
-        where: { id: setting.value },
+        where: { id: defaultOwnerId },
         select: { id: true },
       });
       ownerId = user?.id ?? null;

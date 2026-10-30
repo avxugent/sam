@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/prisma", () => ({ prisma: { appSetting: { findMany: vi.fn(), upsert: vi.fn() } } }));
+vi.mock("@/lib/prisma", () => ({ prisma: { appSetting: { findMany: vi.fn(), findUnique: vi.fn(), upsert: vi.fn() } } }));
 
 import { prisma } from "@/lib/prisma";
 import {
   readBrandingSettings,
+  readComplianceSetting,
   readComplianceSettings,
   readExportSettings,
   readGeneralSettings,
@@ -47,6 +48,14 @@ describe("setting groups", () => {
       reviewWorkLogItemId: null,
       reviewPeriodMonths: 12,
     });
+  });
+
+  it("compliance: one field in a single query, decoded the same way (only \"true\" is on)", async () => {
+    vi.mocked(prisma.appSetting.findUnique).mockResolvedValueOnce({ value: "yes" } as never);
+    expect(await readComplianceSetting("requireTwoFactor")).toBe(false);
+    vi.mocked(prisma.appSetting.findUnique).mockResolvedValueOnce(null as never);
+    expect(await readComplianceSetting("reviewPeriodMonths")).toBe(12);
+    expect(prisma.appSetting.findUnique).toHaveBeenLastCalledWith({ where: { key: "compliance.reviewPeriodMonths" }, select: { value: true } });
   });
 
   it("compliance: writes only the fields given, null clearing an id", async () => {

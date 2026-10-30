@@ -3,7 +3,7 @@
  * the dashboard can show what needs fixing without a follow-up query.
  */
 import { prisma } from "@/lib/prisma";
-import { readComplianceSettings } from "@/lib/app-settings";
+import { readComplianceSetting, readComplianceSettings } from "@/lib/app-settings";
 import { runLocationReport } from "@/lib/reports/engine";
 import { isSyslogConfigured } from "@/lib/audit/syslog";
 import type { Prisma } from "@/generated/prisma/client";
@@ -105,7 +105,7 @@ export async function computeNis2Compliance(): Promise<Nis2ComplianceResult> {
     withoutEosDate,
     review,
     usersNo2fa,
-    requireSetting,
+    requireTwoFactor,
     backlog,
   ] = await Promise.all([
       assetStat({ status: "INSTALLED", ownerId: null }),
@@ -114,7 +114,7 @@ export async function computeNis2Compliance(): Promise<Nis2ComplianceResult> {
       prisma.asset.count({ where: { status: "INSTALLED", endOfSupportDate: null } }),
       locationsMissingReview(),
       prisma.user.count({ where: { provider: "credentials", totpEnabled: false } }),
-      prisma.appSetting.findUnique({ where: { key: "security.requireTwoFactor" } }),
+      readComplianceSetting("requireTwoFactor"),
       prisma.auditLog.count({ where: { forwardedAt: null } }),
     ]);
 
@@ -123,7 +123,7 @@ export async function computeNis2Compliance(): Promise<Nis2ComplianceResult> {
     assetsMissingCriticality: missingCriticality,
     assetsPastEndOfSupport: { ...pastEos, withoutDate: withoutEosDate },
     locationsMissingReview: review,
-    usersWithout2fa: { count: usersNo2fa, globallyRequired: requireSetting?.value === "true" },
+    usersWithout2fa: { count: usersNo2fa, globallyRequired: requireTwoFactor },
     auditBacklog: { count: backlog, syslogConfigured: isSyslogConfigured() },
   };
 }
@@ -132,7 +132,7 @@ export async function computeNis2Compliance(): Promise<Nis2ComplianceResult> {
 export async function computeNis2Counts(): Promise<Nis2Counts> {
   const today = new Date();
 
-  const [missingOwner, missingCriticality, pastEos, withoutEosDate, usersNo2fa, backlog, reviewItemSetting] =
+  const [missingOwner, missingCriticality, pastEos, withoutEosDate, usersNo2fa, backlog, reviewItemId] =
     await Promise.all([
       prisma.asset.count({ where: { status: "INSTALLED", ownerId: null } }),
       prisma.asset.count({ where: UNCLASSIFIED_WHERE }),
@@ -140,11 +140,11 @@ export async function computeNis2Counts(): Promise<Nis2Counts> {
       prisma.asset.count({ where: { status: "INSTALLED", endOfSupportDate: null } }),
       prisma.user.count({ where: { provider: "credentials", totpEnabled: false } }),
       prisma.auditLog.count({ where: { forwardedAt: null } }),
-      prisma.appSetting.findUnique({ where: { key: "compliance.reviewWorkLogItemId" } }),
+      readComplianceSetting("reviewWorkLogItemId"),
     ]);
 
   let reviewCount: number | null = null;
-  if (reviewItemSetting?.value) {
+  if (reviewItemId) {
     const review = await locationsMissingReview();
     reviewCount = review.configured ? review.count : null;
   }

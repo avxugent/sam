@@ -3,7 +3,7 @@ import type { Session } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { attemptStorage, getStorageDriver, StorageNotFoundError } from "@/lib/storage";
 import { logAudit } from "@/lib/audit";
-import { writeSettings } from "@/lib/app-settings";
+import { writeSettings, BRANDING_KEYS } from "@/lib/app-settings";
 
 /**
  * Logo, favicon and background image share one lifecycle: an admin uploads a file,
@@ -47,7 +47,7 @@ const BRANDING_ASSETS = {
     allowedMimeTypes: ["image/png", "image/svg+xml", "image/webp"],
     allowedLabel: "PNG, SVG, WebP",
     maxBytes: 2 * MB,
-    extraSettings: { "branding.backgroundMode": "custom" },
+    extraSettings: { [BRANDING_KEYS.backgroundMode]: "custom" },
   },
 } satisfies Record<string, BrandingAssetConfig>;
 

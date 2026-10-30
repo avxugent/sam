@@ -37,8 +37,8 @@ export async function PUT(req: NextRequest) {
   ]);
 
   const detail: Record<string, unknown> = {};
-  if (parsed.data.appTitle !== undefined) detail["app.title"] = parsed.data.appTitle;
-  if (parsed.data.backgroundMode !== undefined) detail["branding.backgroundMode"] = parsed.data.backgroundMode || "(none)";
+  if (parsed.data.appTitle !== undefined) detail[BRANDING_KEYS.appTitle] = parsed.data.appTitle;
+  if (parsed.data.backgroundMode !== undefined) detail[BRANDING_KEYS.backgroundMode] = parsed.data.backgroundMode || "(none)";
 
   await logAudit({
     session,

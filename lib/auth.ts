@@ -10,6 +10,7 @@ import { logAudit } from "@/lib/audit";
 import { auditLoginFailure } from "@/lib/audit/login";
 import { isTwoFactorSetupRequired } from "@/lib/two-factor/policy";
 import { verifyUpgradeProof } from "@/lib/two-factor/upgrade-proof";
+import { readComplianceSetting } from "@/lib/app-settings";
 
 const loginSchema = z.object({
   email: z.email().max(255),
@@ -92,11 +93,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const hasPasskey = user._count.passkeys > 0;
 
         // Global requirement (AppSetting) ORs with the per-user flag
-        const globalRequire2fa = await prisma.appSetting.findUnique({
-          where: { key: "security.requireTwoFactor" },
-          select: { value: true },
-        });
-        if (isTwoFactorSetupRequired({ ...user, hasPasskey }, globalRequire2fa?.value)) {
+        const requireTwoFactor = await readComplianceSetting("requireTwoFactor");
+        if (isTwoFactorSetupRequired({ ...user, hasPasskey }, requireTwoFactor)) {
           return {
             id: user.id,
             name: user.name,

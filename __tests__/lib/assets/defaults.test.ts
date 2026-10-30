@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// defaults.ts reads through lib/app-settings, which imports the client singleton;
+// these tests pass their own db, so the singleton is never used.
+vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 import { resolveAssetCreationDefaults } from "@/lib/assets/defaults";
 
 const db = {

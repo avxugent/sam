@@ -1,11 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, type Dispatch, type SetStateAction } from "react";
+import { useState, useRef, type Dispatch, type SetStateAction } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,13 +14,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate, formatFileSize, apiErrorMessage } from "@/lib/utils";
 import {
@@ -39,35 +29,12 @@ import {
   ExternalLink,
   Pencil,
   ZoomIn,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
-import { apiFetch, jsonBody } from "@/lib/api-client";
-
-export type Attachment = {
-  id: string;
-  attachmentType?: string;
-  filename?: string | null;
-  originalName: string;
-  displayName?: string | null;
-  description?: string | null;
-  mimeType?: string | null;
-  size?: number | null;
-  url?: string | null;
-  createdAt: Date | string;
-  uploadedBy: { id: string; name: string };
-};
-
-function label(att: Attachment) {
-  return att.displayName?.trim() || att.originalName;
-}
-
-function isPreviewableImage(mimeType?: string | null) {
-  return (
-    mimeType?.startsWith("image/") &&
-    mimeType !== "image/svg+xml" // SVG forced to download by server
-  );
-}
+import { apiFetch } from "@/lib/api-client";
+import { attachmentLabel, isPreviewableImage, type Attachment } from "@/components/attachments/attachment";
+import { AddLinkDialog } from "@/components/attachments/add-link-dialog";
+import { EditAttachmentDialog } from "@/components/attachments/edit-attachment-dialog";
+import { AttachmentLightbox } from "@/components/attachments/attachment-lightbox";
 
 /** Controlled: the parent owns the list; changes go through `onUpdate` as updaters. */
 export function AttachmentGallery({
@@ -90,54 +57,10 @@ export function AttachmentGallery({
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  // Link dialog
   const [showLinkDialog, setShowLinkDialog] = useState(false);
-  const [linkUrl, setLinkUrl] = useState("");
-  const [linkLabel, setLinkLabel] = useState("");
-  const [linkDesc, setLinkDesc] = useState("");
-  const [addingLink, setAddingLink] = useState(false);
-
-  // Edit (rename/describe) dialog
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDisplayName, setEditDisplayName] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editUrl, setEditUrl] = useState("");
-  const [editIsLink, setEditIsLink] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  // Lightbox
+  const [editing, setEditing] = useState<Attachment | null>(null);
   const [lightboxId, setLightboxId] = useState<string | null>(null);
-  const previewable = attachments.filter((a) =>
-    a.attachmentType !== "link" && isPreviewableImage(a.mimeType)
-  );
-  const lightboxIndex = previewable.findIndex((a) => a.id === lightboxId);
-  const lightboxAttachment = lightboxIndex >= 0 ? previewable[lightboxIndex] : undefined;
-  const hasMultiple = previewable.length > 1;
-
-  function showAdjacent(delta: number) {
-    if (lightboxIndex < 0 || previewable.length === 0) return;
-    const next = (lightboxIndex + delta + previewable.length) % previewable.length;
-    setLightboxId(previewable[next].id);
-  }
-
-  useEffect(() => {
-    if (!lightboxId) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "ArrowRight") showAdjacent(1);
-      else if (e.key === "ArrowLeft") showAdjacent(-1);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lightboxId, previewable.length]);
-
-  function openEdit(att: Attachment) {
-    setEditingId(att.id);
-    setEditDisplayName(att.displayName ?? "");
-    setEditDescription(att.description ?? "");
-    setEditUrl(att.url ?? "");
-    setEditIsLink(att.attachmentType === "link");
-  }
+  const previewable = attachments.filter((a) => a.attachmentType !== "link" && isPreviewableImage(a.mimeType));
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -157,43 +80,6 @@ export function AttachmentGallery({
     }
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }
-
-  async function handleAddLink(e: React.FormEvent) {
-    e.preventDefault();
-    if (!linkUrl || !linkLabel) return;
-    setAddingLink(true);
-    const res = await apiFetch<Attachment>("/api/attachments", jsonBody("POST", { url: linkUrl, label: linkLabel, description: linkDesc || null, locationId, assetId }));
-    setAddingLink(false);
-    if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
-      return;
-    }
-    const attachment = res.data;
-    onUpdate((current) => [attachment, ...current]);
-    setShowLinkDialog(false);
-    setLinkUrl(""); setLinkLabel(""); setLinkDesc("");
-    toast({ title: t("linked") });
-  }
-
-  async function handleSaveEdit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editingId) return;
-    setSaving(true);
-    const res = await apiFetch<Attachment>(`/api/attachments/${editingId}`, jsonBody("PATCH", {
-        displayName: editDisplayName.trim() || null,
-        description: editDescription.trim() || null,
-        ...(editIsLink && { url: editUrl.trim() || null }),
-      }));
-    setSaving(false);
-    if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
-      return;
-    }
-    const updated = res.data;
-    onUpdate((current) => current.map((a) => (a.id === editingId ? updated : a)));
-    setEditingId(null);
-    toast({ title: t("attachmentUpdated") });
   }
 
   async function handleDelete(id: string) {
@@ -257,141 +143,21 @@ export function AttachmentGallery({
         </Button>
       )}
 
-      <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t("addLink")}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAddLink} className="space-y-4 pt-1">
-            <div className="space-y-1.5">
-              <Label htmlFor="link-url">{t("linkUrl")} <span className="text-destructive">*</span></Label>
-              <Input id="link-url" type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://example.com" required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="link-label">{t("linkLabel")} <span className="text-destructive">*</span></Label>
-              <Input id="link-label" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} placeholder={t("linkLabel")} required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="link-desc">{t("descriptionLabel")}</Label>
-              <Textarea id="link-desc" value={linkDesc} onChange={(e) => setLinkDesc(e.target.value)} placeholder={t("descriptionPlaceholder")} rows={2} />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowLinkDialog(false)}>{tCommon("cancel")}</Button>
-              <Button type="submit" disabled={addingLink || !linkUrl || !linkLabel}>
-                {addingLink && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t("addLinkSubmit")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddLinkDialog
+        open={showLinkDialog}
+        onOpenChange={setShowLinkDialog}
+        locationId={locationId}
+        assetId={assetId}
+        onAdded={(attachment) => onUpdate((current) => [attachment, ...current])}
+      />
 
-      <Dialog open={!!editingId} onOpenChange={(v) => { if (!v) setEditingId(null); }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t("editAttachment")}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSaveEdit} className="space-y-4 pt-1">
-            {editIsLink && (
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-url">{t("linkUrl")} <span className="text-destructive">*</span></Label>
-                <Input
-                  id="edit-url"
-                  type="url"
-                  value={editUrl}
-                  onChange={(e) => setEditUrl(e.target.value)}
-                  placeholder="https://example.com"
-                  required
-                />
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-display-name">{t("displayName")}</Label>
-              <Input
-                id="edit-display-name"
-                value={editDisplayName}
-                onChange={(e) => setEditDisplayName(e.target.value)}
-                placeholder={t("displayNamePlaceholder")}
-                maxLength={255}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-description">{t("descriptionLabel")}</Label>
-              <Textarea
-                id="edit-description"
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                placeholder={t("descriptionPlaceholder")}
-                rows={3}
-                maxLength={2000}
-              />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditingId(null)}>{tCommon("cancel")}</Button>
-              <Button type="submit" disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {tCommon("saveChanges")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <EditAttachmentDialog
+        attachment={editing}
+        onClose={() => setEditing(null)}
+        onSaved={(updated) => onUpdate((current) => current.map((a) => (a.id === updated.id ? updated : a)))}
+      />
 
-      <Dialog open={!!lightboxId} onOpenChange={(v) => { if (!v) setLightboxId(null); }}>
-        <DialogContent className="max-w-4xl p-2">
-          <DialogHeader className="p-3 pb-0">
-            <DialogTitle className="text-[14px] font-medium truncate">
-              {lightboxAttachment ? label(lightboxAttachment) : ""}
-            </DialogTitle>
-          </DialogHeader>
-          {lightboxAttachment && (
-            <div className="flex flex-col items-center gap-3 p-2">
-              <div className="relative flex w-full items-center justify-center">
-                {hasMultiple && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label={tCommon("previous")}
-                    className="absolute left-1 z-10 h-9 w-9 rounded-full bg-background/90 text-foreground shadow-sm"
-                    onClick={() => showAdjacent(-1)}
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </Button>
-                )}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`/api/attachments/${lightboxAttachment.id}`}
-                  alt={t("previewAlt", { name: label(lightboxAttachment) })}
-                  className="max-h-[70vh] max-w-full rounded-[8px] object-contain"
-                />
-                {hasMultiple && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label={tCommon("next")}
-                    className="absolute right-1 z-10 h-9 w-9 rounded-full bg-background/90 text-foreground shadow-sm"
-                    onClick={() => showAdjacent(1)}
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                )}
-              </div>
-              {hasMultiple && (
-                <p className="text-[11.5px] text-subtle">{lightboxIndex + 1} / {previewable.length}</p>
-              )}
-              {lightboxAttachment.description && (
-                <p className="text-[13px] text-muted-foreground text-center max-w-lg">{lightboxAttachment.description}</p>
-              )}
-              <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                <a href={`/api/attachments/${lightboxAttachment.id}`} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  {t("openFullSize")}
-                </a>
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <AttachmentLightbox images={previewable} openId={lightboxId} onOpenIdChange={setLightboxId} />
 
       {attachments.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground border border-border rounded-[10px] bg-card">
@@ -404,7 +170,7 @@ export function AttachmentGallery({
             const isLink = attachment.attachmentType === "link";
             const isImage = !isLink && isPreviewableImage(attachment.mimeType);
             const isPdf = !isLink && attachment.mimeType === "application/pdf";
-            const displayName = label(attachment);
+            const displayName = attachmentLabel(attachment);
 
             return (
               <div key={attachment.id} className="flex items-start gap-3 p-3 hover:bg-background transition-colors">
@@ -488,7 +254,7 @@ export function AttachmentGallery({
                       size="icon"
                       aria-label={`${t("editAttachment")} ${displayName}`}
                       className="h-[30px] w-[30px] text-muted-foreground hover:text-secondary-foreground"
-                      onClick={() => openEdit(attachment)}
+                      onClick={() => setEditing(attachment)}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>

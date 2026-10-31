@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Check, ImageOff, Loader2, Star } from "lucide-react";
 import { cn, apiErrorMessage } from "@/lib/utils";
-import type { Attachment as GalleryAttachment } from "@/components/attachments/attachment-gallery";
+import type { Attachment as GalleryAttachment } from "@/components/attachments/attachment";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type Attachment = Pick<GalleryAttachment, "id" | "originalName" | "mimeType" | "size">;

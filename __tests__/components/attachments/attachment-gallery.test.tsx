@@ -7,7 +7,8 @@ const tFn = (key: string) => key;
 vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 
-import { AttachmentGallery, type Attachment } from "@/components/attachments/attachment-gallery";
+import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
+import type { Attachment } from "@/components/attachments/attachment";
 
 const uploaded = (name: string): Attachment => ({
   id: name,

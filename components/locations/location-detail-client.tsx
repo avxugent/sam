@@ -24,7 +24,8 @@ import { LocationFormDialog } from "@/components/locations/location-form-dialog"
 import { MoveLocationDialog } from "@/components/locations/move-location-dialog";
 import { AssetTable, type AssetRow } from "@/components/assets/asset-table";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
-import { AttachmentGallery, type Attachment } from "@/components/attachments/attachment-gallery";
+import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
+import type { Attachment } from "@/components/attachments/attachment";
 import { CoverImagePicker } from "@/components/locations/cover-image-picker";
 import { LocationMap } from "@/components/locations/location-map";
 import { WorkLogList, type WorkLogEntry } from "@/components/locations/work-log-list";

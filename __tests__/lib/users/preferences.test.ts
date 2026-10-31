@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseLocationTab, parseTheme } from "@/lib/user-preferences";
+import { parseLocationTab, parseTheme } from "@/lib/users/preferences";
 
 describe("parseTheme()", () => {
   it("keeps a known theme and falls back to light", () => {

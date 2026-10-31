@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { toIsoDay } from "@/lib/dates";
 import { ChevronDown, ChevronUp, Download, Loader2 } from "lucide-react";
-import type { HostnameComplianceResult, TypeCompliance } from "@/lib/compliance/hostname";
+import type { HostnameComplianceResult, TypeCompliance } from "@/lib/compliance/hostname-report";
 import { downloadFile } from "@/lib/api-client";
 
 function formatRate(rate: number | null): string | null {

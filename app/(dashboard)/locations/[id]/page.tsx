@@ -6,7 +6,7 @@ import { LocationDetailClient } from "@/components/locations/location-detail-cli
 import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/locations/path";
 import { withInstalledQuantities } from "@/lib/locations/asset-quantities";
 import { jiraBaseUrl } from "@/lib/integrations/jira";
-import { parseLocationTab } from "@/lib/user-preferences";
+import { parseLocationTab } from "@/lib/users/preferences";
 import { ASSET_LIST_INCLUDE } from "@/lib/assets/include";
 import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
 

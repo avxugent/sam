@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/prisma", () => ({ prisma: { user: { findMany: vi.fn() } } }));
 
 import { prisma } from "@/lib/prisma";
-import { userNamesById } from "@/lib/user-names";
+import { userNamesById } from "@/lib/users/names";
 
 beforeEach(() => vi.clearAllMocks());
 

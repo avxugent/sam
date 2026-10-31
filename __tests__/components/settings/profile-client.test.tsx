@@ -9,7 +9,7 @@ vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToas
 const router = { refresh: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 const setTheme = vi.fn();
-vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ theme: "light", setTheme }) }));
+vi.mock("@/components/layout/theme-provider", () => ({ useTheme: () => ({ theme: "light", setTheme }) }));
 
 import { ProfileClient } from "@/components/settings/profile-client";
 

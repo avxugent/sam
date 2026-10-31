@@ -7,11 +7,11 @@ vi.mock("@/lib/csv/export", () => ({
   generateDecommissionedCsv: vi.fn(),
   generateStockCsv: vi.fn(),
 }));
-vi.mock("@/lib/compliance/hostname", () => ({ computeHostnameCompliance: vi.fn() }));
+vi.mock("@/lib/compliance/hostname-report", () => ({ computeHostnameCompliance: vi.fn() }));
 
 import { auth } from "@/lib/auth";
 import { generateDecommissionedCsv, generateStockCsv } from "@/lib/csv/export";
-import { computeHostnameCompliance } from "@/lib/compliance/hostname";
+import { computeHostnameCompliance } from "@/lib/compliance/hostname-report";
 
 import { GET as exportDecommissioned } from "@/app/api/export/decommissioned/route";
 import { GET as exportStock } from "@/app/api/export/stock/route";

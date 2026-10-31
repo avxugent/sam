@@ -9,7 +9,7 @@ import { ancestorChain, getLocationPathsBatch } from "@/lib/locations/path";
 import { escapeCsvCell } from "@/lib/csv/core";
 import { toIsoDay } from "@/lib/dates";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
-import { userNamesById } from "@/lib/user-names";
+import { userNamesById } from "@/lib/users/names";
 import { ASSET_CSV_COLUMNS, CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
 
 const COLUMNS = ASSET_CSV_COLUMNS;

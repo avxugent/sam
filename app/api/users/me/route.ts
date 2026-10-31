@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
-import { LOCATION_TABS, THEMES } from "@/lib/user-preferences";
+import { LOCATION_TABS, THEMES } from "@/lib/users/preferences";
 
 const schema = z.object({
   name: z.string().min(1).max(128).optional(),

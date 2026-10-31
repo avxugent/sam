@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useTheme, THEME_STORAGE_KEY } from "@/components/theme-provider";
-import { parseTheme } from "@/lib/user-preferences";
+import { useTheme, THEME_STORAGE_KEY } from "@/components/layout/theme-provider";
+import { parseTheme } from "@/lib/users/preferences";
 
 export function ThemeSync({ serverTheme }: { serverTheme: string }) {
   const { setTheme } = useTheme();

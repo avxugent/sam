@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-import { parseTheme, type Theme } from "@/lib/user-preferences";
+import { parseTheme, type Theme } from "@/lib/users/preferences";
 
 export type { Theme };
 

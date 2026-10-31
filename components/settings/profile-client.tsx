@@ -13,8 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Sun, Moon, Monitor } from "lucide-react";
 import { cn, apiErrorMessage } from "@/lib/utils";
-import { useTheme, type Theme } from "@/components/theme-provider";
-import { LOCATION_TABS, parseLocationTab, type LocationTab } from "@/lib/user-preferences";
+import { useTheme, type Theme } from "@/components/layout/theme-provider";
+import { LOCATION_TABS, parseLocationTab, type LocationTab } from "@/lib/users/preferences";
 import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 

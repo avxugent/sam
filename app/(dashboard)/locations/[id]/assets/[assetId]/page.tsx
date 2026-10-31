@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
 import { locationBreadcrumbs } from "@/lib/locations/path";
 import { ASSET_DETAIL_INCLUDE } from "@/lib/assets/include";
-import { userNamesById } from "@/lib/user-names";
+import { userNamesById } from "@/lib/users/names";
 
 
 export default async function AssetPage({

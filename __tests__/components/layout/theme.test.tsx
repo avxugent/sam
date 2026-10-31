@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ThemeProvider, useTheme } from "@/components/theme-provider";
-import { ThemeSync } from "@/components/theme-sync";
+import { ThemeProvider, useTheme } from "@/components/layout/theme-provider";
+import { ThemeSync } from "@/components/layout/theme-sync";
 
 function setMatchMedia(matches: boolean) {
   window.matchMedia = vi.fn().mockReturnValue({

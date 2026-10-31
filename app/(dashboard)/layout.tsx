@@ -5,7 +5,7 @@ import { readBrandingSettings } from "@/lib/app-settings";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
-import { ThemeSync } from "@/components/theme-sync";
+import { ThemeSync } from "@/components/layout/theme-sync";
 import { AppFooter } from "@/components/layout/app-footer";
 import { version } from "@/package.json";
 import { canManageCatalog } from "@/lib/permissions";

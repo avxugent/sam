@@ -86,8 +86,7 @@ lib/               — shared code; modules importing next/server are route-hand
   criticality.ts   — criticality levels, parseCriticality, effectiveCriticality; client-safe
   dates.ts         — toIsoDay / formatDate; no dependencies (used by server exports and the UI)
   bulk.ts          — BulkResult / BulkSkipReason, the response of the bulk endpoints; client-safe
-  user-preferences.ts — theme / location-tab value sets; client-safe
-  user-names.ts    — names behind soft user references (owner, decommissioned/sent-for-repair by)
+  users/           — preferences.ts: theme / location-tab value sets (client-safe); names.ts: names behind soft user references (owner, decommissioned/sent-for-repair by)
   stock-metadata.ts — StockItem.metadata JSON (an asset's identity while in stock); client-safe
   mac-address.ts   — canonical MAC address form + validation; client-safe
   url-templates.ts — hostname / MAC / location link templates
@@ -112,7 +111,7 @@ lib/               — shared code; modules importing next/server are route-hand
   two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy, sign-in steps, signing key (NEXTAUTH_SECRET, fails closed)
   work-logs/       — relations returned with every work-log entry
 components/
-  layout/          — Sidebar (locations only) + Header (search + admin + user)
+  layout/          — Sidebar (locations only) + Header (search + admin + user), theme provider and sync
   ui/              — shadcn-style primitives (Button, Input, Dialog, …)
   assets/          — AssetFormDialog, AssetTable, AssetDetailClient, decommissioned/in-repair tables
   inventory/       — widgets shared by assets, stock and locations (location pickers, manufacturer + model autocomplete, MAC fields, bulk action dialog + results)

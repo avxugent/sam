@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -171,8 +171,8 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
               </tr>
             )}
             {suppliers.map((supplier) => (
-              <>
-                <tr key={supplier.id} className="border-b border-border last:border-0 hover:bg-background">
+              <Fragment key={supplier.id}>
+                <tr className="border-b border-border last:border-0 hover:bg-background">
                   <td className="px-4 py-[10px] font-medium text-foreground">{supplier.name}</td>
                   <td className="px-4 py-[10px] text-muted-foreground">{supplier.contractReference ?? "—"}</td>
                   <td className="px-4 py-[10px] text-muted-foreground text-[12px]">
@@ -282,7 +282,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>

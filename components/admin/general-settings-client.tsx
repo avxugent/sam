@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, ExternalLink } from "lucide-react";
-import { renderLocationUrl, renderMacAddressUrl } from "@/lib/url-templates";
+import { renderHostnameUrl, renderLocationUrl, renderMacAddressUrl } from "@/lib/url-templates";
 import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 
@@ -41,11 +41,12 @@ export function GeneralSettingsClient({
   }
 
   const hostnamePreview = hostnameUrlTemplate
-    ? hostnameUrlTemplate
-        .replaceAll("{hostname}", "pc-example-01")
-        .replaceAll("{serial}", "SN123456")
-        .replaceAll("{model}", "OptiPlex 7090")
-        .replaceAll("{manufacturer}", "Dell")
+    ? renderHostnameUrl(hostnameUrlTemplate, {
+        hostname: "pc-example-01",
+        serialNumber: "SN123456",
+        model: { name: "OptiPlex 7090" },
+        manufacturer: { name: "Dell" },
+      })
     : "";
 
   const macPreview = macAddressUrlTemplate

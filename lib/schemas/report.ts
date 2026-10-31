@@ -34,11 +34,80 @@ const filterFieldSchema = z.enum([
   "endOfSupportDate",
 ]);
 
-const reportFilterSchema = z.object({
-  field: filterFieldSchema,
-  op: filterOpSchema,
-  value: z.string().max(500).optional(),
-});
+/**
+ * What a filter field's value is. It decides the builder's value control and
+ * how the engine translates the filter:
+ * - reference: an id of another record (type, manufacturer, location, supplier)
+ * - enum: one of a fixed set of values (asset status, criticality)
+ * - text: free text on the asset or its model
+ * - date: a date column, absolute or relative to today
+ * - workLogItem: a fixed work-log item that has (not) been logged
+ */
+export type ReportFilterKind = "reference" | "enum" | "text" | "date" | "workLogItem";
+
+const ID_OPS = ["eq", "neq", "isNull", "isNotNull"] as const;
+const TEXT_OPS = ["eq", "neq", "contains", "isNull", "isNotNull"] as const;
+const ITEM_OPS = ["hasItem", "notHasItem"] as const;
+
+/** Each filter field's kind and the ops it allows, in the order the builder offers them. */
+export const REPORT_FILTER_FIELDS = {
+  typeId: { kind: "reference", ops: ID_OPS },
+  manufacturerId: { kind: "reference", ops: ID_OPS },
+  locationId: { kind: "reference", ops: ID_OPS },
+  supplierId: { kind: "reference", ops: ID_OPS },
+  status: { kind: "enum", ops: ["eq", "neq"] },
+  criticality: { kind: "enum", ops: ID_OPS },
+  model: { kind: "text", ops: TEXT_OPS },
+  serialNumber: { kind: "text", ops: TEXT_OPS },
+  hostname: { kind: "text", ops: TEXT_OPS },
+  installationDate: { kind: "date", ops: ["before", "after", "olderThanYears", "newerThanYears", "isNull", "isNotNull"] },
+  invoiceDate: { kind: "date", ops: ["before", "after", "isNull", "isNotNull"] },
+  lastChanged: { kind: "date", ops: ["newerThanDays", "olderThanDays", "before", "after"] },
+  endOfSupportDate: { kind: "date", ops: ["before", "after", "olderThanYears", "newerThanYears", "isNull", "isNotNull"] },
+  workLogItem: { kind: "workLogItem", ops: ITEM_OPS },
+  locationWorkLogItem: { kind: "workLogItem", ops: ITEM_OPS },
+} as const satisfies Record<ReportFilterField, { kind: ReportFilterKind; ops: readonly FilterOp[] }>;
+
+/** The ops a filter field allows; the first is the default when the field is picked. */
+export function allowedFilterOps(field: ReportFilterField): readonly FilterOp[] {
+  return REPORT_FILTER_FIELDS[field].ops;
+}
+
+/** Fields whose value is picked from a list of options rather than typed. */
+export type OptionFilterField = {
+  [F in ReportFilterField]: (typeof REPORT_FILTER_FIELDS)[F]["kind"] extends "reference" | "enum" | "workLogItem" ? F : never;
+}[ReportFilterField];
+
+export function isOptionFilterField(field: ReportFilterField): field is OptionFilterField {
+  const { kind } = REPORT_FILTER_FIELDS[field];
+  return kind === "reference" || kind === "enum" || kind === "workLogItem";
+}
+
+const RELATIVE_DATE_OPS: readonly FilterOp[] = ["olderThanYears", "newerThanYears", "newerThanDays", "olderThanDays"];
+
+/** The value control a filter needs: none (isNull/isNotNull), a list of options, or a typed input. */
+export function filterValueInput(field: ReportFilterField, op: FilterOp): "none" | "option" | "number" | "date" | "text" {
+  if (op === "isNull" || op === "isNotNull") return "none";
+  if (isOptionFilterField(field)) return "option";
+  if (REPORT_FILTER_FIELDS[field].kind === "date") return RELATIVE_DATE_OPS.includes(op) ? "number" : "date";
+  return "text";
+}
+
+const reportFilterSchema = z
+  .object({
+    field: filterFieldSchema,
+    op: filterOpSchema,
+    value: z.string().max(500).optional(),
+  })
+  .superRefine((filter, ctx) => {
+    if (!allowedFilterOps(filter.field).includes(filter.op)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["op"],
+        message: `Filter op "${filter.op}" is not allowed for field "${filter.field}"`,
+      });
+    }
+  });
 
 const groupBySchema = z.enum([
   "type",

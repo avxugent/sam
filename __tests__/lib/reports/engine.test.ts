@@ -489,6 +489,28 @@ describe("translateFilters() — NIS2 fields", () => {
     });
   });
 
+  it("criticality neq negates the effective-level match", () => {
+    expect(translateFilters([{ field: "criticality", op: "neq", value: "LOW" }])).toEqual({
+      AND: [{ NOT: { OR: [{ criticality: "LOW" }, { criticality: null, type: { defaultCriticality: "LOW" } }] } }],
+    });
+  });
+
+  it("model filters match the model's name, or the model link for isNull/isNotNull", () => {
+    expect(translateFilters([{ field: "model", op: "eq", value: "X1" }])).toEqual({ AND: [{ model: { name: "X1" } }] });
+    expect(translateFilters([{ field: "model", op: "neq", value: "X1" }])).toEqual({
+      AND: [{ model: { isNot: { name: "X1" } } }],
+    });
+    expect(translateFilters([{ field: "model", op: "isNull" }])).toEqual({ AND: [{ modelId: null }] });
+    expect(translateFilters([{ field: "model", op: "isNotNull" }])).toEqual({ AND: [{ modelId: { not: null } }] });
+    expect(translateFilters([{ field: "model", op: "eq" }])).toEqual({});
+  });
+
+  it("serialNumber contains is a text match", () => {
+    expect(translateFilters([{ field: "serialNumber", op: "contains", value: "AB" }])).toEqual({
+      AND: [{ serialNumber: { contains: "AB" } }],
+    });
+  });
+
   it("ignores an invalid criticality value (never widens the result set)", () => {
     expect(translateFilters([{ field: "criticality", op: "eq", value: "EXTREME" }])).toEqual({});
     expect(translateFilters([{ field: "criticality", op: "neq", value: "" }])).toEqual({});

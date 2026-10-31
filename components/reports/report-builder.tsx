@@ -20,28 +20,8 @@ import { isLocationReport } from "@/lib/reports/types";
 import { apiErrorMessage } from "@/lib/utils";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { allowedFilterOps, filterValueInput, isOptionFilterField, type OptionFilterField } from "@/lib/schemas/report";
 
-
-const FIELD_OPS: Record<ReportFilterField, FilterOp[]> = {
-  typeId: ["eq", "neq", "isNull", "isNotNull"],
-  manufacturerId: ["eq", "neq", "isNull", "isNotNull"],
-  locationId: ["eq", "neq", "isNull", "isNotNull"],
-  status: ["eq", "neq"],
-  model: ["eq", "neq", "contains", "isNull", "isNotNull"],
-  serialNumber: ["eq", "neq", "contains", "isNull", "isNotNull"],
-  hostname: ["eq", "neq", "contains", "isNull", "isNotNull"],
-  installationDate: ["before", "after", "olderThanYears", "newerThanYears", "isNull", "isNotNull"],
-  invoiceDate: ["before", "after", "isNull", "isNotNull"],
-  lastChanged: ["newerThanDays", "olderThanDays", "before", "after"],
-  workLogItem: ["hasItem", "notHasItem"],
-  locationWorkLogItem: ["hasItem", "notHasItem"],
-  supplierId: ["eq", "neq", "isNull", "isNotNull"],
-  criticality: ["eq", "neq", "isNull", "isNotNull"],
-  endOfSupportDate: ["before", "after", "olderThanYears", "newerThanYears", "isNull", "isNotNull"],
-};
-
-
-const OPS_NEEDING_VALUE: FilterOp[] = ["eq", "neq", "contains", "before", "after", "olderThanYears", "newerThanYears", "newerThanDays", "olderThanDays", "hasItem", "notHasItem"];
 
 type AssetOption = { id: string; name: string };
 
@@ -209,11 +189,11 @@ export function ReportBuilder({
         if (idx !== i) return f;
         const updated = { ...f, ...patch };
         if (patch.field) {
-          const ops = FIELD_OPS[updated.field];
+          const ops = allowedFilterOps(updated.field);
           if (!ops.includes(updated.op)) updated.op = ops[0];
           updated.value = "";
         }
-        if (patch.op && !OPS_NEEDING_VALUE.includes(patch.op as FilterOp)) {
+        if (patch.op && filterValueInput(updated.field, patch.op) === "none") {
           updated.value = undefined;
         }
         return updated;
@@ -227,23 +207,16 @@ export function ReportBuilder({
     );
   }
 
-  function valueInputType(field: ReportFilterField, op: FilterOp): "text" | "number" | "date" | "none" {
-    if (!OPS_NEEDING_VALUE.includes(op)) return "none";
-    if (op === "olderThanYears" || op === "newerThanYears" || op === "newerThanDays" || op === "olderThanDays") return "number";
-    if (field === "installationDate" || field === "invoiceDate" || field === "lastChanged" || field === "endOfSupportDate") return "date";
-    return "text";
-  }
-
-  function optionsForField(field: ReportFilterField): AssetOption[] | null {
-    if (field === "typeId") return assetTypes;
-    if (field === "manufacturerId") return manufacturers;
-    if (field === "locationId") return locations;
-    if (field === "status") return assetStatusOptions;
-    if (field === "workLogItem" || field === "locationWorkLogItem") return workLogItems;
-    if (field === "supplierId") return suppliers;
-    if (field === "criticality") return criticalityOptions;
-    return null;
-  }
+  const fieldOptions: Record<OptionFilterField, AssetOption[]> = {
+    typeId: assetTypes,
+    manufacturerId: manufacturers,
+    locationId: locations,
+    supplierId: suppliers,
+    status: assetStatusOptions,
+    criticality: criticalityOptions,
+    workLogItem: workLogItems,
+    locationWorkLogItem: workLogItems,
+  };
 
   async function handleSave() {
     if (!name.trim()) {
@@ -491,9 +464,9 @@ export function ReportBuilder({
 
         <div className="space-y-2">
           {filters.map((f, i) => {
-            const availableOps = FIELD_OPS[f.field];
-            const inputType = valueInputType(f.field, f.op);
-            const options = optionsForField(f.field);
+            const availableOps = allowedFilterOps(f.field);
+            const inputType = filterValueInput(f.field, f.op);
+            const options = isOptionFilterField(f.field) ? fieldOptions[f.field] : null;
 
             return (
               <div key={i} className="flex items-center gap-2 flex-wrap">
@@ -533,7 +506,7 @@ export function ReportBuilder({
                     </Select>
                   ) : (
                     <Input
-                      type={inputType}
+                      type={inputType === "option" ? "text" : inputType}
                       value={f.value ?? ""}
                       onChange={(e) => updateFilter(i, { value: e.target.value })}
                       placeholder={inputType === "number" ? "e.g. 5" : ""}

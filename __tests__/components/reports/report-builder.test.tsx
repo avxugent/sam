@@ -80,6 +80,26 @@ describe("<ReportBuilder />", () => {
     expect(screen.getAllByRole("combobox").length).toBeGreaterThanOrEqual(3);
   });
 
+  it("picks the value control from the filter field's kind and op", () => {
+    const { container } = renderBuilder({
+      initialDefinition: {
+        filters: [
+          { field: "installationDate", op: "olderThanYears", value: "5" },
+          { field: "invoiceDate", op: "before", value: "2024-01-01" },
+          { field: "hostname", op: "contains", value: "web" },
+          { field: "serialNumber", op: "isNull" },
+        ],
+        groupBy: "none",
+        columns: ["model"],
+      },
+    });
+    expect(screen.getByRole("spinbutton")).toHaveValue(5);
+    expect(container.querySelector('input[type="date"]')).toHaveValue("2024-01-01");
+    expect(screen.getByDisplayValue("web")).toHaveAttribute("type", "text");
+    // isNull needs no value: 4 rows × (field + op) selects, and no option select
+    expect(screen.getAllByRole("combobox")).toHaveLength(8 + 2); // + report-type and group-by selects
+  });
+
   it("blocks save with a toast when the name is empty", async () => {
     const user = userEvent.setup();
     renderBuilder();

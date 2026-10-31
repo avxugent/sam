@@ -17,6 +17,7 @@ import type {
 } from "@/lib/reports/types";
 import { isLocationReport } from "@/lib/reports/types";
 import { toIsoDay } from "@/lib/dates";
+import { REPORT_FILTER_FIELDS } from "@/lib/schemas/report";
 
 function periodCutoff(count: number, unit: "days" | "months" | "years"): Date {
   const d = new Date();
@@ -93,100 +94,87 @@ function appliedStatus(f: ReportFilter): AssetStatus | null {
   return Object.values(AssetStatus).find((s) => s === f.value) ?? null;
 }
 
-export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInput {
-  const conditions: Prisma.AssetWhereInput[] = [];
+/** Effective criticality: the per-asset override wins, otherwise the asset type's default applies. */
+function criticalityCondition(op: ReportFilter["op"], value: string | undefined): Prisma.AssetWhereInput | null {
+  // Validate the value against the enum so a bad value can never widen the
+  // result set (status precedent).
+  const level = value ? parseCriticality(value) : null;
+  const unclassified: Prisma.AssetWhereInput = {
+    criticality: null,
+    OR: [{ typeId: null }, { type: { defaultCriticality: null } }],
+  };
+  const hasLevel: Prisma.AssetWhereInput | null = level && {
+    OR: [
+      { criticality: level },
+      { criticality: null, type: { defaultCriticality: level } },
+    ],
+  };
+  if (op === "eq" && hasLevel) return hasLevel;
+  if (op === "neq" && hasLevel) return { NOT: hasLevel };
+  if (op === "isNull") return unclassified;
+  if (op === "isNotNull") return { NOT: unclassified };
+  return null;
+}
 
-  for (const f of filters) {
-    const { field, op, value } = f;
+function statusCondition(f: ReportFilter): Prisma.AssetWhereInput | null {
+  const status = appliedStatus(f);
+  if (status && f.op === "eq") return { status };
+  if (status && f.op === "neq") return { status: { not: status } };
+  return null;
+}
 
-    if (field === "typeId" || field === "manufacturerId" || field === "locationId" || field === "supplierId") {
-      const condition = scalarCondition(field, op, value);
-      if (condition) conditions.push(condition);
-      continue;
-    }
+/** The model is a relation: text ops match its name, isNull/isNotNull the link itself. */
+function modelCondition(op: ReportFilter["op"], value: string | undefined): Prisma.AssetWhereInput | null {
+  if (op === "isNull") return { modelId: null };
+  if (op === "isNotNull") return { modelId: { not: null } };
+  if (!value) return null;
+  if (op === "eq") return { model: { name: value } };
+  if (op === "neq") return { model: { isNot: { name: value } } };
+  if (op === "contains") return { model: { name: { contains: value } } };
+  return null;
+}
 
-    if (field === "criticality") {
-      // Effective semantics: the per-asset override wins, otherwise the asset
-      // type's default applies. Validate the value against the enum so a bad
-      // value can never widen the result set (status-branch precedent).
-      const level = value ? parseCriticality(value) : null;
-      const unclassified: Prisma.AssetWhereInput = {
-        criticality: null,
-        OR: [{ typeId: null }, { type: { defaultCriticality: null } }],
-      };
-      if (op === "eq" && level) {
-        conditions.push({
-          OR: [
-            { criticality: level },
-            { criticality: null, type: { defaultCriticality: level } },
-          ],
-        });
-      } else if (op === "neq" && level) {
-        conditions.push({
-          NOT: {
-            OR: [
-              { criticality: level },
-              { criticality: null, type: { defaultCriticality: level } },
-            ],
-          },
-        });
-      } else if (op === "isNull") {
-        conditions.push(unclassified);
-      } else if (op === "isNotNull") {
-        conditions.push({ NOT: unclassified });
-      }
-      continue;
-    }
+/**
+ * "filled in" = at least one work-log entry referencing this item; "not filled
+ * in" = none. workLogItem checks the asset's own entries (combine with a typeId
+ * filter to track a work task across all assets of one type);
+ * locationWorkLogItem checks the entries of the asset's *location* — e.g.
+ * "Recorders in a room where this fixed task hasn't been logged", whether or
+ * not the entry names a specific asset.
+ */
+function workLogItemCondition(
+  field: ReportFilter["field"],
+  op: ReportFilter["op"],
+  value: string | undefined
+): Prisma.AssetWhereInput | null {
+  if (!value || (op !== "hasItem" && op !== "notHasItem")) return null;
+  const workLogs = op === "hasItem" ? { some: { itemId: value } } : { none: { itemId: value } };
+  return field === "locationWorkLogItem" ? { location: { workLogs } } : { workLogs };
+}
 
-    if (field === "status") {
-      const status = appliedStatus(f);
-      if (status && op === "eq") conditions.push({ status });
-      else if (status && op === "neq") conditions.push({ status: { not: status } });
-      continue;
-    }
-
-    if (field === "serialNumber" || field === "hostname") {
-      const condition = scalarCondition(field, op, value, { text: true });
-      if (condition) conditions.push(condition);
-      continue;
-    }
-
-    if (field === "model") {
-      if (op === "eq" && value) conditions.push({ model: { name: value } });
-      else if (op === "neq" && value) conditions.push({ model: { isNot: { name: value } } });
-      else if (op === "contains" && value) conditions.push({ model: { name: { contains: value } } });
-      else if (op === "isNull") conditions.push({ modelId: null });
-      else if (op === "isNotNull") conditions.push({ modelId: { not: null } });
-      continue;
-    }
-
-    if (field === "workLogItem") {
-      // "filled in" = the asset has at least one work-log entry referencing
-      // this item; "not filled in" = it has none. Combine with a typeId filter
-      // to track a work task across all assets of one type.
-      if (op === "hasItem" && value) conditions.push({ workLogs: { some: { itemId: value } } });
-      else if (op === "notHasItem" && value) conditions.push({ workLogs: { none: { itemId: value } } });
-      continue;
-    }
-
-    if (field === "locationWorkLogItem") {
-      // Same as workLogItem, but checks work-log entries against the asset's
-      // *location* rather than the asset itself — e.g. "Recorders in a room
-      // where this fixed task hasn't been logged", regardless of whether the
-      // log entry names a specific asset or is location-wide.
-      if (op === "hasItem" && value) conditions.push({ location: { workLogs: { some: { itemId: value } } } });
-      else if (op === "notHasItem" && value) conditions.push({ location: { workLogs: { none: { itemId: value } } } });
-      continue;
-    }
-
-    if (field === "lastChanged" || field === "installationDate" || field === "invoiceDate" || field === "endOfSupportDate") {
+/** One filter's where clause, dispatched on its field's kind; null adds no condition. */
+function filterCondition(f: ReportFilter): Prisma.AssetWhereInput | null {
+  const { field, op, value } = f;
+  switch (REPORT_FILTER_FIELDS[field].kind) {
+    case "reference":
+      return scalarCondition(field, op, value);
+    case "enum":
+      return field === "status" ? statusCondition(f) : criticalityCondition(op, value);
+    case "text":
+      return field === "model" ? modelCondition(op, value) : scalarCondition(field, op, value, { text: true });
+    case "date": {
       const column = field === "lastChanged" ? "updatedAt" : field;
-      const condition = dateCondition(column, op, value) ?? scalarCondition(column, op, undefined);
-      if (condition) conditions.push(condition);
-      continue;
+      return dateCondition(column, op, value) ?? scalarCondition(column, op, undefined);
     }
+    case "workLogItem":
+      return workLogItemCondition(field, op, value);
   }
+}
 
+export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInput {
+  const conditions = filters
+    .map(filterCondition)
+    .filter((c): c is Prisma.AssetWhereInput => c !== null);
   return conditions.length === 0 ? {} : { AND: conditions };
 }
 

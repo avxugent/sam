@@ -88,3 +88,61 @@ jobs:
           name: coverage-report
           path: coverage/
           retention-days: 14
+
+  integration:
+    name: Integration tests (MySQL)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: samdb
+          MYSQL_USER: sam
+          MYSQL_PASSWORD: test
+        ports:
+          - 3306:3306
+        # Over TCP, so the init-time server (started with --skip-networking)
+        # does not count as healthy.
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
+    env:
+      DB_HOST: "127.0.0.1"
+      DB_PORT: "3306"
+      DB_NAME: "samdb"
+      DB_USER: "sam"
+      DB_PASSWORD: "test"
+      DB_SSL: "false"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # caching_sha2_password without TLS rejects a user's first login after a
+      # server start ("RSA public key is not available"); one login over the
+      # socket warms the server's auth cache for the MariaDB driver.
+      - name: Warm up MySQL auth cache
+        run: docker exec ${{ job.services.mysql.id }} mysql -u sam -ptest samdb -e "SELECT 1"
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Run integration tests
+        run: npm run test:integration

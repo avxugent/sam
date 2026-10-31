@@ -7,6 +7,7 @@ import { auditChanges } from "@/lib/audit/diff";
 import { isAdmin } from "@/lib/permissions";
 import { updateUserSchema } from "@/lib/schemas/user";
 import { invalidInput, isUniqueConstraintError, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import type { Prisma } from "@/generated/prisma/client";
 
 export async function PUT(
   req: NextRequest,
@@ -35,7 +36,7 @@ export async function PUT(
   }
 
   const { password, ...data } = parsed.data;
-  const updateData: Record<string, unknown> = { ...data };
+  const updateData: Prisma.UserUpdateInput = { ...data };
 
   if (password) {
     // Cannot set password for SSO users

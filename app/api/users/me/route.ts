@@ -6,6 +6,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 import { LOCATION_TABS, THEMES } from "@/lib/users/preferences";
+import type { Prisma } from "@/generated/prisma/client";
 
 const schema = z.object({
   name: z.string().min(1).max(128).optional(),
@@ -51,7 +52,7 @@ export async function PATCH(req: NextRequest) {
   });
   if (!user) return notFoundResponse("User");
 
-  const updateData: Record<string, unknown> = {};
+  const updateData: Prisma.UserUpdateInput = {};
 
   if (name !== undefined) {
     updateData.name = name;

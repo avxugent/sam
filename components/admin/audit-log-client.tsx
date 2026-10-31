@@ -7,14 +7,15 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
 import { SortableTh } from "@/components/ui/sortable-th";
-import type { AuditEntityType } from "@/lib/audit";
+import type { AuditAction, AuditEntityType } from "@/lib/audit";
+import type { AuditChanges } from "@/lib/audit/diff";
 
 type AuditLog = {
   id: string;
   timestamp: string | Date;
   userId: string | null;
   userEmail: string | null;
-  action: string;
+  action: AuditAction;
   entityType: AuditEntityType;
   entityId: string | null;
   entityName: string | null;
@@ -22,7 +23,7 @@ type AuditLog = {
   ipAddress: string | null;
 };
 
-const ACTION_COLORS: Record<string, string> = {
+const ACTION_COLORS: Record<AuditAction, string> = {
   CREATE: "bg-[#dcfce7] text-[#16a34a]",
   UPDATE: "bg-info-surface text-[#1d4ed8]",
   DELETE: "bg-[#fee2e2] text-destructive",
@@ -35,9 +36,9 @@ const ACTION_COLORS: Record<string, string> = {
 
 type SortCol = "timestamp" | "user" | "action" | "entity";
 
-function ActionBadge({ action }: { action: string }) {
+function ActionBadge({ action }: { action: AuditAction }) {
   return (
-    <span className={cn("inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-[5px]", ACTION_COLORS[action] ?? "bg-muted text-muted-foreground")}>
+    <span className={cn("inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-[5px]", ACTION_COLORS[action])}>
       {action}
     </span>
   );
@@ -51,7 +52,7 @@ function DetailRenderer({ detail }: { detail: string }) {
   }
   const obj = parsed as Record<string, unknown>;
   if (obj.changes && typeof obj.changes === "object" && obj.changes !== null) {
-    const changes = obj.changes as Record<string, { from: unknown; to: unknown }>;
+    const changes = obj.changes as AuditChanges;
     return (
       <table className="text-[12px] border-separate border-spacing-y-[2px]">
         <tbody>

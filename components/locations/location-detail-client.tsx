@@ -92,11 +92,9 @@ export function LocationDetailClient({
   defaultTab = "assets",
   hostnameUrlTemplate,
   locationUrlTemplate,
-  macAddressUrlTemplate,
   workLogs = [],
   users = [],
   workLogItems = [],
-  jiraEnabled = false,
   jiraBaseUrl = null,
 }: {
   location: Location;
@@ -109,11 +107,9 @@ export function LocationDetailClient({
   defaultTab?: string;
   hostnameUrlTemplate?: string | null;
   locationUrlTemplate?: string | null;
-  macAddressUrlTemplate?: string | null;
   workLogs?: WorkLogEntry[];
   users?: WorkLogUserOption[];
   workLogItems?: WorkLogItemOption[];
-  jiraEnabled?: boolean;
   jiraBaseUrl?: string | null;
 }) {
   const router = useRouter();
@@ -481,7 +477,7 @@ export function LocationDetailClient({
               {showLocation ? t("allAssetsIn", { name: location.name }) : t("assetsIn", { name: location.name })}
             </h2>
           </div>
-          <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} hostnameUrlTemplate={hostnameUrlTemplate} macAddressUrlTemplate={macAddressUrlTemplate} />
+          <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} hostnameUrlTemplate={hostnameUrlTemplate} />
         </TabsContent>
 
         <TabsContent value="sublocations" className="mt-4">

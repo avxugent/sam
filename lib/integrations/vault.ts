@@ -152,6 +152,17 @@ async function getVaultToken(): Promise<string | null> {
   return null;
 }
 
+/**
+ * Result of reading a secret. "missing": nothing at that path. "denied": the
+ * token may not read it. "unavailable": Vault is not configured, unreachable,
+ * or the login failed.
+ */
+export type VaultRead<T> =
+  | { status: "found"; value: T }
+  | { status: "missing" }
+  | { status: "denied" }
+  | { status: "unavailable" };
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -161,19 +172,17 @@ async function getVaultToken(): Promise<string | null> {
  * this function inserts it automatically.
  * e.g. pass "secret/av/rectest001", not "secret/data/av/rectest001".
  *
- * Returns null on any error (connection failure, 404, wrong token, etc.)
- * so that callers can degrade gracefully.
+ * Never throws: a missing secret, a refused token and an unreachable or
+ * unconfigured Vault are reported as distinct results.
  */
-export async function readVaultSecret(
-  path: string
-): Promise<VaultSecretData | null> {
-  if (!isVaultConfigured()) return null;
+export async function readVaultSecret(path: string): Promise<VaultRead<VaultSecretData>> {
+  if (!isVaultConfigured()) return { status: "unavailable" };
 
   const addr = process.env.VAULT_ADDR!.replace(/\/$/, "");
   const version = (process.env.VAULT_KV_VERSION ?? "v2").toLowerCase();
 
   const token = await getVaultToken();
-  if (!token) return null;
+  if (!token) return { status: "unavailable" };
 
   // For KV v2, inject "data/" into the path after the mount point.
   // We do this by splitting on the first "/":
@@ -203,17 +212,19 @@ export async function readVaultSecret(
       cache: "no-store",
     });
 
+    if (res.status === 404) {
+      console.warn(`[vault] Secret not found at path: ${path}`);
+      return { status: "missing" };
+    }
+    if (res.status === 403) {
+      console.warn(`[vault] Access denied for path: ${path}`);
+      // Invalidate the AppRole token cache so the next call re-authenticates
+      _tokenCache = null;
+      return { status: "denied" };
+    }
     if (!res.ok) {
-      if (res.status === 404) {
-        console.warn(`[vault] Secret not found at path: ${path}`);
-      } else if (res.status === 403) {
-        console.warn(`[vault] Access denied for path: ${path}`);
-        // Invalidate the AppRole token cache so the next call re-authenticates
-        _tokenCache = null;
-      } else {
-        console.warn(`[vault] HTTP ${res.status} reading path: ${path}`);
-      }
-      return null;
+      console.warn(`[vault] HTTP ${res.status} reading path: ${path}`);
+      return { status: "unavailable" };
     }
 
     const body = await res.json() as {
@@ -222,15 +233,14 @@ export async function readVaultSecret(
 
     // KV v2 wraps the data: { data: { data: { key: val } } }
     // KV v1 has: { data: { key: val } }
-    if (version === "v2") {
-      const inner = (body.data as { data?: VaultSecretData } | undefined)?.data;
-      return inner ?? null;
-    } else {
-      return (body.data as VaultSecretData | undefined) ?? null;
-    }
+    const data = version === "v2"
+      ? (body.data as { data?: VaultSecretData } | undefined)?.data
+      : (body.data as VaultSecretData | undefined);
+    // A KV v2 secret whose latest version is deleted answers 200 without data.
+    return data ? { status: "found", value: data } : { status: "missing" };
   } catch (err) {
     console.warn(`[vault] Failed to read secret at path "${path}":`, err);
-    return null;
+    return { status: "unavailable" };
   }
 }
 
@@ -239,10 +249,7 @@ export async function readVaultSecret(
  * Used by the UI "Test" button to verify a path is correct without
  * exposing secret values.
  */
-export async function listVaultSecretKeys(
-  path: string
-): Promise<string[] | null> {
+export async function listVaultSecretKeys(path: string): Promise<VaultRead<string[]>> {
   const secret = await readVaultSecret(path);
-  if (!secret) return null;
-  return Object.keys(secret);
+  return secret.status === "found" ? { status: "found", value: Object.keys(secret.value) } : secret;
 }

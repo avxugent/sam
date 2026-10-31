@@ -56,7 +56,7 @@ export function Forced2FASetupClient() {
 
     // Session cookie re-issued by the enable route — full navigation picks it up.
     setStep("done");
-    window.location.href = "/";
+    window.location.replace("/");
   }
 
   async function handlePasskeySetup() {
@@ -70,7 +70,7 @@ export function Forced2FASetupClient() {
     }
     // Session cookie re-issued by the verify route — full navigation picks it up.
     setStep("done");
-    window.location.href = "/";
+    window.location.replace("/");
   }
 
   if (step === "done") {
@@ -89,7 +89,7 @@ export function Forced2FASetupClient() {
                 <p className="text-sm text-muted-foreground max-w-xs">
                   {t("twoFactorEnabledDescription")}
                 </p>
-                <Button onClick={() => { window.location.href = "/"; }} className="mt-2">
+                <Button onClick={() => { window.location.replace("/"); }} className="mt-2">
                   {tCommon("continue")}
                 </Button>
               </div>

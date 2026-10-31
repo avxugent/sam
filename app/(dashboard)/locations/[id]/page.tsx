@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/locations/path";
 import { withInstalledQuantities } from "@/lib/locations/asset-quantities";
-import { isJiraConfigured } from "@/lib/integrations/jira";
+import { jiraBaseUrl } from "@/lib/integrations/jira";
 import { parseLocationTab } from "@/lib/user-preferences";
 import { ASSET_LIST_INCLUDE } from "@/lib/assets/include";
 import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
@@ -13,13 +13,11 @@ import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
 
 async function getUrlTemplates(): Promise<{
   hostnameUrlTemplate: string | null;
-  macAddressUrlTemplate: string | null;
   locationUrlTemplate: string | null;
 }> {
   const templates = await readGeneralSettings();
   return {
     hostnameUrlTemplate: templates.hostnameUrlTemplate || null,
-    macAddressUrlTemplate: templates.macAddressUrlTemplate || null,
     locationUrlTemplate: templates.locationUrlTemplate || null,
   };
 }
@@ -31,7 +29,7 @@ export default async function LocationPage({
 }) {
   const session = await auth();
   const { id } = await params;
-  const { hostnameUrlTemplate, macAddressUrlTemplate, locationUrlTemplate } = await getUrlTemplates();
+  const { hostnameUrlTemplate, locationUrlTemplate } = await getUrlTemplates();
 
   const userPref = session?.user?.id
     ? await prisma.user.findUnique({
@@ -102,7 +100,6 @@ export default async function LocationPage({
       showLocation={hasChildren}
       defaultTab={defaultTab}
       hostnameUrlTemplate={hostnameUrlTemplate}
-      macAddressUrlTemplate={macAddressUrlTemplate}
       locationUrlTemplate={locationUrlTemplate}
       workLogs={workLogs.map((w) => ({
         id: w.id,
@@ -115,8 +112,7 @@ export default async function LocationPage({
       }))}
       users={users.map((u) => ({ id: u.id, label: u.name + (u.email ? ` (${u.email})` : "") }))}
       workLogItems={workLogItems}
-      jiraEnabled={isJiraConfigured()}
-      jiraBaseUrl={process.env.JIRA_BASE_URL ?? null}
+      jiraBaseUrl={jiraBaseUrl()}
     />
   );
 }

@@ -321,5 +321,5 @@ All endpoints use Bearer token authentication (`Authorization: Bearer <PROMETHEU
 |---|---|---|---|
 | `GET` | `/api/setup` | public | Check if setup is needed (returns `userCount`) |
 | `POST` | `/api/setup` | public | Create first admin (only when `userCount === 0`) |
-| `GET` | `/api/jira/issue/[key]` | VIEWER | Fetch JIRA issue summary and status |
-| `GET` | `/api/vault/test` | EDITOR | Test Vault connection for an asset's vault path |
+| `GET` | `/api/jira/issue/[key]` | VIEWER | Fetch JIRA issue summary and status (`{ found: false }` for an unknown key; 502 `jiraUnavailable` when JIRA cannot be reached) |
+| `GET` | `/api/vault/test` | EDITOR | Test Vault connection for an asset's vault path (404 `vaultSecretMissing`; 502 `vaultDenied` / `vaultUnavailable`) |

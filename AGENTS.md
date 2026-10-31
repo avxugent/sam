@@ -98,7 +98,7 @@ lib/               — shared code; modules importing next/server are route-hand
   csv/             — CSV cell/parse core, inventory export, import row parsing, import lookups, upload reading
   export/          — JSON inventory snapshot (export route + backup script)
   hostname.ts      — hostname pattern/FQDN rules
-  integrations/    — HashiCorp Vault KV client, read-only Jira client (native fetch, never throw)
+  integrations/    — HashiCorp Vault KV client, read-only Jira client (native fetch, never throw; lookups report found / missing / unavailable)
   locations/       — path.ts: recursive-CTE tree queries (server); tree.ts: nesting/flattening a location tree (client-safe); asset-quantities.ts: installed-unit counts for the location page
   models/          — model clustering + name similarity
   prometheus/      — sam_* labels, scrape template renderer, per-brand/model template overrides
@@ -207,7 +207,7 @@ prisma/
 - `/api/prometheus/metrics` — Prometheus text format inventory metrics. No `prom-client` dependency — the format is built as a plain string.
 - `/api/assets/by-hostname` — Grafana Infinity datasource lookup. Accepts session cookie OR Bearer token.
 - Template syntax: newline-separated `key=value` pairs. Variables: `{hostname_fqdn}`, `{serial}`, `{model}`, `{manufacturer}`, `{fi_number}`, `{vault_path}` (the asset's Vault path reference, never the secret itself). Validated server-side via `validateTemplate()` in `lib/prometheus/scrape-template.ts`.
-- Vault client (`lib/integrations/vault.ts`) uses native `fetch`. Returns `null` on any error — never throws. It backs the Vault path check in the asset form (`/api/vault/test`, any role that can edit assets; it returns key names, never values); the SD endpoint only passes the non-secret `{vault_path}` reference and never reads Vault.
+- Vault client (`lib/integrations/vault.ts`) uses native `fetch`. Never throws: `readVaultSecret()` reports `found`, `missing`, `denied` or `unavailable`. It backs the Vault path check in the asset form (`/api/vault/test`, any role that can edit assets; it returns key names, never values); the SD endpoint only passes the non-secret `{vault_path}` reference and never reads Vault.
 
 ---
 

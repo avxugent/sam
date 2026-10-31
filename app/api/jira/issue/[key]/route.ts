@@ -18,10 +18,12 @@ export async function GET(
     return NextResponse.json({ error: "Invalid JIRA key format" }, { status: 400 });
   }
 
-  const issue = await fetchJiraIssue(key);
-  if (!issue) {
+  const lookup = await fetchJiraIssue(key);
+  if (lookup.status === "unavailable") {
+    return NextResponse.json({ error: "JIRA could not be reached.", code: "jiraUnavailable" }, { status: 502 });
+  }
+  if (lookup.status === "missing") {
     return NextResponse.json({ found: false, key });
   }
-
-  return NextResponse.json({ found: true, ...issue });
+  return NextResponse.json({ found: true, ...lookup.issue });
 }

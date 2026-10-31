@@ -50,7 +50,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
     // router.push() is insufficient here because the new Set-Cookie header from
     // the signIn() call inside the verify route may not arrive in time before
     // the proxy checks the session on the next request.
-    window.location.href = "/";
+    window.location.replace("/");
   }, [code, rememberMe, t]);
 
   const handlePasskey = useCallback(async () => {
@@ -76,7 +76,7 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
       }
 
       // Same hard-navigation rationale as the TOTP path above.
-      window.location.href = "/";
+      window.location.replace("/");
     } catch (err) {
       setError(
         err instanceof Error && err.name === "NotAllowedError"

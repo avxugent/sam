@@ -37,17 +37,17 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const keys = await listVaultSecretKeys(path);
-
-  if (keys === null) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: `Could not read secret at "${path}". Check the path and token permissions.`,
-      },
-      { status: 404 }
-    );
+  const result = await listVaultSecretKeys(path);
+  if (result.status === "missing") {
+    return NextResponse.json({ ok: false, error: `No secret found at "${path}".`, code: "vaultSecretMissing" }, { status: 404 });
   }
+  if (result.status === "denied") {
+    return NextResponse.json({ ok: false, error: `Vault refused access to "${path}". Check the token's policy.`, code: "vaultDenied" }, { status: 502 });
+  }
+  if (result.status === "unavailable") {
+    return NextResponse.json({ ok: false, error: "Vault could not be reached, or the login failed.", code: "vaultUnavailable" }, { status: 502 });
+  }
+  const keys = result.value;
 
   return NextResponse.json({
     ok: true,

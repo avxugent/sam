@@ -91,10 +91,10 @@ describe("readVaultSecret() — token auth", () => {
     setVaultEnv({ addr: "https://vault.example.com", token: "s.testtoken", version: "v2" });
   });
 
-  it("returns null when vault is not configured", async () => {
+  it("is unavailable when vault is not configured", async () => {
     setVaultEnv({});
     const result = await readVaultSecret("secret/av/device1");
-    expect(result).toBeNull();
+    expect(result).toEqual({ status: "unavailable" });
   });
 
   it("reads KV v2 secrets and returns the inner data map", async () => {
@@ -109,7 +109,7 @@ describe("readVaultSecret() — token auth", () => {
     } as Response);
 
     const result = await readVaultSecret("secret/av/device1");
-    expect(result).toEqual({ username: "admin", password: "hunter2" });
+    expect(result).toEqual({ status: "found", value: { username: "admin", password: "hunter2" } });
 
     // Verify the URL was constructed correctly for KV v2 (inserts "data/")
     const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
@@ -127,14 +127,14 @@ describe("readVaultSecret() — token auth", () => {
     } as Response);
 
     const result = await readVaultSecret("secret/av/device1");
-    expect(result).toEqual({ username: "admin" });
+    expect(result).toEqual({ status: "found", value: { username: "admin" } });
 
     const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(url).not.toContain("/data/data/");
     expect(url).toContain("/v1/secret/av/device1");
   });
 
-  it("returns null on 404 (secret not found)", async () => {
+  it("reports a 404 as missing", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
@@ -142,23 +142,23 @@ describe("readVaultSecret() — token auth", () => {
     } as Response);
 
     const result = await readVaultSecret("secret/missing");
-    expect(result).toBeNull();
+    expect(result).toEqual({ status: "missing" });
   });
 
-  it("returns null on 403 (permission denied)", async () => {
+  it("reports a 403 as denied", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 403,
       json: async () => ({}),
     } as Response);
     const result = await readVaultSecret("secret/forbidden");
-    expect(result).toBeNull();
+    expect(result).toEqual({ status: "denied" });
   });
 
-  it("returns null when fetch throws (network error)", async () => {
+  it("reports a network error as unavailable", async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("Network failure"));
     const result = await readVaultSecret("secret/device");
-    expect(result).toBeNull();
+    expect(result).toEqual({ status: "unavailable" });
   });
 });
 
@@ -193,7 +193,7 @@ describe("readVaultSecret() — AppRole auth", () => {
       } as Response);
 
     const result = await readVaultSecret("secret/av/device1");
-    expect(result).toEqual({ username: "admin", password: "s3cr3t" });
+    expect(result).toEqual({ status: "found", value: { username: "admin", password: "s3cr3t" } });
 
     const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls;
     // First call must be the AppRole login
@@ -232,7 +232,7 @@ describe("readVaultSecret() — AppRole auth", () => {
     expect(loginUrl).toContain("/v1/auth/custom-approle/login");
   });
 
-  it("returns null when AppRole login fails", async () => {
+  it("is unavailable when AppRole login fails", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 400,
@@ -240,23 +240,23 @@ describe("readVaultSecret() — AppRole auth", () => {
     } as Response);
 
     const result = await readVaultSecret("secret/device");
-    expect(result).toBeNull();
+    expect(result).toEqual({ status: "unavailable" });
   });
 
-  it("returns null when AppRole login response contains no client_token", async () => {
+  it("is unavailable when AppRole login response contains no client_token", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ auth: {} }),
     } as Response);
 
     const result = await readVaultSecret("secret/device");
-    expect(result).toBeNull();
+    expect(result).toEqual({ status: "unavailable" });
   });
 
-  it("returns null when the AppRole login fetch throws", async () => {
+  it("is unavailable when the AppRole login fetch throws", async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
     const result = await readVaultSecret("secret/device");
-    expect(result).toBeNull();
+    expect(result).toEqual({ status: "unavailable" });
   });
 
   it("prefers AppRole over VAULT_TOKEN when both are set", async () => {
@@ -304,18 +304,16 @@ describe("listVaultSecretKeys()", () => {
     } as Response);
 
     const keys = await listVaultSecretKeys("secret/device");
-    expect(keys).toContain("username");
-    expect(keys).toContain("password");
-    expect(keys).toHaveLength(2);
+    expect(keys).toEqual({ status: "found", value: ["username", "password"] });
   });
 
-  it("returns null when the secret does not exist", async () => {
+  it("reports a secret that does not exist as missing", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
     } as Response);
     const keys = await listVaultSecretKeys("secret/missing");
-    expect(keys).toBeNull();
+    expect(keys).toEqual({ status: "missing" });
   });
 });
 

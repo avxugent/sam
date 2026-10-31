@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -329,8 +330,8 @@ export function CsvImportClient() {
               <Button variant="outline" onClick={reset}>
                 {t("importAnother")}
               </Button>
-              <Button onClick={() => window.location.href = "/"}>
-                {t("goToLocations")}
+              <Button asChild>
+                <Link href="/">{t("goToLocations")}</Link>
               </Button>
             </div>
           </CardContent>

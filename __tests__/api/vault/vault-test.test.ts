@@ -34,15 +34,25 @@ describe("GET /api/vault/test", () => {
     expect(listVaultSecretKeys).not.toHaveBeenCalled();
   });
 
-  it("404 when the secret cannot be read", async () => {
-    vi.mocked(listVaultSecretKeys).mockResolvedValue(null);
+  it.each([
+    ["denied", 502, "vaultDenied"],
+    ["unavailable", 502, "vaultUnavailable"],
+  ] as const)("reports a %s read as %i %s", async (status, httpStatus, code) => {
+    vi.mocked(listVaultSecretKeys).mockResolvedValue({ status });
+    const res = await get("?path=secret/av/rec01");
+    expect(res.status).toBe(httpStatus);
+    expect((await res.json()).code).toBe(code);
+  });
+
+  it("404 when no secret exists at the path", async () => {
+    vi.mocked(listVaultSecretKeys).mockResolvedValue({ status: "missing" });
     const res = await get();
     expect(res.status).toBe(404);
     expect((await res.json()).ok).toBe(false);
   });
 
   it("returns the key names only, never values", async () => {
-    vi.mocked(listVaultSecretKeys).mockResolvedValue(["username", "password"]);
+    vi.mocked(listVaultSecretKeys).mockResolvedValue({ status: "found", value: ["username", "password"] });
     const res = await get();
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({

@@ -7,8 +7,9 @@
  *   JIRA_API_TOKEN   — Atlassian API token from
  *                      https://id.atlassian.com/manage-profile/security/api-tokens (required)
  *
- * All public functions return null on any error so callers can degrade
- * gracefully — a JIRA outage must never break the location page.
+ * Nothing here throws: a lookup reports a JIRA outage as "unavailable" so
+ * callers can degrade gracefully — a JIRA outage must never break the
+ * location page.
  */
 
 export type JiraStatusCategory = "todo" | "in-progress" | "done" | "unknown";
@@ -35,10 +36,26 @@ export function isValidJiraKey(key: string): boolean {
   return JIRA_KEY_REGEX.test(key);
 }
 
-export function jiraIssueUrl(key: string): string | null {
-  if (!process.env.JIRA_BASE_URL || !isValidJiraKey(key)) return null;
-  return `${process.env.JIRA_BASE_URL.replace(/\/$/, "")}/browse/${key}`;
+/** JIRA_BASE_URL without a trailing slash, or null when unset. */
+export function jiraBaseUrl(): string | null {
+  return process.env.JIRA_BASE_URL?.replace(/\/$/, "") || null;
 }
+
+export function jiraIssueUrl(key: string): string | null {
+  const base = jiraBaseUrl();
+  if (!base || !isValidJiraKey(key)) return null;
+  return `${base}/browse/${key}`;
+}
+
+/**
+ * Result of an issue lookup. "missing": JIRA does not know the key.
+ * "unavailable": not configured, unreachable or refusing our credentials;
+ * never cached, so the next request tries again.
+ */
+export type JiraLookup =
+  | { status: "found"; issue: JiraIssue }
+  | { status: "missing" }
+  | { status: "unavailable" };
 
 function categorize(key: string | undefined): JiraStatusCategory {
   switch (key) {
@@ -59,9 +76,16 @@ function categorize(key: string | undefined): JiraStatusCategory {
 // fan out an API call per badge. The cache is per process — fine for single
 // node deployments and acceptable for clustered ones (each pod has its own).
 
-type CacheEntry = { value: JiraIssue | null; expiresAt: number };
+type CacheEntry = { value: Exclude<JiraLookup, { status: "unavailable" }>; expiresAt: number };
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
+
+/** Caches a lookup, dropping expired entries so the map only holds live keys. */
+function remember(key: string, value: CacheEntry["value"]): void {
+  const now = Date.now();
+  for (const [k, entry] of cache) if (entry.expiresAt <= now) cache.delete(k);
+  cache.set(key, { value, expiresAt: now + CACHE_TTL_MS });
+}
 
 export function _clearJiraCacheForTest(): void {
   cache.clear();
@@ -74,16 +98,16 @@ function basicAuthHeader(): string {
   return `Basic ${encoded}`;
 }
 
-export async function fetchJiraIssue(key: string): Promise<JiraIssue | null> {
-  if (!isJiraConfigured()) return null;
-  if (!isValidJiraKey(key)) return null;
+export async function fetchJiraIssue(key: string): Promise<JiraLookup> {
+  const base = jiraBaseUrl();
+  if (!isJiraConfigured() || !base) return { status: "unavailable" };
+  if (!isValidJiraKey(key)) return { status: "missing" };
 
   const cached = cache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;
   }
 
-  const base = process.env.JIRA_BASE_URL!.replace(/\/$/, "");
   const url = `${base}/rest/api/3/issue/${encodeURIComponent(key)}?fields=summary,status`;
 
   try {
@@ -96,12 +120,14 @@ export async function fetchJiraIssue(key: string): Promise<JiraIssue | null> {
       cache: "no-store",
     });
 
+    if (res.status === 404) {
+      remember(key, { status: "missing" });
+      return { status: "missing" };
+    }
     if (!res.ok) {
-      // 404 is an unknown key; anything else (401 bad token, 5xx) is an
-      // operator problem that would otherwise look the same.
-      if (res.status !== 404) console.warn(`[jira] HTTP ${res.status} fetching ${key}`);
-      cache.set(key, { value: null, expiresAt: Date.now() + CACHE_TTL_MS });
-      return null;
+      // 401 bad token, 5xx, …: an operator problem, not an unknown key.
+      console.warn(`[jira] HTTP ${res.status} fetching ${key}`);
+      return { status: "unavailable" };
     }
 
     const body = (await res.json()) as {
@@ -111,19 +137,20 @@ export async function fetchJiraIssue(key: string): Promise<JiraIssue | null> {
       };
     };
 
-    const issue: JiraIssue = {
-      key,
-      summary: body.fields?.summary ?? "",
-      status: body.fields?.status?.name ?? "Unknown",
-      statusCategory: categorize(body.fields?.status?.statusCategory?.key),
-      url: `${base}/browse/${key}`,
+    const lookup: JiraLookup = {
+      status: "found",
+      issue: {
+        key,
+        summary: body.fields?.summary ?? "",
+        status: body.fields?.status?.name ?? "Unknown",
+        statusCategory: categorize(body.fields?.status?.statusCategory?.key),
+        url: `${base}/browse/${key}`,
+      },
     };
-
-    cache.set(key, { value: issue, expiresAt: Date.now() + CACHE_TTL_MS });
-    return issue;
+    remember(key, lookup);
+    return lookup;
   } catch (err) {
     console.warn(`[jira] request for ${key} failed:`, err instanceof Error ? err.message : err);
-    cache.set(key, { value: null, expiresAt: Date.now() + CACHE_TTL_MS });
-    return null;
+    return { status: "unavailable" };
   }
 }

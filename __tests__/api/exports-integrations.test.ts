@@ -146,7 +146,7 @@ describe("GET /api/jira/issue/[key]", () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
     vi.mocked(isJiraConfigured).mockReturnValue(true);
     vi.mocked(isValidJiraKey).mockReturnValue(true);
-    vi.mocked(fetchJiraIssue).mockResolvedValue(null as never);
+    vi.mocked(fetchJiraIssue).mockResolvedValue({ status: "missing" });
     const res = await jiraIssue(req(), { params });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ found: false, key: "ABC-1" });
@@ -155,9 +155,18 @@ describe("GET /api/jira/issue/[key]", () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
     vi.mocked(isJiraConfigured).mockReturnValue(true);
     vi.mocked(isValidJiraKey).mockReturnValue(true);
-    vi.mocked(fetchJiraIssue).mockResolvedValue({ key: "ABC-1", summary: "Fix" } as never);
+    vi.mocked(fetchJiraIssue).mockResolvedValue({ status: "found", issue: { key: "ABC-1", summary: "Fix" } } as never);
     const res = await jiraIssue(req(), { params });
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ found: true, key: "ABC-1", summary: "Fix" });
+  });
+  it("answers 502 jiraUnavailable when JIRA cannot be reached", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER") as never);
+    vi.mocked(isJiraConfigured).mockReturnValue(true);
+    vi.mocked(isValidJiraKey).mockReturnValue(true);
+    vi.mocked(fetchJiraIssue).mockResolvedValue({ status: "unavailable" });
+    const res = await jiraIssue(req(), { params });
+    expect(res.status).toBe(502);
+    expect((await res.json()).code).toBe("jiraUnavailable");
   });
 });

@@ -49,17 +49,6 @@ export default defineConfig({
         "components/layout/app-footer.tsx",
         "components/layout/app-background.tsx",
         "components/attachments/attachment-gallery.tsx",
-        "components/admin/work-log-items-manager.tsx",
-        "components/admin/suppliers-client.tsx",
-        "components/admin/models-client.tsx",
-        "components/admin/manufacturers-client.tsx",
-        "components/admin/maintenance-presets-manager.tsx",
-        "components/admin/general-settings-client.tsx",
-        "components/admin/export-client.tsx",
-        "components/admin/compliance-settings-client.tsx",
-        "components/admin/branding-settings-client.tsx",
-        "components/admin/audit-log-client.tsx",
-        "components/admin/asset-types-client.tsx",
         // Tested only in part (specific flows) or only through a parent's
         // tests; not yet held to the line/branch threshold.
         "components/layout/header.tsx",

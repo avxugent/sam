@@ -96,6 +96,18 @@ type Props = {
   onSuccess?: () => void;
 };
 
+/** The form's starting values: the location being edited, or an empty one. */
+function formDefaults(initialData: Props["initialData"]): LocationFormValues {
+  return {
+    name: initialData?.name || "",
+    description: initialData?.description || "",
+    fiNumber: initialData?.fiNumber || "",
+    address: initialData?.address || "",
+    city: initialData?.city || "",
+    country: initialData?.country || "",
+  };
+}
+
 export function LocationFormDialog({
   mode,
   parentId,
@@ -107,7 +119,6 @@ export function LocationFormDialog({
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [fiRaw, setFiRaw] = useState(initialData?.fiNumber || "");
   const [mergeTarget, setMergeTarget] = useState<{ id: string; name: string } | null>(null);
   const [merging, setMerging] = useState(false);
   const t = useTranslations("locationForm");
@@ -126,14 +137,7 @@ export function LocationFormDialog({
     formState: { errors, isSubmitting },
   } = useForm<LocationFormValues>({
     resolver: zodResolver(validationSchema),
-    defaultValues: {
-      name: initialData?.name || "",
-      description: initialData?.description || "",
-      fiNumber: initialData?.fiNumber || "",
-      address: initialData?.address || "",
-      city: initialData?.city || "",
-      country: initialData?.country || "",
-    },
+    defaultValues: formDefaults(initialData),
   });
 
   const fiValue = useWatch({ control, name: "fiNumber" }) ?? "";
@@ -141,7 +145,6 @@ export function LocationFormDialog({
 
   function handleFiInput(e: React.ChangeEvent<HTMLInputElement>) {
     const formatted = autoFormatFiNumber(e.target.value);
-    setFiRaw(formatted);
     setValue("fiNumber", formatted, { shouldValidate: true });
   }
 
@@ -176,7 +179,6 @@ export function LocationFormDialog({
 
     toast({ title: mode === "create" ? tLoc("locationCreated") : tLoc("locationUpdated") });
     setOpen(false);
-    setFiRaw("");
     reset();
     router.refresh();
     onSuccess?.();
@@ -201,7 +203,6 @@ export function LocationFormDialog({
     toast({ title: tLoc("locationMerged") });
     setMergeTarget(null);
     setOpen(false);
-    setFiRaw("");
     reset();
     router.push(`/locations/${targetId}`);
     router.refresh();
@@ -212,15 +213,7 @@ export function LocationFormDialog({
     setOpen(v);
     if (v) {
       // Reset form to initial values when reopening
-      reset({
-        name: initialData?.name || "",
-        description: initialData?.description || "",
-        fiNumber: initialData?.fiNumber || "",
-        address: initialData?.address || "",
-        city: initialData?.city || "",
-        country: initialData?.country || "",
-      });
-      setFiRaw(initialData?.fiNumber || "");
+      reset(formDefaults(initialData));
     }
   }
 
@@ -272,7 +265,7 @@ export function LocationFormDialog({
             </Label>
             <Input
               id="loc-fi"
-              value={fiRaw}
+              value={fiValue}
               onChange={handleFiInput}
               placeholder={t("fiNumberPlaceholder")}
               className="font-mono"
@@ -304,7 +297,7 @@ export function LocationFormDialog({
                 </span>
               </div>
             )}
-            {!parsedFi && fiRaw.length > 0 && !errors.fiNumber && (
+            {!parsedFi && fiValue.length > 0 && !errors.fiNumber && (
               <p className="text-xs text-muted-foreground">
                 {t("fiNumberTypingHint")}
               </p>

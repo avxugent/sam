@@ -62,6 +62,22 @@ type Props = {
   onSuccess?: () => void;
 };
 
+/** The form's starting values: the item being edited, or an empty new item. */
+function formDefaults(initialData: StockItemInitialData | undefined): StockItemFormValues {
+  return {
+    quantity: initialData?.quantity ?? 1,
+    typeId: initialData?.typeId ?? "",
+    manufacturerId: initialData?.manufacturerId ?? "",
+    modelId: initialData?.modelId ?? "",
+    serialNumber: initialData?.serialNumber ?? "",
+    notes: initialData?.notes ?? "",
+    locationId: initialData?.locationId ?? "",
+    invoiceNumber: initialData?.invoiceNumber ?? "",
+    invoiceDate: initialData?.invoiceDate ?? "",
+    macAddresses: initialData?.macAddresses.map((address) => ({ address })) ?? [],
+  };
+}
+
 export function StockItemFormDialog({ mode, itemId, initialData, children, onSuccess }: Props) {
   const router = useRouter();
   const { toast } = useToast();
@@ -100,9 +116,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const { locations } = useLocationOptions(open);
   // Initialised synchronously from prop so the value is ready before any fetch completes
-  const [selectedTypeId, setSelectedTypeId] = useState(initialData?.typeId ?? "");
-  const [selectedMfgId, setSelectedMfgId] = useState(initialData?.manufacturerId ?? "");
-  const [selectedLocationId, setSelectedLocationId] = useState(initialData?.locationId ?? "");
 
   const {
     register,
@@ -114,18 +127,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     formState: { errors, isSubmitting },
   } = useForm<StockItemFormValues>({
     resolver: zodResolver(validationSchema),
-    defaultValues: {
-      quantity: initialData?.quantity ?? 1,
-      typeId: initialData?.typeId ?? "",
-      manufacturerId: initialData?.manufacturerId ?? "",
-      modelId: initialData?.modelId ?? "",
-      serialNumber: initialData?.serialNumber ?? "",
-      notes: initialData?.notes ?? "",
-      locationId: initialData?.locationId ?? "",
-      invoiceNumber: initialData?.invoiceNumber ?? "",
-      invoiceDate: initialData?.invoiceDate ?? "",
-      macAddresses: initialData?.macAddresses.map((address) => ({ address })) ?? [],
-    },
+    defaultValues: formDefaults(initialData),
   });
 
   const { fields: macFields, append: appendMac, remove: removeMac } = useFieldArray({
@@ -134,6 +136,10 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   });
 
   const serialNumber = useWatch({ control, name: "serialNumber" });
+  // The form owns these; the pickers read them back.
+  const selectedTypeId = useWatch({ control, name: "typeId" }) ?? "";
+  const selectedMfgId = useWatch({ control, name: "manufacturerId" }) ?? "";
+  const selectedLocationId = useWatch({ control, name: "locationId" }) ?? "";
   const modelIdValue = useWatch({ control, name: "modelId" });
 
   useEffect(() => { setMounted(true); }, []);
@@ -158,7 +164,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     typeId: selectedTypeId,
     manufacturerId: selectedMfgId,
     onSelectionInvalid: () => {
-      setSelectedMfgId("");
       setValue("manufacturerId", "", { shouldValidate: false });
       setValue("modelId", "", { shouldValidate: false });
     },
@@ -167,10 +172,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   function handleClose() {
     setOpen(false);
     if (mode === "create") {
-      reset({ quantity: 1, typeId: "", manufacturerId: "", modelId: "", serialNumber: "", notes: "", locationId: "", invoiceNumber: "", invoiceDate: "", macAddresses: [] });
-      setSelectedTypeId("");
-      setSelectedMfgId("");
-      setSelectedLocationId("");
+      reset(formDefaults(undefined));
     }
   }
 
@@ -227,7 +229,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             <Select
               value={selectedTypeId}
               onValueChange={(v) => {
-                setSelectedTypeId(v);
                 setValue("typeId", v, { shouldValidate: true });
               }}
             >
@@ -250,7 +251,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             <Select
               value={selectedMfgId}
               onValueChange={(v) => {
-                setSelectedMfgId(v);
                 setValue("manufacturerId", v, { shouldValidate: true });
               }}
             >
@@ -290,7 +290,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
               locations={locations}
               selectedId={selectedLocationId}
               onSelect={(locationId) => {
-                setSelectedLocationId(locationId);
                 setValue("locationId", locationId, { shouldValidate: true });
               }}
               placeholder={t("selectLocation")}

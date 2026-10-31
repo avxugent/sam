@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,8 +49,14 @@ export function AssetTypesClient({
   const tCommon = useTranslations("common");
   const { toast } = useToast();
   const showApiError = useApiErrorToast();
+  const router = useRouter();
   const [types, setTypes] = useState(initialTypes);
   useEffect(() => { setTypes(initialTypes); }, [initialTypes]);
+  /** Shows a successful change at once, then reloads the server data (counts and other derived values) behind it. */
+  function applyChange(update: (current: typeof types) => typeof types) {
+    setTypes(update);
+    router.refresh();
+  }
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -89,7 +96,7 @@ export function AssetTypesClient({
       return;
     }
     const item = res.data;
-    setTypes((prev) =>
+    applyChange((prev) =>
       [...prev, item].sort(
         (a, b) => a.name.localeCompare(b.name)
       )
@@ -116,7 +123,7 @@ export function AssetTypesClient({
     }
     const updated: AssetType = res.data;
     const saved = Object.fromEntries(Object.keys(patch).map((key) => [key, updated[key as keyof AssetType]]));
-    setTypes((prev) =>
+    applyChange((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...saved } : item)).sort((a, b) => a.name.localeCompare(b.name))
     );
     return true;
@@ -139,7 +146,7 @@ export function AssetTypesClient({
     if (!mergeConflict) return;
     const result = await catalogMerge.merge(mergeConflict.editingId, mergeConflict.existingId);
     if (!result) return;
-    setTypes((prev) => prev.filter((x) => x.id !== mergeConflict.editingId));
+    applyChange((prev) => prev.filter((x) => x.id !== mergeConflict.editingId));
     setMergeConflict(null);
     setEditingId(null);
     toast({ title: t("typeMerged"), description: catalogMerge.summary(result) });
@@ -191,7 +198,7 @@ export function AssetTypesClient({
       showApiError(res.error);
       return;
     }
-    setTypes((prev) => prev.filter((i) => i.id !== id));
+    applyChange((prev) => prev.filter((i) => i.id !== id));
     toast({ title: t("typeDeleted") });
   }
 

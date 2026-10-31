@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,8 +31,14 @@ export function ManufacturersClient({
   const tCommon = useTranslations("common");
   const { toast } = useToast();
   const showApiError = useApiErrorToast();
+  const router = useRouter();
   const [items, setItems] = useState(initialManufacturers);
   useEffect(() => { setItems(initialManufacturers); }, [initialManufacturers]);
+  /** Shows a successful change at once, then reloads the server data (counts and other derived values) behind it. */
+  function applyChange(update: (current: typeof items) => typeof items) {
+    setItems(update);
+    router.refresh();
+  }
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -58,7 +65,7 @@ export function ManufacturersClient({
       return;
     }
     const item = res.data;
-    setItems((prev) =>
+    applyChange((prev) =>
       [...prev, item].sort((a, b) => a.name.localeCompare(b.name))
     );
     setNewName("");
@@ -79,7 +86,7 @@ export function ManufacturersClient({
       return;
     }
     const updated = res.data;
-    setItems((prev) =>
+    applyChange((prev) =>
       prev
         .map((i) => (i.id === id ? { ...i, name: updated.name } : i))
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -95,7 +102,7 @@ export function ManufacturersClient({
       setMergeConflict(null);
       return;
     }
-    setItems((prev) => prev.filter((i) => i.id !== mergeConflict.editingId));
+    applyChange((prev) => prev.filter((i) => i.id !== mergeConflict.editingId));
     setMergeConflict(null);
     setEditingId(null);
     toast({ title: t("manufacturerMerged"), description: catalogMerge.summary(result) });
@@ -107,7 +114,7 @@ export function ManufacturersClient({
       showApiError(res.error);
       return;
     }
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    applyChange((prev) => prev.filter((i) => i.id !== id));
     toast({ title: t("manufacturerDeleted") });
   }
 

@@ -3,6 +3,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const tFn = (key: string, values?: Record<string, unknown>) => (values?.name ? `${key}:${values.name}` : key);
+const { mockRefresh } = vi.hoisted(() => ({ mockRefresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
 vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
@@ -69,6 +71,7 @@ describe("UsersClient", () => {
     expect(url).toBe("/api/users");
     expect(JSON.parse(init.body)).toMatchObject({ name: "Bea Builder", email: "bea@example.com", role: "VIEWER", mustChangePassword: true });
     expect(mockToast).toHaveBeenCalledWith({ title: "userCreated" });
+    expect(mockRefresh).toHaveBeenCalled();
   });
 
   it("starts the next create with the default flags again", async () => {

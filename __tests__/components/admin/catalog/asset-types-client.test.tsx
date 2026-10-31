@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+const { mockRefresh } = vi.hoisted(() => ({ mockRefresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
 vi.mock("next-intl", () => {
   const t = (key: string, values?: Record<string, unknown>) => (values?.name ? `${key}:${values.name}` : key);
   t.rich = (key: string) => key;

@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+const { mockRefresh } = vi.hoisted(() => ({ mockRefresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     values ? `${key}(${Object.values(values).join(",")})` : key,
@@ -80,6 +82,7 @@ describe("ManufacturersClient", () => {
     expect(JSON.parse(init.body)).toEqual({ name: "Aardvark" });
     expect(input).toHaveValue("");
     expect(mockToast).toHaveBeenCalledWith({ title: "manufacturerCreated" });
+    expect(mockRefresh).toHaveBeenCalled(); // the server data (counts) catches up
   });
 
   it("creates on Enter and toasts an API error without changing the list", async () => {
@@ -207,6 +210,7 @@ describe("ManufacturersClient", () => {
     await waitFor(() => expect(names()).toEqual(["Acme", "Core"]));
     expect(mockFetch).toHaveBeenCalledWith("/api/manufacturers/m2", { method: "DELETE" });
     expect(mockToast).toHaveBeenCalledWith({ title: "manufacturerDeleted" });
+    expect(mockRefresh).toHaveBeenCalled();
   });
 
   it("blocks deleting a manufacturer that still has assets", async () => {

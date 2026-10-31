@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,12 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
   const showApiError = useApiErrorToast();
   const router = useRouter();
   const [suppliers, setSuppliers] = useState(initialSuppliers);
+  useEffect(() => { setSuppliers(initialSuppliers); }, [initialSuppliers]);
+  /** Shows a successful change at once, then reloads the server data (counts and other derived values) behind it. */
+  function applyChange(update: (current: typeof suppliers) => typeof suppliers) {
+    setSuppliers(update);
+    router.refresh();
+  }
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -77,7 +83,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
       return;
     }
     const created = res.data;
-    setSuppliers((prev) =>
+    applyChange((prev) =>
       [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
     );
     setNewName("");
@@ -119,7 +125,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
       return;
     }
     const updated = res.data;
-    setSuppliers((prev) =>
+    applyChange((prev) =>
       prev
         .map((s) => (s.id === id ? { ...s, ...updated } : s))
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -127,7 +133,6 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
     setExpandedId(null);
     setDraft(null);
     toast({ title: t("updated") });
-    router.refresh();
   }
 
   async function handleDelete(id: string) {
@@ -136,7 +141,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
       showApiError(res.error);
       return;
     }
-    setSuppliers((prev) => prev.filter((s) => s.id !== id));
+    applyChange((prev) => prev.filter((s) => s.id !== id));
     toast({ title: t("deleted") });
   }
 

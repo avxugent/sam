@@ -85,6 +85,11 @@ export function ModelsClient({
 
   const [models, setModels] = useState(initialModels);
   useEffect(() => { setModels(initialModels); }, [initialModels]);
+  /** Shows a successful change at once, then reloads the server data (counts and other derived values) behind it. */
+  function applyChange(update: (current: typeof models) => typeof models) {
+    setModels(update);
+    router.refresh();
+  }
   const [clusters, setClusters] = useState(initialClusters);
   useEffect(() => { setClusters(initialClusters); }, [initialClusters]);
 
@@ -198,7 +203,7 @@ export function ModelsClient({
       showApiError(res.error);
       return;
     }
-    setModels((prev) => prev.filter((m) => m.id !== id));
+    applyChange((prev) => prev.filter((m) => m.id !== id));
     toast({ title: t("modelDeleted") });
   }
 

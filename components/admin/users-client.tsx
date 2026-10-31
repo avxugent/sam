@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -102,8 +103,14 @@ export function UsersClient({
   const tAuth = useTranslations("auth");
   const { toast } = useToast();
   const showApiError = useApiErrorToast();
+  const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
   useEffect(() => { setUsers(initialUsers); }, [initialUsers]);
+  /** Shows a successful change at once, then reloads the server data (counts and other derived values) behind it. */
+  function applyChange(update: (current: typeof users) => typeof users) {
+    setUsers(update);
+    router.refresh();
+  }
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [sortCol, setSortCol] = useState<SortCol>("name");
@@ -146,7 +153,7 @@ export function UsersClient({
       return;
     }
     const user = res.data;
-    setUsers((prev) => [...prev, user].sort((a, b) => a.name.localeCompare(b.name)));
+    applyChange((prev) => [...prev, user].sort((a, b) => a.name.localeCompare(b.name)));
     setCreateOpen(false);
     createForm.reset(); // back to defaultValues, flags included
     toast({ title: t("userCreated") });
@@ -164,7 +171,7 @@ export function UsersClient({
       return;
     }
     const updated = res.data;
-    setUsers((prev) => prev.map((u) => (u.id === editUser.id ? updated : u)));
+    applyChange((prev) => prev.map((u) => (u.id === editUser.id ? updated : u)));
     setEditUser(null);
     toast({ title: t("userUpdated") });
   }
@@ -175,7 +182,7 @@ export function UsersClient({
       showApiError(res.error);
       return;
     }
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+    applyChange((prev) => prev.filter((u) => u.id !== id));
     toast({ title: t("userDeleted") });
   }
 
@@ -472,7 +479,7 @@ export function UsersClient({
                                 if (!res.ok) {
                                   showApiError(res.error);
                                 } else {
-                                  setUsers((prev) =>
+                                  applyChange((prev) =>
                                     prev.map((u) =>
                                       u.id === user.id ? { ...u, totpEnabled: false } : u
                                     )

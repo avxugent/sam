@@ -53,8 +53,6 @@ export default defineConfig({
         // tests; not yet held to the line/branch threshold.
         "components/layout/header.tsx",
         "components/layout/language-switcher.tsx",
-        "components/assets/asset-table.tsx",
-        "components/assets/asset-form-dialog.tsx",
         "components/admin/scrape-template-fields.tsx",
         "**/*.d.ts",
         "**/__tests__/**",

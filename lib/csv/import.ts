@@ -15,6 +15,7 @@ import { csvValue as v, parseDate, type CsvRow } from "@/lib/csv/core";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
 import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
+import { hasDeviceIdentity } from "@/lib/schemas/asset";
 import type { Criticality } from "@/generated/prisma/enums";
 
 
@@ -101,7 +102,7 @@ export function parseImportRow(row: CsvRow, userIdByEmail: Map<string, string>):
   // (no serial number, hostname, or MAC address).
   const serialNumber = v(row, "SERIAL") || null;
   const hostname = v(row, "IP_HOSTNAME") || null;
-  const hasIdentity = !!serialNumber || !!hostname || macAddresses.length > 0;
+  const hasIdentity = hasDeviceIdentity({ serialNumber, hostname, macCount: macAddresses.length });
   const quantityRaw = v(row, "QUANTITY");
   let quantity = 1;
   if (quantityRaw) {

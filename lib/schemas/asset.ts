@@ -20,7 +20,8 @@ const assetFields = z.object({
   manufacturerId: z.string().min(1, "Manufacturer is required"),
   modelId: z.string().min(1, "Model is required"),
   serialNumber: z.string().max(100).optional().nullable(),
-  hostname: z.string().max(255).optional().nullable(),
+  // Stored trimmed; a blank hostname is no hostname.
+  hostname: z.string().trim().max(255).transform((v) => v || null).optional().nullable(),
   quantity: z.number().int().min(1).max(9999),
   installationDate: z.string().optional().nullable(),
   invoiceNumber: z.string().max(100).optional().nullable(),
@@ -42,9 +43,20 @@ type IdentityFields = {
   quantity?: number;
 };
 
+/**
+ * A serial, hostname or MAC identifies one physical device, so such an asset
+ * has quantity 1. Shared by these schemas, the asset update route (which
+ * checks the merged before/after values) and the CSV import.
+ */
+export function hasDeviceIdentity(asset: { serialNumber?: string | null; hostname?: string | null; macCount: number }): boolean {
+  return !!asset.serialNumber?.trim() || !!asset.hostname?.trim() || asset.macCount > 0;
+}
+
+export const IDENTITY_QUANTITY_MESSAGE = "Quantity must be 1 when a serial number, hostname, or MAC address is set.";
+
 /** A hostname is only meaningful (DHCP, monitoring) with at least one MAC. */
 function requireMacForHostname(data: IdentityFields, ctx: z.RefinementCtx) {
-  if (data.hostname?.trim() && !data.macAddresses?.length) {
+  if (data.hostname && !data.macAddresses?.length) {
     ctx.addIssue({
       code: "custom",
       path: ["macAddresses"],
@@ -53,15 +65,9 @@ function requireMacForHostname(data: IdentityFields, ctx: z.RefinementCtx) {
   }
 }
 
-/** A row with a serial, hostname or MAC identifies one physical device. */
 function requireSingleQuantityForIdentity(data: IdentityFields, ctx: z.RefinementCtx) {
-  const hasIdentity = !!data.serialNumber?.trim() || !!data.hostname?.trim() || !!data.macAddresses?.length;
-  if (hasIdentity && data.quantity !== 1) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["quantity"],
-      message: "Quantity must be 1 when a serial number, hostname, or MAC address is set.",
-    });
+  if (hasDeviceIdentity({ ...data, macCount: data.macAddresses?.length ?? 0 }) && data.quantity !== 1) {
+    ctx.addIssue({ code: "custom", path: ["quantity"], message: IDENTITY_QUANTITY_MESSAGE });
   }
 }
 

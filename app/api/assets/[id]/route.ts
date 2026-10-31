@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/input";
-import { updateAssetSchema } from "@/lib/schemas/asset";
+import { hasDeviceIdentity, IDENTITY_QUANTITY_MESSAGE, updateAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
 import { auditChanges, type FieldChange } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
@@ -94,8 +94,8 @@ export async function PUT(
 
   // Values the asset will have after this (possibly partial) update.
   const effective = {
-    hostname: (assetData.hostname !== undefined ? assetData.hostname : before.hostname)?.trim() || null,
-    serialNumber: (assetData.serialNumber !== undefined ? assetData.serialNumber : before.serialNumber)?.trim() || null,
+    hostname: assetData.hostname !== undefined ? assetData.hostname : before.hostname,
+    serialNumber: assetData.serialNumber !== undefined ? assetData.serialNumber : before.serialNumber,
     typeId: assetData.typeId !== undefined ? assetData.typeId : before.typeId,
     macCount: macAddresses !== undefined ? macAddresses.length : before.macAddresses.length,
     quantity: assetData.quantity !== undefined ? assetData.quantity : before.quantity,
@@ -117,12 +117,8 @@ export async function PUT(
     assetData.serialNumber !== undefined ||
     assetData.hostname !== undefined ||
     macAddresses !== undefined;
-  const hasIdentity = !!effective.serialNumber || !!effective.hostname || effective.macCount > 0;
-  if (touchesIdentity && hasIdentity && effective.quantity !== 1) {
-    return NextResponse.json(
-      { error: "Quantity must be 1 when a serial number, hostname, or MAC address is set." },
-      { status: 400 }
-    );
+  if (touchesIdentity && hasDeviceIdentity(effective) && effective.quantity !== 1) {
+    return NextResponse.json({ error: IDENTITY_QUANTITY_MESSAGE }, { status: 400 });
   }
 
   let asset;
@@ -146,7 +142,6 @@ export async function PUT(
         where: { id },
         data: {
           ...assetData,
-          ...(assetData.hostname !== undefined && { hostname: assetData.hostname?.trim() || null }),
           installationDate: toDateUpdate(installationDate),
           invoiceDate: toDateUpdate(invoiceDate),
           endOfSupportDate: toDateUpdate(endOfSupportDate),
@@ -166,7 +161,7 @@ export async function PUT(
     d.modelId !== undefined && { label: "Model", before: before.modelId, after: d.modelId, display: [before.model?.name, asset.model?.name] },
     d.quantity !== undefined && { label: "Quantity", before: before.quantity, after: d.quantity },
     d.serialNumber !== undefined && { label: "Serial number", before: before.serialNumber, after: d.serialNumber },
-    d.hostname !== undefined && { label: "Hostname", before: before.hostname, after: d.hostname?.trim() || null },
+    d.hostname !== undefined && { label: "Hostname", before: before.hostname, after: d.hostname },
     d.invoiceNumber !== undefined && { label: "Invoice number", before: before.invoiceNumber, after: d.invoiceNumber },
     d.notes !== undefined && { label: "Notes", before: before.notes, after: d.notes },
     d.vaultPath !== undefined && { label: "Vault path", before: before.vaultPath, after: d.vaultPath },

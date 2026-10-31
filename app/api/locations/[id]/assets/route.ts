@@ -55,8 +55,7 @@ export async function POST(
 
   const defaults = await resolveAssetCreationDefaults(prisma, { ownerId, supplierId });
 
-  const hostnameTrimmed = assetData.hostname?.trim();
-  const hostnameError = await hostnameFormatResponse(hostnameTrimmed, assetData.typeId);
+  const hostnameError = await hostnameFormatResponse(assetData.hostname, assetData.typeId);
   if (hostnameError) return hostnameError;
 
   let asset;
@@ -64,7 +63,6 @@ export async function POST(
     asset = await prisma.asset.create({
       data: {
         ...assetData,
-        hostname: hostnameTrimmed || null,
         locationId: id,
         ownerId: defaults.ownerId,
         supplierId: defaults.supplierId,

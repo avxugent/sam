@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createAssetSchema, updateAssetSchema, MAX_CUSTOM_FIELDS } from "@/lib/schemas/asset";
+import { createAssetSchema, updateAssetSchema, hasDeviceIdentity, MAX_CUSTOM_FIELDS } from "@/lib/schemas/asset";
 import { MAX_MAC_ADDRESSES } from "@/lib/mac-address";
 
 const base = { typeId: "t1", manufacturerId: "m1", modelId: "mo1" };
@@ -21,6 +21,18 @@ describe("createAssetSchema", () => {
 
   it("requires a MAC when a hostname is set", () => {
     expect(issuePaths(createAssetSchema.safeParse({ ...base, hostname: "pc1.example.com" }))).toContain("macAddresses");
+  });
+
+  it("stores the hostname trimmed, and a blank one as no hostname", () => {
+    const mac = { macAddresses: ["AA:BB:CC:DD:EE:FF"] };
+    expect(createAssetSchema.parse({ ...base, ...mac, hostname: "  pc1.example.com " }).hostname).toBe("pc1.example.com");
+    expect(createAssetSchema.parse({ ...base, hostname: "   " }).hostname).toBeNull();
+    expect(updateAssetSchema.parse({ hostname: "" }).hostname).toBeNull();
+    expect(updateAssetSchema.parse({}).hostname).toBeUndefined();
+  });
+
+  it("does not ask for a MAC for a blank hostname", () => {
+    expect(createAssetSchema.safeParse({ ...base, hostname: "  " }).success).toBe(true);
   });
 
   it("requires quantity 1 when the row has an identity", () => {
@@ -51,5 +63,14 @@ describe("updateAssetSchema", () => {
 
   it("does not enforce the quantity identity rule", () => {
     expect(updateAssetSchema.safeParse({ serialNumber: "SN1", quantity: 3 }).success).toBe(true);
+  });
+});
+
+describe("hasDeviceIdentity", () => {
+  it("is true for a serial, hostname or MAC, ignoring blank values", () => {
+    expect(hasDeviceIdentity({ serialNumber: "SN1", macCount: 0 })).toBe(true);
+    expect(hasDeviceIdentity({ hostname: "pc1", macCount: 0 })).toBe(true);
+    expect(hasDeviceIdentity({ macCount: 1 })).toBe(true);
+    expect(hasDeviceIdentity({ serialNumber: " ", hostname: null, macCount: 0 })).toBe(false);
   });
 });

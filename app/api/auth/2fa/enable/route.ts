@@ -7,7 +7,7 @@
  * Body: { code: string }
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { authIncludingPendingSteps } from "@/lib/auth";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +19,7 @@ import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 const schema = z.object({ code: z.string().min(6).max(6) });
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
+  const session = await authIncludingPendingSteps();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const incomplete = await signInIncompleteResponse(session, ["2fa-setup"]);
   if (incomplete) return incomplete;

@@ -4,7 +4,11 @@ import { NextRequest } from "next/server";
 vi.mock("@/lib/prisma", () => ({
   prisma: { passkey: { findMany: vi.fn() } },
 }));
-vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/auth", () => {
+  // One mock for both reads: auth() and the login-step routes' authIncludingPendingSteps().
+  const read = vi.fn();
+  return { auth: read, authIncludingPendingSteps: read };
+});
 vi.mock("@/lib/rate-limit", () => ({ consumeRateLimit: vi.fn() }));
 vi.mock("@/lib/two-factor/webauthn", () => ({
   buildAuthenticationOptions: vi.fn(),

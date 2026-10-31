@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({ prisma: { user: { findUnique: vi.fn(), update: vi.fn() } } }));
-vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/auth", () => {
+  // One mock for both reads: auth() and the login-step routes' authIncludingPendingSteps().
+  const read = vi.fn();
+  return { auth: read, authIncludingPendingSteps: read };
+});
 vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
 vi.mock("@/lib/two-factor/totp", () => ({
   generateTotpSecret: vi.fn(() => ({ base32: "BASE32SECRET", otpauthUrl: "otpauth://totp/x" })),
@@ -68,11 +72,6 @@ describe("GET /api/auth/2fa/status", () => {
   it("401 without a session", async () => {
     mockAuth.mockResolvedValue(null as never);
     expect((await status()).status).toBe(401);
-  });
-
-  it("403 while the session still owes its second factor", async () => {
-    mockAuth.mockResolvedValue({ user: { id: "u1", email: "me@x.com", role: "VIEWER" }, needs2FA: true } as never);
-    expect((await status()).status).toBe(403);
   });
 
   it("404 when the user row is gone", async () => {

@@ -90,16 +90,6 @@ describe("GET /api/prometheus/sd", () => {
     expect(mockFindMany).not.toHaveBeenCalled();
   });
 
-  it("falls back to the bearer token check for an admin who still owes 2FA", async () => {
-    mockAuth.mockResolvedValue({ ...adminSession(), needs2FA: true } as never);
-    mockCheckAuth.mockReturnValue(
-      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    );
-    const res = await GET(req());
-    expect(res.status).toBe(401);
-    expect(mockFindMany).not.toHaveBeenCalled();
-  });
-
   it("uses the hostname as the target when no template is set", async () => {
     mockAuth.mockResolvedValue(adminSession() as never);
     mockFindMany.mockResolvedValue([asset()] as never);

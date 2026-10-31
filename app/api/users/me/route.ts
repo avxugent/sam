@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { authIncludingPendingSteps } from "@/lib/auth";
+import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
@@ -22,8 +23,11 @@ const schema = z.object({
 });
 
 export async function GET() {
-  const session = await auth();
+  const session = await authIncludingPendingSteps();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // The forced password change is completed here; no other pending login step is.
+  const incomplete = await signInIncompleteResponse(session, ["password-change"]);
+  if (incomplete) return incomplete;
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -35,8 +39,11 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = await auth();
+  const session = await authIncludingPendingSteps();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // The forced password change is completed here; no other pending login step is.
+  const incomplete = await signInIncompleteResponse(session, ["password-change"]);
+  if (incomplete) return incomplete;
 
   const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);

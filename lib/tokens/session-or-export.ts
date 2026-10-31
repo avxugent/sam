@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 import { auth } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
-import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { hasBearerToken } from "@/lib/tokens/bearer";
 
 /**
@@ -16,8 +15,6 @@ export async function adminSessionOrExportToken(
   const session = await auth();
   if (hasBearerToken(req, process.env.EXPORT_TOKEN)) return { session };
   if (!session?.user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  const incomplete = await signInIncompleteResponse(session);
-  if (incomplete) return { error: incomplete };
   if (!isAdmin(session.user.role)) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   return { session };
 }

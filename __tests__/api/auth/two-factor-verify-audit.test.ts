@@ -6,7 +6,11 @@ vi.mock("@/lib/prisma", () => ({
     user: { findUnique: vi.fn() },
   },
 }));
-vi.mock("@/lib/auth", () => ({ __esModule: true, auth: vi.fn() }));
+vi.mock("@/lib/auth", () => {
+  // One mock for both reads: auth() and the login-step routes' authIncludingPendingSteps().
+  const read = vi.fn();
+  return { auth: read, authIncludingPendingSteps: read };
+});
 vi.mock("@/lib/two-factor/session-upgrade", () => ({ upgradeSession: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ __esModule: true, logAudit: vi.fn() }));
 vi.mock("@/lib/two-factor/totp", () => ({ __esModule: true, verifyTotpCode: vi.fn() }));

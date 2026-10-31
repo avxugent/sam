@@ -1,4 +1,5 @@
-import NextAuth from "next-auth";
+import NextAuth, { type Session } from "next-auth";
+import { cookies } from "next/headers";
 import Credentials from "next-auth/providers/credentials";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { prisma } from "@/lib/prisma";
@@ -11,6 +12,8 @@ import { auditLoginFailure } from "@/lib/audit/login";
 import { isTwoFactorSetupRequired } from "@/lib/two-factor/policy";
 import { verifyUpgradeProof } from "@/lib/two-factor/upgrade-proof";
 import { readComplianceSetting } from "@/lib/app-settings";
+import { REMEMBER_ME_COOKIE } from "@/lib/two-factor/remember-device";
+import { pendingSignInStep } from "@/lib/two-factor/sign-in-steps";
 
 const loginSchema = z.object({
   email: z.email().max(255),
@@ -26,7 +29,7 @@ export const ssoEnabled =
   !!process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET &&
   !!process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER;
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const nextAuth = NextAuth({
   providers: [
     // ── Primary credentials provider ──────────────────────────────────────
     Credentials({
@@ -315,3 +318,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   trustHost: true,
 });
+
+export const { handlers, signIn, signOut } = nextAuth;
+
+/**
+ * NextAuth's own session read, which also returns a session that still owes a
+ * login step (forced password change, 2FA setup, 2FA code). Only for proxy.ts,
+ * which redirects such sessions, and for the routes and pages that complete
+ * those steps; everything else uses auth().
+ */
+export const authIncludingPendingSteps = nextAuth.auth;
+
+/**
+ * The session of a fully signed-in user, or null: also while a login step is
+ * still pending, so no route or page can act on a half-finished sign-in even
+ * if the proxy did not stop the request. A pending second factor counts as
+ * done on a browser with a valid remember-device token.
+ */
+export async function auth(): Promise<Session | null> {
+  const session = await nextAuth.auth();
+  if (!session?.user) return null;
+  if (!session.needsPasswordChange && !session.needs2FASetup && !session.needs2FA) return session;
+  const rememberMeToken = session.needs2FA ? (await cookies()).get(REMEMBER_ME_COOKIE)?.value : undefined;
+  return (await pendingSignInStep(session, rememberMeToken)) ? null : session;
+}

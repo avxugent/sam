@@ -7,7 +7,11 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/auth", () => {
+  // One mock for both reads: auth() and the login-step routes' authIncludingPendingSteps().
+  const read = vi.fn();
+  return { auth: read, authIncludingPendingSteps: read };
+});
 vi.mock("@/lib/two-factor/session-upgrade", () => ({ upgradeSession: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/two-factor/totp", () => ({ verifyTotpCode: vi.fn() }));

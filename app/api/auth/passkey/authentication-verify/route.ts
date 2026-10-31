@@ -10,7 +10,7 @@
  * Body: { response: AuthenticationResponseJSON, rememberMe?: boolean }
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { authIncludingPendingSteps } from "@/lib/auth";
 import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -28,7 +28,7 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
+  const session = await authIncludingPendingSteps();
 
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!session.needs2FA) {

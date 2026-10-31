@@ -1,9 +1,9 @@
-import { auth } from "@/lib/auth";
+import { authIncludingPendingSteps } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { REMEMBER_ME_COOKIE } from "@/lib/two-factor/remember-device";
 import { pendingSignInStep } from "@/lib/two-factor/sign-in-steps";
 
-export const proxy = auth(async (req) => {
+export const proxy = authIncludingPendingSteps(async (req) => {
   const { pathname } = req.nextUrl;
 
   // ── Always-public routes ────────────────────────────────────────────────

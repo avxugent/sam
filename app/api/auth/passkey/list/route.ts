@@ -6,14 +6,11 @@
  */
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const incomplete = await signInIncompleteResponse(session);
-  if (incomplete) return incomplete;
 
   const passkeys = await prisma.passkey.findMany({
     where: { userId: session.user.id },

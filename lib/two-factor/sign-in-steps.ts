@@ -9,7 +9,8 @@ export type SignInStep = "password-change" | "2fa-setup" | "2fa";
 /**
  * The step `session` still owes, or null when sign-in is complete. A pending
  * second factor is waived on a browser with a valid remember-device token.
- * Shared by proxy.ts (redirects) and the route handlers the proxy exempts.
+ * Used by auth() in lib/auth.ts (which hides such sessions), by proxy.ts
+ * (redirects) and by the login-step routes.
  */
 export async function pendingSignInStep(
   session: Session,
@@ -23,8 +24,8 @@ export async function pendingSignInStep(
 
 /**
  * 403 when the session is only partly signed in (password passed, a forced
- * step still pending), unless that step is in `allowed`. For route handlers
- * the proxy lets through without its session-state redirects.
+ * step still pending), unless that step is in `allowed`. For the login-step
+ * routes, which read the session with authIncludingPendingSteps().
  */
 export async function signInIncompleteResponse(
   session: Session,

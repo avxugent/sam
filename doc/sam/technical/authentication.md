@@ -13,6 +13,7 @@ SAM uses **NextAuth v5** with a **JWT session strategy** (no database sessions).
 
 - **Strategy**: JWT
 - **Max age**: 8 hours (`maxAge: 8 * 60 * 60`)
+- **Re-check**: every 5 minutes the `jwt` callback re-reads the user: a deleted account loses its session, and a role change (e.g. a demotion) takes effect within 5 minutes instead of at the next sign-in.
 - Sessions are verified on every authenticated request
 
 ---
@@ -71,7 +72,7 @@ The route handlers reach that provider only through `upgradeSession()` (`lib/two
 
 ### Partly signed-in sessions
 
-A session can still owe a login step: `needsPasswordChange`, `needs2FASetup`, or `needs2FA` (waived on a browser with a valid remember-device cookie). `pendingSignInStep()` (`lib/two-factor/sign-in-steps.ts`) decides which, for both `proxy.ts` (redirects) and the route handlers the proxy lets through without those redirects — `/api/auth/2fa/*`, `/api/auth/passkey/*`, `/api/export/*` and `/api/assets/by-hostname`. Those handlers call `signInIncompleteResponse(session, allowed)` and answer `403` while a step is pending; the 2FA setup/enable and passkey registration routes allow `"2fa-setup"`, since forced enrollment is what they are for. by-hostname and the Prometheus SD endpoint (which also accepts an admin session) treat such a session as absent and fall back to the Bearer token.
+A session can still owe a login step: `needsPasswordChange`, `needs2FASetup`, or `needs2FA` (waived on a browser with a valid remember-device cookie). `pendingSignInStep()` (`lib/two-factor/sign-in-steps.ts`) decides which. `auth()` in `lib/auth.ts`, the session read every route handler and page uses, returns `null` for such a session, so nothing can act on a half-finished sign-in even where the proxy does not redirect (the proxy-exempt `/api/export/*`, `/api/assets/by-hostname` and Prometheus SD treat it as no session: HTTP 401, or the Bearer-token check). Only `proxy.ts` (redirects) and the routes and pages that complete a step — `/api/auth/2fa/*`, `/api/auth/passkey/*` registration and authentication, `/api/users/me` (the forced password change) and `/login/2fa` — read the session with `authIncludingPendingSteps()`, and they call `signInIncompleteResponse(session, allowed)` to answer `403` unless the pending step is one they complete; the 2FA setup/enable and passkey registration routes allow `"2fa-setup"`, `/api/users/me` allows `"password-change"`.
 
 ### Admin enforcement
 
@@ -168,4 +169,4 @@ If `PROMETHEUS_SD_TOKEN` is not set, the endpoints return HTTP 503.
 
 ## Export Endpoints
 
-`/api/export/*` accept an ADMIN session **or** `Bearer EXPORT_TOKEN` (checked via `hasValidExportToken(req)` in each handler) so external tooling can pull exports. They are likewise exempted from the session proxy; without valid credentials the handlers return HTTP 401. A session that has not finished signing in (see [Partly signed-in sessions](#partly-signed-in-sessions)) gets HTTP 403.
+`/api/export/*` accept an ADMIN session **or** `Bearer EXPORT_TOKEN` (checked by `adminSessionOrExportToken(req)` in each handler) so external tooling can pull exports. They are likewise exempted from the session proxy; without valid credentials the handlers return HTTP 401. A session that has not finished signing in (see [Partly signed-in sessions](#partly-signed-in-sessions)) counts as no session (HTTP 401).

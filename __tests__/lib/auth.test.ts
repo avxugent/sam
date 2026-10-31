@@ -6,7 +6,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("next-auth", () => ({
   default: vi.fn((config: unknown) => {
     (globalThis as { __authConfig?: unknown }).__authConfig = config;
-    return { handlers: {}, auth: vi.fn(), signIn: vi.fn(), signOut: vi.fn() };
+    const read = vi.fn();
+    (globalThis as { __nextAuthRead?: unknown }).__nextAuthRead = read;
+    return { handlers: {}, auth: read, signIn: vi.fn(), signOut: vi.fn() };
   }),
 }));
 vi.mock("next-auth/providers/credentials", () => ({ default: (options: unknown) => options }));
@@ -22,6 +24,8 @@ vi.mock("@/lib/rate-limit", () => ({ consumeRateLimit: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/audit/login", () => ({ auditLoginFailure: vi.fn() }));
 vi.mock("@/lib/two-factor/upgrade-proof", () => ({ verifyUpgradeProof: vi.fn() }));
+vi.mock("@/lib/two-factor/remember-device", () => ({ REMEMBER_ME_COOKIE: "sam_2fa_rm", verifyRememberMeToken: vi.fn() }));
+vi.mock("next/headers", () => ({ cookies: vi.fn() }));
 
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
@@ -29,7 +33,9 @@ import { consumeRateLimit } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
 import { auditLoginFailure } from "@/lib/audit/login";
 import { verifyUpgradeProof } from "@/lib/two-factor/upgrade-proof";
-import "@/lib/auth";
+import { cookies } from "next/headers";
+import { verifyRememberMeToken } from "@/lib/two-factor/remember-device";
+import { auth, authIncludingPendingSteps } from "@/lib/auth";
 
 type Provider = { id: string; authorize: (credentials: unknown, request?: Request) => Promise<Record<string, unknown> | null> };
 type Config = {
@@ -245,4 +251,37 @@ describe("events", () => {
 
 it("keeps JWT sessions at 8 hours", () => {
   expect(config.session).toEqual({ strategy: "jwt", maxAge: 8 * 60 * 60 });
+});
+
+describe("auth()", () => {
+  const nextAuthRead = (globalThis as { __nextAuthRead?: ReturnType<typeof vi.fn> }).__nextAuthRead!;
+  const user = { id: "u1", role: "ADMIN" };
+
+  it("returns a fully signed-in session", async () => {
+    nextAuthRead.mockResolvedValue({ user });
+    expect(await auth()).toEqual({ user });
+  });
+
+  it("hides a session that still owes a login step", async () => {
+    vi.mocked(cookies).mockResolvedValue({ get: () => undefined } as never);
+    vi.mocked(verifyRememberMeToken).mockResolvedValue(false);
+    for (const pending of [{ needsPasswordChange: true }, { needs2FASetup: true }, { needs2FA: true }]) {
+      nextAuthRead.mockResolvedValue({ user, ...pending });
+      expect(await auth()).toBeNull();
+    }
+  });
+
+  it("lets a pending second factor through on a remembered device", async () => {
+    vi.mocked(cookies).mockResolvedValue({ get: () => ({ value: "remember-token" }) } as never);
+    vi.mocked(verifyRememberMeToken).mockResolvedValue(true);
+    nextAuthRead.mockResolvedValue({ user, needs2FA: true });
+    expect(await auth()).toEqual({ user, needs2FA: true });
+    expect(verifyRememberMeToken).toHaveBeenCalledWith("remember-token", "u1");
+  });
+
+  it("is null without a session; authIncludingPendingSteps is NextAuth's own read", async () => {
+    nextAuthRead.mockResolvedValue(null);
+    expect(await auth()).toBeNull();
+    expect(authIncludingPendingSteps).toBe(nextAuthRead);
+  });
 });

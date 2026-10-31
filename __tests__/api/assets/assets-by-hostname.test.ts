@@ -71,11 +71,6 @@ describe("GET /api/assets/by-hostname", () => {
     expect((await GET(req("?hostname=x"))).status).toBe(200);
   });
 
-  it("401 for a session that still owes its second factor", async () => {
-    mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" }, needs2FA: true } as never);
-    expect((await GET(req("?hostname=x"))).status).toBe(401);
-  });
-
   it("400 without a hostname", async () => {
     expect((await GET(req("?hostname=%20", "Bearer sd-token"))).status).toBe(400);
   });

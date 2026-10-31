@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // auth(handler) returns the handler itself so the proxy logic can be called directly.
-vi.mock("@/lib/auth", () => ({ auth: (handler: unknown) => handler }));
+vi.mock("@/lib/auth", () => ({ authIncludingPendingSteps: (handler: unknown) => handler }));
 vi.mock("@/lib/two-factor/remember-device", () => ({
   REMEMBER_ME_COOKIE: "sam_2fa_rm",
   verifyRememberMeToken: vi.fn(async () => false),

@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { NextResponse } from "next/server";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/two-factor/sign-in-steps", () => ({ signInIncompleteResponse: vi.fn() }));
 
 import { auth } from "@/lib/auth";
-import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { adminSessionOrExportToken } from "@/lib/tokens/session-or-export";
 
 const req = (token?: string) => new Request("http://x", { headers: token ? { authorization: `Bearer ${token}` } : {} });
@@ -14,7 +11,6 @@ const ORIGINAL = process.env.EXPORT_TOKEN;
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.EXPORT_TOKEN = "tok";
-  vi.mocked(signInIncompleteResponse).mockResolvedValue(null);
 });
 afterEach(() => {
   if (ORIGINAL === undefined) delete process.env.EXPORT_TOKEN;
@@ -35,11 +31,8 @@ describe("adminSessionOrExportToken()", () => {
     expect(errorStatus(await adminSessionOrExportToken(req("nope")))).toBe(401);
   });
 
-  it("403 for a non-admin, and the sign-in step response for a partial session", async () => {
+  it("403 for a non-admin", async () => {
     vi.mocked(auth).mockResolvedValue({ user: { id: "u1", role: "EDITOR" } } as never);
-    expect(errorStatus(await adminSessionOrExportToken(req()))).toBe(403);
-    vi.mocked(signInIncompleteResponse).mockResolvedValue(NextResponse.json({}, { status: 403 }));
-    vi.mocked(auth).mockResolvedValue({ user: { id: "u1", role: "ADMIN" }, needs2FA: true } as never);
     expect(errorStatus(await adminSessionOrExportToken(req()))).toBe(403);
   });
 

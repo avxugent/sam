@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
-import { prisma } from "@/lib/prisma";
 import { attemptStorage, getStorageDriver, StorageNotFoundError } from "@/lib/storage";
 import { logAudit } from "@/lib/audit";
-import { writeSettings, BRANDING_KEYS } from "@/lib/app-settings";
+import { BRANDING_FILE_KEYS, BRANDING_KEYS, deleteSettings, readSettings, writeSettings } from "@/lib/app-settings";
 import { formFile, readFormData } from "@/lib/route-helpers";
 
 /**
@@ -54,28 +53,18 @@ const BRANDING_ASSETS = {
 
 export type BrandingAsset = keyof typeof BRANDING_ASSETS;
 
-function settingKeys(asset: BrandingAsset) {
-  return {
-    storageKey: `branding.${asset}StorageKey`,
-    contentType: `branding.${asset}ContentType`,
-  };
-}
-
 /** Public GET: stream the stored file, or 404 when none is configured. */
 export async function serveBrandingAsset(asset: BrandingAsset) {
-  const keys = settingKeys(asset);
-  const [keySetting, typeSetting] = await Promise.all([
-    prisma.appSetting.findUnique({ where: { key: keys.storageKey } }),
-    prisma.appSetting.findUnique({ where: { key: keys.contentType } }),
-  ]);
-
-  if (!keySetting?.value) {
+  const keys = BRANDING_FILE_KEYS[asset];
+  const settings = await readSettings([keys.storageKey, keys.contentType]);
+  const storageKey = settings[keys.storageKey];
+  if (!storageKey) {
     return new NextResponse(null, { status: 404 });
   }
 
   try {
-    const data = await getStorageDriver().getObject(keySetting.value);
-    const contentType = typeSetting?.value || BRANDING_ASSETS[asset].defaultContentType;
+    const data = await getStorageDriver().getObject(storageKey);
+    const contentType = settings[keys.contentType] || BRANDING_ASSETS[asset].defaultContentType;
     return new NextResponse(new Uint8Array(data), {
       headers: {
         "Content-Type": contentType,
@@ -121,7 +110,7 @@ export async function uploadBrandingAsset(req: Request, session: Session, asset:
   );
   if (!stored.ok) return stored.response;
 
-  const keys = settingKeys(asset);
+  const keys = BRANDING_FILE_KEYS[asset];
   const settings: Record<string, string> = {
     [keys.storageKey]: config.storageKey,
     [keys.contentType]: file.type,
@@ -150,11 +139,8 @@ export async function removeBrandingAsset(req: Request, session: Session, asset:
   );
   if (!removed.ok) return removed.response;
 
-  const keys = settingKeys(asset);
-  const settingKeysToDelete = [keys.storageKey, keys.contentType, ...Object.keys(config.extraSettings ?? {})];
-  await Promise.all(
-    settingKeysToDelete.map((key) => prisma.appSetting.deleteMany({ where: { key } }))
-  );
+  const keys = BRANDING_FILE_KEYS[asset];
+  await deleteSettings([keys.storageKey, keys.contentType, ...Object.keys(config.extraSettings ?? {})]);
 
   await logAudit({
     session,

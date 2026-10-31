@@ -12,18 +12,24 @@ export async function readSettings(keys: readonly string[], db: Db = prisma): Pr
 
 /**
  * Upserts every entry whose value is defined (undefined = "not part of this
- * update") and returns what was written, ready for an audit `detail`.
+ * update") in one transaction, so a group is never half-written, and returns
+ * what was written, ready for an audit `detail`.
  */
 export async function writeSettings(entries: Record<string, string | undefined>): Promise<Record<string, string>> {
   const written = Object.fromEntries(
     Object.entries(entries).filter((e): e is [string, string] => e[1] !== undefined)
   );
-  await Promise.all(
+  await prisma.$transaction(
     Object.entries(written).map(([key, value]) =>
       prisma.appSetting.upsert({ where: { key }, update: { value }, create: { key, value } })
     )
   );
   return written;
+}
+
+/** Removes the given settings (absent keys are ignored). */
+export async function deleteSettings(keys: readonly string[]): Promise<void> {
+  await prisma.appSetting.deleteMany({ where: { key: { in: [...keys] } } });
 }
 
 // ── Setting groups ───────────────────────────────────────────────────────────
@@ -116,12 +122,19 @@ export function writeGeneralSettings(settings: GeneralSettings): Promise<Record<
   });
 }
 
+/** Where each uploaded branding file is recorded: its storage key and content type. */
+export const BRANDING_FILE_KEYS = {
+  logo: { storageKey: "branding.logoStorageKey", contentType: "branding.logoContentType" },
+  favicon: { storageKey: "branding.faviconStorageKey", contentType: "branding.faviconContentType" },
+  background: { storageKey: "branding.backgroundStorageKey", contentType: "branding.backgroundContentType" },
+} as const;
+
 export const BRANDING_KEYS = {
   appTitle: "app.title",
-  logo: "branding.logoStorageKey",
-  favicon: "branding.faviconStorageKey",
+  logo: BRANDING_FILE_KEYS.logo.storageKey,
+  favicon: BRANDING_FILE_KEYS.favicon.storageKey,
   backgroundMode: "branding.backgroundMode",
-  background: "branding.backgroundStorageKey",
+  background: BRANDING_FILE_KEYS.background.storageKey,
 } as const;
 
 export type BrandingSettings = {

@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops)),
     appSetting: {
       upsert: vi.fn(),
       deleteMany: vi.fn(),

@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { appSetting: { findUnique: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() } },
+  prisma: {
+    $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops)),
+    appSetting: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+  },
 }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 const putObject = vi.fn();
@@ -88,8 +91,9 @@ describe("removeBrandingAsset()", () => {
     const res = await removeBrandingAsset(new Request("http://x"), session, "background");
     expect(res.status).toBe(200);
     expect(deleteObject).toHaveBeenCalledWith("branding/background");
-    const keys = vi.mocked(prisma.appSetting.deleteMany).mock.calls.map(([arg]) => arg?.where?.key);
-    expect(keys).toEqual(["branding.backgroundStorageKey", "branding.backgroundContentType", "branding.backgroundMode"]);
+    expect(prisma.appSetting.deleteMany).toHaveBeenCalledWith({
+      where: { key: { in: ["branding.backgroundStorageKey", "branding.backgroundContentType", "branding.backgroundMode"] } },
+    });
     expect(vi.mocked(logAudit).mock.calls[0][0].detail).toEqual({ event: "Background image removed" });
   });
 });

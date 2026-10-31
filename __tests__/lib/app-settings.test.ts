@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/prisma", () => ({ prisma: { appSetting: { findMany: vi.fn(), findUnique: vi.fn(), upsert: vi.fn() } } }));
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops)),
+    appSetting: { findMany: vi.fn(), findUnique: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+  },
+}));
 
 import { prisma } from "@/lib/prisma";
 import {
+  deleteSettings,
   readBrandingSettings,
   readComplianceSetting,
   readComplianceSettings,
@@ -35,6 +41,19 @@ describe("writeSettings()", () => {
     const written = await writeSettings({ a: "1", b: undefined, c: "" });
     expect(written).toEqual({ a: "1", c: "" });
     expect(vi.mocked(prisma.appSetting.upsert).mock.calls.map(([arg]) => arg.where.key)).toEqual(["a", "c"]);
+  });
+});
+
+describe("writeSettings() atomicity / deleteSettings()", () => {
+  it("writes a group in one transaction", async () => {
+    await writeSettings({ a: "1", b: "2" });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(prisma.$transaction).mock.calls[0][0]).toHaveLength(2);
+  });
+
+  it("deletes the given keys in one statement", async () => {
+    await deleteSettings(["a", "b"]);
+    expect(prisma.appSetting.deleteMany).toHaveBeenCalledWith({ where: { key: { in: ["a", "b"] } } });
   });
 });
 

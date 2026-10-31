@@ -5,7 +5,7 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
-    appSetting: { findUnique: vi.fn() },
+    appSetting: { findMany: vi.fn() },
     auditLog: { findMany: vi.fn() },
   },
 }));
@@ -28,7 +28,16 @@ import { GET as getBackground } from "@/app/api/branding/background/route";
 import { GET as getAuditLogs } from "@/app/api/audit-logs/route";
 
 const mockAuth = vi.mocked(auth);
-const mockSetting = vi.mocked(prisma.appSetting.findUnique);
+const mockSettings = vi.mocked(prisma.appSetting.findMany);
+/** The asset's stored-file settings as AppSetting rows (null = not set). */
+function settingRows(name: string, storageKey: string | null, contentType: string | null) {
+  mockSettings.mockResolvedValue(
+    [
+      storageKey && { key: `branding.${name}StorageKey`, value: storageKey },
+      contentType && { key: `branding.${name}ContentType`, value: contentType },
+    ].filter(Boolean) as never
+  );
+}
 const mockAuditFind = vi.mocked(prisma.auditLog.findMany);
 
 beforeEach(() => {
@@ -40,36 +49,31 @@ describe.each([
   ["logo", getLogo, "image/png"],
   ["favicon", getFavicon, "image/x-icon"],
   ["background", getBackground, "image/png"],
-])("GET /api/branding/%s (public serve route)", (_name, handler, defaultType) => {
+])("GET /api/branding/%s (public serve route)", (name, handler, defaultType) => {
   it("404 when no storage key is configured", async () => {
-    mockSetting.mockResolvedValue(null as never);
+    settingRows(name, null, null);
     expect((await handler()).status).toBe(404);
   });
 
   it("serves bytes with content-type and cache headers when configured", async () => {
-    mockSetting
-      .mockResolvedValueOnce({ value: "branding/x" } as never) // storage key
-      .mockResolvedValueOnce({ value: "image/svg+xml" } as never); // content type
+    settingRows(name, "branding/x", "image/svg+xml");
     getObject.mockResolvedValue(Buffer.from([1, 2, 3]));
     const res = await handler();
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("image/svg+xml");
     expect(res.headers.get("Cache-Control")).toContain("max-age=3600");
+    expect(getObject).toHaveBeenCalledWith("branding/x");
   });
 
   it(`falls back to ${defaultType} when content-type unset`, async () => {
-    mockSetting
-      .mockResolvedValueOnce({ value: "branding/x" } as never)
-      .mockResolvedValueOnce(null as never);
+    settingRows(name, "branding/x", null);
     getObject.mockResolvedValue(Buffer.from([9]));
     const res = await handler();
     expect(res.headers.get("Content-Type")).toBe(defaultType);
   });
 
   it("404 when the stored object is missing", async () => {
-    mockSetting
-      .mockResolvedValueOnce({ value: "branding/x" } as never)
-      .mockResolvedValueOnce({ value: "image/png" } as never);
+    settingRows(name, "branding/x", "image/png");
     getObject.mockRejectedValue(new StorageNotFoundError("gone"));
     expect((await handler()).status).toBe(404);
   });

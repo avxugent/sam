@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
+    $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops)),
     appSetting: { findMany: vi.fn(), upsert: vi.fn() },
   },
 }));

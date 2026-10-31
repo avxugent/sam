@@ -1,7 +1,8 @@
 /**
  * Helpers for nested location trees: nesting a flat location list (server
- * pages), and flattening the tree returned by GET /api/locations for the
- * location pickers in the move/deploy/relocate dialogs.
+ * pages), flattening the tree returned by GET /api/locations for the
+ * location pickers in the move/deploy/relocate dialogs, and the name filter
+ * of the sidebar and the location browser.
  */
 
 export type LocationTreeNode = {
@@ -76,4 +77,35 @@ export function collectSubtreeIds(nodes: LocationTreeNode[], rootId: string): Se
   };
   nodes.forEach((n) => walk(n, false));
   return ids;
+}
+
+type NamedTree = { name: string; children: NamedTree[] };
+
+/** Whether `node` or any descendant has `query` (lower-cased) in its name. */
+export function subtreeMatchesFilter(node: NamedTree, query: string): boolean {
+  return node.name.toLowerCase().includes(query) || node.children.some((c) => subtreeMatchesFilter(c, query));
+}
+
+/** How a tree row shows under a name filter. */
+export type TreeFilterState = {
+  /** Shown at all: no filter, inside a match, a match, or leading to one. */
+  visible: boolean;
+  /** Its own name matches (rendered highlighted). */
+  matches: boolean;
+  /** Kept open because a match is at or below it. */
+  forceOpen: boolean;
+  /** Pass to the children: they are inside a match, so all of them show. */
+  childrenInsideMatch: boolean;
+};
+
+/**
+ * The name filter shared by the sidebar and the location browser: a node
+ * shows when its name matches or a descendant's does, and everything below
+ * a matching node stays visible. `query` is lower-cased and trimmed.
+ */
+export function treeFilterState(node: NamedTree, query: string, insideMatch = false): TreeFilterState {
+  if (!query || insideMatch) return { visible: true, matches: false, forceOpen: false, childrenInsideMatch: insideMatch };
+  const matches = node.name.toLowerCase().includes(query);
+  const leadsToMatch = !matches && node.children.some((c) => subtreeMatchesFilter(c, query));
+  return { visible: matches || leadsToMatch, matches, forceOpen: matches || leadsToMatch, childrenInsideMatch: matches };
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { collectSubtreeIds, flattenLocations, nestLocations, type LocationTreeNode } from "@/lib/locations/tree";
+import { collectSubtreeIds, flattenLocations, nestLocations, subtreeMatchesFilter, treeFilterState, type LocationTreeNode } from "@/lib/locations/tree";
 
 const tree: LocationTreeNode[] = [
   {
@@ -56,5 +56,33 @@ describe("nestLocations()", () => {
 
   it("treats a row whose parent is missing as a root", () => {
     expect(nestLocations([{ id: "x", parentId: "gone" }]).map((n) => n.id)).toEqual(["x"]);
+  });
+});
+
+describe("treeFilterState()", () => {
+  const room = { name: "Room 1.01", children: [] };
+  const building = { name: "Building A", children: [room, { name: "Lab", children: [] }] };
+  const campus = { name: "Campus Ghent", children: [building] };
+
+  it("shows everything without a query", () => {
+    expect(treeFilterState(campus, "")).toEqual({ visible: true, matches: false, forceOpen: false, childrenInsideMatch: false });
+  });
+
+  it("opens the path to a match and hides unrelated branches", () => {
+    expect(treeFilterState(campus, "room")).toMatchObject({ visible: true, matches: false, forceOpen: true });
+    expect(treeFilterState(building, "room")).toMatchObject({ visible: true, forceOpen: true });
+    expect(treeFilterState(room, "room")).toMatchObject({ visible: true, matches: true });
+    expect(treeFilterState({ name: "Lab", children: [] }, "room").visible).toBe(false);
+  });
+
+  it("keeps the whole subtree of a match visible", () => {
+    const state = treeFilterState(building, "building");
+    expect(state).toMatchObject({ matches: true, childrenInsideMatch: true });
+    expect(treeFilterState({ name: "Lab", children: [] }, "building", state.childrenInsideMatch).visible).toBe(true);
+  });
+
+  it("subtreeMatchesFilter looks at descendants", () => {
+    expect(subtreeMatchesFilter(campus, "lab")).toBe(true);
+    expect(subtreeMatchesFilter(campus, "nowhere")).toBe(false);
   });
 });

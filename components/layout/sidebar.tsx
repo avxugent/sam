@@ -23,6 +23,7 @@ import { LocationFormDialog } from "@/components/locations/location-form-dialog"
 import { StockNavItems } from "@/components/layout/stock-nav-items";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
+import { subtreeMatchesFilter, treeFilterState } from "@/lib/locations/tree";
 
 type LocationNode = {
   id: string;
@@ -45,11 +46,6 @@ type SidebarProps = {
   logoUrl?: string | null;
 };
 
-function nodeMatchesFilter(node: LocationNode, query: string): boolean {
-  if (node.name.toLowerCase().includes(query)) return true;
-  return node.children.some((child) => nodeMatchesFilter(child, query));
-}
-
 function LocationTreeItem({
   location,
   depth = 0,
@@ -70,12 +66,9 @@ function LocationTreeItem({
     pathname.startsWith(`/locations/${location.id}`)
   );
 
-  const isFiltering = filterQuery.length > 0;
-  const selfMatches = isFiltering && !showAll && location.name.toLowerCase().includes(filterQuery);
-  const childMatches = isFiltering && !showAll && !selfMatches && location.children.some((c) => nodeMatchesFilter(c, filterQuery));
-  const forceOpen = isFiltering && (selfMatches || childMatches);
-
-  if (isFiltering && !showAll && !selfMatches && !childMatches) return null;
+  const filter = treeFilterState(location, filterQuery, showAll);
+  if (!filter.visible) return null;
+  const { matches: selfMatches, forceOpen } = filter;
 
   const totalAssets = assetCountMap[location.id] ?? 0;
   const useDot = depth >= 2;
@@ -136,7 +129,7 @@ function LocationTreeItem({
               depth={depth + 1}
               assetCountMap={assetCountMap}
               filterQuery={filterQuery}
-              showAll={showAll || selfMatches}
+              showAll={filter.childrenInsideMatch}
             />
           ))}
         </div>
@@ -265,7 +258,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
 
               <AllLocationsEntry totalAssets={totalAssets} />
 
-              {filterQuery && locationTree.every((l) => !nodeMatchesFilter(l, filterQuery.toLowerCase().trim())) && (
+              {filterQuery && locationTree.every((l) => !subtreeMatchesFilter(l, filterQuery.toLowerCase().trim())) && (
                 <p className="px-3 py-3 text-[12px] text-subtle text-center">{t("noLocationsMatch")}</p>
               )}
 

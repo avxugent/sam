@@ -47,8 +47,18 @@ function renderLocation(loc = location(), userRole = "EDITOR") {
     <LocationDetailClient
       location={loc as never}
       assets={[]}
+      subtreeAssetCount={2}
       breadcrumbs={[{ id: "b1", name: "Building 10" }]}
       userRole={userRole as never}
+      currentUserId="u1"
+      showLocation={false}
+      defaultTab="assets"
+      hostnameUrlTemplate={null}
+      locationUrlTemplate={null}
+      workLogs={[]}
+      users={[]}
+      workLogItems={[]}
+      jiraBaseUrl={null}
     />
   );
 }

@@ -7,6 +7,7 @@ import { getAllDescendantLocationIds, getSubtreeIdsDeepestFirst } from "@/lib/lo
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { updateLocationSchema } from "@/lib/schemas/location";
+import { LOCATION_DETAIL_INCLUDE } from "@/lib/locations/include";
 
 export async function GET(
   _req: NextRequest,
@@ -18,16 +19,7 @@ export async function GET(
   const { id } = await params;
   const location = await prisma.location.findUnique({
     where: { id },
-    include: {
-      parent: { select: { id: true, name: true, parentId: true } },
-      children: {
-        include: {
-          _count: { select: { assets: true, children: true } },
-        },
-        orderBy: [{ order: "asc" }, { name: "asc" }],
-      },
-      _count: { select: { assets: true, children: true, attachments: true } },
-    },
+    include: LOCATION_DETAIL_INCLUDE,
   });
 
   if (!location) return notFoundResponse();

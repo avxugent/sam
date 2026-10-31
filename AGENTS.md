@@ -100,7 +100,7 @@ lib/               — shared code; modules importing next/server are route-hand
   export/          — JSON inventory snapshot (export route + backup script)
   hostname.ts      — hostname pattern/FQDN rules
   integrations/    — HashiCorp Vault KV client, read-only Jira client (native fetch, never throw; lookups report found / missing / unavailable)
-  locations/       — path.ts: recursive-CTE tree queries (server); tree.ts: nesting/flattening a location tree (client-safe); asset-quantities.ts: installed-unit counts for the location page
+  locations/       — path.ts: recursive-CTE tree queries (server); tree.ts: nesting/flattening/filtering a location tree (client-safe); include.ts: detail/page includes and LocationPageData; asset-quantities.ts: installed-unit counts for the location page
   models/          — model clustering + name similarity
   prometheus/      — sam_* labels, scrape template renderer, per-brand/model template overrides
   rate-limit/      — in-memory rate limiter (index) + client IP key and 429 response (http)

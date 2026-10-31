@@ -50,67 +50,40 @@ import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import type { LocationPageData } from "@/lib/locations/include";
 
 type Breadcrumb = { id: string; name: string };
-
-type LocationChild = {
-  id: string;
-  name: string;
-  description?: string | null;
-  fiNumber?: string | null;
-  coverImageId?: string | null;
-  inMaintenance?: boolean;
-  _count: { assets: number; children: number };
-};
-
-type Location = {
-  id: string;
-  name: string;
-  description?: string | null;
-  fiNumber?: string | null;
-  address?: string | null;
-  city?: string | null;
-  country?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  coverImageId?: string | null;
-  inMaintenance?: boolean;
-  parent?: { id: string; name: string; parentId?: string | null } | null;
-  children: LocationChild[];
-  attachments: Attachment[];
-  _count: { assets: number; children: number; attachments: number };
-};
 
 export function LocationDetailClient({
   location,
   assets,
-  subtreeAssetCount = 0,
+  subtreeAssetCount,
   breadcrumbs,
   userRole,
   currentUserId,
-  showLocation = false,
-  defaultTab = "assets",
+  showLocation,
+  defaultTab,
   hostnameUrlTemplate,
   locationUrlTemplate,
-  workLogs = [],
-  users = [],
-  workLogItems = [],
-  jiraBaseUrl = null,
+  workLogs,
+  users,
+  workLogItems,
+  jiraBaseUrl,
 }: {
-  location: Location;
+  location: LocationPageData;
   assets: AssetRow[];
-  subtreeAssetCount?: number;
+  subtreeAssetCount: number;
   breadcrumbs: Breadcrumb[];
   userRole: Role;
-  currentUserId?: string;
-  showLocation?: boolean;
-  defaultTab?: string;
-  hostnameUrlTemplate?: string | null;
-  locationUrlTemplate?: string | null;
-  workLogs?: WorkLogEntry[];
-  users?: WorkLogUserOption[];
-  workLogItems?: WorkLogItemOption[];
-  jiraBaseUrl?: string | null;
+  currentUserId: string;
+  showLocation: boolean;
+  defaultTab: string;
+  hostnameUrlTemplate: string | null;
+  locationUrlTemplate: string | null;
+  workLogs: WorkLogEntry[];
+  users: WorkLogUserOption[];
+  workLogItems: WorkLogItemOption[];
+  jiraBaseUrl: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -124,7 +97,7 @@ export function LocationDetailClient({
   const [cascadeConfirmed, setCascadeConfirmed] = useState(false);
   const hasSubLocations = location._count.children > 0;
   const [attachments, setAttachments] = useState<Attachment[]>(location.attachments);
-  const [coverImageId, setCoverImageId] = useState<string | null>(location.coverImageId ?? null);
+  const [coverImageId, setCoverImageId] = useState<string | null>(location.coverImageId);
   const [mapData, setMapData] = useState({
     address: location.address,
     city: location.city,
@@ -133,8 +106,8 @@ export function LocationDetailClient({
     longitude: location.longitude,
   });
 
-  const [selfMaintenance, setSelfMaintenance] = useState(location.inMaintenance ?? false);
-  const [children, setChildren] = useState<LocationChild[]>(location.children);
+  const [selfMaintenance, setSelfMaintenance] = useState(location.inMaintenance);
+  const [children, setChildren] = useState(location.children);
   const [maintPendingId, setMaintPendingId] = useState<string | null>(null);
 
   // Toggle a room's maintenance flag. Rooms only — the caller gates on leaf
@@ -598,7 +571,7 @@ export function LocationDetailClient({
             }))}
             users={users}
             items={workLogItems}
-            currentUserId={currentUserId ?? ""}
+            currentUserId={currentUserId}
             userRole={userRole}
             jiraBaseUrl={jiraBaseUrl}
           />

@@ -9,6 +9,7 @@ import { jiraBaseUrl } from "@/lib/integrations/jira";
 import { parseLocationTab } from "@/lib/users/preferences";
 import { ASSET_LIST_INCLUDE } from "@/lib/assets/include";
 import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
+import { LOCATION_PAGE_INCLUDE } from "@/lib/locations/include";
 
 
 async function getUrlTemplates(): Promise<{
@@ -41,18 +42,7 @@ export default async function LocationPage({
 
   const location = await prisma.location.findUnique({
     where: { id },
-    include: {
-      parent: { select: { id: true, name: true, parentId: true } },
-      children: {
-        include: { _count: { select: { assets: true, children: true } } },
-        orderBy: [{ order: "asc" }, { name: "asc" }],
-      },
-      attachments: {
-        include: { uploadedBy: { select: { id: true, name: true } } },
-        orderBy: { createdAt: "desc" },
-      },
-      _count: { select: { assets: true, children: true, attachments: true } },
-    },
+    include: LOCATION_PAGE_INCLUDE,
   });
 
   if (!location) notFound();

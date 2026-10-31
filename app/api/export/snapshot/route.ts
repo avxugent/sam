@@ -13,7 +13,7 @@ import { toIsoDay } from "@/lib/dates";
 
 export async function GET(req: NextRequest) {
   const access = await adminSessionOrExportToken(req);
-  if (access.response) return access.response;
+  if ("error" in access) return access.error;
   const { session } = access;
 
   const snapshot = await buildInventorySnapshot();

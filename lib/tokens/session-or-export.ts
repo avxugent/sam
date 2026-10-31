@@ -12,12 +12,12 @@ import { hasBearerToken } from "@/lib/tokens/bearer";
  */
 export async function adminSessionOrExportToken(
   req: Request
-): Promise<{ session: Session | null; response?: undefined } | { response: NextResponse }> {
+): Promise<{ session: Session | null } | { error: NextResponse }> {
   const session = await auth();
   if (hasBearerToken(req, process.env.EXPORT_TOKEN)) return { session };
-  if (!session?.user) return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  if (!session?.user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   const incomplete = await signInIncompleteResponse(session);
-  if (incomplete) return { response: incomplete };
-  if (!isAdmin(session.user.role)) return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  if (incomplete) return { error: incomplete };
+  if (!isAdmin(session.user.role)) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   return { session };
 }

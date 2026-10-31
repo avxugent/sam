@@ -108,7 +108,7 @@ export async function uploadBrandingAsset(req: Request, session: Session, asset:
   const stored = await attemptStorage(`${config.label} write`, "Could not store the file. Please try again.", () =>
     getStorageDriver().putObject(config.storageKey, buffer, file.type)
   );
-  if (!stored.ok) return stored.response;
+  if ("error" in stored) return stored.error;
 
   const keys = BRANDING_FILE_KEYS[asset];
   const settings: Record<string, string> = {
@@ -137,7 +137,7 @@ export async function removeBrandingAsset(req: Request, session: Session, asset:
   const removed = await attemptStorage(`${config.label} delete`, "Could not delete the stored file. Please try again.", () =>
     getStorageDriver().deleteObject(config.storageKey)
   );
-  if (!removed.ok) return removed.response;
+  if ("error" in removed) return removed.error;
 
   const keys = BRANDING_FILE_KEYS[asset];
   await deleteSettings([keys.storageKey, keys.contentType, ...Object.keys(config.extraSettings ?? {})]);

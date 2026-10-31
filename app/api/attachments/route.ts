@@ -203,7 +203,7 @@ async function createFileAttachment(req: NextRequest, session: Session) {
   const stored = await attemptStorage("attachment write", "Could not store the file. Please try again.", () =>
     getStorageDriver().putObject(relativePath, buffer, file.type)
   );
-  if (!stored.ok) return stored.response;
+  if ("error" in stored) return stored.error;
 
   // Sanitize original name stored in DB (strip control chars)
   const safeOriginalName = file.name.replace(/[\r\n\\"]/g, "_").slice(0, 255);

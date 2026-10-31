@@ -157,6 +157,7 @@ prisma/
 
 - All handlers return `NextResponse.json(...)`.
 - Auth errors: `401` for unauthenticated, `403` for insufficient role.
+- A helper that either yields a value or the response to send back returns `{ <value> } | { error: Response }`; callers write `if ("error" in result) return result.error;` (readCsvUpload, readFormData, readMergeRequest, attemptStorage, adminSessionOrExportToken).
 - Read request bodies with `readJsonBody(req)` (malformed JSON becomes a Zod 400, not a 500) and return Zod failures with `invalidInput(parsed.error)` — `400` with `{ error: "Invalid input", details }`.
 - Error bodies are `{ error, code?, details? }`: `error` is readable English, `code` a stable id for a case the client localizes, `details` either `string[]` or the Zod flatten object. Client components call the API through `apiFetch()` from `lib/api-client.ts` (it never throws: a network failure is `{ ok: false, status: 0 }`, a body-less 500 gives `error: {}`), show `res.error` with `apiErrorMessage()` from `lib/utils.ts`, and download CSV exports with `downloadFile()`. Client code never calls `fetch` directly (pass an `AbortSignal` in the init and check `signal.aborted` for superseded requests); build JSON requests with `jsonBody(method, body)`.
 - Missing records: `404` only for the record named in the URL path (`notFoundResponse("Model")` → "Model not found."); an id inside the request body that names no record is invalid input — `400` with `code: "unknownReference"` (`unknownReferenceResponse()`; catch `isForeignKeyError(err)` on writes).

@@ -102,7 +102,7 @@ export async function DELETE(
       "Could not delete the stored file. The attachment was kept; please try again.",
       () => getStorageDriver().deleteObject(path)
     );
-    if (!removed.ok) return removed.response;
+    if ("error" in removed) return removed.error;
   }
 
   await prisma.attachment.delete({ where: { id } });

@@ -53,6 +53,8 @@ Additional columns not listed above are imported as **custom fields** on the ass
 
 > MAC addresses are normalized to `AA:BB:CC:DD:EE:FF` on import regardless of the source format (no separator, hyphens, lowercase, Cisco dot-grouping). A value that can't be normalized (wrong digit count, non-hex characters) is imported as-is and listed in the results as an error for manual review.
 
+> An `IP_HOSTNAME` that the asset form would reject — one that doesn't match the asset type's hostname format, or one on a row without a MAC address — is also imported as-is and listed in the results; the hostname compliance report ([Administration → Compliance Dashboard](administration.md#compliance-dashboard)) lists such hostnames for cleanup.
+
 > Requires Editor or Admin role.
 
 ---

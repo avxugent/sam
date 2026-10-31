@@ -8,6 +8,7 @@ import { readCsvUpload } from "@/lib/csv/upload";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { prismaErrorCode } from "@/lib/route-helpers";
+import { isHostnameCompliant } from "@/lib/hostname";
 
 /** Database errors caused by a row's own data: that row is skipped, the import goes on. */
 const ROW_ERROR_REASONS: Record<string, string> = {
@@ -57,6 +58,12 @@ export async function POST(req: NextRequest) {
         }
       }
       stats.errors.push(...parsed.warnings.map((w) => `Row ${rowNum}: ${w}`));
+      // The form rejects such a hostname; import keeps it (legacy files) and
+      // the hostname compliance report lists it for cleanup.
+      const { hostname } = parsed.asset;
+      if (hostname && !isHostnameCompliant(hostname, ctx.hostnamePattern(typeId))) {
+        stats.errors.push(`Row ${rowNum}: IP_HOSTNAME "${hostname}" does not match the hostname format for its type, imported as-is.`);
+      }
 
       // Supplier — matched/created by name (manufacturer pattern); absent → window default
       const supplierId = parsed.supplierName

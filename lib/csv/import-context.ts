@@ -25,7 +25,7 @@ function nameResolver(existing: { id: string; name: string }[], upsert: (name: s
  */
 export async function loadImportContext() {
   const [existingTypes, existingMfrs, existingSuppliers, existingModels, existingUsers, existingLocations] = await Promise.all([
-    prisma.assetType.findMany({ select: { id: true, name: true } }),
+    prisma.assetType.findMany({ select: { id: true, name: true, hostnamePattern: true } }),
     prisma.manufacturer.findMany({ select: { id: true, name: true } }),
     prisma.supplier.findMany({ select: { id: true, name: true } }),
     prisma.model.findMany({ select: { id: true, typeId: true, manufacturerId: true, name: true } }),
@@ -43,6 +43,12 @@ export async function loadImportContext() {
   const supplierId = nameResolver(existingSuppliers, (name) =>
     prisma.supplier.upsert({ where: { name }, create: { name }, update: {} })
   );
+
+  // Types created by this import have no pattern: the FQDN rule applies.
+  const patternByTypeId = new Map(existingTypes.map((t) => [t.id, t.hostnamePattern]));
+  function hostnamePattern(typeId: string | null): string | null {
+    return typeId ? patternByTypeId.get(typeId) ?? null : null;
+  }
 
   // Models are admin-only to create (no fixed-list autocreate here, unlike
   // type/manufacturer above) — import only resolves a MODEL cell against an
@@ -112,5 +118,5 @@ export async function loadImportContext() {
     return getOrCreateLocation(room, buildingId ?? campusId, fiNumber);
   }
 
-  return { typeId, manufacturerId, supplierId, modelId, locationId, userIdByEmail, creationDefaults };
+  return { typeId, hostnamePattern, manufacturerId, supplierId, modelId, locationId, userIdByEmail, creationDefaults };
 }

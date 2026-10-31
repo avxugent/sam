@@ -123,4 +123,15 @@ describe("POST /api/import — OWNER/CRITICALITY/END_OF_SUPPORT/SUPPLIER columns
       })
     );
   });
+
+  it("imports a hostname that breaks its type's pattern, with a warning", async () => {
+    vi.mocked(prisma.assetType.findMany).mockResolvedValue([{ id: "type-d", name: "Display", hostnamePattern: "^pc-\\d+$" }] as never);
+    const csv = `${HEADER}\nC;G;Room 1;;Display;Dell;;SN1;001122334455;printer1;;;;;;;\nC;G;Room 1;;Display;Dell;;SN2;001122334466;pc-12;;;;;;;`;
+    const body = await (await POST(importReq(csv))).json();
+    expect(body.created).toBe(2);
+    expect(body.errors).toEqual(['Row 2: IP_HOSTNAME "printer1" does not match the hostname format for its type, imported as-is.']);
+    expect(mockAssetCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ hostname: "printer1", typeId: "type-d" }) })
+    );
+  });
 });

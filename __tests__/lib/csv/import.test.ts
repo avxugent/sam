@@ -38,6 +38,13 @@ describe("parseImportRow()", () => {
     expect(row.warnings).toEqual(['MAC address "junk" could not be normalized, stored as-is.']);
   });
 
+  it("keeps a hostname without a MAC but warns (the form would reject it)", () => {
+    const row = ok({ IP_HOSTNAME: "pc1.example.com" });
+    expect(row.asset.hostname).toBe("pc1.example.com");
+    expect(row.warnings).toEqual(['IP_HOSTNAME "pc1.example.com" has no MAC address; the asset form requires one, imported as-is.']);
+    expect(ok({ IP_HOSTNAME: "pc1.example.com", MAC: "001122334455" }).warnings).toEqual([]);
+  });
+
   it("applies quantity only to rows without an identity", () => {
     expect(ok({ QUANTITY: "4" }).asset.quantity).toBe(4);
     const withSerial = ok({ QUANTITY: "4", SERIAL: "SN1" });

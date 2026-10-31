@@ -102,6 +102,10 @@ export function parseImportRow(row: CsvRow, userIdByEmail: Map<string, string>):
   // (no serial number, hostname, or MAC address).
   const serialNumber = v(row, "SERIAL") || null;
   const hostname = v(row, "IP_HOSTNAME") || null;
+  // The form requires a MAC with a hostname; import keeps the row and warns.
+  if (hostname && macAddresses.length === 0) {
+    warnings.push(`IP_HOSTNAME "${hostname}" has no MAC address; the asset form requires one, imported as-is.`);
+  }
   const hasIdentity = hasDeviceIdentity({ serialNumber, hostname, macCount: macAddresses.length });
   const quantityRaw = v(row, "QUANTITY");
   let quantity = 1;

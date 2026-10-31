@@ -35,3 +35,16 @@ export const ASSET_DETAIL_INCLUDE = {
 } satisfies Prisma.AssetInclude;
 
 export type AssetDetail = Prisma.AssetGetPayload<{ include: typeof ASSET_DETAIL_INCLUDE }>;
+
+/** An asset as the catalog drilldowns (asset type / manufacturer → its assets) list it. */
+export const CATALOG_DRILLDOWN_SELECT = {
+  id: true,
+  model: { select: { name: true } },
+  serialNumber: true,
+  hostname: true,
+  installationDate: true,
+  location: { select: { id: true, name: true } },
+  type: { select: { name: true } },
+  manufacturer: { select: { name: true } },
+  macAddresses: { select: { id: true, address: true } },
+} satisfies Prisma.AssetSelect;

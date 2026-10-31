@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { assetListStatusFilter } from "@/lib/assets/list-status";
+import { CATALOG_DRILLDOWN_SELECT } from "@/lib/assets/include";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -11,20 +13,12 @@ export async function GET(
 
   const { id } = await params;
 
+  // Installed assets by default (what the page's badge counts), like the asset-type drilldown.
+  const statusFilter = assetListStatusFilter(new URL(req.url).searchParams.get("status"));
+
   const assets = await prisma.asset.findMany({
-    // Decommissioned assets are historical, not current inventory — excluded
-    // from the drilldown, same as the badge count on the manufacturers page.
-    where: { manufacturerId: id, status: "INSTALLED" },
-    select: {
-      id: true,
-      model: { select: { name: true } },
-      serialNumber: true,
-      hostname: true,
-      installationDate: true,
-      location: { select: { id: true, name: true } },
-      type: { select: { name: true } },
-      macAddresses: { select: { id: true, address: true } },
-    },
+    where: { manufacturerId: id, ...statusFilter },
+    select: CATALOG_DRILLDOWN_SELECT,
     orderBy: [{ location: { name: "asc" } }, { createdAt: "desc" }],
   });
 

@@ -36,4 +36,7 @@ export default async function ProfilePage() {
   );
 }
 
-export const metadata = { title: "Profile" };
+export async function generateMetadata() {
+  const t = await getTranslations("settings");
+  return { title: t("profileTitle") };
+}

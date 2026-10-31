@@ -65,22 +65,22 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
       <div className="flex items-center gap-1.5">
         <Wrench className="h-3.5 w-3.5 text-muted-foreground" />
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Maintenance presets
+          {t("maintenancePresets")}
         </p>
       </div>
       <p className="text-xs text-muted-foreground">
-        Quick-pick task names for the work log when an asset of this type is selected (e.g. &quot;Clean filter&quot;, &quot;Replace lamp&quot;).
+        {t("presetsHelp")}
       </p>
 
       {loading ? (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Loading presets…
+          {t("loadingPresets")}
         </div>
       ) : (
         <>
           {presets.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">No presets yet</p>
+            <p className="text-xs text-muted-foreground italic">{t("noPresets")}</p>
           ) : (
             <div className="space-y-1.5">
               {presets.map((p) => (
@@ -129,7 +129,7 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
               className="h-8 gap-1"
             >
               {adding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-              Add preset
+              {t("addPreset")}
             </Button>
           </div>
         </>

@@ -142,7 +142,7 @@ export function LocationMap({
             <Input
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="e.g. Grote Markt 1"
+              placeholder={t("addressPlaceholder")}
               onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
             />
           </div>
@@ -152,7 +152,7 @@ export function LocationMap({
               <Input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g. Ghent"
+                placeholder={t("cityPlaceholder")}
               />
             </div>
             <div className="space-y-1.5">
@@ -160,7 +160,7 @@ export function LocationMap({
               <Input
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                placeholder="e.g. Belgium"
+                placeholder={t("countryPlaceholder")}
               />
             </div>
           </div>
@@ -195,7 +195,7 @@ export function LocationMap({
           {searchResults.length > 0 && (
             <div className="border rounded-lg divide-y overflow-hidden">
               <p className="px-3 py-2 text-xs font-medium text-muted-foreground bg-muted/50">
-                Select a result to pin on map
+                {t("pickGeocodeResult")}
               </p>
               {searchResults.map((r, i) => (
                 <button
@@ -239,7 +239,7 @@ export function LocationMap({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-primary hover:underline ml-1"
             >
-              Open in OpenStreetMap
+              {t("openInOsm")}
               <ExternalLink className="h-3 w-3" />
             </a>
           )}
@@ -254,7 +254,7 @@ export function LocationMap({
             width="100%"
             height="100%"
             style={{ border: 0 }}
-            title="Location map"
+            title={t("mapFrameTitle")}
             loading="lazy"
             referrerPolicy="no-referrer"
           />

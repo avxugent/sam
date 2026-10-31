@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
@@ -53,6 +54,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     where: { id: assetId },
     select: { model: { select: { name: true } }, serialNumber: true },
   });
-  const title = asset?.model?.name || asset?.serialNumber || "Asset";
-  return { title: title };
+  const title = asset?.model?.name || asset?.serialNumber;
+  if (title) return { title: title };
+  const t = await getTranslations("asset");
+  return { title: t("title") };
 }

@@ -43,4 +43,7 @@ export default async function AssetTypesPage() {
   );
 }
 
-export const metadata = { title: "Asset Types" };
+export async function generateMetadata() {
+  const t = await getTranslations("adminPages");
+  return { title: t("assetTypes.title") };
+}

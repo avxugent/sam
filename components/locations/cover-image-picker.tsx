@@ -60,7 +60,7 @@ export function CoverImagePicker({
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Select an image attachment to use as the cover photo for this location.
+        {t("selectHint")}
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {imageAttachments.map((attachment) => {

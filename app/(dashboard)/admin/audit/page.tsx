@@ -36,4 +36,7 @@ export default async function AuditLogPage() {
   );
 }
 
-export const metadata = { title: "Audit Log" };
+export async function generateMetadata() {
+  const t = await getTranslations("adminPages");
+  return { title: t("audit.title") };
+}

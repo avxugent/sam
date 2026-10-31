@@ -313,7 +313,13 @@
     "assetCount": "{count} {count, plural, =1 {asset} other {assets}}",
     "geocodeNoResults": "Geen resultaten gevonden",
     "geocodeNoResultsHint": "Probeer een specifieker adres.",
-    "geocodeFailed": "De geocodeerdienst is niet bereikbaar."
+    "geocodeFailed": "De geocodeerdienst is niet bereikbaar.",
+    "addressPlaceholder": "bijv. Grote Markt 1",
+    "cityPlaceholder": "bijv. Gent",
+    "countryPlaceholder": "bijv. België",
+    "pickGeocodeResult": "Kies een resultaat om op de kaart te plaatsen",
+    "openInOsm": "Openen in OpenStreetMap",
+    "mapFrameTitle": "Kaart van de locatie"
   },
   "locationForm": {
     "createTitle": "Locatie toevoegen",
@@ -705,7 +711,11 @@
     "deleteOverrideFor": "Override voor {name} verwijderen",
     "deletePresetNamed": "Preset {name} verwijderen",
     "emptyList": "Nog geen asset-types",
-    "scrapeConfigured": "Scrape ingesteld"
+    "scrapeConfigured": "Scrape ingesteld",
+    "presetsHelp": "Snelkeuzetaken voor het werklog wanneer een asset van dit type geselecteerd is (bijv. \"Filter reinigen\", \"Lamp vervangen\").",
+    "loadingPresets": "Presets laden…",
+    "noPresets": "Nog geen presets",
+    "addPreset": "Preset toevoegen"
   },
   "manufacturers": {
     "title": "Fabrikanten",
@@ -1135,7 +1145,8 @@
     "useThis": "Als hoofdfoto gebruiken",
     "currentCover": "Huidige hoofdfoto",
     "removeCover": "Hoofdfoto verwijderen",
-    "saved": "Hoofdfoto bijgewerkt"
+    "saved": "Hoofdfoto bijgewerkt",
+    "selectHint": "Kies een afbeelding uit de bijlagen om als hoofdfoto voor deze locatie te gebruiken."
   },
   "suppliers": {
     "title": "Leveranciers",

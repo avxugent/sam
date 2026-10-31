@@ -40,4 +40,7 @@ export default async function TwoFactorSettingsPage() {
   );
 }
 
-export const metadata = { title: "Two-Factor Authentication" };
+export async function generateMetadata() {
+  const t = await getTranslations("settings");
+  return { title: t("twoFactorPageTitle") };
+}

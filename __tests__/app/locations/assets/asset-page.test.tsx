@@ -5,6 +5,7 @@ vi.mock("next/navigation", () => ({
     throw new Error("NOT_FOUND");
   }),
 }));
+vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: string) => key) }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({ prisma: { asset: { findUnique: vi.fn() } } }));
 vi.mock("@/lib/app-settings", () => ({ readGeneralSettings: vi.fn() }));
@@ -114,6 +115,6 @@ describe("locations/[id]/assets/[assetId] page", () => {
     };
     await expect(meta({ model: { name: "R740" }, serialNumber: "SN1" })).resolves.toEqual({ title: "R740" });
     await expect(meta({ model: null, serialNumber: "SN1" })).resolves.toEqual({ title: "SN1" });
-    await expect(meta(null)).resolves.toEqual({ title: "Asset" });
+    await expect(meta(null)).resolves.toEqual({ title: "title" });
   });
 });

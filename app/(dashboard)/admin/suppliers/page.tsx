@@ -29,4 +29,7 @@ export default async function SuppliersPage() {
   );
 }
 
-export const metadata = { title: "Suppliers" };
+export async function generateMetadata() {
+  const t = await getTranslations("suppliers");
+  return { title: t("title") };
+}

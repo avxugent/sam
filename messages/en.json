@@ -313,7 +313,13 @@
     "assetCount": "{count} {count, plural, =1 {asset} other {assets}}",
     "geocodeNoResults": "No results found",
     "geocodeNoResultsHint": "Try a more specific address.",
-    "geocodeFailed": "Could not reach the geocoding service."
+    "geocodeFailed": "Could not reach the geocoding service.",
+    "addressPlaceholder": "e.g. Grote Markt 1",
+    "cityPlaceholder": "e.g. Ghent",
+    "countryPlaceholder": "e.g. Belgium",
+    "pickGeocodeResult": "Select a result to pin on map",
+    "openInOsm": "Open in OpenStreetMap",
+    "mapFrameTitle": "Location map"
   },
   "locationForm": {
     "createTitle": "Add location",
@@ -705,7 +711,11 @@
     "deleteOverrideFor": "Delete override for {name}",
     "deletePresetNamed": "Delete preset {name}",
     "emptyList": "No asset types yet",
-    "scrapeConfigured": "Scrape configured"
+    "scrapeConfigured": "Scrape configured",
+    "presetsHelp": "Quick-pick task names for the work log when an asset of this type is selected (e.g. \"Clean filter\", \"Replace lamp\").",
+    "loadingPresets": "Loading presets…",
+    "noPresets": "No presets yet",
+    "addPreset": "Add preset"
   },
   "manufacturers": {
     "title": "Manufacturers",
@@ -1135,7 +1145,8 @@
     "useThis": "Use as cover",
     "currentCover": "Current cover",
     "removeCover": "Remove cover",
-    "saved": "Cover image updated"
+    "saved": "Cover image updated",
+    "selectHint": "Select an image attachment to use as the cover photo for this location."
   },
   "suppliers": {
     "title": "Suppliers",

@@ -24,7 +24,7 @@ describe("MaintenancePresetsManager", () => {
   it("loads and lists the presets of the asset type", async () => {
     mockFetch.mockResolvedValueOnce(json([LAMP, FILTER]));
     render(<MaintenancePresetsManager assetTypeId="t1" />);
-    expect(screen.getByText("Loading presets…")).toBeInTheDocument();
+    expect(screen.getByText("loadingPresets")).toBeInTheDocument();
     expect(await screen.findByText("Replace lamp")).toBeInTheDocument();
     expect(screen.getByText("Use the spare in the cabinet")).toBeInTheDocument();
     expect(screen.getByText("Clean filter")).toBeInTheDocument();
@@ -34,13 +34,13 @@ describe("MaintenancePresetsManager", () => {
   it("shows the empty state when loading fails", async () => {
     mockFetch.mockResolvedValueOnce(json({ error: "nope" }, false, 500));
     render(<MaintenancePresetsManager assetTypeId="t1" />);
-    expect(await screen.findByText("No presets yet")).toBeInTheDocument();
+    expect(await screen.findByText("noPresets")).toBeInTheDocument();
   });
 
   it("disables adding until a name is typed", async () => {
     mockFetch.mockResolvedValueOnce(json([]));
     render(<MaintenancePresetsManager assetTypeId="t1" />);
-    const add = await screen.findByRole("button", { name: /Add preset/ });
+    const add = await screen.findByRole("button", { name: /addPreset/ });
     expect(add).toBeDisabled();
     await userEvent.type(screen.getByPlaceholderText("newPresetPlaceholder"), "   ");
     expect(add).toBeDisabled();
@@ -56,7 +56,7 @@ describe("MaintenancePresetsManager", () => {
     const desc = screen.getByPlaceholderText("presetDescPlaceholder");
     await userEvent.type(name, "  Check fan  ");
     await userEvent.type(desc, " Listen for noise ");
-    await userEvent.click(screen.getByRole("button", { name: /Add preset/ }));
+    await userEvent.click(screen.getByRole("button", { name: /addPreset/ }));
 
     expect(await screen.findByText("Check fan")).toBeInTheDocument();
     const [url, init] = mockFetch.mock.calls[1];
@@ -76,7 +76,7 @@ describe("MaintenancePresetsManager", () => {
     render(<MaintenancePresetsManager assetTypeId="t1" />);
     mockFetch.mockResolvedValueOnce(json(FILTER));
     await userEvent.type(await screen.findByPlaceholderText("newPresetPlaceholder"), "Clean filter");
-    await userEvent.click(screen.getByRole("button", { name: /Add preset/ }));
+    await userEvent.click(screen.getByRole("button", { name: /addPreset/ }));
     await screen.findByText("Clean filter");
     expect(JSON.parse(mockFetch.mock.calls[1][1].body)).toEqual({ name: "Clean filter", description: null });
   });
@@ -87,12 +87,12 @@ describe("MaintenancePresetsManager", () => {
     mockFetch.mockResolvedValueOnce(json({ error: "Preset exists" }, false, 409));
     const name = await screen.findByPlaceholderText("newPresetPlaceholder");
     await userEvent.type(name, "Clean filter");
-    await userEvent.click(screen.getByRole("button", { name: /Add preset/ }));
+    await userEvent.click(screen.getByRole("button", { name: /addPreset/ }));
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith({ title: "error", description: "Preset exists", variant: "destructive" })
     );
     expect(name).toHaveValue("Clean filter");
-    expect(screen.getByText("No presets yet")).toBeInTheDocument();
+    expect(screen.getByText("noPresets")).toBeInTheDocument();
   });
 
   it("deletes a preset", async () => {

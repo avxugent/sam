@@ -34,4 +34,7 @@ export default async function CompliancePage() {
   );
 }
 
-export const metadata = { title: "Compliance" };
+export async function generateMetadata() {
+  const t = await getTranslations("nav");
+  return { title: t("compliance") };
+}

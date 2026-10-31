@@ -47,4 +47,7 @@ export default async function AllLocationsPage() {
   );
 }
 
-export const metadata = { title: "Locations" };
+export async function generateMetadata() {
+  const t = await getTranslations("nav");
+  return { title: t("locations") };
+}

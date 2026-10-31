@@ -27,4 +27,7 @@ export default async function UsersPage() {
   );
 }
 
-export const metadata = { title: "Users" };
+export async function generateMetadata() {
+  const t = await getTranslations("adminPages");
+  return { title: t("users.title") };
+}

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
@@ -110,5 +111,7 @@ export default async function LocationPage({
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const location = await prisma.location.findUnique({ where: { id }, select: { name: true } });
-  return { title: location?.name ?? "Location" };
+  if (location) return { title: location.name };
+  const t = await getTranslations("location");
+  return { title: t("title") };
 }

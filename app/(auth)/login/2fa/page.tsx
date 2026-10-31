@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { authIncludingPendingSteps } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -16,4 +17,7 @@ export default async function TwoFactorPage() {
   );
 }
 
-export const metadata = { title: "Two-Factor Authentication" };
+export async function generateMetadata() {
+  const t = await getTranslations("auth");
+  return { title: t("twoFactorTitle") };
+}

@@ -28,4 +28,7 @@ export default async function ExportPage() {
   );
 }
 
-export const metadata = { title: "Export CSV" };
+export async function generateMetadata() {
+  const t = await getTranslations("adminPages");
+  return { title: t("export.title") };
+}

@@ -22,4 +22,7 @@ export default async function ImportPage() {
   );
 }
 
-export const metadata = { title: "Import CSV" };
+export async function generateMetadata() {
+  const t = await getTranslations("nav");
+  return { title: t("importCsv") };
+}

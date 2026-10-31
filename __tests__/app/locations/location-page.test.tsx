@@ -5,6 +5,7 @@ vi.mock("next/navigation", () => ({
     throw new Error("NOT_FOUND");
   }),
 }));
+vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: string) => key) }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -188,6 +189,6 @@ describe("locations/[id] page", () => {
     await expect(generateMetadata({ params: Promise.resolve({ id: "loc-1" }) })).resolves.toEqual({ title: "Room 1" });
 
     vi.mocked(prisma.location.findUnique).mockResolvedValueOnce(null as never);
-    await expect(generateMetadata({ params: Promise.resolve({ id: "x" }) })).resolves.toEqual({ title: "Location" });
+    await expect(generateMetadata({ params: Promise.resolve({ id: "x" }) })).resolves.toEqual({ title: "title" });
   });
 });

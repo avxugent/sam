@@ -80,4 +80,7 @@ export default async function SettingsPage() {
   );
 }
 
-export const metadata = { title: "Settings" };
+export async function generateMetadata() {
+  const t = await getTranslations("adminPages");
+  return { title: t("settings.title") };
+}

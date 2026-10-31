@@ -56,4 +56,7 @@ export default async function ModelsPage({
   );
 }
 
-export const metadata = { title: "Models" };
+export async function generateMetadata() {
+  const t = await getTranslations("adminPages");
+  return { title: t("models.title") };
+}

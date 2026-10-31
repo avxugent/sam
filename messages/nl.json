@@ -727,7 +727,10 @@
     "manufacturerMerged": "Fabrikanten samengevoegd",
     "addNewManufacturer": "Nieuwe fabrikant toevoegen...",
     "viewAssetsFrom": "{count} {count, plural, =1 {asset} other {assets}} van {name} bekijken",
-    "emptyList": "Nog geen fabrikanten"
+    "emptyList": "Nog geen fabrikanten",
+    "deleteNamedTitle": "\"{name}\" verwijderen?",
+    "inUseDescription": "Deze fabrikant wordt gebruikt door {count, plural, =1 {# asset} other {# assets}}. Wijs ze eerst opnieuw toe.",
+    "assetCount": "{count, plural, =1 {# asset} other {# assets}}"
   },
   "models": {
     "title": "Modellen",
@@ -758,7 +761,8 @@
     "possibleDuplicates": "Mogelijke duplicaten",
     "possibleDuplicatesSubtitle": "Schrijfwijzen die op elkaar lijken — controleer en voeg samen indien het hetzelfde model is.",
     "noDuplicatesFound": "Geen mogelijke duplicaten gevonden.",
-    "mergeButton": "Samenvoegen"
+    "mergeButton": "Samenvoegen",
+    "inUseDescription": "Dit model wordt gebruikt door {assets, plural, =1 {# asset} other {# assets}} en {stockItems, plural, =1 {# voorraaditem} other {# voorraaditems}}. Wijs ze eerst opnieuw toe of voeg ze samen."
   },
   "import": {
     "title": "CSV importeren",

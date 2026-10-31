@@ -51,12 +51,22 @@ describe("<MergeConfirmDialog />", () => {
     expect(screen.getByText("A into B")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Merge now" }));
     await waitFor(() => expect(onConfirm).toHaveBeenCalled());
+    // Confirming must not close the dialog: the caller's merge state has to
+    // survive until the request is done.
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(screen.getByText("A into B")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onCancel).toHaveBeenCalled();
   });
 
-  it("disables the confirm button while merging", () => {
+  it("can't be confirmed or dismissed while merging", async () => {
+    const onCancel = vi.fn();
     render(
-      <MergeConfirmDialog open title="Merge" description="x" cancelLabel="Cancel" confirmLabel="Merge now" merging onCancel={vi.fn()} onConfirm={vi.fn()} />
+      <MergeConfirmDialog open title="Merge" description="x" cancelLabel="Cancel" confirmLabel="Merge now" merging onCancel={onCancel} onConfirm={vi.fn()} />
     );
     expect(screen.getByRole("button", { name: "Merge now" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    await userEvent.keyboard("{Escape}");
+    expect(onCancel).not.toHaveBeenCalled();
   });
 });

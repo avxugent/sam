@@ -123,7 +123,7 @@ export function ManufacturersClient({
         />
         <Button onClick={handleAdd} disabled={adding || !newName.trim()}>
           {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          Add
+          {tCommon("add")}
         </Button>
       </div>
 
@@ -173,7 +173,7 @@ export function ManufacturersClient({
                       onClick={() => openDrilldown(item)}
                       aria-hidden="true"
                     >
-                      {item._count.assets} asset{item._count.assets !== 1 ? "s" : ""}
+                      {t("assetCount", { count: item._count.assets })}
                     </Badge>
                   )}
                   <Button
@@ -193,10 +193,10 @@ export function ManufacturersClient({
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete &quot;{item.name}&quot;?</AlertDialogTitle>
+                        <AlertDialogTitle>{t("deleteNamedTitle", { name: item.name })}</AlertDialogTitle>
                         <AlertDialogDescription>
                           {item._count.assets > 0
-                            ? `This manufacturer is used by ${item._count.assets} asset(s). Reassign them before deleting.`
+                            ? t("inUseDescription", { count: item._count.assets })
                             : t("deleteConfirmDescription")}
                         </AlertDialogDescription>
                       </AlertDialogHeader>

@@ -13,7 +13,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
-/** Confirmation for a catalog merge; opened programmatically by the admin clients. */
+/**
+ * Confirmation for a catalog merge; opened programmatically by the admin
+ * clients. It stays open (with a spinner) while the merge runs; the caller
+ * closes it by clearing `open` once the request has finished.
+ */
 export function MergeConfirmDialog({
   open,
   title,
@@ -36,16 +40,21 @@ export function MergeConfirmDialog({
   onConfirm: () => void;
 }) {
   return (
-    <AlertDialog open={open} onOpenChange={(next) => { if (!next) onCancel(); }}>
+    <AlertDialog open={open} onOpenChange={(next) => { if (!next && !merging) onCancel(); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>{cancelLabel}</AlertDialogCancel>
+          <AlertDialogCancel onClick={onCancel} disabled={merging}>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
+            onClick={(e) => {
+              // AlertDialogAction closes the dialog by default, which would
+              // run onCancel and drop the caller's merge state mid-request.
+              e.preventDefault();
+              onConfirm();
+            }}
             disabled={merging}
             className={cn(
               destructive

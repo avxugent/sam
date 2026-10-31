@@ -727,7 +727,10 @@
     "manufacturerMerged": "Manufacturers merged",
     "addNewManufacturer": "Add new manufacturer...",
     "viewAssetsFrom": "View {count} {count, plural, =1 {asset} other {assets}} from {name}",
-    "emptyList": "No manufacturers yet"
+    "emptyList": "No manufacturers yet",
+    "deleteNamedTitle": "Delete \"{name}\"?",
+    "inUseDescription": "This manufacturer is used by {count, plural, =1 {# asset} other {# assets}}. Reassign them before deleting.",
+    "assetCount": "{count, plural, =1 {# asset} other {# assets}}"
   },
   "models": {
     "title": "Models",
@@ -758,7 +761,8 @@
     "possibleDuplicates": "Possible duplicates",
     "possibleDuplicatesSubtitle": "Spellings that look similar — review and merge if they're the same model.",
     "noDuplicatesFound": "No possible duplicates found.",
-    "mergeButton": "Merge"
+    "mergeButton": "Merge",
+    "inUseDescription": "This model is used by {assets, plural, =1 {# asset} other {# assets}} and {stockItems, plural, =1 {# stock item} other {# stock items}}. Reassign or merge them first."
   },
   "import": {
     "title": "Import CSV",

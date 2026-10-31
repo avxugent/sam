@@ -170,7 +170,7 @@ export function ModelsClient({
         setMergeConflict({ ...conflict, newTypeId: formTypeId, newManufacturerId: formManufacturerId || null });
         return;
       }
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
 
@@ -192,7 +192,7 @@ export function ModelsClient({
   async function handleDelete(id: string) {
     const res = await apiFetch(`/api/models/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
       return;
     }
     setModels((prev) => prev.filter((m) => m.id !== id));
@@ -295,7 +295,7 @@ export function ModelsClient({
                       <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
                       <AlertDialogDescription>
                         {usageCount > 0
-                          ? `This model is used by ${item._count.assets} asset(s) and ${item._count.stockItems} stock item(s). Reassign or merge them first.`
+                          ? t("inUseDescription", { assets: item._count.assets, stockItems: item._count.stockItems })
                           : t("deleteConfirmDescription")}
                       </AlertDialogDescription>
                     </AlertDialogHeader>

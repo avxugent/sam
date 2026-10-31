@@ -290,7 +290,7 @@ describe("ModelsClient delete", () => {
     renderModels();
     await userEvent.click(rowButtons("Latitude 5440")[2]);
     const alert = await screen.findByRole("alertdialog");
-    expect(within(alert).getByText(/used by 2 asset\(s\) and 1 stock item\(s\)/)).toBeInTheDocument();
+    expect(within(alert).getByText('inUseDescription:{"assets":2,"stockItems":1}')).toBeInTheDocument();
     expect(within(alert).getByRole("button", { name: "delete" })).toBeDisabled();
   });
 
@@ -303,6 +303,16 @@ describe("ModelsClient delete", () => {
       expect(mockToast).toHaveBeenCalledWith({ title: "error", description: "Still referenced", variant: "destructive" })
     );
     expect(screen.getByRole("button", { name: "OptiPlex" })).toBeInTheDocument();
+  });
+
+  it("falls back to a generic message when the failed delete has no error body", async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    renderModels();
+    await userEvent.click(rowButtons("OptiPlex")[2]);
+    await userEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "delete" }));
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith({ title: "error", description: "somethingWentWrong", variant: "destructive" })
+    );
   });
 });
 

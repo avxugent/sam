@@ -40,8 +40,8 @@ describe("ManufacturersClient", () => {
 
   it("shows asset counts and offers a drilldown only for used manufacturers", () => {
     renderClient();
-    expect(screen.getByText("2 assets")).toBeInTheDocument();
-    expect(screen.getByText("1 asset")).toBeInTheDocument();
+    expect(screen.getByText("assetCount(2)")).toBeInTheDocument();
+    expect(screen.getByText("assetCount(1)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "viewAssetsFrom(2,Acme)" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /viewAssetsFrom\(0,Bolt\)/ })).not.toBeInTheDocument();
   });
@@ -58,7 +58,7 @@ describe("ManufacturersClient", () => {
 
   it("disables Add until a name is typed", async () => {
     renderClient();
-    const add = screen.getByRole("button", { name: "Add" });
+    const add = screen.getByRole("button", { name: "add" });
     expect(add).toBeDisabled();
     await userEvent.type(screen.getByPlaceholderText("addNewManufacturer"), "   ");
     expect(add).toBeDisabled();
@@ -71,7 +71,7 @@ describe("ManufacturersClient", () => {
     renderClient();
     const input = screen.getByPlaceholderText("addNewManufacturer");
     await userEvent.type(input, "  Aardvark  ");
-    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    await userEvent.click(screen.getByRole("button", { name: "add" }));
 
     await waitFor(() => expect(names()).toEqual(["Aardvark", "Acme", "Bolt", "Core"]));
     const [url, init] = mockFetch.mock.calls[0];
@@ -200,7 +200,7 @@ describe("ManufacturersClient", () => {
     renderClient();
     await userEvent.click(screen.getByRole("button", { name: "deleteItem(Bolt)" }));
     const dialog = await screen.findByRole("alertdialog");
-    expect(within(dialog).getByText('Delete "Bolt"?')).toBeInTheDocument();
+    expect(within(dialog).getByText("deleteNamedTitle(Bolt)")).toBeInTheDocument();
     expect(within(dialog).getByText("deleteConfirmDescription")).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "delete" }));
 
@@ -213,7 +213,7 @@ describe("ManufacturersClient", () => {
     renderClient();
     await userEvent.click(screen.getByRole("button", { name: "deleteItem(Acme)" }));
     const dialog = await screen.findByRole("alertdialog");
-    expect(within(dialog).getByText(/used by 2 asset\(s\)/)).toBeInTheDocument();
+    expect(within(dialog).getByText("inUseDescription(2)")).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "delete" })).toBeDisabled();
   });
 

@@ -55,6 +55,11 @@ jobs:
       - name: TypeScript type-check
         run: npx tsc --noEmit
 
+      # The maintenance scripts are plain .mjs; this checks them against the
+      # lib/ and Prisma types they use (tsconfig.scripts.json).
+      - name: Type-check maintenance scripts
+        run: npm run typecheck:scripts
+
       # ── 7. ESLint ─────────────────────────────────────────────────────────
       # Runs the Next.js-bundled ESLint config.
       - name: ESLint

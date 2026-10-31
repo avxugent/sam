@@ -19,7 +19,9 @@ const assets = await prisma.asset.findMany({
   select: { id: true, serialNumber: true },
 });
 
-const affected = assets.filter((a) => SCI_NOTATION_RE.test(a.serialNumber));
+const affected = assets.flatMap(({ id, serialNumber }) =>
+  serialNumber && SCI_NOTATION_RE.test(serialNumber) ? [{ id, serialNumber }] : []
+);
 
 console.log(`Found ${affected.length} asset(s) with scientific-notation serial numbers.`);
 

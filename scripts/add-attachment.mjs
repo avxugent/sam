@@ -13,13 +13,8 @@
  */
 
 import "./_env.mjs";
+import { getArg } from "./_args.mjs";
 import { prisma } from "@/lib/prisma";
-
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
 
 async function main() {
   const locationId = getArg("--location-id");
@@ -45,9 +40,9 @@ async function main() {
     if (!loc) { console.error(`❌  Location ${locationId} not found`); process.exit(1); }
     console.log(`Target: location "${loc.name}" (${locationId})`);
   } else {
-    const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { model: true } });
+    const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { model: { select: { name: true } } } });
     if (!asset) { console.error(`❌  Asset ${assetId} not found`); process.exit(1); }
-    console.log(`Target: asset "${asset.model ?? assetId}" (${assetId})`);
+    console.log(`Target: asset "${asset.model?.name ?? assetId}" (${assetId})`);
   }
 
   console.log(`URL   : ${url}`);

@@ -31,6 +31,7 @@
     "export:backup": "node --import tsx/esm scripts/export-backup.mjs",
     "export:backup:dry-run": "node --import tsx/esm scripts/export-backup.mjs --dry-run",
     "user:reset-password": "node --import tsx/esm scripts/reset-password.mjs",
+    "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

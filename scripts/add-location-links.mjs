@@ -20,15 +20,8 @@
  */
 
 import "./_env.mjs";
+import { getArg } from "./_args.mjs";
 import { prisma } from "@/lib/prisma";
-
-// ── arg parsing ───────────────────────────────────────────────────────────────
-
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
 
 const dryRun = process.argv.includes("--dry-run");
 const force = process.argv.includes("--force");
@@ -83,7 +76,7 @@ async function main() {
   let errors = 0;
 
   for (const location of locations) {
-    const url = baseUrlTemplate.replace("{fiNumber}", location.fiNumber);
+    const url = baseUrlTemplate.replace("{fiNumber}", location.fiNumber ?? "");
 
     // Check for existing link with the same URL
     const existing = await prisma.attachment.findFirst({

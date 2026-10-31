@@ -22,15 +22,8 @@
 import { isIP } from "node:net";
 import dns from "node:dns/promises";
 import "./_env.mjs";
+import { getArg } from "./_args.mjs";
 import { prisma } from "@/lib/prisma";
-
-// ── arg parsing ───────────────────────────────────────────────────────────────
-
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
 
 const dryRun = process.argv.includes("--dry-run");
 const singleAssetId = getArg("--asset-id");
@@ -85,7 +78,7 @@ async function main() {
   });
 
   // Keep only assets whose hostname is a bare IP address.
-  const ipAssets = assets.filter((a) => isIP(a.hostname) !== 0);
+  const ipAssets = assets.filter((a) => isIP(a.hostname ?? "") !== 0);
 
   if (ipAssets.length === 0) {
     console.log("No assets with an IP address in the hostname field.");

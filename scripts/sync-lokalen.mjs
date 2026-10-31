@@ -28,6 +28,7 @@
  */
 
 import "./_env.mjs";
+import { getArg } from "./_args.mjs";
 import { prisma } from "@/lib/prisma";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { JSDOM } from "jsdom";
@@ -51,13 +52,6 @@ const RATE_LIMIT_MS = 150;
 
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
 const MIME_TO_EXT = { "image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp" };
-
-// ── arg parsing ──────────────────────────────────────────────────────────────
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
 
 const dryRun      = process.argv.includes("--dry-run");
 const debug       = process.argv.includes("--debug");
@@ -191,14 +185,14 @@ function extractFormField(document, labelText) {
   return null;
 }
 
+/** @returns {string[]} */
 function extractImageUrls(document, pageUrl) {
   return [...document.querySelectorAll("img")]
-    .map(img => {
+    .flatMap((img) => {
       const src = img.getAttribute("src");
-      if (!src || !IMAGE_SRC_PATTERN.test(src)) return null;
-      try { return new URL(src, pageUrl).href; } catch { return null; }
+      if (!src || !IMAGE_SRC_PATTERN.test(src)) return [];
+      try { return [new URL(src, pageUrl).href]; } catch { return []; }
     })
-    .filter(Boolean)
     .filter((url, i, arr) => arr.indexOf(url) === i);
 }
 
@@ -254,8 +248,7 @@ async function main() {
     console.log(`  Uploader    : ${admin.email} (${admin.id})\n`);
   }
 
-  const where = { fiNumber: { not: null } };
-  if (fiNumberArg) where.fiNumber = fiNumberArg;
+  const where = fiNumberArg ? { fiNumber: fiNumberArg } : { fiNumber: { not: null } };
 
   const locations = await prisma.location.findMany({
     where,
@@ -488,7 +481,8 @@ async function main() {
                 path: relativePath,
                 description: imgUrl,
                 locationId: location.id,
-                uploadedById,
+                // Set above whenever images are downloaded (not --skip-images, not --dry-run).
+                uploadedById: /** @type {string} */ (uploadedById),
               },
             });
 

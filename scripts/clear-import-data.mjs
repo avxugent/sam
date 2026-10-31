@@ -121,6 +121,7 @@ async function main() {
 
     // Find IDs of locations that are NOT referenced as a parent by any other
     // location — i.e., the current leaves of the tree.
+    /** @type {{ id: string }[]} */
     const leaves = await prisma.$queryRaw`
       SELECT l.id FROM locations l
       WHERE l.id NOT IN (

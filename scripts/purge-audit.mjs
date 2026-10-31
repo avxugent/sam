@@ -18,15 +18,10 @@
  */
 
 import "./_env.mjs";
+import { getArg } from "./_args.mjs";
 import { prisma } from "@/lib/prisma";
 import { readComplianceSetting } from "@/lib/app-settings";
 import { isSyslogConfigured } from "@/lib/audit/syslog";
-
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
 
 const dryRun = process.argv.includes("--dry-run");
 const batchSize = parseInt(getArg("--batch", "10000"), 10) || 10000;

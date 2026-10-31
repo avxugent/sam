@@ -18,16 +18,9 @@
  */
 
 import "./_env.mjs";
+import { getArg } from "./_args.mjs";
 import { prisma } from "@/lib/prisma";
 import { formatRfc5424, forwardAuditBatch, isSyslogConfigured, syslogDestination } from "@/lib/audit/syslog";
-
-// ── arg parsing ───────────────────────────────────────────────────────────────
-
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
 
 const dryRun = process.argv.includes("--dry-run");
 const batchSize = parseInt(getArg("--batch", "1000"), 10) || 1000;

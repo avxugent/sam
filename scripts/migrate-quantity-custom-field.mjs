@@ -28,7 +28,7 @@ const customFields = await prisma.customField.findMany({
     asset: {
       select: {
         id: true,
-        model: true,
+        model: { select: { name: true } },
         serialNumber: true,
         hostname: true,
         quantity: true,
@@ -47,7 +47,7 @@ const flagged = [];
 
 for (const f of quantityFields) {
   const asset = f.asset;
-  const label = asset.model ?? asset.id;
+  const label = asset.model?.name ?? asset.id;
   const hasIdentity = !!asset.serialNumber || !!asset.hostname || asset.macAddresses.length > 0;
   const match = f.value.trim().match(/^(\d+)$/);
   const parsed = match ? parseInt(match[1], 10) : null;

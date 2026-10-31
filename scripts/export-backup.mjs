@@ -22,6 +22,7 @@
  */
 
 import "./_env.mjs";
+import { getArg } from "./_args.mjs";
 import { prisma } from "@/lib/prisma";
 import { readExportSettings } from "@/lib/app-settings";
 import { generateActiveAssetsCsv } from "@/lib/csv/export";
@@ -30,14 +31,6 @@ import { writeFile, mkdir } from "fs/promises";
 import { resolve, join } from "path";
 import { createHash } from "crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-
-// ── arg parsing ───────────────────────────────────────────────────────────────
-
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
 
 const dryRun = process.argv.includes("--dry-run");
 const outputOverride = getArg("--output");
@@ -52,7 +45,7 @@ async function main() {
     process.env.STORAGE_DRIVER === "s3" &&
     !!process.env.S3_BUCKET;
 
-  let outputDir = outputOverride;
+  let outputDir = outputOverride ?? "";
   if (!useS3 && !outputDir) {
     outputDir = (await readExportSettings()).outputDir;
   }

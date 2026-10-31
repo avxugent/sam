@@ -39,6 +39,7 @@ import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scop
 import { ManufacturerAutocomplete } from "@/components/inventory/manufacturer-autocomplete";
 import { Criticality } from "@/generated/prisma/enums";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { hasDeviceIdentity } from "@/lib/schemas/asset";
 
 
 type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: Criticality | null };
@@ -78,6 +79,11 @@ type VaultTestResult = {
 };
 
 type AssetFormTranslator = ReturnType<typeof useTranslations<"assetForm">>;
+
+/** MAC rows with any text: a typed (even not yet valid) MAC already makes the asset one device. */
+function filledMacCount(macAddresses: { address: string }[]): number {
+  return macAddresses.filter((m) => m.address.trim() !== "").length;
+}
 
 /** Client mirror of lib/schemas/asset.ts, with translated messages and the selected type's hostname pattern. */
 function buildAssetFormSchema(t: AssetFormTranslator, assetTypes: AssetType[]) {
@@ -132,8 +138,7 @@ function buildAssetFormSchema(t: AssetFormTranslator, assetTypes: AssetType[]) {
         });
       }
     }
-    const hasIdentity = !!data.serialNumber?.trim() || hostnameSet || hasValidMac;
-    if (hasIdentity && data.quantity !== 1) {
+    if (hasDeviceIdentity({ ...data, macCount: filledMacCount(data.macAddresses) }) && data.quantity !== 1) {
       ctx.addIssue({
         code: "custom",
         path: ["quantity"],
@@ -235,11 +240,12 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   }, [hostnameValue, macFields.length, trigger]);
 
   // Lock quantity to 1 as soon as the asset gains an individual identity
-  const hasAnyMac = macValues.some((m) => m.address.trim() !== "");
-  const hasIdentityValue = !!serialNumberValue?.trim() || !!hostnameValue?.trim() || hasAnyMac;
+  // (same rule as the validation above and the API).
+  const macCount = filledMacCount(macValues);
+  const hasIdentity = hasDeviceIdentity({ serialNumber: serialNumberValue, hostname: hostnameValue, macCount });
   useEffect(() => {
-    if (hasIdentityValue) setValue("quantity", 1, { shouldValidate: true });
-  }, [hasIdentityValue, setValue]);
+    if (hasIdentity) setValue("quantity", 1, { shouldValidate: true });
+  }, [hasIdentity, setValue]);
 
   const fetchDropdowns = useCallback(async () => {
     const [typesRes, suppliersRes, usersRes] = await Promise.all([
@@ -496,7 +502,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 aria-invalid={!!errors.quantity}
                 aria-describedby={errors.quantity ? "quantity-err" : "quantity-hint"}
                 {...register("quantity", { valueAsNumber: true })}
-                disabled={hasIdentityValue}
+                disabled={hasIdentity}
                 className={cn(errors.quantity && "border-destructive")}
               />
               {errors.quantity ? (
@@ -630,7 +636,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             errors={errors.macAddresses}
             onAdd={() => appendMac({ address: "" })}
             onRemove={removeMac}
-            required={hostnameSet && !hasAnyMac}
+            required={hostnameSet && macCount === 0}
             helpText={hostnameSet ? tAsset("macHelpText") : undefined}
             listError={macCrossError}
           />

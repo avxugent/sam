@@ -77,14 +77,15 @@ export async function loadImportContext() {
     if (l.fiNumber) fiNumberLookup.set(l.fiNumber, l.id);
   });
 
+  /** `fiNumber` is only ever one no location owns yet: locationId() resolves known ones first. */
   async function getOrCreateLocation(name: string, parentId: string | null, fiNumber?: string | null): Promise<string> {
     const key = `${parentId ?? ""}|${name.toLowerCase()}`;
     if (locationLookup.has(key)) {
       const existingId = locationLookup.get(key)!;
-      // If we have a fiNumber and it isn't already owned by another location, apply it —
-      // but only to a room that has none yet. Record ownership only when the update applied,
-      // so later rows with this FI number aren't routed to a room that kept its own.
-      if (fiNumber && !fiNumberLookup.has(fiNumber)) {
+      // Apply the FI number only to a room that has none yet. Record ownership only when
+      // the update applied, so later rows with this FI number aren't routed to a room that
+      // kept its own.
+      if (fiNumber) {
         const { count } = await prisma.location.updateMany({
           where: { id: existingId, fiNumber: null },
           data: { fiNumber },
@@ -94,14 +95,11 @@ export async function loadImportContext() {
       return existingId;
     }
 
-    // Safely handle duplicate fiNumber — if it collides, store null
-    const safeFiNumber = fiNumber && !fiNumberLookup.has(fiNumber) ? fiNumber : null;
-
     const loc = await prisma.location.create({
-      data: { name, parentId, fiNumber: safeFiNumber },
+      data: { name, parentId, fiNumber: fiNumber ?? null },
     });
     locationLookup.set(key, loc.id);
-    if (safeFiNumber) fiNumberLookup.set(safeFiNumber, loc.id);
+    if (fiNumber) fiNumberLookup.set(fiNumber, loc.id);
     return loc.id;
   }
 

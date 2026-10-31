@@ -101,6 +101,7 @@ describe("<StockItemFormDialog /> create", () => {
           { id: "loc2", name: "Room B", parentId: null, _count: { stockItems: 0 } },
         ]));
       }
+      if (url.startsWith("/api/models")) return Promise.resolve(jsonResp([]));
       return Promise.resolve(jsonResp({}));
     });
     const user = await openCreate();

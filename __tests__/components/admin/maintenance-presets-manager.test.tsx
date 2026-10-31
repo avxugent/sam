@@ -37,12 +37,6 @@ describe("MaintenancePresetsManager", () => {
     expect(await screen.findByText("No presets yet")).toBeInTheDocument();
   });
 
-  it("treats a non-array response as no presets", async () => {
-    mockFetch.mockResolvedValueOnce(json({ unexpected: true }));
-    render(<MaintenancePresetsManager assetTypeId="t1" />);
-    expect(await screen.findByText("No presets yet")).toBeInTheDocument();
-  });
-
   it("disables adding until a name is typed", async () => {
     mockFetch.mockResolvedValueOnce(json([]));
     render(<MaintenancePresetsManager assetTypeId="t1" />);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatDate, toIsoDay } from "@/lib/dates";
+import { formatDate, toDateUpdate, toIsoDay } from "@/lib/dates";
 
 describe("formatDate()", () => {
   it("formats a Date object", () => {
@@ -36,5 +36,14 @@ describe("toIsoDay()", () => {
   it("passes null and undefined through as null", () => {
     expect(toIsoDay(null)).toBeNull();
     expect(toIsoDay(undefined)).toBeNull();
+  });
+});
+
+describe("toDateUpdate()", () => {
+  it("leaves an absent field alone, clears an empty one and parses the rest", () => {
+    expect(toDateUpdate(undefined)).toBeUndefined();
+    expect(toDateUpdate(null)).toBeNull();
+    expect(toDateUpdate("")).toBeNull();
+    expect(toDateUpdate("2026-03-05")?.toISOString()).toBe("2026-03-05T00:00:00.000Z");
   });
 });

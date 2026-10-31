@@ -65,7 +65,6 @@ export async function GET(req: NextRequest) {
   const authError = integrationTokenResponse(req);
   if (authError) return authError;
 
-  // Run all DB queries in parallel for efficiency
   const [
     totalAssets,
     totalLocations,
@@ -80,24 +79,20 @@ export async function GET(req: NextRequest) {
     mfrNames,
     nis2,
   ] = await Promise.all([
-    // Total asset count — decommissioned assets are historical, not current
-    // inventory, so every inventory gauge below excludes them.
+    // Decommissioned assets are historical, not current inventory, so every
+    // inventory gauge below counts INSTALLED assets only.
     prisma.asset.count({ where: { status: "INSTALLED" } }),
 
-    // Total location count
     prisma.location.count(),
 
-    // Assets that have no hostname (monitoring gap)
     prisma.asset.count({ where: { status: "INSTALLED", hostname: null } }),
 
-    // Assets grouped by type
     prisma.asset.groupBy({
       by: ["typeId"],
       _count: { id: true },
       where: { status: "INSTALLED", typeId: { not: null } },
     }),
 
-    // Assets grouped by manufacturer
     prisma.asset.groupBy({
       by: ["manufacturerId"],
       _count: { id: true },
@@ -110,14 +105,12 @@ export async function GET(req: NextRequest) {
       select: { id: true, name: true, fiNumber: true, parentId: true },
     }),
 
-    // Assets per locationId (to roll up to campus level)
     prisma.asset.groupBy({
       by: ["locationId"],
       _count: { id: true },
       where: { status: "INSTALLED" },
     }),
 
-    // Work-log items per locationId (per room)
     prisma.workLog.groupBy({
       by: ["locationId"],
       _count: { id: true },
@@ -145,7 +138,6 @@ export async function GET(req: NextRequest) {
       orderBy: { hostname: "asc" },
     }),
 
-    // typeId / manufacturerId → name
     prisma.assetType.findMany({ select: { id: true, name: true } }),
     prisma.manufacturer.findMany({ select: { id: true, name: true } }),
 
@@ -181,7 +173,6 @@ export async function GET(req: NextRequest) {
 
   const sections: string[] = [];
 
-  // 1. Total counts
   sections.push(
     gauge("sam_assets_total", "Total number of assets in SAM", [
       { value: totalAssets },
@@ -194,7 +185,6 @@ export async function GET(req: NextRequest) {
     ])
   );
 
-  // 2. Monitoring gap metrics
   sections.push(
     gauge(
       "sam_assets_without_hostname_total",
@@ -211,7 +201,6 @@ export async function GET(req: NextRequest) {
     )
   );
 
-  // 3. Assets by type
   if (assetsByType.length > 0) {
     sections.push(
       gauge(
@@ -225,7 +214,6 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // 4. Assets by manufacturer
   if (assetsByManufacturer.length > 0) {
     sections.push(
       gauge(
@@ -239,7 +227,6 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // 5. Assets by campus (from FI numbers)
   if (campusCounts.size > 0) {
     sections.push(
       gauge(
@@ -255,7 +242,6 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // 6. Locations without FI number
   const locationsWithoutFi = allLocations.filter((l) => !l.fiNumber).length;
   sections.push(
     gauge(
@@ -265,7 +251,6 @@ export async function GET(req: NextRequest) {
     )
   );
 
-  // 7. NIS2 compliance gauges
   sections.push(
     gauge("sam_assets_missing_owner", "Installed assets without a responsible owner", [
       { value: nis2.assetsMissingOwner },
@@ -316,8 +301,6 @@ export async function GET(req: NextRequest) {
     )
   );
 
-  // 8. Per-asset info series
-  //
   // One series per asset that is expected to report. Grafana joins these
   // against the device metrics on sam_hostname, so the label names here must
   // match the sam_* group labels emitted by /api/prometheus/sd exactly.
@@ -380,7 +363,6 @@ export async function GET(req: NextRequest) {
     )
   );
 
-  // 9. Work-log items per room (location)
   sections.push(
     gauge(
       "sam_worklog_items_by_location",
@@ -400,7 +382,6 @@ export async function GET(req: NextRequest) {
   return new NextResponse(body, {
     status: 200,
     headers: {
-      // Required content-type for Prometheus scraping
       "Content-Type": "text/plain; version=0.0.4; charset=utf-8",
       "Cache-Control": "no-store",
     },

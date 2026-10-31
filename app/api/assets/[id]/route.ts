@@ -8,7 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { auditChanges, type FieldChange } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isForeignKeyError, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
-import { toIsoDay } from "@/lib/dates";
+import { toDateUpdate, toIsoDay } from "@/lib/dates";
 import { ASSET_ROW_INCLUDE } from "@/lib/assets/include";
 
 export async function GET(
@@ -41,11 +41,6 @@ export async function GET(
 }
 
 /** Prisma value for an optional date field: undefined leaves it, "" or null clears it. */
-function toDateUpdate(value: string | null | undefined): Date | null | undefined {
-  if (value === undefined) return undefined;
-  return value ? new Date(value) : null;
-}
-
 /** One diff entry per custom field key that was added, removed or changed. */
 function customFieldChanges(before: { key: string; value: string }[], after: { key: string; value: string }[]): FieldChange[] {
   const fromMap = new Map(before.map((f) => [f.key, f.value]));

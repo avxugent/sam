@@ -3,7 +3,7 @@ import type { Session } from "next-auth";
 import { auth } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
-import { hasValidExportToken } from "@/lib/tokens/export";
+import { hasBearerToken } from "@/lib/tokens/bearer";
 
 /**
  * Auth for the /api/export/* routes: a valid EXPORT_TOKEN Bearer (external
@@ -14,7 +14,7 @@ export async function adminSessionOrExportToken(
   req: Request
 ): Promise<{ session: Session | null; response?: undefined } | { response: NextResponse }> {
   const session = await auth();
-  if (hasValidExportToken(req)) return { session };
+  if (hasBearerToken(req, process.env.EXPORT_TOKEN)) return { session };
   if (!session?.user) return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   const incomplete = await signInIncompleteResponse(session);
   if (incomplete) return { response: incomplete };

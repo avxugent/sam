@@ -108,7 +108,7 @@ lib/               — shared code; modules importing next/server are route-hand
   reports/         — report engine + definition types
   schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …); no DB code
   suppliers/       — default-window rules and conflict lookup
-  tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), session-or-token, export token
+  tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), session-or-token, session-or-export token
   two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy, sign-in steps
   work-logs/       — relations returned with every work-log entry
 components/
@@ -150,7 +150,7 @@ prisma/
 - **SSO users** have `passwordHash = null`. The `Credentials` provider rejects them. The `PUT /api/users/[id]` route rejects password changes for SSO accounts.
 - **Roles**: `ADMIN > MAINTAINER > EDITOR > VIEWER` (Prisma `Role` enum; `session.user.role` is typed as `Role`). Viewers cannot write. Editors write inventory data (locations, assets, stock, work logs, reports). Maintainers additionally manage the catalog (manufacturers, models, suppliers). Admins can do everything, including users, asset types, settings, import/export and audit. Check roles only through the predicates in `lib/permissions.ts` (`isAdmin`, `canManageCatalog`, `canEdit`) — never compare role strings inline.
 - Every API route handler performs its own auth check — do not rely solely on `proxy.ts`. The proxy is a redirect guard, not an authorization boundary.
-- The Prometheus and Grafana endpoints (`/api/prometheus/*`, `/api/grafana/*`) use Bearer token auth (`PROMETHEUS_SD_TOKEN`), not session cookies, and `/api/assets/by-hostname` accepts either. They are exempted from the proxy session redirect; their route handlers authenticate themselves (`integrationTokenResponse(req)` from `lib/tokens/integration.ts`; `sessionOrIntegrationTokenResponse(req, sessionAllowed)` from `lib/tokens/session-or-integration.ts` where a session is also accepted).
+- The Prometheus and Grafana endpoints (`/api/prometheus/*`, `/api/grafana/*`) use Bearer token auth (`PROMETHEUS_SD_TOKEN`), not session cookies, and `/api/assets/by-hostname` accepts either. They are exempted from the proxy session redirect, as are `/api/export/*` (admin session or `EXPORT_TOKEN`, via `adminSessionOrExportToken(req)` in `lib/tokens/session-or-export.ts`) and the public `/api/branding/*` assets (logo, favicon, background, shown on the login page); the exempt handlers authenticate themselves and reject a session that still owes a login step (`signInIncompleteResponse`) (`integrationTokenResponse(req)` from `lib/tokens/integration.ts`; `sessionOrIntegrationTokenResponse(req, sessionAllowed)` from `lib/tokens/session-or-integration.ts` where a session is also accepted).
 
 ---
 

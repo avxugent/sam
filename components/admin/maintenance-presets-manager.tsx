@@ -29,7 +29,7 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
   useEffect(() => {
     setLoading(true);
     apiFetch<Preset[]>(`/api/asset-types/${assetTypeId}/presets`).then((res) => {
-      setPresets(res.ok && Array.isArray(res.data) ? res.data : []);
+      setPresets(res.ok ? res.data : []);
       setLoading(false);
     });
   }, [assetTypeId]);

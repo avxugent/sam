@@ -7,6 +7,7 @@ import { canEdit } from "@/lib/permissions";
 import { invalidInput, isForeignKeyError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { parseStockMetadata, serializeStockMetadata } from "@/lib/stock-metadata";
 import { updateStockItemSchema } from "@/lib/schemas/stock";
+import { toDateUpdate } from "@/lib/dates";
 
 export async function GET(
   _req: NextRequest,
@@ -74,9 +75,7 @@ export async function PUT(
     where: { id },
     data: {
       ...rest,
-      ...(invoiceDate !== undefined
-        ? { invoiceDate: invoiceDate ? new Date(invoiceDate) : null }
-        : {}),
+      invoiceDate: toDateUpdate(invoiceDate),
       ...metadataUpdate,
     },
     include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },

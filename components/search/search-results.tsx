@@ -113,7 +113,7 @@ export function SearchResults() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const doSearch = useCallback(async (query: string, pg: number, signal: AbortSignal) => {
+  const runSearch = useCallback(async (query: string, pg: number, signal: AbortSignal) => {
     if (query.length < 2) { setResults(null); return; }
     setLoading(true);
     setError(null);
@@ -131,9 +131,9 @@ export function SearchResults() {
 
   useEffect(() => {
     const controller = new AbortController();
-    doSearch(q, page, controller.signal);
+    runSearch(q, page, controller.signal);
     return () => controller.abort();
-  }, [q, page, doSearch]);
+  }, [q, page, runSearch]);
 
   function goToPage(newPage: number) {
     const params = new URLSearchParams(searchParams.toString());

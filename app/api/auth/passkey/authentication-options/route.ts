@@ -10,7 +10,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildAuthenticationOptions, setChallengeCookie } from "@/lib/two-factor/webauthn";
 import { consumeRateLimit } from "@/lib/rate-limit";
-import { clientIp, tooManyAttempts } from "@/lib/rate-limit/http";
+import { clientIp, tooManyAttemptsResponse } from "@/lib/rate-limit/http";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   const ip = clientIp(req.headers) ?? "unknown";
   const rl = consumeRateLimit(`passkey-auth-options:${session.user.id}:${ip}`, 10, 15 * 60 * 1000);
   if (!rl.allowed) {
-    return tooManyAttempts(rl.retryAfterMs);
+    return tooManyAttemptsResponse(rl.retryAfterMs);
   }
 
   const existingPasskeys = await prisma.passkey.findMany({

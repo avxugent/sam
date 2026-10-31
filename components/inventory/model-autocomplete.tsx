@@ -55,9 +55,9 @@ export function ModelAutocomplete({
       const params = new URLSearchParams();
       if (typeId) params.set("typeId", typeId);
       if (manufacturerId) params.set("manufacturerId", manufacturerId);
-      const res = await apiFetch<unknown>(`/api/models?${params}`);
+      const res = await apiFetch<ModelOption[]>(`/api/models?${params}`);
       if (cancelled || !res.ok) return;
-      if (Array.isArray(res.data)) setModels(res.data);
+      setModels(res.data);
     })();
     return () => { cancelled = true; };
   }, [typeId, manufacturerId]);

@@ -27,8 +27,8 @@ export async function PUT(
   const updated = await prisma.maintenancePreset.update({
     where: { id },
     data: {
-      ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
-      ...(parsed.data.description !== undefined ? { description: parsed.data.description ?? null } : {}),
+      name: parsed.data.name,
+      description: parsed.data.description,
     },
   });
 

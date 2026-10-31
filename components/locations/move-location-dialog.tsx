@@ -60,7 +60,7 @@ export function MoveLocationDialog({
     }
   }, [open, loading]);
 
-  async function doMove() {
+  async function moveLocation() {
     if (!selected) return;
     setSaving(true);
     const res = await apiFetch(`/api/locations/${locationId}`, jsonBody("PUT", { parentId: selected.id }));
@@ -82,7 +82,7 @@ export function MoveLocationDialog({
     if (assetCount > 0) {
       setConfirmOpen(true);
     } else {
-      void doMove();
+      void moveLocation();
     }
   }
 
@@ -137,7 +137,7 @@ export function MoveLocationDialog({
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
-                void doMove();
+                void moveLocation();
               }}
               disabled={saving}
               className="bg-primary hover:bg-primary-hover text-white"

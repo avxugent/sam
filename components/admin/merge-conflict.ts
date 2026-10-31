@@ -3,7 +3,7 @@ import type { NameConflictBody } from "@/lib/catalog/merge";
 /**
  * Rename-onto-an-existing-name handling shared by the catalog admin clients
  * (asset types, manufacturers, models). The PUT routes answer such a rename
- * with nameConflictResponse() (lib/route-helpers.ts); the client then offers
+ * with nameConflictResponse() (lib/catalog/merge.ts); the client then offers
  * to merge the edited record into the existing one.
  */
 export type MergeConflict = {

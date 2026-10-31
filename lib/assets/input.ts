@@ -9,7 +9,8 @@ import { isHostnameCompliant } from "@/lib/hostname";
  * /api/assets/[id]) routes, which do their own writes; the deploy route only
  * uses hostnameTakenResponse(). Lifecycle writes (including deploy from
  * stock) live in lib/assets/transitions.ts.
- * Each *Response helper returns the 400 to send back, or null to proceed.
+ * Each *Response helper returns the error response to send back (a 400, or the
+ * 409 of hostnameTakenResponse), or null to proceed.
  */
 
 /** 400 unknownReference when `supplierId` is set but names no supplier. */

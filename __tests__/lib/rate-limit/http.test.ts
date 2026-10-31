@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { clientIp, tooManyAttempts } from "@/lib/rate-limit/http";
+import { clientIp, tooManyAttemptsResponse } from "@/lib/rate-limit/http";
 
 describe("clientIp()", () => {
   it("prefers the first X-Forwarded-For hop, then X-Real-IP", () => {
@@ -9,9 +9,9 @@ describe("clientIp()", () => {
   });
 });
 
-describe("tooManyAttempts()", () => {
+describe("tooManyAttemptsResponse()", () => {
   it("returns 429 with Retry-After in whole seconds", async () => {
-    const res = tooManyAttempts(1500);
+    const res = tooManyAttemptsResponse(1500);
     expect(res.status).toBe(429);
     expect(res.headers.get("Retry-After")).toBe("2");
     expect((await res.json()).error).toMatch(/Too many attempts/);

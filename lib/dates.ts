@@ -16,3 +16,12 @@ export function toIsoDay(date: Date | string | number | null | undefined): strin
 export function toIsoDay(date: Date | string | number | null | undefined): string | null {
   return date == null ? null : new Date(date).toISOString().slice(0, 10);
 }
+
+/**
+ * A date field of a partial update: undefined leaves the column alone (Prisma
+ * skips undefined), an empty value clears it, anything else is parsed.
+ */
+export function toDateUpdate(value: string | null | undefined): Date | null | undefined {
+  if (value === undefined) return undefined;
+  return value ? new Date(value) : null;
+}

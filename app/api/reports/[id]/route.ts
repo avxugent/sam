@@ -36,8 +36,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const updated = await prisma.report.update({
     where: { id },
     data: {
-      ...(name !== undefined ? { name } : {}),
-      ...(description !== undefined ? { description } : {}),
+      name,
+      description,
       ...(definition !== undefined ? { definition: JSON.stringify(definition) } : {}),
     },
   });

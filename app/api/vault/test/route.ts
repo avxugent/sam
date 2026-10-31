@@ -5,7 +5,7 @@
  * so the user can verify their configuration without exposing secrets
  * in the browser or network logs.
  *
- * Authentication: standard NextAuth session (Admin or Editor only).
+ * Authentication: standard NextAuth session; any role that can edit assets (canEdit).
  */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";

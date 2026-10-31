@@ -87,7 +87,7 @@ export function TemplateOverridesEditor({
   useEffect(() => {
     setLoading(true);
     apiFetch<TemplateOverride[]>(`/api/asset-types/${assetTypeId}/${path}`).then((res) => {
-      setOverrides(res.ok && Array.isArray(res.data) ? res.data : []);
+      setOverrides(res.ok ? res.data : []);
       setLoading(false);
     });
   }, [assetTypeId, path]);

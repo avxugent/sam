@@ -10,6 +10,7 @@ import { isLocationReport } from "@/lib/reports/types";
 import { BarChart2 } from "lucide-react";
 import { canEdit } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
+import { grafanaExploreUrl } from "@/lib/integrations/grafana";
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,9 +31,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   const result = await runReport(definition);
   const userCanEdit = canEdit(session?.user?.role);
-  const grafanaUrl = process.env.GRAFANA_URL
-    ? `${process.env.GRAFANA_URL}/explore`
-    : null;
+  const grafanaUrl = grafanaExploreUrl();
 
   return (
     <div className="space-y-6">

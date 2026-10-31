@@ -106,7 +106,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
     onRemoved?.(action);
   }
 
-  async function handleStock() {
+  async function handleReturnToStock() {
     if (!selectedLocationId) return;
     setSubmitting(true);
     const res = await apiFetch(`/api/assets/${assetId}/return-to-stock`, jsonBody("POST", { locationId: selectedLocationId }));
@@ -259,7 +259,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
                 {tCommon("back")}
               </Button>
               <Button
-                onClick={handleStock}
+                onClick={handleReturnToStock}
                 disabled={submitting || !selectedLocationId}
                 className="bg-primary hover:bg-primary-hover text-white"
               >

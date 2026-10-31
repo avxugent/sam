@@ -76,6 +76,7 @@ See [Authentication](authentication.md) for Azure registration steps.
 |---|---|
 | `PROMETHEUS_SD_TOKEN` | Bearer token for `/api/prometheus/*` endpoints. Generate: `openssl rand -base64 32`. When blank, endpoints return 503. |
 | `EXPORT_TOKEN` | Bearer token for `/api/export/csv` (allows cron-based exports without browser session) |
+| `GRAFANA_URL` | Base URL of the Grafana instance; when set, report pages link to its Explore view. |
 
 ---
 

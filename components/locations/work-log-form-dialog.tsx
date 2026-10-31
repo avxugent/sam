@@ -152,7 +152,7 @@ export function WorkLogFormDialog({
     }
     setPresetsLoading(true);
     apiFetch<Preset[]>(`/api/asset-types/${asset.typeId}/presets`).then((res) => {
-      setPresets(res.ok && Array.isArray(res.data) ? res.data : []);
+      setPresets(res.ok ? res.data : []);
       setPresetsLoading(false);
     });
   }, [assetIdValue, assets]);

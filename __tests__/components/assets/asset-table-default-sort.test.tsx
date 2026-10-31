@@ -17,9 +17,9 @@ import { AssetTable } from "@/components/assets/asset-table";
 // Deliberately out of alphabetical type order, so a passing test proves the
 // table actually sorts rather than just happening to echo insertion order.
 const assets = [
-  { id: "a1", status: "INSTALLED", model: { id: "mo1", name: "Model-Screen" }, serialNumber: "S1", hostname: null, quantity: 1, installationDate: null, type: { id: "t2", name: "Screen" }, manufacturer: null, macAddresses: [], _count: { attachments: 0 }, location: null },
-  { id: "a2", status: "INSTALLED", model: { id: "mo2", name: "Model-Camera" }, serialNumber: "S2", hostname: null, quantity: 1, installationDate: null, type: { id: "t1", name: "Camera" }, manufacturer: null, macAddresses: [], _count: { attachments: 0 }, location: null },
-  { id: "a3", status: "INSTALLED", model: { id: "mo3", name: "Model-Projector" }, serialNumber: "S3", hostname: null, quantity: 1, installationDate: null, type: { id: "t3", name: "Projector" }, manufacturer: null, macAddresses: [], _count: { attachments: 0 }, location: null },
+  { id: "a1", status: "INSTALLED", model: { id: "mo1", name: "Model-Screen" }, serialNumber: "S1", hostname: null, quantity: 1, installationDate: null, type: { id: "t2", name: "Screen" }, manufacturer: null, macAddresses: [], _count: { attachments: 0 }, location: { id: "loc-1", name: "Room 1" } },
+  { id: "a2", status: "INSTALLED", model: { id: "mo2", name: "Model-Camera" }, serialNumber: "S2", hostname: null, quantity: 1, installationDate: null, type: { id: "t1", name: "Camera" }, manufacturer: null, macAddresses: [], _count: { attachments: 0 }, location: { id: "loc-1", name: "Room 1" } },
+  { id: "a3", status: "INSTALLED", model: { id: "mo3", name: "Model-Projector" }, serialNumber: "S3", hostname: null, quantity: 1, installationDate: null, type: { id: "t3", name: "Projector" }, manufacturer: null, macAddresses: [], _count: { attachments: 0 }, location: { id: "loc-1", name: "Room 1" } },
 ];
 
 describe("<AssetTable /> default sort", () => {

@@ -4,7 +4,7 @@ import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
 import { locationBreadcrumbs } from "@/lib/locations/path";
-import { ASSET_ROW_INCLUDE } from "@/lib/assets/include";
+import { ASSET_DETAIL_INCLUDE } from "@/lib/assets/include";
 
 
 export default async function AssetPage({
@@ -21,15 +21,7 @@ export default async function AssetPage({
 
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },
-    include: {
-      ...ASSET_ROW_INCLUDE,
-      supplier: true,
-      location: { select: { id: true, name: true, parentId: true } },
-      attachments: {
-        include: { uploadedBy: { select: { id: true, name: true } } },
-        orderBy: { createdAt: "desc" },
-      },
-    },
+    include: ASSET_DETAIL_INCLUDE,
   });
 
   if (!asset || asset.locationId !== locationId) notFound();

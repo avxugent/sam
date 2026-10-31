@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
-import type { AssetStatus } from "@/generated/prisma/enums";
+import type { AssetListRow } from "@/lib/assets/include";
 import { escapeCsvCell } from "@/lib/csv/core";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
@@ -32,20 +32,7 @@ import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 /** A row as the location and asset-type pages pass it in. */
-export type AssetRow = {
-  id: string;
-  status: AssetStatus;
-  model?: { id: string; name: string } | null;
-  serialNumber?: string | null;
-  hostname?: string | null;
-  quantity: number;
-  installationDate?: Date | string | null;
-  type?: { id: string; name: string } | null;
-  manufacturer?: { id: string; name: string } | null;
-  macAddresses: { id: string; address: string }[];
-  _count: { attachments: number };
-  location?: { id: string; name: string } | null;
-};
+export type AssetRow = AssetListRow;
 
 type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "hostname" | "installationDate" | "location";
 
@@ -58,7 +45,7 @@ function exportToCsv(assets: AssetRow[], filename: string, headers: string[]) {
     a.hostname,
     a.macAddresses.map((m) => m.address).join("; "),
     String(a.quantity),
-    a.location?.name,
+    a.location.name,
     a.installationDate ? new Date(a.installationDate).toLocaleDateString("sv-SE") : null,
   ].map((cell) => escapeCsvCell(cell, ",")).join(","));
   const csv = [headers.map((h) => escapeCsvCell(h, ",")).join(","), ...rows].join("\n");
@@ -142,7 +129,7 @@ export function AssetTable({
       else if (sortCol === "serialNumber") { av = a.serialNumber ?? ""; bv = b.serialNumber ?? ""; }
       else if (sortCol === "hostname") { av = a.hostname ?? ""; bv = b.hostname ?? ""; }
       else if (sortCol === "installationDate") { av = String(a.installationDate ?? ""); bv = String(b.installationDate ?? ""); }
-      else if (sortCol === "location") { av = a.location?.name ?? ""; bv = b.location?.name ?? ""; }
+      else if (sortCol === "location") { av = a.location.name; bv = b.location.name; }
       return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
     });
   }, [filtered, sortCol, sortDir]);
@@ -275,7 +262,7 @@ export function AssetTable({
               </tr>
             ) : (
               paginated.map((asset) => {
-                const assetLocationId = asset.location?.id ?? locationId;
+                const assetLocationId = asset.location.id;
                 const assetHref = `/locations/${assetLocationId}/assets/${asset.id}`;
                 return (
                 <tr

@@ -41,49 +41,16 @@ import {
 } from "lucide-react";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/url-templates";
 import { getAssetTypeIcon } from "@/lib/assets/type-icon";
+import type { AssetDetail } from "@/lib/assets/include";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
 import { AssetHistoryTimeline } from "@/components/assets/asset-history-timeline";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
-import type { AssetStatus, Criticality, DisposalMethod } from "@/generated/prisma/enums";
 import { effectiveCriticality } from "@/lib/criticality";
 import { apiFetch } from "@/lib/api-client";
 
-type Asset = {
-  id: string;
-  locationId: string;
-  model?: { id: string; name: string; documentationUrl: string | null } | null;
-  serialNumber?: string | null;
-  hostname?: string | null;
-  quantity: number;
-  installationDate?: Date | string | null;
-  invoiceNumber?: string | null;
-  invoiceDate?: Date | string | null;
-  warrantyMonths?: number | null;
-  notes?: string | null;
-  vaultPath?: string | null;
-  ownerId?: string | null;
-  criticality?: Criticality | null;
-  endOfSupportDate?: Date | string | null;
-  supplierId?: string | null;
-  status: AssetStatus;
-  decommissionedAt?: Date | string | null;
-  decommissionNote?: string | null;
-  disposalMethod?: DisposalMethod | null;
-  decommissionedById?: string | null;
-  repairStartedAt?: Date | string | null;
-  repairNote?: string | null;
-  sentForRepairById?: string | null;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-  type?: { id: string; name: string; defaultCriticality?: Criticality | null } | null;
-  manufacturer?: { id: string; name: string } | null;
-  supplier?: { id: string; name: string; contractReference?: string | null } | null;
-  macAddresses: { id: string; address: string }[];
-  customFields: { id: string; key: string; value: string }[];
-  location: { id: string; name: string };
-  attachments: Attachment[];
-};
+type Asset = AssetDetail;
+
 
 type Breadcrumb = { id: string; name: string };
 
@@ -153,7 +120,7 @@ export function AssetDetailClient({
   const canEdit = permissions.canEdit(userRole);
   const isDecommissioned = asset.status === "DECOMMISSIONED";
   const isInRepair = asset.status === "IN_REPAIR";
-  const [attachments, setAttachments] = useState(asset.attachments);
+  const [attachments, setAttachments] = useState<Attachment[]>(asset.attachments);
   const [moveOpen, setMoveOpen] = useState(false);
   const [reinstating, setReinstating] = useState(false);
 

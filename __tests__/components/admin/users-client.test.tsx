@@ -71,6 +71,22 @@ describe("UsersClient", () => {
     expect(mockToast).toHaveBeenCalledWith({ title: "userCreated" });
   });
 
+  it("starts the next create with the default flags again", async () => {
+    mockFetch
+      .mockResolvedValueOnce(json({ ...VIC, id: "u3", name: "Bea Builder", email: "bea@example.com" }))
+      .mockResolvedValueOnce(json({ ...VIC, id: "u4", name: "Cy Second", email: "cy@example.com" }));
+    renderUsers();
+    for (const [name, email] of [["Bea Builder", "bea@example.com"], ["Cy Second", "cy@example.com"]]) {
+      await userEvent.click(screen.getByRole("button", { name: /addUser/ }));
+      await userEvent.type(screen.getByLabelText(/name/), name);
+      await userEvent.type(screen.getByLabelText(/email/), email);
+      await userEvent.type(screen.getByLabelText(/password/), "long-enough-1");
+      await userEvent.click(screen.getByRole("button", { name: "create" }));
+      await screen.findByText(name);
+    }
+    expect(JSON.parse(mockFetch.mock.calls[1][1].body)).toMatchObject({ role: "VIEWER", mustChangePassword: true, twoFactorRequired: false });
+  });
+
   it("does not send an empty password when editing", async () => {
     mockFetch.mockResolvedValueOnce(json({ ...VIC, name: "Vic Renamed" }));
     renderUsers();

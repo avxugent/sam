@@ -114,7 +114,8 @@ function SearchBar() {
   }, []);
 
   const fetchQuick = useCallback(async (q: string, signal: AbortSignal) => {
-    if (q.length < 2) { setQuickResults([]); setOpen(false); return; }
+    // Too short to search: also clears a spinner left by an aborted request.
+    if (q.length < 2) { setQuickResults([]); setOpen(false); setLoading(false); return; }
     setLoading(true);
     try {
       const res = await apiFetch<QuickSearchResponse>(`/api/search?q=${encodeURIComponent(q)}`, { signal });

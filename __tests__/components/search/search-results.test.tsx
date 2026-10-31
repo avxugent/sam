@@ -54,4 +54,17 @@ describe("SearchResults", () => {
     render(<SearchResults />);
     expect(await screen.findByText("searchFailed")).toBeInTheDocument();
   });
+
+  it("drops the previous query's results when the next search fails", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+      url.includes("q=first") ? new Response(JSON.stringify(response(3))) : new Response("{}", { status: 500 })
+    ));
+    const { rerender } = render(<SearchResults />);
+    expect(await screen.findByText("resultCount:3")).toBeInTheDocument();
+
+    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams("q=second") as never);
+    rerender(<SearchResults />);
+    expect(await screen.findByText("searchFailed")).toBeInTheDocument();
+    expect(screen.queryByText("resultCount:3")).not.toBeInTheDocument();
+  });
 });

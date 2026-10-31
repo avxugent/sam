@@ -121,7 +121,11 @@ export function SearchResults() {
     // An aborted request was superseded by a newer query or page
     if (signal.aborted) return;
     if (res.ok) setResults(res.data);
-    else setError(t("searchFailed"));
+    else {
+      // Don't leave the previous query's results next to this query's error.
+      setResults(null);
+      setError(t("searchFailed"));
+    }
     setLoading(false);
   }, [t]);
 

@@ -146,7 +146,7 @@ export function UsersClient({
     const user = res.data;
     setUsers((prev) => [...prev, user].sort((a, b) => a.name.localeCompare(b.name)));
     setCreateOpen(false);
-    createForm.reset({ role: "VIEWER" });
+    createForm.reset(); // back to defaultValues, flags included
     toast({ title: t("userCreated") });
   }
 

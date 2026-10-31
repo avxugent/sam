@@ -317,7 +317,7 @@ export async function GET(req: NextRequest) {
       value: 1,
     });
 
-    if (asset.location?.inMaintenance) {
+    if (asset.location.inMaintenance) {
       maintenanceSamples.push({
         labels: { sam_hostname: asset.hostname! },
         value: 1,

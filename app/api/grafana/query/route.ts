@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
             a.hostname,
             a.type?.name ?? null,
             a.manufacturer?.name ?? null,
-            a.location?.name ?? null,
+            a.location.name,
             toIsoDay(a.installationDate),
           ])
         );

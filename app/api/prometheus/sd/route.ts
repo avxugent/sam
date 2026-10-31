@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
   for (const asset of assets) {
     if (!asset.hostname) continue; // excluded by the query; narrows the type
     // Room in maintenance — its assets are not scrape targets.
-    if (asset.location?.inMaintenance) continue;
+    if (asset.location.inMaintenance) continue;
 
     const ancestors = ancestorChain(asset.locationId, locationsById);
     const samLabels = samAssetLabels({ ...asset, hostname: asset.hostname }, ancestors);

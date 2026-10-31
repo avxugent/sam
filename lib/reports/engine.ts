@@ -246,7 +246,7 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
   const total = truncated ? await prisma.asset.count({ where }) : assets.length;
 
   const uniqueLocationIds = [
-    ...new Set(assets.map((a) => a.locationId).filter((id): id is string => id !== null)),
+    ...new Set(assets.map((a) => a.locationId)),
   ];
   const locationPathMap = await getLocationPathsBatch(uniqueLocationIds);
 
@@ -257,7 +257,7 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
     hostname: a.hostname,
     type: a.type?.name ?? null,
     manufacturer: a.manufacturer?.name ?? null,
-    location: a.locationId ? (locationPathMap.get(a.locationId) ?? a.location?.name ?? null) : null,
+    location: locationPathMap.get(a.locationId) ?? a.location.name,
     locationId: a.locationId,
     installationDate: toIsoDay(a.installationDate),
     invoiceDate: toIsoDay(a.invoiceDate),

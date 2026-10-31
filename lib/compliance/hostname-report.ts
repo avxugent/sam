@@ -100,8 +100,8 @@ export async function computeHostnameCompliance(): Promise<HostnameComplianceRes
         hostname,
         model: a.model?.name ?? null,
         serialNumber: a.serialNumber,
-        locationPath: a.locationId ? pathMap.get(a.locationId) ?? null : null,
-        fiNumber: a.location?.fiNumber ?? null,
+        locationPath: pathMap.get(a.locationId) ?? null,
+        fiNumber: a.location.fiNumber,
       });
     }
   }

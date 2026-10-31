@@ -289,12 +289,13 @@ describe("runReport()", () => {
     expect(result.rows[0].location).toBe("Campus 14 - Building 10 - Room A");
   });
 
-  it("maps a row with all optional fields null (no location, no dates)", async () => {
+  it("maps a row with all optional fields null (no dates, no catalog)", async () => {
+    mockQueryRaw.mockResolvedValue([] as never);
     mockFindMany.mockResolvedValue([
       {
-        id: "a0", model: null, serialNumber: null, hostname: null, locationId: null,
+        id: "a0", model: null, serialNumber: null, hostname: null, locationId: "loc0",
         installationDate: null, invoiceDate: null, invoiceNumber: null, notes: null,
-        updatedAt: null, type: null, manufacturer: null, location: null,
+        updatedAt: null, type: null, manufacturer: null, location: { name: "Store" },
       } as never,
     ]);
     const result = await runAssetReport({ filters: [], groupBy: "none", columns: ["model", "location"] });
@@ -303,12 +304,10 @@ describe("runReport()", () => {
     expect(r.model).toBeNull();
     expect(r.type).toBeNull();
     expect(r.manufacturer).toBeNull();
-    expect(r.location).toBeNull();
+    expect(r.location).toBe("Store"); // the path lookup missed: the location's own name
     expect(r.installationDate).toBeNull();
     expect(r.invoiceDate).toBeNull();
     expect(r.lastChanged).toBeNull();
-    // no location ids → getLocationPathsBatch not queried
-    expect(mockQueryRaw).not.toHaveBeenCalled();
   });
 
   it("falls back to location.name when the path map misses the id", async () => {
@@ -382,7 +381,7 @@ describe("runReport()", () => {
   });
 
   it("counts the total and year groups over every match when rows hit the cap", async () => {
-    const row = (i: number) => ({ id: `a${i}`, model: null, serialNumber: null, hostname: null, locationId: null, installationDate: new Date("2020-03-01"), invoiceDate: null, invoiceNumber: null, notes: null, type: null, manufacturer: null, location: null });
+    const row = (i: number) => ({ id: `a${i}`, model: null, serialNumber: null, hostname: null, locationId: "loc0", installationDate: new Date("2020-03-01"), invoiceDate: null, invoiceNumber: null, notes: null, type: null, manufacturer: null, location: { name: "Store" } });
     mockFindMany
       .mockResolvedValueOnce(Array.from({ length: ASSET_REPORT_ROW_CAP }, (_, i) => row(i)) as never)
       .mockResolvedValueOnce([
@@ -508,7 +507,7 @@ describe("runAssetReport() — NIS2 columns", () => {
         hostname: null,
         typeId: "t1",
         manufacturerId: null,
-        locationId: null,
+        locationId: "loc0",
         installationDate: null,
         invoiceDate: null,
         invoiceNumber: null,
@@ -519,7 +518,7 @@ describe("runAssetReport() — NIS2 columns", () => {
         type: { name: "Display", defaultCriticality: "MEDIUM" },
         manufacturer: null,
         supplier: { name: "CampusStore" },
-        location: null,
+        location: { name: "Store" },
       },
     ] as never);
 

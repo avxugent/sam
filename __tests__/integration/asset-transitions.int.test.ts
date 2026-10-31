@@ -81,13 +81,13 @@ describe.runIf(enabled)("asset transitions (integration)", () => {
     const asset = await newAsset();
     const existing = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id }, select: lib.REPAIR_SELECT });
 
-    expect(await lib.sendAssetForRepair(req, session, asset.id, existing, "screen")).not.toBeNull();
+    expect(await lib.sendAssetForRepair(req, session, asset.id, existing, { note: "screen" })).not.toBeNull();
     expect(await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })).toMatchObject({
       status: "IN_REPAIR",
       repairNote: "screen",
       sentForRepairById: session.user.id,
     });
-    expect(await lib.sendAssetForRepair(req, session, asset.id, existing, "again")).toBeNull();
+    expect(await lib.sendAssetForRepair(req, session, asset.id, existing, { note: "again" })).toBeNull();
     expect((await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })).repairNote).toBe("screen");
     expect(await auditFor(asset.id)).toHaveLength(1);
   });

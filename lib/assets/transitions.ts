@@ -17,6 +17,7 @@ import {
   type Returnable,
 } from "@/lib/assets/lifecycle-rules";
 import type { BulkSkipReason } from "@/lib/bulk";
+import { HISTORY_SNAPSHOT_KEYS } from "@/lib/assets/history-keys";
 
 /**
  * Persisting half of the asset state transitions (decommission, repair,
@@ -131,7 +132,14 @@ export const REPAIR_SELECT = {
   lineageId: true,
 } satisfies Prisma.AssetSelect;
 
-export async function sendAssetForRepair(req: Request, session: Session, id: string, existing: AuditedAsset, note: string | null) {
+export async function sendAssetForRepair(
+  req: Request,
+  session: Session,
+  id: string,
+  existing: AuditedAsset,
+  input: { note?: string | null }
+) {
+  const note = input.note ?? null;
   const asset = await unlessStatusChanged(() =>
     prisma.asset.update({
       where: { id, status: existing.status },
@@ -200,7 +208,7 @@ export async function returnAssetToStock(req: Request, session: Session, asset: 
       entityType: "Asset",
       entityId: asset.id,
       entityName: asset.model?.name ?? undefined,
-      detail: { snapshot: { "Returned to stock": asset.model?.name ?? null, "From location": asset.location.name } },
+      detail: { snapshot: { [HISTORY_SNAPSHOT_KEYS.returnedToStock]: asset.model?.name ?? null, "From location": asset.location.name } },
       lineageId: asset.lineageId,
     }),
     logAudit({
@@ -210,7 +218,7 @@ export async function returnAssetToStock(req: Request, session: Session, asset: 
       entityType: "StockItem",
       entityId: stockItem.id,
       entityName: asset.model?.name,
-      detail: { snapshot: { "Returned from asset at": asset.location.name } },
+      detail: { snapshot: { [HISTORY_SNAPSHOT_KEYS.returnedFromAssetAt]: asset.location.name } },
       lineageId: stockItem.lineageId,
     }),
   ]);
@@ -277,7 +285,7 @@ export async function deployStockItem(
         entityType: "Asset",
         entityId: created.id,
         entityName: stockItem.model?.name,
-        detail: { snapshot: { "Deployed from stock": stockItem.model?.name ?? null, "Location": location.name } },
+        detail: { snapshot: { [HISTORY_SNAPSHOT_KEYS.deployedFromStock]: stockItem.model?.name ?? null, "Location": location.name } },
         lineageId: created.lineageId,
       })
     )
@@ -289,7 +297,7 @@ export async function deployStockItem(
     entityType: "StockItem",
     entityId: stockItem.id,
     entityName: stockItem.model?.name,
-    detail: { snapshot: { "Deployed quantity": String(quantity), "To location": location.name } },
+    detail: { snapshot: { [HISTORY_SNAPSHOT_KEYS.deployedQuantity]: String(quantity), "To location": location.name } },
     lineageId: stockItem.lineageId,
   });
   return createdAssets;

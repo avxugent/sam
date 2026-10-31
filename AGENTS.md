@@ -91,7 +91,7 @@ lib/               — shared code; modules importing next/server are route-hand
   mac-address.ts   — canonical MAC address form + validation; client-safe
   url-templates.ts — hostname / MAC / location link templates
   api-client.ts    — apiFetch / jsonBody / downloadFile for client components; client-safe
-  assets/          — lifecycle rules (pure), state transitions (writes + audit), input checks + nested rows, shared response includes, creation defaults, type icons
+  assets/          — lifecycle rules (pure), state transitions (writes + audit), history snapshot keys (audit ↔ timeline contract), input checks + nested rows, shared response includes, creation defaults, type icons
   audit/           — logAudit (index), audit diffs, login-failure audit, syslog forwarding
   branding/        — logo/favicon/background upload + serve, background mode
   catalog/         — merge + rename-conflict protocol (merge routes, rename routes, admin merge UI)

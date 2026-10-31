@@ -1,3 +1,4 @@
+import { historyLabelKey } from "@/components/assets/asset-history-timeline";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
@@ -82,6 +83,18 @@ describe("returnAssetToStock()", () => {
       ["CREATE", "StockItem"],
     ]);
   });
+
+  it("writes entries the asset history timeline reads as a return to stock", async () => {
+    const asset = {
+      id: "a1", typeId: "t1", modelId: "m1", status: "INSTALLED", lineageId: "lin",
+      location: { name: "Room 1" }, model: { name: "XPS" }, macAddresses: [], customFields: [],
+    };
+    await returnAssetToStock(req, session, asset as never, "store");
+    const labels = vi.mocked(logAudit).mock.calls.map(([e]) =>
+      historyLabelKey({ action: e.action, entityType: e.entityType, detail: JSON.stringify(e.detail) } as never)
+    );
+    expect(labels).toEqual(["returnedToStock", "returnedToStock"]);
+  });
 });
 
 describe("status-guarded writes", () => {
@@ -89,14 +102,14 @@ describe("status-guarded writes", () => {
 
   it("only writes while the asset still has the checked status", async () => {
     vi.mocked(prisma.asset.update).mockResolvedValue({ id: "a1" } as never);
-    await sendAssetForRepair(req, session, "a1", existing as never, "fan");
+    await sendAssetForRepair(req, session, "a1", existing as never, { note: "fan" });
     expect(vi.mocked(prisma.asset.update).mock.calls[0][0].where).toEqual({ id: "a1", status: "INSTALLED" });
     expect(logAudit).toHaveBeenCalledWith(expect.objectContaining({ detail: { status: "IN_REPAIR", note: "fan" } }));
   });
 
   it.each([
     ["decommission", () => decommissionAsset(req, session, "a1", existing as never, { disposalMethod: "WIPED" })],
-    ["repair", () => sendAssetForRepair(req, session, "a1", existing as never, null)],
+    ["repair", () => sendAssetForRepair(req, session, "a1", existing as never, {})],
     ["reinstate", () => reinstateAsset(req, session, "a1", { ...existing, status: "DECOMMISSIONED" } as never)],
   ])("%s returns null without auditing when a concurrent change won", async (_name, call) => {
     vi.mocked(prisma.asset.update).mockRejectedValue(notFound());

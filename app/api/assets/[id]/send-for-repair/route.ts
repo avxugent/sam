@@ -31,7 +31,7 @@ export async function POST(
     return invalidInput(parsed.error);
   }
 
-  const asset = await sendAssetForRepair(req, session, id, existing, parsed.data.note ?? null);
+  const asset = await sendAssetForRepair(req, session, id, existing, { note: parsed.data.note });
   if (!asset) return statusChangedResponse();
 
   return NextResponse.json(asset);

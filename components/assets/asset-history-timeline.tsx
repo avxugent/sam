@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api-client";
 import type { AuditEntityType } from "@/lib/audit";
+import { HISTORY_SNAPSHOT_KEYS } from "@/lib/assets/history-keys";
 
 export type AuditLogEntry = {
   id: string;
@@ -27,8 +28,7 @@ function parseDetail(raw: string | null): Record<string, unknown> | null {
  * Maps an AuditLog row to a `history.*` translation key. Asset/StockItem
  * writes share the generic CREATE/UPDATE/DELETE actions, so the specific
  * event (e.g. deploy vs. manual create) is disambiguated by sniffing the
- * `detail` JSON keys each lifecycle route already writes — see
- * lib/assets/lifecycle-rules.ts and the various asset/stock API routes.
+ * snapshot keys lib/assets/transitions.ts writes (HISTORY_SNAPSHOT_KEYS).
  */
 export function historyLabelKey(entry: AuditLogEntry): string {
   const detail = parseDetail(entry.detail);
@@ -37,7 +37,7 @@ export function historyLabelKey(entry: AuditLogEntry): string {
 
   if (entry.entityType === "Asset") {
     if (entry.action === "CREATE") {
-      return "Deployed from stock" in snapshot ? "deployedFromStock" : "created";
+      return HISTORY_SNAPSHOT_KEYS.deployedFromStock in snapshot ? "deployedFromStock" : "created";
     }
     if (entry.action === "UPDATE") {
       if (status === "DECOMMISSIONED") return "decommissioned";
@@ -46,22 +46,22 @@ export function historyLabelKey(entry: AuditLogEntry): string {
       return "edited";
     }
     if (entry.action === "DELETE") {
-      return "Returned to stock" in snapshot ? "returnedToStock" : "deleted";
+      return HISTORY_SNAPSHOT_KEYS.returnedToStock in snapshot ? "returnedToStock" : "deleted";
     }
   }
 
   if (entry.entityType === "StockItem") {
     if (entry.action === "CREATE") {
-      return "Returned from asset at" in snapshot ? "returnedToStock" : "addedToStock";
+      return HISTORY_SNAPSHOT_KEYS.returnedFromAssetAt in snapshot ? "returnedToStock" : "addedToStock";
     }
     if (entry.action === "UPDATE") {
-      if ("Deployed quantity" in snapshot) return "partiallyDeployed";
+      if (HISTORY_SNAPSHOT_KEYS.deployedQuantity in snapshot) return "partiallyDeployed";
       const changes = detail?.changes as Record<string, unknown> | undefined;
       if (changes && "Location" in changes) return "relocated";
       return "edited";
     }
     if (entry.action === "DELETE") {
-      return "Deployed quantity" in snapshot ? "fullyDeployed" : "deleted";
+      return HISTORY_SNAPSHOT_KEYS.deployedQuantity in snapshot ? "fullyDeployed" : "deleted";
     }
   }
 

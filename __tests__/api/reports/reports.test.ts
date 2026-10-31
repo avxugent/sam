@@ -27,6 +27,7 @@ import { runReport } from "@/lib/reports/engine";
 import { GET as listGet, POST } from "@/app/api/reports/route";
 import { GET as getOne, PUT, DELETE } from "@/app/api/reports/[id]/route";
 import { GET as runGet } from "@/app/api/reports/[id]/run/route";
+import { GET as exportGet } from "@/app/api/reports/[id]/export/route";
 
 const mockAuth = vi.mocked(auth);
 const mockFindMany = vi.mocked(prisma.report.findMany);
@@ -223,5 +224,39 @@ describe("GET /api/reports/[id]/run", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data).toHaveProperty("total", 0);
+  });
+});
+
+// ── GET /api/reports/[id]/export ─────────────────────────────────────────────
+
+describe("GET /api/reports/[id]/export", () => {
+  const params = Promise.resolve({ id: "r1" });
+  const req = () => makeReq("http://localhost/api/reports/r1/export", "GET");
+  const VALID_DEF = JSON.stringify({ filters: [], groupBy: "none", columns: ["model"] });
+
+  it("401 unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null as never);
+    expect((await exportGet(req(), { params })).status).toBe(401);
+  });
+  it("404 when report missing", async () => {
+    mockAuth.mockResolvedValue(viewerSession() as never);
+    mockFindUnique.mockResolvedValue(null as never);
+    expect((await exportGet(req(), { params })).status).toBe(404);
+  });
+  it("422 when the stored definition is invalid", async () => {
+    mockAuth.mockResolvedValue(viewerSession() as never);
+    mockFindUnique.mockResolvedValue({ id: "r1", name: "R", definition: "not json" } as never);
+    expect((await exportGet(req(), { params })).status).toBe(422);
+  });
+  it("runs the report and streams CSV with a sanitized filename", async () => {
+    mockAuth.mockResolvedValue(viewerSession() as never);
+    mockFindUnique.mockResolvedValue({ id: "r1", name: "Q1 / Report!", definition: VALID_DEF } as never);
+    mockRunReport.mockResolvedValue({ source: "asset", rows: [{ model: "XPS" }], groups: [], total: 1 } as never);
+    const res = await exportGet(req(), { params });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="Q1___Report_.csv"');
+    const body = await res.text();
+    expect(body.split("\n")[0]).toBe("Model");
+    expect(body).toContain("XPS");
   });
 });

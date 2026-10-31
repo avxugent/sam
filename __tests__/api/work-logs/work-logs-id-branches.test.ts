@@ -111,3 +111,65 @@ describe("DELETE /api/work-logs/[id]", () => {
     );
   });
 });
+
+describe("GET /api/work-logs/[id] — any logged-in user", () => {
+  it("returns 404 for missing", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER", "view-1") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(null as never);
+    expect((await GET(new NextRequest("http://x"), { params: params() })).status).toBe(404);
+  });
+
+  it("returns 200 for any logged-in user", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER", "view-1") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    expect((await GET(new NextRequest("http://x"), { params: params() })).status).toBe(200);
+  });
+});
+
+describe("PUT /api/work-logs/[id] — edit policy", () => {
+  it("403 when non-author non-admin tries to edit", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR", "ed-other") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    expect((await PUT(put({ description: "new" }), { params: params() })).status).toBe(403);
+  });
+
+  it("200 when author edits own entry", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR", "u1") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    vi.mocked(prisma.workLog.update).mockResolvedValue(EXISTING as never);
+    expect((await PUT(put({ description: "new" }), { params: params() })).status).toBe(200);
+  });
+
+  it("200 when admin edits anyone's entry", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN", "admin-1") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    vi.mocked(prisma.workLog.update).mockResolvedValue(EXISTING as never);
+    expect((await PUT(put({ description: "new" }), { params: params() })).status).toBe(200);
+  });
+});
+
+describe("DELETE /api/work-logs/[id] — edit policy", () => {
+  it("403 when non-author non-admin", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR", "ed-other") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    expect((await DELETE(del(), { params: params() })).status).toBe(403);
+  });
+
+  it("200 when admin", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN", "admin-1") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    vi.mocked(prisma.workLog.delete).mockResolvedValue(EXISTING as never);
+    const res = await DELETE(del(), { params: params() });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+  });
+
+  it("200 when author deletes own entry", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR", "u1") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    vi.mocked(prisma.workLog.delete).mockResolvedValue(EXISTING as never);
+    const res = await DELETE(del(), { params: params() });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+  });
+});

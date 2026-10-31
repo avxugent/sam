@@ -141,4 +141,24 @@ describe("POST /api/manufacturers/[id]/merge", () => {
     expect(tx.assetTypeManufacturerTemplate.delete).toHaveBeenCalledWith({ where: { id: "o1" } });
     expect(tx.assetTypeManufacturerTemplate.update).not.toHaveBeenCalled();
   });
+
+  it("logs DELETE on source with a merge snapshot detail", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    vi.mocked(prisma.manufacturer.findUnique)
+      .mockResolvedValueOnce({ id: "m1", name: "Dell" } as never)
+      .mockResolvedValueOnce({ id: "m2", name: "Dell Inc" } as never);
+    vi.mocked(prisma.$transaction).mockResolvedValue({ assetsMoved: 3, stockItemsMoved: 0, modelsMoved: 0, modelsFolded: 0 } as never);
+
+    const res = await POST(post({ targetId: "m2" }), { params: params() });
+    expect(res.status).toBe(200);
+    expect(mockLogAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "DELETE",
+        entityType: "Manufacturer",
+        entityId: "m1",
+        entityName: "Dell",
+        detail: { snapshot: expect.objectContaining({ "Merged into": "Dell Inc", "Assets moved": 3 }) },
+      })
+    );
+  });
 });

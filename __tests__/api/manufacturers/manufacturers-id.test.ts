@@ -63,6 +63,16 @@ describe("POST /api/manufacturers", () => {
     m.create.mockRejectedValue(new Error("db down"));
     await expect(POST(req("POST", { name: "Dell" }))).rejects.toThrow("db down");
   });
+
+  it("logs CREATE on Manufacturer", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN"));
+    m.create.mockResolvedValue({ id: "m1", name: "Dell" } as never);
+    const res = await POST(req("POST", { name: "Dell" }));
+    expect(res.status).toBe(201);
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "CREATE", entityType: "Manufacturer", entityId: "m1", entityName: "Dell" })
+    );
+  });
 });
 
 describe("PUT /api/manufacturers/[id]", () => {

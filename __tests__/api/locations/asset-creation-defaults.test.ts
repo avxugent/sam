@@ -23,9 +23,11 @@ const mockSetting = vi.mocked(prisma.appSetting.findUnique);
 const mockUserFind = vi.mocked(prisma.user.findUnique);
 const mockSupplierFindUnique = vi.mocked(prisma.supplier.findUnique);
 const mockSupplierFindMany = vi.mocked(prisma.supplier.findMany);
+const mockAssetTypeFindUnique = vi.mocked(prisma.assetType.findUnique);
 
 const PARAMS = { params: Promise.resolve({ id: "loc-1" }) };
 const BASE = { typeId: "t1", manufacturerId: "m1", modelId: "mo1" };
+const MAC = ["AA:BB:CC:DD:EE:FF"];
 
 function session() {
   return { user: { id: "u1", role: "EDITOR", name: "T", email: "t@test.com" } } as never;
@@ -37,6 +39,9 @@ function req(body: object) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+function p2002() {
+  return Object.assign(new Error("Duplicate"), { code: "P2002" });
 }
 
 beforeEach(() => {
@@ -114,6 +119,155 @@ describe("POST /api/locations/[id]/assets — owner/supplier creation defaults",
 
   it("rejects an invalid criticality value", async () => {
     const res = await createAsset(req({ ...BASE, criticality: "EXTREME" }), PARAMS);
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/locations/[id]/assets — hostname format & uniqueness", () => {
+
+  it("400s when hostname isn't a valid FQDN and the type has no custom pattern", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockAssetTypeFindUnique.mockResolvedValue({ hostnamePattern: null } as never);
+    const res = await createAsset(req({ ...BASE, hostname: "not-an-fqdn", macAddresses: MAC }), PARAMS);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/required format/i);
+  });
+
+  it("400s when hostname doesn't match the type's custom pattern", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockAssetTypeFindUnique.mockResolvedValue({ hostnamePattern: "^rec-\\d{3}$" } as never);
+    const res = await createAsset(req({ ...BASE, hostname: "other-001", macAddresses: MAC }), PARAMS);
+    expect(res.status).toBe(400);
+  });
+
+  it("accepts a non-FQDN hostname that matches the type's custom pattern", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockAssetTypeFindUnique.mockResolvedValue({ hostnamePattern: "^rec-\\d{3}$" } as never);
+    mockCreate.mockResolvedValue({ id: "a1", modelId: "mo1", hostname: "rec-001" } as never);
+    const res = await createAsset(req({ ...BASE, hostname: "rec-001", macAddresses: MAC }), PARAMS);
+    expect(res.status).toBe(201);
+  });
+
+  it("falls back to the FQDN check when the type has no pattern", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockAssetTypeFindUnique.mockResolvedValue({ hostnamePattern: null } as never);
+    mockCreate.mockResolvedValue({ id: "a1", modelId: "mo1", hostname: "device.example.com" } as never);
+    const res = await createAsset(req({ ...BASE, hostname: "device.example.com", macAddresses: MAC }), PARAMS);
+    expect(res.status).toBe(201);
+  });
+
+  it("skips hostname validation entirely when hostname is not set", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockCreate.mockResolvedValue({ id: "a1", modelId: "mo1" } as never);
+    const res = await createAsset(req(BASE), PARAMS);
+    expect(res.status).toBe(201);
+    expect(mockAssetTypeFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 when the hostname is already used by another asset", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockAssetTypeFindUnique.mockResolvedValue({ hostnamePattern: null } as never);
+    mockCreate.mockRejectedValue(p2002());
+    const res = await createAsset(req({ ...BASE, hostname: "device.example.com", macAddresses: MAC }), PARAMS);
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toMatch(/already assigned/i);
+  });
+});
+
+describe("POST /api/locations/[id]/assets — MAC address normalization", () => {
+
+  it("normalizes a hyphen-separated MAC to AA:BB:CC:DD:EE:FF on create", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockCreate.mockResolvedValue({ id: "a1", modelId: "mo1" } as never);
+    await createAsset(req({ ...BASE, macAddresses: ["aa-bb-cc-dd-ee-ff"] }), PARAMS);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          macAddresses: { create: [{ address: "AA:BB:CC:DD:EE:FF" }] },
+        }),
+      })
+    );
+  });
+
+  it("normalizes a MAC with no separators", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockCreate.mockResolvedValue({ id: "a1", modelId: "mo1" } as never);
+    await createAsset(req({ ...BASE, macAddresses: ["aabbccddeeff"] }), PARAMS);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          macAddresses: { create: [{ address: "AA:BB:CC:DD:EE:FF" }] },
+        }),
+      })
+    );
+  });
+
+  it("rejects a MAC address that can't be normalized (wrong digit count)", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    const res = await createAsset(req({ ...BASE, macAddresses: ["aa:bb:cc:dd:ee"] }), PARAMS);
+    expect(res.status).toBe(400);
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects a MAC address containing a non-hex character", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    const res = await createAsset(req({ ...BASE, macAddresses: ["gg:bb:cc:dd:ee:ff"] }), PARAMS);
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/locations/[id]/assets — quantity", () => {
+
+  it("400s when quantity > 1 and a serial number is set", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    const res = await createAsset(
+      req({ ...BASE, serialNumber: "SN-1", quantity: 5 }),
+      PARAMS
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.details.fieldErrors.quantity).toBeTruthy();
+  });
+
+  it("400s when quantity > 1 and hostname + MAC are set", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    const res = await createAsset(
+      req({
+        ...BASE,
+        hostname: "device.example.com",
+        macAddresses: ["AA:BB:CC:DD:EE:FF"],
+        quantity: 3,
+      }),
+      PARAMS
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("creates a bulk item with quantity > 1 when it has no identity fields", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockCreate.mockResolvedValue({ id: "a1", modelId: "mo1", quantity: 12 } as never);
+    const res = await createAsset(req({ ...BASE, quantity: 12 }), PARAMS);
+    expect(res.status).toBe(201);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ quantity: 12 }) })
+    );
+  });
+
+  it("defaults quantity to 1 when omitted", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockCreate.mockResolvedValue({ id: "a1", modelId: "mo1", quantity: 1 } as never);
+    const res = await createAsset(req(BASE), PARAMS);
+    expect(res.status).toBe(201);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ quantity: 1 }) })
+    );
+  });
+
+  it("400s on a non-positive quantity", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    const res = await createAsset(req({ ...BASE, quantity: 0 }), PARAMS);
     expect(res.status).toBe(400);
   });
 });

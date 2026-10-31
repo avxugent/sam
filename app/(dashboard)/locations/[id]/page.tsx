@@ -4,6 +4,7 @@ import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/locations/path";
+import { withInstalledQuantities } from "@/lib/locations/asset-quantities";
 import { isJiraConfigured } from "@/lib/integrations/jira";
 import { parseLocationTab } from "@/lib/user-preferences";
 import { ASSET_LIST_INCLUDE } from "@/lib/assets/include";
@@ -72,31 +73,7 @@ export default async function LocationPage({
     orderBy: { createdAt: "desc" },
   });
 
-  // "Total assets" counts physical units (quantity), not asset rows, so a
-  // bulk item like a box of 20 batteries counts as 20. Decommissioned assets
-  // are historical, not current inventory, so they're excluded here too.
-  const subtreeAssetQuantity = await prisma.asset.aggregate({
-    where: { locationId: { in: locationIds }, status: "INSTALLED" },
-    _sum: { quantity: true },
-  });
-  const subtreeAssetCount = subtreeAssetQuantity._sum.quantity ?? 0;
-
-  const directQuantitySums = await prisma.asset.groupBy({
-    by: ["locationId"],
-    where: { locationId: { in: [location.id, ...location.children.map((c) => c.id)] }, status: "INSTALLED" },
-    _sum: { quantity: true },
-  });
-  const directQuantityByLocationId = new Map(
-    directQuantitySums.map((r) => [r.locationId, r._sum.quantity ?? 0])
-  );
-  const locationWithQuantities = {
-    ...location,
-    _count: { ...location._count, assets: directQuantityByLocationId.get(location.id) ?? 0 },
-    children: location.children.map((c) => ({
-      ...c,
-      _count: { ...c._count, assets: directQuantityByLocationId.get(c.id) ?? 0 },
-    })),
-  };
+  const { location: locationWithQuantities, subtreeAssetCount } = await withInstalledQuantities(location, locationIds);
 
   const workLogs = await prisma.workLog.findMany({
     where: { locationId: id },

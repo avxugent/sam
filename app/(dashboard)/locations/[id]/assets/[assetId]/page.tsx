@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
 import { locationBreadcrumbs } from "@/lib/locations/path";
 import { ASSET_DETAIL_INCLUDE } from "@/lib/assets/include";
+import { userNamesById } from "@/lib/user-names";
 
 
 export default async function AssetPage({
@@ -30,13 +31,7 @@ export default async function AssetPage({
 
   // Owner / decommissioned-by are soft refs (no FK) — resolve names here so
   // deleted users degrade to a "(deleted user)" label client-side.
-  const softRefIds = [asset.ownerId, asset.decommissionedById, asset.sentForRepairById].filter(
-    (v): v is string => !!v
-  );
-  const softRefUsers = softRefIds.length
-    ? await prisma.user.findMany({ where: { id: { in: softRefIds } }, select: { id: true, name: true } })
-    : [];
-  const nameById = new Map(softRefUsers.map((u) => [u.id, u.name]));
+  const nameById = await userNamesById([asset.ownerId, asset.decommissionedById, asset.sentForRepairById]);
 
   return (
     <AssetDetailClient

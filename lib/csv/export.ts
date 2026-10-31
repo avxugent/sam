@@ -9,6 +9,7 @@ import { ancestorChain, getLocationPathsBatch } from "@/lib/locations/path";
 import { escapeCsvCell } from "@/lib/csv/core";
 import { toIsoDay } from "@/lib/utils";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
+import { userNamesById } from "@/lib/user-names";
 
 const CUSTOM_FIELD_COLUMNS = [
   "GUID", "DIAGONAL", "WIDTH", "HEIGHT",
@@ -174,11 +175,7 @@ export async function generateDecommissionedCsv(): Promise<string> {
 
   // decommissionedById is a soft ref — resolve names in one batch; deleted
   // users fall back to the raw id so the evidence is never blank.
-  const decommissionerIds = [...new Set(assets.map((a) => a.decommissionedById).filter((v): v is string => !!v))];
-  const decommissioners = decommissionerIds.length
-    ? await prisma.user.findMany({ where: { id: { in: decommissionerIds } }, select: { id: true, name: true } })
-    : [];
-  const decommissionerNameById = new Map(decommissioners.map((u) => [u.id, u.name]));
+  const decommissionerNameById = await userNamesById(assets.map((a) => a.decommissionedById));
 
   const rows: string[] = [DECOMMISSIONED_COLUMNS.join(";")];
 

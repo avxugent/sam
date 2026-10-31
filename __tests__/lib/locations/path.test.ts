@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $queryRaw: vi.fn(),
+    location: { findMany: vi.fn() },
   },
 }));
 
@@ -23,6 +24,7 @@ import {
 import { prisma } from "@/lib/prisma";
 
 const mockQueryRaw = vi.mocked(prisma.$queryRaw);
+const mockLocFindMany = vi.mocked(prisma.location.findMany);
 
 // ── parseFiNumber ───────────────────────────────────────────────────────────
 
@@ -191,7 +193,7 @@ describe("getAncestorChainsBatch()", () => {
   });
 
   it("returns the root→leaf id and name chains, including the location itself", async () => {
-    mockQueryRaw.mockResolvedValueOnce([
+    mockLocFindMany.mockResolvedValueOnce([
       { id: "c14", name: "Campus 14", parentId: null },
       { id: "b10", name: "Building 10", parentId: "c14" },
       { id: "room", name: "Room", parentId: "b10" },
@@ -204,7 +206,7 @@ describe("getAncestorChainsBatch()", () => {
   });
 
   it("omits ids that aren't found in the location table", async () => {
-    mockQueryRaw.mockResolvedValueOnce([{ id: "c14", name: "Campus 14", parentId: null }] as never);
+    mockLocFindMany.mockResolvedValueOnce([{ id: "c14", name: "Campus 14", parentId: null }] as never);
     const result = await getAncestorChainsBatch(["missing"]);
     expect(result.has("missing")).toBe(false);
   });

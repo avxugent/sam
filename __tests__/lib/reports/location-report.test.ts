@@ -15,7 +15,14 @@ import { prisma } from "@/lib/prisma";
 const mockItemFindMany = vi.mocked(prisma.workLogItem.findMany);
 const mockLocFindMany = vi.mocked(prisma.location.findMany);
 const mockLogFindMany = vi.mocked(prisma.workLog.findMany);
-const mockQueryRaw = vi.mocked(prisma.$queryRaw);
+
+/** Answers location.findMany: the full-tree read of the path helpers gets `tree`, any other query `other`. */
+function locationRows(tree: unknown[], other: unknown[] = []) {
+  mockLocFindMany.mockImplementation(((args?: { select?: Record<string, unknown>; where?: unknown }) => {
+    const isTreeRead = !args?.where && args?.select && Object.keys(args.select).sort().join() === "id,name,parentId";
+    return Promise.resolve(isTreeRead ? tree : other);
+  }) as never);
+}
 
 function daysAgo(n: number): Date {
   return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
@@ -24,17 +31,19 @@ function daysAgo(n: number): Date {
 beforeEach(() => {
   vi.clearAllMocks();
   mockItemFindMany.mockResolvedValue([{ id: "wi1", name: "Review asset list" }] as never);
-  mockLocFindMany.mockResolvedValue([
-    { id: "loc1", name: "Room 1", fiNumber: "14.10.100.001" },
-    { id: "loc2", name: "Room 2", fiNumber: null },
-  ] as never);
-  // Full tree read by getAncestorChainsBatch: campus → building → rooms.
-  mockQueryRaw.mockResolvedValue([
-    { id: "c14", name: "Campus 14", parentId: null },
-    { id: "b10", name: "Building 10", parentId: "c14" },
-    { id: "loc1", name: "Room 1", parentId: "b10" },
-    { id: "loc2", name: "Room 2", parentId: "b10" },
-  ] as never);
+  // Full tree read by getAncestorChainsBatch (campus → building → rooms), and the report's own room list.
+  locationRows(
+    [
+      { id: "c14", name: "Campus 14", parentId: null },
+      { id: "b10", name: "Building 10", parentId: "c14" },
+      { id: "loc1", name: "Room 1", parentId: "b10" },
+      { id: "loc2", name: "Room 2", parentId: "b10" },
+    ],
+    [
+      { id: "loc1", name: "Room 1", fiNumber: "14.10.100.001" },
+      { id: "loc2", name: "Room 2", fiNumber: null },
+    ]
+  );
   // loc1 reviewed recently; loc2 never.
   mockLogFindMany.mockResolvedValue([
     { locationId: "loc1", itemId: "wi1", performedAt: daysAgo(30), performedBy: { name: "Alice" } },

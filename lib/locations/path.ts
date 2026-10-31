@@ -113,7 +113,7 @@ export async function getLocationPathsBatch(
   if (locationIds.length === 0) return new Map();
 
   type Row = { id: string; name: string; parentId: string | null };
-  const allLocs = await prisma.$queryRaw<Row[]>`SELECT id, name, parentId FROM locations`;
+  const allLocs: Row[] = await prisma.location.findMany({ select: { id: true, name: true, parentId: true } });
 
   const byId = new Map<string, Row>(allLocs.map((l) => [l.id, l]));
 
@@ -159,7 +159,7 @@ export async function getAncestorChainsBatch(
   if (locationIds.length === 0) return new Map();
 
   type Row = { id: string; name: string; parentId: string | null };
-  const allLocs = await prisma.$queryRaw<Row[]>`SELECT id, name, parentId FROM locations`;
+  const allLocs: Row[] = await prisma.location.findMany({ select: { id: true, name: true, parentId: true } });
   const byId = new Map<string, Row>(allLocs.map((l) => [l.id, l]));
 
   const result = new Map<string, AncestorChain>();

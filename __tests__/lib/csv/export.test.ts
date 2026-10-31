@@ -19,7 +19,6 @@ import { generateActiveAssetsCsv, generateDecommissionedCsv, generateStockCsv } 
 const mockLocFind = vi.mocked(prisma.location.findMany);
 const mockAssetFind = vi.mocked(prisma.asset.findMany);
 const mockStockFind = vi.mocked(prisma.stockItem.findMany);
-const mockQueryRaw = vi.mocked(prisma.$queryRaw);
 
 // campus → building → room hierarchy
 const LOCATIONS = [
@@ -260,10 +259,13 @@ describe("generateStockCsv()", () => {
   }
 
   beforeEach(() => {
-    mockQueryRaw.mockResolvedValue(
-      LOCATIONS.map((l) => ({ id: l.id, name: l.name, parentId: l.parentId })) as never
-    );
-    mockLocFind.mockResolvedValue([{ id: "room", fiNumber: "14.10.100.013" }] as never);
+    // The path helper's full-tree read, and the export's own FI-number lookup.
+    mockLocFind.mockImplementation(((args?: { select?: Record<string, unknown>; where?: unknown }) => {
+      const isTreeRead = !args?.where && args?.select && Object.keys(args.select).sort().join() === "id,name,parentId";
+      return Promise.resolve(
+        isTreeRead ? LOCATIONS.map((l) => ({ id: l.id, name: l.name, parentId: l.parentId })) : [{ id: "room", fiNumber: "14.10.100.013" }]
+      );
+    }) as never);
   });
 
   it("emits the stock header and maps a row with reserved location and mac", async () => {

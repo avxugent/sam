@@ -22,7 +22,6 @@ const mockGroupBy = vi.mocked(prisma.asset.groupBy);
 const mockTypeFindMany = vi.mocked(prisma.assetType.findMany);
 const mockMfFindMany = vi.mocked(prisma.manufacturer.findMany);
 const mockLocFindMany = vi.mocked(prisma.location.findMany);
-const mockQueryRaw = vi.mocked(prisma.$queryRaw);
 
 // ── translateFilters ────────────────────────────────────────────────────────
 
@@ -247,7 +246,7 @@ describe("runReport()", () => {
         location: { id: "loc1", name: "Room 101" },
       } as never,
     ]);
-    mockQueryRaw.mockResolvedValue([{ id: "loc1", name: "Room 101", parentId: null }] as never);
+    mockLocFindMany.mockResolvedValue([{ id: "loc1", name: "Room 101", parentId: null }] as never);
 
     const result = await runAssetReport({
       filters: [],
@@ -279,7 +278,7 @@ describe("runReport()", () => {
         location: { id: "room1", name: "Room A" },
       } as never,
     ]);
-    mockQueryRaw.mockResolvedValue([
+    mockLocFindMany.mockResolvedValue([
       { id: "campus1", name: "Campus 14", parentId: null },
       { id: "building1", name: "Building 10", parentId: "campus1" },
       { id: "room1", name: "Room A", parentId: "building1" },
@@ -290,7 +289,7 @@ describe("runReport()", () => {
   });
 
   it("maps a row with all optional fields null (no dates, no catalog)", async () => {
-    mockQueryRaw.mockResolvedValue([] as never);
+    mockLocFindMany.mockResolvedValue([] as never);
     mockFindMany.mockResolvedValue([
       {
         id: "a0", model: null, serialNumber: null, hostname: null, locationId: "loc0",
@@ -320,7 +319,7 @@ describe("runReport()", () => {
       } as never,
     ]);
     // path map resolves a DIFFERENT id, so lookup misses → location.name fallback
-    mockQueryRaw.mockResolvedValue([{ id: "other", name: "x", parentId: null }] as never);
+    mockLocFindMany.mockResolvedValue([{ id: "other", name: "x", parentId: null }] as never);
     const result = await runAssetReport({ filters: [], groupBy: "none", columns: ["location"] });
     expect(result.rows[0].location).toBe("Fallback Room");
     expect(result.rows[0].installationDate).toBe("2021-06-01");
@@ -361,7 +360,7 @@ describe("runReport()", () => {
     mockGroupBy.mockResolvedValue([
       { locationId: "l1", _count: { id: 2 } } as never,
     ]);
-    mockQueryRaw.mockResolvedValue([{ id: "l1", name: "Lab A", parentId: null }] as never);
+    mockLocFindMany.mockResolvedValue([{ id: "l1", name: "Lab A", parentId: null }] as never);
 
     const result = await runAssetReport({ filters: [], groupBy: "location", columns: ["model"] });
     expect(result.groups).toContainEqual({ label: "Lab A", count: 2 });
@@ -373,7 +372,7 @@ describe("runReport()", () => {
       { id: "a2", model: null, serialNumber: null, hostname: null, locationId: "l1", installationDate: new Date("2020-07-01"), invoiceDate: null, invoiceNumber: null, notes: null, type: null, manufacturer: null, location: { id: "l1", name: "X" } } as never,
       { id: "a3", model: null, serialNumber: null, hostname: null, locationId: "l1", installationDate: new Date("2022-01-01"), invoiceDate: null, invoiceNumber: null, notes: null, type: null, manufacturer: null, location: { id: "l1", name: "X" } } as never,
     ]);
-    mockQueryRaw.mockResolvedValue([{ id: "l1", name: "X", parentId: null }] as never);
+    mockLocFindMany.mockResolvedValue([{ id: "l1", name: "X", parentId: null }] as never);
 
     const result = await runAssetReport({ filters: [], groupBy: "installationYear", columns: ["model"] });
     expect(result.groups).toContainEqual({ label: "2020", count: 2 });
@@ -390,7 +389,7 @@ describe("runReport()", () => {
         { installationDate: null },
       ] as never);
     vi.mocked(prisma.asset.count).mockResolvedValue(ASSET_REPORT_ROW_CAP + 2);
-    mockQueryRaw.mockResolvedValue([] as never);
+    mockLocFindMany.mockResolvedValue([] as never);
 
     const result = await runAssetReport({ filters: [], groupBy: "installationYear", columns: ["model"] });
     expect(result.rows).toHaveLength(ASSET_REPORT_ROW_CAP);
@@ -498,7 +497,7 @@ describe("translateFilters() — NIS2 fields", () => {
 
 describe("runAssetReport() — NIS2 columns", () => {
   it("maps supplier name, effective criticality, and end-of-support date", async () => {
-    mockQueryRaw.mockResolvedValue([] as never);
+    mockLocFindMany.mockResolvedValue([] as never);
     mockFindMany.mockResolvedValue([
       {
         id: "a1",

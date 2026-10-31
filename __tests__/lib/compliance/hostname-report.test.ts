@@ -5,7 +5,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     assetType: { findMany: vi.fn() },
     asset: { findMany: vi.fn() },
-    $queryRaw: vi.fn(),
+    location: { findMany: vi.fn() },
   },
 }));
 
@@ -14,7 +14,7 @@ import { computeHostnameCompliance } from "@/lib/compliance/hostname-report";
 
 const mockTypeFind = vi.mocked(prisma.assetType.findMany);
 const mockAssetFind = vi.mocked(prisma.asset.findMany);
-const mockQueryRaw = vi.mocked(prisma.$queryRaw);
+const mockLocFindMany = vi.mocked(prisma.location.findMany);
 
 function a(typeId: string | null, hostname: string | null, id = hostname ?? "x") {
   return {
@@ -30,7 +30,7 @@ function a(typeId: string | null, hostname: string | null, id = hostname ?? "x")
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockQueryRaw.mockResolvedValue([{ id: "room", name: "Room 101", parentId: null }] as never);
+  mockLocFindMany.mockResolvedValue([{ id: "room", name: "Room 101", parentId: null }] as never);
 });
 
 describe("computeHostnameCompliance()", () => {

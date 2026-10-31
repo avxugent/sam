@@ -1,4 +1,17 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { buildLocationPathString, findFiNumber, parseFiNumber, type LocationAncestor } from "@/lib/locations/path";
+
+/**
+ * Assets that should report to Prometheus: installed, with a hostname, and of
+ * a type exposed to Prometheus (or untyped). /api/prometheus/sd additionally
+ * skips rooms in maintenance; /api/prometheus/metrics keeps them, so Grafana
+ * can tell "silenced" from "not reporting".
+ */
+export const MONITORED_ASSET_WHERE = {
+  status: "INSTALLED",
+  hostname: { not: null },
+  OR: [{ typeId: null }, { type: { prometheusExposed: true } }],
+} satisfies Prisma.AssetWhereInput;
 
 /**
  * The sam_* labels shared by /api/prometheus/sd (target-group labels) and

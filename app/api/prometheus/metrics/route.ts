@@ -26,7 +26,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { integrationTokenResponse } from "@/lib/tokens/integration";
 import { ancestorChain, findFiNumber, parseFiNumber } from "@/lib/locations/path";
-import { samAssetLabels, samLocationLabels } from "@/lib/prometheus/labels";
+import { MONITORED_ASSET_WHERE, samAssetLabels, samLocationLabels } from "@/lib/prometheus/labels";
 import { computeNis2Counts } from "@/lib/compliance/nis2";
 import { effectiveCriticality } from "@/lib/criticality";
 
@@ -116,15 +116,8 @@ export async function GET(req: NextRequest) {
       _count: { id: true },
     }),
 
-    // Assets that are expected to be monitored — same filter as the SD
-    // endpoint except that rooms in maintenance are kept. Grafana needs the
-    // full expected set to tell "not reporting" apart from "silenced".
     prisma.asset.findMany({
-      where: {
-        status: "INSTALLED",
-        hostname: { not: null },
-        OR: [{ typeId: null }, { type: { prometheusExposed: true } }],
-      },
+      where: MONITORED_ASSET_WHERE,
       select: {
         hostname: true,
         model: { select: { name: true } },

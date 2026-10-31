@@ -50,7 +50,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sessionOrIntegrationTokenResponse } from "@/lib/tokens/session-or-integration";
 import { ancestorChain } from "@/lib/locations/path";
-import { samAssetLabels } from "@/lib/prometheus/labels";
+import { MONITORED_ASSET_WHERE, samAssetLabels } from "@/lib/prometheus/labels";
 import {
   renderScrapeTemplate,
   resolveScrapeTemplate,
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 
   const [assets, locations] = await Promise.all([
     prisma.asset.findMany({
-      where: { hostname: { not: null }, status: "INSTALLED" },
+      where: MONITORED_ASSET_WHERE,
       select: {
         id: true,
         hostname: true,
@@ -87,7 +87,6 @@ export async function GET(req: NextRequest) {
           select: {
             name: true,
             scrapeTargetTemplate: true,
-            prometheusExposed: true,
             manufacturerTemplates: {
               select: { manufacturerId: true, scrapeTargetTemplate: true },
             },
@@ -113,8 +112,7 @@ export async function GET(req: NextRequest) {
   const groups: TargetGroup[] = [];
 
   for (const asset of assets) {
-    if (!asset.hostname) continue;
-    if (asset.type && !asset.type.prometheusExposed) continue;
+    if (!asset.hostname) continue; // excluded by the query; narrows the type
     // Room in maintenance — its assets are not scrape targets.
     if (asset.location?.inMaintenance) continue;
 

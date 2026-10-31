@@ -20,6 +20,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { integrationTokenResponse } from "@/lib/tokens/integration";
 import { GET } from "@/app/api/prometheus/sd/route";
+import { MONITORED_ASSET_WHERE } from "@/lib/prometheus/labels";
 
 const mockAuth = vi.mocked(auth);
 const mockFindMany = vi.mocked(prisma.asset.findMany);
@@ -142,18 +143,18 @@ describe("GET /api/prometheus/sd", () => {
     expect(groups[0].labels.__param_target).toBe("https://rectest001.ugent.be");
   });
 
-  it("skips asset types that are not exposed to Prometheus", async () => {
+  it("asks only for monitored assets: installed, with a hostname, of an exposed (or no) type", async () => {
     mockAuth.mockResolvedValue(adminSession() as never);
-    mockFindMany.mockResolvedValue([
-      asset({
-        type: { name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: false, manufacturerTemplates: [], modelTemplates: [] },
-      }),
-    ] as never);
+    mockFindMany.mockResolvedValue([] as never);
 
     const res = await GET(req());
-    const groups = await res.json();
-    expect(groups).toHaveLength(0);
-    expect(res.headers.get("X-SAM-Target-Count")).toBe("0");
+    expect(await res.json()).toEqual([]);
+    expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: MONITORED_ASSET_WHERE }));
+    expect(MONITORED_ASSET_WHERE).toEqual({
+      status: "INSTALLED",
+      hostname: { not: null },
+      OR: [{ typeId: null }, { type: { prometheusExposed: true } }],
+    });
   });
 
   it("skips assets whose room is in maintenance", async () => {

@@ -4,4 +4,4 @@ export default function ChangePasswordPage() {
   return <ForcedPasswordChangeClient />;
 }
 
-export const metadata = { title: "Change Password – SAM" };
+export const metadata = { title: "Change Password" };

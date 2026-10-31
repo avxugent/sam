@@ -28,4 +28,4 @@ export default async function ExportPage() {
   );
 }
 
-export const metadata = { title: "Export CSV – SAM Admin" };
+export const metadata = { title: "Export CSV" };

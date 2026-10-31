@@ -29,4 +29,4 @@ export default async function ManufacturersPage() {
   );
 }
 
-export const metadata = { title: "Manufacturers – SAM Admin" };
+export const metadata = { title: "Manufacturers" };

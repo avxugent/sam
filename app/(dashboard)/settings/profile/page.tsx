@@ -36,4 +36,4 @@ export default async function ProfilePage() {
   );
 }
 
-export const metadata = { title: "Profile – SAM" };
+export const metadata = { title: "Profile" };

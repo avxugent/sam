@@ -22,4 +22,4 @@ export default async function ImportPage() {
   );
 }
 
-export const metadata = { title: "Import CSV – SAM Admin" };
+export const metadata = { title: "Import CSV" };

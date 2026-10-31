@@ -8,7 +8,7 @@ import { BarChart2 } from "lucide-react";
 import { canEdit } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
 
-export const metadata = { title: "New Report – SAM" };
+export const metadata = { title: "New Report" };
 
 export default async function NewReportPage() {
   const session = await auth();

@@ -54,5 +54,5 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     select: { model: { select: { name: true } }, serialNumber: true },
   });
   const title = asset?.model?.name || asset?.serialNumber || "Asset";
-  return { title: `${title} – SAM` };
+  return { title: title };
 }

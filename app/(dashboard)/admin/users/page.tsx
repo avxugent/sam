@@ -27,4 +27,4 @@ export default async function UsersPage() {
   );
 }
 
-export const metadata = { title: "Users – SAM Admin" };
+export const metadata = { title: "Users" };

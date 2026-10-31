@@ -43,4 +43,4 @@ export default async function AssetTypesPage() {
   );
 }
 
-export const metadata = { title: "Asset Types – SAM Admin" };
+export const metadata = { title: "Asset Types" };

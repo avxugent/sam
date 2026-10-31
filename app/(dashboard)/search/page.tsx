@@ -9,4 +9,4 @@ export default function SearchPage() {
   );
 }
 
-export const metadata = { title: "Search – SAM" };
+export const metadata = { title: "Search" };

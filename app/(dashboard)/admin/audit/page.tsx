@@ -31,4 +31,4 @@ export default async function AuditLogPage() {
   );
 }
 
-export const metadata = { title: "Audit Log – SAM Admin" };
+export const metadata = { title: "Audit Log" };

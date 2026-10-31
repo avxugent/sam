@@ -80,4 +80,4 @@ export default async function SettingsPage() {
   );
 }
 
-export const metadata = { title: "Settings – SAM Admin" };
+export const metadata = { title: "Settings" };

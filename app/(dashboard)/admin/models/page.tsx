@@ -56,4 +56,4 @@ export default async function ModelsPage({
   );
 }
 
-export const metadata = { title: "Models – SAM Admin" };
+export const metadata = { title: "Models" };

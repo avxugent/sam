@@ -120,5 +120,5 @@ export default async function LocationPage({
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const location = await prisma.location.findUnique({ where: { id }, select: { name: true } });
-  return { title: location ? `${location.name} – SAM` : "Location – SAM" };
+  return { title: location?.name ?? "Location" };
 }

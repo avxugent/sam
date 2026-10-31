@@ -34,4 +34,4 @@ export default async function CompliancePage() {
   );
 }
 
-export const metadata = { title: "Compliance – SAM Admin" };
+export const metadata = { title: "Compliance" };

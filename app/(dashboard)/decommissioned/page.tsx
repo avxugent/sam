@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const t = await getTranslations("decommissioned");
-  return { title: `${t("title")} – SAM` };
+  return { title: t("title") };
 }
 
 export default async function DecommissionedPage() {

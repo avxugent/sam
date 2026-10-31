@@ -47,4 +47,4 @@ export default async function AllLocationsPage() {
   );
 }
 
-export const metadata = { title: "Locations – SAM" };
+export const metadata = { title: "Locations" };

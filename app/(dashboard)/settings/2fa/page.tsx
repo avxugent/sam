@@ -40,4 +40,4 @@ export default async function TwoFactorSettingsPage() {
   );
 }
 
-export const metadata = { title: "Two-Factor Authentication – SAM" };
+export const metadata = { title: "Two-Factor Authentication" };

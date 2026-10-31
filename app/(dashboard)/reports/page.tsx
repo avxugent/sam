@@ -6,7 +6,7 @@ import { BarChart2 } from "lucide-react";
 import { canEdit, isAdmin } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
 
-export const metadata = { title: "Reports – SAM" };
+export const metadata = { title: "Reports" };
 
 export default async function ReportsPage() {
   const session = await auth();

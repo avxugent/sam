@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
-import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export type WorkLogItem = {
   id: string;
@@ -33,6 +33,7 @@ const API = "/api/work-log-items";
 
 export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogItem[] }) {
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("workLogItems");
   const tCommon = useTranslations("common");
   const [items, setItems] = useState(initialItems);
@@ -49,7 +50,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
     const res = await apiFetch<WorkLogItem>(API, jsonBody("POST", { name: newName.trim(), description: newDescription.trim() || null }));
     setAdding(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     const item = res.data;
@@ -71,7 +72,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
     if (!editName.trim()) return;
     const res = await apiFetch<WorkLogItem>(`${API}/${id}`, jsonBody("PUT", { name: editName.trim(), description: editDescription.trim() || null }));
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     const updated = res.data;
@@ -87,7 +88,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
   async function handleDelete(id: string) {
     const res = await apiFetch(`${API}/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));

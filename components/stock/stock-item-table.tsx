@@ -39,11 +39,11 @@ import {
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { SortableTh } from "@/components/ui/sortable-th";
-import { apiErrorMessage } from "@/lib/utils";
 import { toIsoDay } from "@/lib/dates";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
 import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
 import { apiFetch } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
@@ -79,6 +79,7 @@ export function StockItemTable({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("stock");
   const tCommon = useTranslations("common");
   const [items, setItems] = useState(initialItems);
@@ -135,7 +136,7 @@ export function StockItemTable({
   async function handleDelete(id: string) {
     const res = await apiFetch(`/api/stock/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));

@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Download, Loader2, Save, Calendar } from "lucide-react";
-import { apiErrorMessage } from "@/lib/utils";
 import { toIsoDay } from "@/lib/dates";
 import { apiFetch, downloadFile, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export function ExportClient({
   initialCronExpression,
@@ -23,6 +23,7 @@ export function ExportClient({
   const t = useTranslations("export");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [cronExpression, setCronExpression] = useState(initialCronExpression);
   const [outputDir, setOutputDir] = useState(initialOutputDir);
   const [enabled, setEnabled] = useState(initialEnabled);
@@ -41,7 +42,7 @@ export function ExportClient({
     const res = await apiFetch("/api/settings/export", jsonBody("PUT", { cronExpression, outputDir, enabled }));
     setSaving(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     toast({ title: t("scheduleSaved") });

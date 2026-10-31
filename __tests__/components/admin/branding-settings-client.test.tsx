@@ -203,7 +203,7 @@ describe("BrandingSettingsClient — favicon", () => {
     renderBranding({ initialHasFavicon: true });
     await userEvent.click(screen.getByRole("button", { name: "removeFavicon" }));
     await waitFor(() =>
-      expect(mockToast).toHaveBeenCalledWith({ title: "error", description: "", variant: "destructive" })
+      expect(mockToast).toHaveBeenCalledWith({ title: "error", description: "somethingWentWrong", variant: "destructive" })
     );
     expect(screen.getByAltText("Favicon")).toBeInTheDocument();
   });
@@ -315,7 +315,7 @@ describe("BrandingSettingsClient — background", () => {
     renderBranding({ initialBackgroundMode: "custom", initialHasCustomBackground: true });
     await userEvent.click(screen.getByRole("button", { name: "removeBackground" }));
     await waitFor(() =>
-      expect(mockToast).toHaveBeenCalledWith({ title: "error", description: "", variant: "destructive" })
+      expect(mockToast).toHaveBeenCalledWith({ title: "error", description: "somethingWentWrong", variant: "destructive" })
     );
     expect(screen.getByAltText("Background")).toBeInTheDocument();
   });

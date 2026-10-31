@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { useToast } from "@/components/ui/use-toast";
-import { apiErrorMessage } from "@/lib/utils";
 import type { MergeResult } from "@/lib/catalog/merge";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 /**
  * POSTs a catalog merge (`/api/<resource>/<sourceId>/merge`) and toasts the
@@ -13,7 +12,7 @@ import { apiFetch, jsonBody } from "@/lib/api-client";
  */
 export function useCatalogMerge(resource: "asset-types" | "manufacturers" | "models") {
   const tCommon = useTranslations("common");
-  const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [merging, setMerging] = useState(false);
 
   async function merge(sourceId: string, targetId: string): Promise<MergeResult | null> {
@@ -21,7 +20,7 @@ export function useCatalogMerge(resource: "asset-types" | "manufacturers" | "mod
     const res = await apiFetch<MergeResult>(`/api/${resource}/${sourceId}/merge`, jsonBody("POST", { targetId }));
     setMerging(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
+      showApiError(res.error);
       return null;
     }
     return res.data;

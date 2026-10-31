@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, Upload, Trash2, Image as ImageIcon } from "lucide-react";
-import { cn, apiErrorMessage } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { BackgroundMode } from "@/lib/branding/background-mode";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 
 export function BrandingSettingsClient({
@@ -29,6 +30,7 @@ export function BrandingSettingsClient({
   const t = useTranslations("settings");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const router = useRouter();
 
   const [appTitle, setAppTitle] = useState(initialAppTitle);
@@ -60,7 +62,7 @@ export function BrandingSettingsClient({
     const res = await apiFetch("/api/settings/branding", jsonBody("PUT", { appTitle: appTitle.trim() }));
     setSavingTitle(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     toast({ title: t("saved") });
@@ -77,7 +79,7 @@ export function BrandingSettingsClient({
     setUploadingLogo(false);
     if (logoInputRef.current) logoInputRef.current.value = "";
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setHasLogo(true);
@@ -91,7 +93,7 @@ export function BrandingSettingsClient({
     const res = await apiFetch("/api/settings/branding/logo", { method: "DELETE" });
     setRemovingLogo(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setHasLogo(false);
@@ -110,7 +112,7 @@ export function BrandingSettingsClient({
     setUploadingFavicon(false);
     if (faviconInputRef.current) faviconInputRef.current.value = "";
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setHasFavicon(true);
@@ -124,7 +126,7 @@ export function BrandingSettingsClient({
     const res = await apiFetch("/api/settings/branding/favicon", { method: "DELETE" });
     setRemovingFavicon(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setHasFavicon(false);
@@ -142,7 +144,7 @@ export function BrandingSettingsClient({
     const res = await apiFetch("/api/settings/branding", jsonBody("PUT", { backgroundMode: mode }));
     setSavingBackground(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setBackgroundMode(mode);
@@ -160,7 +162,7 @@ export function BrandingSettingsClient({
     setUploadingBackground(false);
     if (backgroundInputRef.current) backgroundInputRef.current.value = "";
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setBackgroundMode("custom");
@@ -175,7 +177,7 @@ export function BrandingSettingsClient({
     const res = await apiFetch("/api/settings/branding/background", { method: "DELETE" });
     setRemovingBackground(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setBackgroundMode("");

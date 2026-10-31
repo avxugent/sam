@@ -34,11 +34,11 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Plus, Merge, TriangleAlert } from "lucide-react";
 import type { AssetStatus } from "@/generated/prisma/enums";
-import { apiErrorMessage } from "@/lib/utils";
 import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
 import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
 import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type NameOption = { id: string; name: string };
 
@@ -78,6 +78,7 @@ export function ModelsClient({
   const t = useTranslations("models");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -170,7 +171,7 @@ export function ModelsClient({
         setMergeConflict({ ...conflict, newTypeId: formTypeId, newManufacturerId: formManufacturerId || null });
         return;
       }
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
 
@@ -192,7 +193,7 @@ export function ModelsClient({
   async function handleDelete(id: string) {
     const res = await apiFetch(`/api/models/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setModels((prev) => prev.filter((m) => m.id !== id));

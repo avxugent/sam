@@ -28,9 +28,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { JIRA_KEY_REGEX, createWorkLogSchema } from "@/lib/schemas/work-log";
 import { z } from "zod";
-import { apiErrorMessage } from "@/lib/utils";
 import { toIsoDay } from "@/lib/dates";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type WorkLogFormValues = z.infer<typeof createWorkLogSchema>;
 
@@ -111,6 +111,7 @@ export function WorkLogFormDialog({
 
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [open, setOpen] = useState(false);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetsLoading, setPresetsLoading] = useState(false);
@@ -184,11 +185,7 @@ export function WorkLogFormDialog({
     const res = await apiFetch(url, jsonBody(method, payload));
 
     if (!res.ok) {
-      toast({
-        title: tCommon("error"),
-        description: apiErrorMessage(res.error, tCommon("somethingWentWrong")),
-        variant: "destructive",
-      });
+      showApiError(res.error);
       return;
     }
 

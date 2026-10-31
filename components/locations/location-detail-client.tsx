@@ -51,6 +51,7 @@ import type { Role } from "@/lib/permissions";
 import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import type { LocationPageData } from "@/lib/locations/include";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Breadcrumb = { id: string; name: string };
 
@@ -87,6 +88,7 @@ export function LocationDetailClient({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("location");
   const tCommon = useTranslations("common");
   const tNav = useTranslations("nav");
@@ -117,7 +119,7 @@ export function LocationDetailClient({
     const res = await apiFetch(`/api/locations/${targetId}`, jsonBody("PUT", { inMaintenance: !current }));
     setMaintPendingId(null);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     const next = !current;

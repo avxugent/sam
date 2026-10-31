@@ -10,8 +10,8 @@ import { MapPin, Loader2 } from "lucide-react";
 import { type FlatLocation } from "@/lib/locations/tree";
 import { LocationSearchList } from "@/components/inventory/location-search-list";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
-import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Props = {
   open: boolean;
@@ -32,6 +32,7 @@ export function MoveAssetDialog({
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("asset");
   const tCommon = useTranslations("common");
   const { locations, loading } = useLocationOptions(open);
@@ -63,7 +64,7 @@ export function MoveAssetDialog({
     setSaving(false);
 
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
 

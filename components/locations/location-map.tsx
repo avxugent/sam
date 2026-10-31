@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, MapPin, Search, Save, ExternalLink } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Props = {
   locationId: string;
@@ -56,6 +57,7 @@ export function LocationMap({
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [address, setAddress] = useState(initAddress || "");
   const [city, setCity] = useState(initCity || "");
   const [country, setCountry] = useState(initCountry || "");
@@ -114,7 +116,7 @@ export function LocationMap({
     setSaving(false);
 
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
 

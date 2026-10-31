@@ -36,6 +36,7 @@ import { attachmentLabel, isPreviewableImage, type Attachment } from "@/componen
 import { AddLinkDialog } from "@/components/attachments/add-link-dialog";
 import { EditAttachmentDialog } from "@/components/attachments/edit-attachment-dialog";
 import { AttachmentLightbox } from "@/components/attachments/attachment-lightbox";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 /** Controlled: the parent owns the list; changes go through `onUpdate` as updaters. */
 export function AttachmentGallery({
@@ -54,6 +55,7 @@ export function AttachmentGallery({
   const t = useTranslations("attachment");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -86,7 +88,7 @@ export function AttachmentGallery({
   async function handleDelete(id: string) {
     const res = await apiFetch(`/api/attachments/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     toast({ title: t("deleted") });

@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save } from "lucide-react";
-import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export function ComplianceSettingsClient({
   initialRequireTwoFactor,
@@ -31,6 +31,7 @@ export function ComplianceSettingsClient({
   const t = useTranslations("settings");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [requireTwoFactor, setRequireTwoFactor] = useState(initialRequireTwoFactor);
   const [auditRetentionDays, setAuditRetentionDays] = useState(String(initialAuditRetentionDays));
   const [defaultOwnerId, setDefaultOwnerId] = useState(initialDefaultOwnerId ?? "");
@@ -61,7 +62,7 @@ export function ComplianceSettingsClient({
     setSaving(false);
 
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     toast({ title: t("saved") });

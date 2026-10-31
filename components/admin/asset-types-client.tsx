@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus, Activity, ChevronDown, ChevronRight, Info, Hash } from "lucide-react";
-import { apiErrorMessage } from "@/lib/utils";
 import { validateTemplate } from "@/lib/prometheus/scrape-template";
 import { validateHostnamePattern } from "@/lib/hostname";
 import { MaintenancePresetsManager } from "@/components/admin/maintenance-presets-manager";
@@ -24,6 +23,7 @@ import type { Criticality } from "@/generated/prisma/enums";
 import { CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import type { ManufacturerOption } from "@/components/inventory/use-type-scoped-manufacturers";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type AssetType = {
   id: string;
@@ -47,6 +47,7 @@ export function AssetTypesClient({
   const t = useTranslations("assetTypes");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [types, setTypes] = useState(initialTypes);
   useEffect(() => { setTypes(initialTypes); }, [initialTypes]);
   const [newName, setNewName] = useState("");
@@ -84,7 +85,7 @@ export function AssetTypesClient({
     const res = await apiFetch<AssetType>("/api/asset-types", jsonBody("POST", { name: newName.trim() }));
     setAdding(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     const item = res.data;
@@ -109,7 +110,7 @@ export function AssetTypesClient({
     const res = await apiFetch<AssetType>(`/api/asset-types/${id}`, jsonBody("PUT", patch));
     if (!res.ok) {
       if (!onError?.(res.error)) {
-        toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+        showApiError(res.error);
       }
       return false;
     }
@@ -187,7 +188,7 @@ export function AssetTypesClient({
   async function handleDelete(id: string) {
     const res = await apiFetch(`/api/asset-types/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setTypes((prev) => prev.filter((i) => i.id !== id));

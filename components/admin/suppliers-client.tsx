@@ -23,6 +23,7 @@ import { Plus, Loader2, Trash2, ChevronDown, ChevronUp, Save } from "lucide-reac
 import { apiErrorMessage } from "@/lib/utils";
 import { formatDate, toIsoDay } from "@/lib/dates";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export type SupplierRow = {
   id: string;
@@ -43,6 +44,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
   const t = useTranslations("suppliers");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const router = useRouter();
   const [suppliers, setSuppliers] = useState(initialSuppliers);
   const [newName, setNewName] = useState("");
@@ -131,7 +133,7 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
   async function handleDelete(id: string) {
     const res = await apiFetch(`/api/suppliers/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setSuppliers((prev) => prev.filter((s) => s.id !== id));

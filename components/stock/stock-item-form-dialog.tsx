@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/inventory/model-autocomplete";
-import { cn, apiErrorMessage } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -22,6 +22,7 @@ import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scop
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type StockItemFormValues = {
   typeId: string;
@@ -81,6 +82,7 @@ function formDefaults(initialData: StockItemInitialData | undefined): StockItemF
 export function StockItemFormDialog({ mode, itemId, initialData, children, onSuccess }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("stock");
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
@@ -192,7 +194,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
       }));
 
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
 

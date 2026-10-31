@@ -12,11 +12,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Sun, Moon, Monitor } from "lucide-react";
-import { cn, apiErrorMessage } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useTheme, type Theme } from "@/components/layout/theme-provider";
 import { LOCATION_TABS, parseLocationTab, type LocationTab } from "@/lib/users/preferences";
 import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 const nameSchema = z.object({
   name: z.string().min(1, "Name is required.").max(128, "Name is too long."),
@@ -43,6 +44,7 @@ export function ProfileClient({
   const tAuth = useTranslations("auth");
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const isCredentials = provider === "credentials";
 
   // ── Name form ──────────────────────────────────────────────────────────────
@@ -58,7 +60,7 @@ export function ProfileClient({
     const res = await apiFetch("/api/users/me", jsonBody("PATCH", body));
     setSaving(false);
     if (res.ok) return true;
-    toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
+    showApiError(res.error);
     return false;
   }
 

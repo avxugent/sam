@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/inventory/model-autocomplete";
-import { cn, apiErrorMessage } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { toIsoDay } from "@/lib/dates";
 import { isHostnameCompliant } from "@/lib/hostname";
 import { normalizeMacAddress } from "@/lib/mac-address";
@@ -40,6 +40,7 @@ import { ManufacturerAutocomplete } from "@/components/inventory/manufacturer-au
 import { Criticality } from "@/generated/prisma/enums";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { hasDeviceIdentity } from "@/lib/schemas/asset";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 
 type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: Criticality | null };
@@ -173,6 +174,7 @@ type Props = {
 export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("assetForm");
   const tField = useTranslations("field");
   const tCommon = useTranslations("common");
@@ -366,11 +368,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     const res = await apiFetch(url, jsonBody(method, payload));
 
     if (!res.ok) {
-      toast({
-        title: tCommon("error"),
-        description: apiErrorMessage(res.error, tCommon("somethingWentWrong")),
-        variant: "destructive",
-      });
+      showApiError(res.error);
       return;
     }
 

@@ -20,8 +20,8 @@ import { RotateCcw } from "lucide-react";
 import { AssetStateTable, type AssetStateRow } from "@/components/assets/asset-state-table";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
-import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export type DecommissionedAsset = {
   id: string;
@@ -45,6 +45,7 @@ export function DecommissionedTable({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("decommissioned");
   const tStock = useTranslations("stock");
   const tCommon = useTranslations("common");
@@ -53,7 +54,7 @@ export function DecommissionedTable({
   async function handleReinstate(id: string) {
     const res = await apiFetch(`/api/assets/${id}/reinstate`, { method: "POST" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setAssets((prev) => prev.filter((a) => a.id !== id));

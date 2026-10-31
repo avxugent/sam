@@ -9,11 +9,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
 import { AssetDrilldownDialog } from "@/components/admin/asset-drilldown-dialog";
-import { apiErrorMessage } from "@/lib/utils";
 import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
 import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
 import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Manufacturer = {
   id: string;
@@ -29,6 +29,7 @@ export function ManufacturersClient({
   const t = useTranslations("manufacturers");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [items, setItems] = useState(initialManufacturers);
   useEffect(() => { setItems(initialManufacturers); }, [initialManufacturers]);
   const [newName, setNewName] = useState("");
@@ -53,7 +54,7 @@ export function ManufacturersClient({
     const res = await apiFetch<Manufacturer>("/api/manufacturers", jsonBody("POST", { name: newName.trim() }));
     setAdding(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     const item = res.data;
@@ -74,7 +75,7 @@ export function ManufacturersClient({
         setMergeConflict(conflict);
         return;
       }
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     const updated = res.data;
@@ -103,7 +104,7 @@ export function ManufacturersClient({
   async function handleDelete(id: string) {
     const res = await apiFetch(`/api/manufacturers/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));

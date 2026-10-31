@@ -21,7 +21,6 @@ import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
 import type { Attachment } from "@/components/attachments/attachment";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { RemoveAssetDialog } from "@/components/assets/remove-asset-dialog";
-import { apiErrorMessage } from "@/lib/utils";
 import { formatDate } from "@/lib/dates";
 import {
   ChevronRight,
@@ -50,6 +49,7 @@ import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { effectiveCriticality } from "@/lib/criticality";
 import { apiFetch } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Asset = AssetDetail;
 
@@ -113,6 +113,7 @@ export function AssetDetailClient({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("asset");
   const tField = useTranslations("field");
   const tCommon = useTranslations("common");
@@ -131,7 +132,7 @@ export function AssetDetailClient({
     const res = await apiFetch(`/api/assets/${asset.id}/reinstate`, { method: "POST" });
     setReinstating(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     toast({ title: tDecom("reinstated") });

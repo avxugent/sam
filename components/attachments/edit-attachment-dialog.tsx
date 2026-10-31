@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import type { Attachment } from "@/components/attachments/attachment";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 /** Rename / describe an attachment (and change a link's URL); open while `attachment` is set. */
 export function EditAttachmentDialog({
@@ -37,6 +37,7 @@ function EditForm({ attachment, onClose, onSaved }: { attachment: Attachment; on
   const t = useTranslations("attachment");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const isLink = attachment.attachmentType === "link";
   const [displayName, setDisplayName] = useState(attachment.displayName ?? "");
   const [description, setDescription] = useState(attachment.description ?? "");
@@ -53,7 +54,7 @@ function EditForm({ attachment, onClose, onSaved }: { attachment: Attachment; on
     }));
     setSaving(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     onSaved(res.data);

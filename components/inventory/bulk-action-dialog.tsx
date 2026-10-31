@@ -4,11 +4,10 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
 import { BulkResultSummary } from "@/components/inventory/bulk-result-summary";
 import type { BulkResult, BulkSkipReason } from "@/lib/bulk";
-import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Props = {
   open: boolean;
@@ -57,7 +56,7 @@ export function BulkActionDialog({
   confirmClassName,
   children,
 }: Props) {
-  const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const tCommon = useTranslations("common");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<BulkResult | null>(null);
@@ -74,7 +73,7 @@ export function BulkActionDialog({
     setSubmitting(false);
 
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
 

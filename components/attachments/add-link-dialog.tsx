@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import type { Attachment } from "@/components/attachments/attachment";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 /** Adds a link attachment to the location or asset; the form clears after a successful add. */
 export function AddLinkDialog({
@@ -30,6 +30,7 @@ export function AddLinkDialog({
   const t = useTranslations("attachment");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [url, setUrl] = useState("");
   const [linkLabel, setLinkLabel] = useState("");
   const [description, setDescription] = useState("");
@@ -42,7 +43,7 @@ export function AddLinkDialog({
     const res = await apiFetch<Attachment>("/api/attachments", jsonBody("POST", { url, label: linkLabel, description: description || null, locationId, assetId }));
     setAdding(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     onAdded(res.data);

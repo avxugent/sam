@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Package, ArchiveX, Trash2, ChevronRight, Wrench } from "lucide-react";
-import { cn, apiErrorMessage } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { DisposalMethod } from "@/generated/prisma/enums";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 /** Disposal evidence options, in the order the Prisma enum defines them. */
 export const DISPOSAL_METHODS = Object.values(DisposalMethod);
@@ -72,6 +73,7 @@ function OptionRow({
 
 export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, onRemoved }: Props) {
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("asset");
   const tCommon = useTranslations("common");
   const tDecom = useTranslations("decommissioned");
@@ -112,7 +114,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
     const res = await apiFetch(`/api/assets/${assetId}/return-to-stock`, jsonBody("POST", { locationId: selectedLocationId }));
     setSubmitting(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     toast({ title: t("returnedToStock") });
@@ -125,7 +127,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
     const res = await apiFetch(`/api/assets/${assetId}/decommission`, jsonBody("POST", { note: decommissionNote || null, disposalMethod }));
     setSubmitting(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     toast({ title: tDecom("decommissionAsset") });
@@ -137,7 +139,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
     const res = await apiFetch(`/api/assets/${assetId}/send-for-repair`, jsonBody("POST", { note: repairNote || null }));
     setSubmitting(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     toast({ title: tRepair("assetSentForRepair") });
@@ -149,7 +151,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
     const res = await apiFetch(`/api/assets/${assetId}`, { method: "DELETE" });
     setSubmitting(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     toast({ title: t("assetDeleted") });

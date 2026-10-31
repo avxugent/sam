@@ -17,9 +17,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { apiErrorMessage } from "@/lib/utils";
 import { formatDate } from "@/lib/dates";
 import { apiFetch } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type ReportSummary = {
   id: string;
@@ -38,6 +38,7 @@ type Props = {
 export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("report");
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
@@ -48,7 +49,7 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
   async function handleDelete(id: string) {
     const res = await apiFetch(`/api/reports/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setReports((prev) => prev.filter((r) => r.id !== id));

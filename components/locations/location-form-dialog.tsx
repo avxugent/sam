@@ -31,8 +31,8 @@ import { Loader2, Hash } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
-import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type LocationFormTranslator = ReturnType<typeof useTranslations<"locationForm">>;
 
@@ -118,6 +118,7 @@ export function LocationFormDialog({
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [open, setOpen] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<{ id: string; name: string } | null>(null);
   const [merging, setMerging] = useState(false);
@@ -169,11 +170,7 @@ export function LocationFormDialog({
         setMergeTarget({ id: existingId, name: String(existingName ?? "") });
         return;
       }
-      toast({
-        title: tCommon("error"),
-        description: apiErrorMessage(res.error, tCommon("somethingWentWrong")),
-        variant: "destructive",
-      });
+      showApiError(res.error);
       return;
     }
 
@@ -191,11 +188,7 @@ export function LocationFormDialog({
     setMerging(false);
 
     if (!res.ok) {
-      toast({
-        title: tCommon("error"),
-        description: apiErrorMessage(res.error, tCommon("somethingWentWrong")),
-        variant: "destructive",
-      });
+      showApiError(res.error);
       return;
     }
 

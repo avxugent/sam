@@ -23,8 +23,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Fingerprint, Loader2, Trash2, Info } from "lucide-react";
 import { registerPasskey } from "@/components/auth/enrollment-client";
-import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export type PasskeySummary = {
   id: string;
@@ -43,6 +43,7 @@ type Props = {
 export function PasskeySettings({ provider, passkeys: initialPasskeys }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("auth");
   const tCommon = useTranslations("common");
 
@@ -75,7 +76,7 @@ export function PasskeySettings({ provider, passkeys: initialPasskeys }: Props) 
   async function handleRemove(id: string) {
     const res = await apiFetch(`/api/auth/passkey/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setPasskeys((prev) => prev.filter((p) => p.id !== id));

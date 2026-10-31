@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Plus, Trash2, Wrench } from "lucide-react";
-import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Preset = {
   id: string;
@@ -18,8 +18,8 @@ type Preset = {
 
 export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string }) {
   const t = useTranslations("assetTypes");
-  const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [presets, setPresets] = useState<Preset[]>([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
@@ -40,7 +40,7 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
     const res = await apiFetch<Preset>(`/api/asset-types/${assetTypeId}/presets`, jsonBody("POST", { name: newName.trim(), description: newDesc.trim() || null }));
     setAdding(false);
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     const created = res.data;
@@ -53,7 +53,7 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
   async function handleDelete(id: string) {
     const res = await apiFetch(`/api/asset-types/presets/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setPresets((prev) => prev.filter((p) => p.id !== id));

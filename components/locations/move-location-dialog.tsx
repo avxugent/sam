@@ -11,8 +11,8 @@ import { Loader2 } from "lucide-react";
 import { flattenLocations, collectSubtreeIds, type FlatLocation } from "@/lib/locations/tree";
 import { LocationSearchList } from "@/components/inventory/location-search-list";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
-import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Props = {
   open: boolean;
@@ -33,6 +33,7 @@ export function MoveLocationDialog({
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("location");
   const tCommon = useTranslations("common");
   const { locations, loading } = useLocationOptions(open, (tree) =>
@@ -67,7 +68,7 @@ export function MoveLocationDialog({
     setSaving(false);
 
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
 

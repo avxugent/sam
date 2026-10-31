@@ -36,13 +36,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { cn, getInitials, apiErrorMessage } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import { formatDate, toIsoDay } from "@/lib/dates";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Loader2, ShieldOff, Download } from "lucide-react";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { createUserSchema, editUserFormSchema } from "@/lib/schemas/user";
 import { apiFetch, jsonBody, downloadFile } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type User = {
   id: string;
@@ -100,6 +101,7 @@ export function UsersClient({
   const tField = useTranslations("field");
   const tAuth = useTranslations("auth");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [users, setUsers] = useState(initialUsers);
   useEffect(() => { setUsers(initialUsers); }, [initialUsers]);
   const [createOpen, setCreateOpen] = useState(false);
@@ -140,7 +142,7 @@ export function UsersClient({
   async function handleCreate(data: z.output<typeof createUserSchema>) {
     const res = await apiFetch<User>("/api/users", jsonBody("POST", data));
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     const user = res.data;
@@ -158,7 +160,7 @@ export function UsersClient({
 
     const res = await apiFetch<User>(`/api/users/${editUser.id}`, jsonBody("PUT", payload));
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     const updated = res.data;
@@ -170,7 +172,7 @@ export function UsersClient({
   async function handleDelete(id: string) {
     const res = await apiFetch(`/api/users/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setUsers((prev) => prev.filter((u) => u.id !== id));
@@ -468,7 +470,7 @@ export function UsersClient({
                               onClick={async () => {
                                 const res = await apiFetch("/api/auth/2fa/disable", jsonBody("POST", { userId: user.id }));
                                 if (!res.ok) {
-                                  toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+                                  showApiError(res.error);
                                 } else {
                                   setUsers((prev) =>
                                     prev.map((u) =>

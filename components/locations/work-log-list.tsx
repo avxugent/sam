@@ -20,11 +20,12 @@ import { Plus, Search, Pencil, Trash2, Wrench, Package } from "lucide-react";
 import { WorkLogFormDialog, type WorkLogAssetOption, type WorkLogUserOption, type WorkLogItemOption } from "@/components/locations/work-log-form-dialog";
 import { JiraIssueBadge } from "@/components/locations/jira-issue-badge";
 import { useTranslations } from "next-intl";
-import { getInitials, apiErrorMessage } from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
 import { formatDate } from "@/lib/dates";
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { apiFetch } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export type WorkLogEntry = {
   id: string;
@@ -72,6 +73,7 @@ export function WorkLogList({
   const tCommon = useTranslations("common");
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [entries, setEntries] = useState<WorkLogEntry[]>(initialEntries);
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export function WorkLogList({
   async function handleDelete(id: string) {
     const res = await apiFetch(`/api/work-logs/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error, tCommon("somethingWentWrong")), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== id));

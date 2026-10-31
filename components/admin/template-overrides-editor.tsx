@@ -15,10 +15,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Plus, Tag, Tags } from "lucide-react";
 import { validateTemplate } from "@/lib/prometheus/scrape-template";
 import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";
-import { apiErrorMessage } from "@/lib/utils";
 import type { TemplateOverride } from "@/lib/prometheus/template-overrides";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import type { ManufacturerOption } from "@/components/inventory/use-type-scoped-manufacturers";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Kind = "manufacturer" | "model";
 
@@ -70,6 +70,7 @@ export function TemplateOverridesEditor({
   const t = useTranslations("assetTypes");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const { path, Icon, keys } = KINDS[kind];
   const withModel = kind === "model";
 
@@ -137,7 +138,7 @@ export function TemplateOverridesEditor({
     setSaving(false);
 
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
 
@@ -157,7 +158,7 @@ export function TemplateOverridesEditor({
   async function handleDelete(override: TemplateOverride) {
     const res = await apiFetch(`/api/asset-types/${path}/${override.id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setOverrides((prev) => prev.filter((o) => o.id !== override.id));

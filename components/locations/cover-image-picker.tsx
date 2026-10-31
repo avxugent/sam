@@ -5,9 +5,10 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Check, ImageOff, Loader2, Star } from "lucide-react";
-import { cn, apiErrorMessage } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { Attachment as GalleryAttachment } from "@/components/attachments/attachment";
 import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Attachment = Pick<GalleryAttachment, "id" | "originalName" | "mimeType" | "size">;
 
@@ -25,8 +26,8 @@ export function CoverImagePicker({
   onUpdate,
 }: Props) {
   const t = useTranslations("coverImage");
-  const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [selected, setSelected] = useState<string | null>(currentCoverImageId);
   const [saving, setSaving] = useState(false);
 
@@ -38,7 +39,7 @@ export function CoverImagePicker({
     setSaving(false);
 
     if (!res.ok) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.error), variant: "destructive" });
+      showApiError(res.error);
       return;
     }
 

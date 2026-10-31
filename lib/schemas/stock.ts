@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_MAC_ADDRESSES, macAddressField } from "@/lib/mac-address";
+import { optionalIsoDay } from "@/lib/schemas/dates";
 
 /** Stock item API validation, shared by POST /api/stock and PUT /api/stock/[id]. */
 
@@ -13,7 +14,7 @@ const stockFields = z.object({
   locationId: z.string().optional().nullable(),
   reservedForLocationId: z.string().optional().nullable(),
   invoiceNumber: z.string().max(100).optional().nullable(),
-  invoiceDate: z.string().optional().nullable(),
+  invoiceDate: optionalIsoDay,
   macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
 });
 

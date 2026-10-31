@@ -1,6 +1,5 @@
 import { z } from "zod";
-
-const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+import { isoDay } from "@/lib/schemas/dates";
 
 /** Shared between the supplier API routes and the admin client. */
 export const supplierSchema = z
@@ -8,8 +7,8 @@ export const supplierSchema = z
     name: z.string().min(1).max(255),
     contractReference: z.string().max(255).optional().nullable(),
     contactInfo: z.string().max(2000).optional().nullable(),
-    defaultFrom: z.string().regex(dateRe).optional().nullable(),
-    defaultUntil: z.string().regex(dateRe).optional().nullable(),
+    defaultFrom: isoDay.optional().nullable(),
+    defaultUntil: isoDay.optional().nullable(),
   })
   .superRefine((data, ctx) => {
     if (data.defaultUntil && !data.defaultFrom) {

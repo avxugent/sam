@@ -1,17 +1,14 @@
 import { z } from "zod";
+import { isoDay } from "@/lib/schemas/dates";
 
 /** A Jira issue key, e.g. AVT-123. */
 export const JIRA_KEY_REGEX = /^[A-Z][A-Z0-9_]+-\d+$/;
-
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD");
 
 const workLogFields = z.object({
   assetId: z.string().min(1).optional().nullable(),
   itemId: z.string().min(1).optional().nullable(),
   performedById: z.string().min(1).optional(),
-  performedAt: isoDate.optional(),
+  performedAt: isoDay.optional(),
   // Optional — a fixed work-log item alone is enough to record an entry.
   // When present it must be non-empty; use null to omit it.
   description: z.string().min(1, "Description is required").max(5000).optional().nullable(),

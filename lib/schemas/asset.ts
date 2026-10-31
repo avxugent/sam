@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Criticality } from "@/generated/prisma/enums";
 import { MAX_MAC_ADDRESSES, macAddressField } from "@/lib/mac-address";
+import { optionalIsoDay } from "@/lib/schemas/dates";
 
 /**
  * Asset API validation, shared by the create route (POST /api/locations/[id]/assets)
@@ -23,14 +24,14 @@ const assetFields = z.object({
   // Stored trimmed; a blank hostname is no hostname.
   hostname: z.string().trim().max(255).transform((v) => v || null).optional().nullable(),
   quantity: z.number().int().min(1).max(9999),
-  installationDate: z.string().optional().nullable(),
+  installationDate: optionalIsoDay,
   invoiceNumber: z.string().max(100).optional().nullable(),
-  invoiceDate: z.string().optional().nullable(),
+  invoiceDate: optionalIsoDay,
   notes: z.string().max(5000).optional().nullable(),
   vaultPath: z.string().max(500).optional().nullable(),
   ownerId: z.string().max(64).optional().nullable(),
   criticality: z.enum(Criticality).optional().nullable(),
-  endOfSupportDate: z.string().optional().nullable(),
+  endOfSupportDate: optionalIsoDay,
   supplierId: z.string().max(64).optional().nullable(),
   macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
   customFields: z.array(customFieldSchema).max(MAX_CUSTOM_FIELDS).optional(),

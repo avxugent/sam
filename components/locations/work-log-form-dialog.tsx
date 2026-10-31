@@ -220,7 +220,6 @@ export function WorkLogFormDialog({
           <DialogTitle>{mode === "create" ? t("addEntry") : t("editEntry")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Asset (optional) */}
           <div className="space-y-1.5">
             <Label htmlFor="wl-asset">{t("asset")} <span className="text-xs text-muted-foreground">({tCommon("optional")})</span></Label>
             <Select
@@ -239,7 +238,6 @@ export function WorkLogFormDialog({
             </Select>
           </div>
 
-          {/* Work log item (optional) */}
           {items.length > 0 && (
             <div className="space-y-1.5">
               <Label htmlFor="wl-item">{t("item")} <span className="text-xs text-muted-foreground">({tCommon("optional")})</span></Label>
@@ -260,7 +258,6 @@ export function WorkLogFormDialog({
             </div>
           )}
 
-          {/* Date + performed-by */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="wl-date">
@@ -298,7 +295,6 @@ export function WorkLogFormDialog({
             </div>
           </div>
 
-          {/* Preset chips */}
           {presets.length > 0 && (
             <div className="rounded-md border bg-muted/30 p-2.5 space-y-1.5">
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -350,7 +346,6 @@ export function WorkLogFormDialog({
             )}
           </div>
 
-          {/* JIRA key (optional) */}
           <div className="space-y-1.5">
             <Label htmlFor="wl-jira">
               {t("jiraIssueKey")} <span className="text-xs text-muted-foreground">({tCommon("optional")})</span>

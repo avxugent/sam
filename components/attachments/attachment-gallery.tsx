@@ -245,7 +245,6 @@ export function AttachmentGallery({
         </div>
       )}
 
-      {/* Add link button */}
       {canEdit && (
         <Button
           variant="outline"
@@ -287,7 +286,6 @@ export function AttachmentGallery({
         </DialogContent>
       </Dialog>
 
-      {/* Edit (rename / describe) dialog */}
       <Dialog open={!!editingId} onOpenChange={(v) => { if (!v) setEditingId(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -395,7 +393,6 @@ export function AttachmentGallery({
         </DialogContent>
       </Dialog>
 
-      {/* Attachment list */}
       {attachments.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground border border-border rounded-[10px] bg-card">
           <Paperclip className="h-10 w-10 mx-auto mb-3 opacity-40" />

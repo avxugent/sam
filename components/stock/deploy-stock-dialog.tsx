@@ -149,7 +149,6 @@ export function DeployStockDialog({
           </div>
         )}
 
-        {/* Location picker */}
         <LocationSearchList
           locations={locations}
           loading={loadingLocations}

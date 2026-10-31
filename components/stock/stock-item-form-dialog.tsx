@@ -283,7 +283,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             {errors.modelId && <p className="text-xs text-destructive">{errors.modelId.message}</p>}
           </div>
 
-          {/* Storage location */}
           <div className="space-y-1">
             <Label htmlFor="stock-item-location-search">{t("location")}</Label>
             <p className="text-[12px] text-muted-foreground">{locationLabel}</p>

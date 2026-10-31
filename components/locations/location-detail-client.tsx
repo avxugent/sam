@@ -474,7 +474,6 @@ export function LocationDetailClient({
           )}
         </TabsList>
 
-        {/* Assets tab */}
         <TabsContent value="assets" className="mt-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-[18px] font-semibold text-foreground">
@@ -484,7 +483,6 @@ export function LocationDetailClient({
           <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} hostnameUrlTemplate={hostnameUrlTemplate} macAddressUrlTemplate={macAddressUrlTemplate} />
         </TabsContent>
 
-        {/* Sub-locations tab */}
         <TabsContent value="sublocations" className="mt-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-[18px] font-semibold text-foreground">{t("subLocationsHeading")}</h2>
@@ -550,7 +548,6 @@ export function LocationDetailClient({
                   </div>
                 );
               })}
-              {/* Add sub-location card */}
               {canEdit && (
                 <LocationFormDialog mode="create" parentId={location.id}>
                   <div className="border-2 border-dashed border-border rounded-[10px] flex items-center justify-center gap-2 p-[18px_20px] cursor-pointer hover:border-subtle transition-colors min-h-[80px]">
@@ -563,7 +560,6 @@ export function LocationDetailClient({
           )}
         </TabsContent>
 
-        {/* Map & Address tab */}
         <TabsContent value="map" className="mt-4">
           <LocationMap
             locationId={location.id}
@@ -577,7 +573,6 @@ export function LocationDetailClient({
           />
         </TabsContent>
 
-        {/* Attachments tab */}
         <TabsContent value="attachments" className="mt-4">
           <AttachmentGallery
             attachments={attachments}
@@ -587,7 +582,6 @@ export function LocationDetailClient({
           />
         </TabsContent>
 
-        {/* Work Log tab */}
         <TabsContent value="worklog" className="mt-4">
           <div className="mb-4">
             <h2 className="text-[18px] font-semibold text-foreground">{t("workLogHeading")}</h2>
@@ -613,7 +607,6 @@ export function LocationDetailClient({
           />
         </TabsContent>
 
-        {/* Cover Image tab */}
         {canEdit && (
           <TabsContent value="cover" className="mt-4">
             <div className="mb-4">

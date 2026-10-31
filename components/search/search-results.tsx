@@ -157,7 +157,6 @@ export function SearchResults() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      {/* Hero search bar */}
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground pointer-events-none" />
         <div className="flex items-center h-[48px] pl-[44px] pr-4 text-[15px] bg-card border-[1.5px] border-primary rounded-[10px] shadow-[0_0_0_3px_var(--blue-tint)] text-foreground">

@@ -108,7 +108,6 @@ export function MaintenancePresetsManager({ assetTypeId }: { assetTypeId: string
             </div>
           )}
 
-          {/* Add new preset */}
           <div className="space-y-1.5 pt-2 border-t">
             <Input
               placeholder={t("newPresetPlaceholder")}

@@ -156,7 +156,6 @@ export function AssetDetailClient({
         </span>
       </nav>
 
-      {/* Decommissioned banner */}
       {isDecommissioned && (
         <div className="flex items-start gap-3 bg-[#fefce8] border border-[#fde047] rounded-[10px] px-4 py-3">
           <TriangleAlert className="h-4 w-4 text-[#ca8a04] mt-0.5 flex-shrink-0" />
@@ -207,7 +206,6 @@ export function AssetDetailClient({
         </div>
       )}
 
-      {/* In-repair banner */}
       {isInRepair && (
         <div className="flex items-start gap-3 bg-info-surface border border-info-border rounded-[10px] px-4 py-3">
           <Wrench className="h-4 w-4 text-info-foreground mt-0.5 flex-shrink-0" />

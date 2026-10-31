@@ -187,7 +187,6 @@ export function BrandingSettingsClient({
 
   return (
     <div className="space-y-6">
-      {/* App title */}
       <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
           <h2 className="text-[15px] font-semibold text-foreground">{t("brandingTitle")}</h2>
@@ -280,7 +279,6 @@ export function BrandingSettingsClient({
         </div>
       </section>
 
-      {/* Environment background */}
       <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
           <h2 className="text-[15px] font-semibold text-foreground">{t("backgroundTitle")}</h2>

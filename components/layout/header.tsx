@@ -397,7 +397,6 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
 
         <LanguageSwitcher />
 
-        {/* Avatar + user menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button

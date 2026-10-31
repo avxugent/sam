@@ -349,7 +349,6 @@ export function StockItemTable({
         </div>
       )}
 
-      {/* Deploy dialog */}
       {deployItem && (
         <DeployStockDialog
           open={!!deployItem}

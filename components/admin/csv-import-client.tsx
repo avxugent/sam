@@ -169,7 +169,6 @@ export function CsvImportClient() {
         </CardContent>
       </Card>
 
-      {/* Column mapping reference */}
       <Card>
         <CardHeader
           className="cursor-pointer select-none"
@@ -241,7 +240,6 @@ export function CsvImportClient() {
               </p>
             </div>
 
-            {/* Preview table */}
             {preview.preview.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs border rounded-lg overflow-hidden">

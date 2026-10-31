@@ -299,7 +299,6 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
 
         {/* ── Stock section ── */}
         <div className="border-t border-border py-2">
-          {/* Stock header row */}
           <div
             className={cn(
               "flex items-center gap-1 py-[5px] pl-[12px] pr-[10px] text-[12.5px] select-none",
@@ -340,7 +339,6 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
             </Link>
           </div>
 
-          {/* Stock sub-items */}
           {stockOpen && hasStockTypes && (
             <Suspense fallback={null}>
               <StockNavItems

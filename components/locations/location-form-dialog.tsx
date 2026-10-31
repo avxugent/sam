@@ -311,7 +311,6 @@ export function LocationFormDialog({
             )}
           </div>
 
-          {/* Address section */}
           <div className="pt-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               {tField("address")} ({tCommon("optional")})

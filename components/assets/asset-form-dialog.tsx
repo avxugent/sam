@@ -403,7 +403,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
 
-            {/* Type — required */}
             <div className="space-y-1.5">
               <Label htmlFor="asset-type">
                 {tField("type")} <span aria-hidden="true" className="text-destructive">*</span>
@@ -491,7 +490,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               )}
             </div>
 
-            {/* Model — required, with autocomplete */}
             <div className="space-y-1.5 relative col-span-2">
               <Label htmlFor="model">
                 {tField("model")} <span aria-hidden="true" className="text-destructive">*</span>
@@ -730,7 +728,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             ))}
           </div>
 
-          {/* Vault credentials path */}
           <div className="rounded-md border bg-muted/30 p-3 space-y-2">
             <div className="flex items-center gap-1.5">
               <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />

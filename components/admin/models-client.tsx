@@ -210,7 +210,6 @@ export function ModelsClient({
 
   return (
     <div className="space-y-6">
-      {/* Filters + add */}
       <div className="flex items-center gap-2 flex-wrap">
         <Select value={currentTypeId || ALL} onValueChange={(v) => setFilter("typeId", v)}>
           <SelectTrigger className="h-8 w-48 text-[12.5px]">
@@ -318,7 +317,6 @@ export function ModelsClient({
         )}
       </div>
 
-      {/* Possible duplicates */}
       {clusters.length > 0 && (
         <div className="space-y-3 border-t pt-6">
           <div>
@@ -353,7 +351,6 @@ export function ModelsClient({
         </div>
       )}
 
-      {/* Create/edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -410,7 +407,6 @@ export function ModelsClient({
         </DialogContent>
       </Dialog>
 
-      {/* Usage drilldown dialog */}
       <Dialog open={!!drilldownItem} onOpenChange={(open) => { if (!open) setDrilldownItem(null); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -465,7 +461,6 @@ export function ModelsClient({
         onConfirm={handleMergeConflict}
       />
 
-      {/* Possible-duplicates merge confirmation */}
       <MergeConfirmDialog
         open={!!dupMerge}
         title={t("mergeTitle")}

@@ -48,7 +48,6 @@ export function ExportClient({
 
   return (
     <div className="space-y-8">
-      {/* Manual export */}
       <section className="bg-card border border-border rounded-[10px] p-6 space-y-4">
         <div>
           <h2 className="text-[15px] font-semibold text-foreground">{t("title")}</h2>
@@ -84,7 +83,6 @@ export function ExportClient({
         </div>
       </section>
 
-      {/* Schedule configuration */}
       <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />

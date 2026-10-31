@@ -229,7 +229,6 @@ export function ProfileClient({
         </Card>
       )}
 
-      {/* Theme preference */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t("themeTitle")}</CardTitle>
@@ -266,7 +265,6 @@ export function ProfileClient({
         </CardContent>
       </Card>
 
-      {/* Location navigation preference */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t("locationNavTitle")}</CardTitle>

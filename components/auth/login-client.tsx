@@ -118,7 +118,6 @@ export function LoginClient({ ssoEnabled, appTitle = "SAM", logoUrl = null }: { 
               </>
             )}
 
-            {/* Credentials form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="email">{tField("email")}</Label>

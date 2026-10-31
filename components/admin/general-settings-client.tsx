@@ -62,7 +62,6 @@ export function GeneralSettingsClient({
 
   return (
     <div className="space-y-8">
-      {/* Hostname URL template */}
       <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
           <h2 className="text-[15px] font-semibold text-foreground">{t("hostnameTemplate")}</h2>
@@ -103,7 +102,6 @@ export function GeneralSettingsClient({
         )}
       </section>
 
-      {/* MAC address URL template */}
       <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
           <h2 className="text-[15px] font-semibold text-foreground">{t("macAddressTemplate")}</h2>
@@ -146,7 +144,6 @@ export function GeneralSettingsClient({
         )}
       </section>
 
-      {/* Location URL template */}
       <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
           <h2 className="text-[15px] font-semibold text-foreground">{t("locationTemplate")}</h2>

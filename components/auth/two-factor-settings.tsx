@@ -268,7 +268,6 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
 
           <Separator />
 
-          {/* Code verification */}
           <form onSubmit={handleEnable} className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="enable-code">{t("twoFactorEnterAppCode")}</Label>

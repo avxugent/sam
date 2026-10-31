@@ -294,7 +294,6 @@ export function ReportBuilder({
 
   return (
     <div className="space-y-8">
-      {/* Name & description */}
       <div className="space-y-4 bg-card border border-border rounded-[10px] p-5">
         <h2 className="text-[14px] font-semibold text-foreground">{t("details")}</h2>
         <div className="space-y-1.5">
@@ -475,7 +474,6 @@ export function ReportBuilder({
         </div>
       )}
 
-      {/* Filters */}
       {source === "asset" && (
       <>
       <div className="space-y-3 bg-card border border-border rounded-[10px] p-5">

@@ -289,7 +289,6 @@ export function UsersClient({
         </div>
       </div>
 
-      {/* User table */}
       <div className="border border-border rounded-[10px] overflow-x-auto bg-card">
         <table className="w-full min-w-[720px] text-[13px]">
           <caption className="sr-only">{t("title")}</caption>

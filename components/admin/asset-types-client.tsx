@@ -308,7 +308,6 @@ export function AssetTypesClient({
                         </Badge>
                       )}
 
-                      {/* Expand/collapse scrape config */}
                       <Button
                         size="icon"
                         variant="ghost"
@@ -374,7 +373,6 @@ export function AssetTypesClient({
                 {/* Expandable scrape config panel */}
                 {isExpanded && (
                   <div className="px-4 pb-4 bg-muted/30 border-t">
-                    {/* Prometheus SD toggle */}
                     <div className="pt-3 pb-3 border-b">
                       <div className="flex items-start gap-3">
                         <Checkbox
@@ -519,7 +517,6 @@ export function AssetTypesClient({
 
       <AssetDrilldownDialog source={drilldown} column="manufacturer" onClose={() => setDrilldown(null)} />
 
-      {/* Template editor dialog */}
       <Dialog
         open={!!templateDialog}
         onOpenChange={(open) => { if (!open) setTemplateDialog(null); }}

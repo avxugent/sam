@@ -60,7 +60,6 @@ export function HostnameComplianceClient({ result }: { result: HostnameComplianc
         </Button>
       </div>
 
-      {/* Per-type table */}
       <div className="rounded-[10px] border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">

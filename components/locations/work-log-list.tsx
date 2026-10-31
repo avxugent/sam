@@ -212,7 +212,6 @@ export function WorkLogList({
                       )}
                     </div>
 
-                    {/* Description */}
                     {entry.description && (
                       <p className="text-[13px] text-secondary-foreground whitespace-pre-wrap break-words">
                         {entry.description}

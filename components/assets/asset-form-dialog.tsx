@@ -99,7 +99,8 @@ function buildAssetFormSchema(t: AssetFormTranslator, assetTypes: AssetType[]) {
     modelId: z.string().min(1, t("errModelRequired")),
     serialNumber: z.string().max(100).optional(),
     hostname: z.string().max(255).optional(),
-    quantity: z.number().int().min(1, t("errQuantityMin")).max(9999),
+    // An emptied number input gives NaN: show the same message, not Zod's default.
+    quantity: z.number({ error: t("errQuantityMin") }).int().min(1, t("errQuantityMin")).max(9999),
     installationDate: z.string().optional(),
     invoiceNumber: z.string().max(100).optional(),
     invoiceDate: z.string().optional(),
@@ -681,6 +682,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                   variant="ghost"
                   size="icon"
                   onClick={() => removeCf(i)}
+                  aria-label={tCommon("remove")}
                   className="text-destructive hover:text-destructive flex-shrink-0"
                 >
                   <Trash2 className="h-4 w-4" />

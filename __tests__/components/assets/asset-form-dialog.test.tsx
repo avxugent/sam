@@ -324,6 +324,8 @@ describe("<AssetFormDialog /> validation", () => {
     await user.click(screen.getByRole("button", { name: "Create asset" }));
     await waitFor(() => expect(qty).toHaveAttribute("aria-invalid", "true"));
     expect(screen.queryByText("Only for bulk items with no individual identity")).not.toBeInTheDocument();
+    // The translated message, not Zod's "expected number, received NaN".
+    expect(screen.getByText("Quantity must be at least 1")).toBeInTheDocument();
     expect(lastWrite()).toBeUndefined();
   });
 });

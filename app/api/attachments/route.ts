@@ -8,7 +8,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { attemptStorage, getStorageDriver } from "@/lib/storage";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, isForeignKeyError, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { formFile, formText, invalidInput, isForeignKeyError, readFormData, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
 const ALLOWED_TYPES = new Set([
@@ -161,11 +161,13 @@ async function createLinkAttachment(req: NextRequest, session: Session) {
 
 /** Multipart body: an uploaded file, validated and written to storage. */
 async function createFileAttachment(req: NextRequest, session: Session) {
-  const formData = await req.formData();
-  const file = formData.get("file") as File | null;
-  const locationId = formData.get("locationId") as string | null;
-  const assetId = formData.get("assetId") as string | null;
-  const rawDescription = formData.get("description") as string | null;
+  const body = await readFormData(req);
+  if ("error" in body) return body.error;
+  const file = formFile(body.form, "file");
+  // Empty fields count as absent, so an empty locationId never shadows an assetId.
+  const locationId = formText(body.form, "locationId");
+  const assetId = formText(body.form, "assetId");
+  const rawDescription = formText(body.form, "description");
   const safeDescription = rawDescription?.replace(/[\r\n]{3,}/g, "\n\n").slice(0, 2000) || null;
 
   if (!file) return NextResponse.json({ error: "No file provided." }, { status: 400 });
@@ -217,8 +219,8 @@ async function createFileAttachment(req: NextRequest, session: Session) {
         mimeType: file.type,
         size: file.size,
         path: relativePath,
-        locationId: locationId || null,
-        assetId: assetId || null,
+        locationId,
+        assetId,
         uploadedById: session.user.id,
       },
       include: {

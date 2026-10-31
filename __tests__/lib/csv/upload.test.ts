@@ -24,4 +24,14 @@ describe("readCsvUpload()", () => {
     const result = await readCsvUpload(req({ name: "a.xlsx", type: "application/vnd.ms-excel", text: async () => "" }));
     expect("error" in result && (await result.error.json()).error).toMatch(/Only CSV/);
   });
+
+  it("400 when the file field holds plain text instead of a file", async () => {
+    const result = await readCsvUpload({ formData: async () => ({ get: () => "not a file" }) } as unknown as Request);
+    expect("error" in result && result.error.status).toBe(400);
+  });
+
+  it("400 when the body is not a multipart form", async () => {
+    const result = await readCsvUpload({ formData: async () => { throw new TypeError("bad body"); } } as unknown as Request);
+    expect("error" in result && (await result.error.json()).error).toMatch(/multipart/);
+  });
 });

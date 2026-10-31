@@ -227,6 +227,22 @@ describe("POST /api/attachments — upload validation", () => {
     expect(putObject).not.toHaveBeenCalled();
   });
 
+  it("treats an empty locationId as absent, so the assetId is used", async () => {
+    mockAuth.mockResolvedValue(editorSession() as never);
+    mockCreate.mockResolvedValue({ id: "att-1", originalName: "a.txt" } as never);
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({ model: { name: "Cam" } } as never);
+    const res = await POST(stubUpload({ name: "a.txt", type: "text/plain", bytes: [0x41, 0x42, 0x43, 0x44] }, { locationId: "", assetId: "as-1" }));
+    expect(res.status).toBe(201);
+    expect(putObject.mock.calls[0][0]).toMatch(/^assets\/as-1\//);
+    expect(mockCreate.mock.calls[0][0].data).toMatchObject({ locationId: null, assetId: "as-1" });
+  });
+
+  it("answers 400 for a body that is not a multipart form", async () => {
+    mockAuth.mockResolvedValue(editorSession() as never);
+    const bad = new NextRequest("http://localhost/api/attachments", { method: "POST", headers: { "Content-Type": "multipart/form-data; boundary=x" }, body: "garbage" });
+    expect((await POST(bad)).status).toBe(400);
+  });
+
   it("stores the sanitised original name and audits the parent location", async () => {
     await POST(stubUpload({ name: 'we"ird\\name.txt', type: "text/plain", bytes: [0x41, 0x42, 0x43, 0x44] }, { locationId: "loc-1", description: "note" }));
     expect(mockCreate.mock.calls[0][0].data).toMatchObject({ originalName: "we_ird_name.txt", description: "note", locationId: "loc-1" });

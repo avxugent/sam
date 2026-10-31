@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { csvDownload, invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { csvDownload, formFile, formText, invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 import { readMergeRequest, nameConflictResponse } from "@/lib/catalog/merge";
 
 describe("readJsonBody()", () => {
@@ -115,5 +115,22 @@ describe("nameTakenResponse()", () => {
     expect(res.status).toBe(409);
     expect(await res.json()).toEqual({ error: "Name already exists." });
     expect(await nameTakenResponse("Taken.").json()).toEqual({ error: "Taken." });
+  });
+});
+
+describe("formFile() / formText()", () => {
+  const form = { get: (name: string) => ({ file: new Blob(["x"]), text: "hello", empty: "" } as Record<string, unknown>)[name] ?? null } as unknown as FormData;
+
+  it("returns a file only for a file entry", () => {
+    expect(formFile(form, "file")).toBeInstanceOf(Blob);
+    expect(formFile(form, "text")).toBeNull();
+    expect(formFile(form, "missing")).toBeNull();
+  });
+
+  it("returns text only for a non-empty text entry", () => {
+    expect(formText(form, "text")).toBe("hello");
+    expect(formText(form, "empty")).toBeNull();
+    expect(formText(form, "file")).toBeNull();
+    expect(formText(form, "missing")).toBeNull();
   });
 });

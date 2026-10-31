@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { attemptStorage, getStorageDriver, StorageNotFoundError } from "@/lib/storage";
 import { logAudit } from "@/lib/audit";
 import { writeSettings, BRANDING_KEYS } from "@/lib/app-settings";
+import { formFile, readFormData } from "@/lib/route-helpers";
 
 /**
  * Logo, favicon and background image share one lifecycle: an admin uploads a file,
@@ -92,8 +93,9 @@ export async function serveBrandingAsset(asset: BrandingAsset) {
 /** Admin POST: validate and store the uploaded file. Caller must have checked the role. */
 export async function uploadBrandingAsset(req: Request, session: Session, asset: BrandingAsset) {
   const config: BrandingAssetConfig = BRANDING_ASSETS[asset];
-  const formData = await req.formData();
-  const file = formData.get("file") as File | null;
+  const body = await readFormData(req);
+  if ("error" in body) return body.error;
+  const file = formFile(body.form, "file");
 
   if (!file) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });

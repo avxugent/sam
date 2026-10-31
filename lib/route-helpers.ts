@@ -39,6 +39,30 @@ export function isForeignKeyError(err: unknown): boolean {
   return hasPrismaCode(err, "P2003");
 }
 
+/**
+ * The multipart body of `req`, or the 400 to send back when it is not one
+ * (a wrong content type or a truncated body would otherwise be a 500).
+ */
+export async function readFormData(req: Request): Promise<{ form: FormData } | { error: NextResponse }> {
+  try {
+    return { form: await req.formData() };
+  } catch {
+    return { error: NextResponse.json({ error: "Expected a multipart form upload." }, { status: 400 }) };
+  }
+}
+
+/** The file in form field `name`, or null when it is missing or a plain text value. */
+export function formFile(form: FormData, name: string): File | null {
+  const value = form.get(name);
+  return value === null || typeof value === "string" ? null : value;
+}
+
+/** The text in form field `name`, or null when it is missing, empty or a file. */
+export function formText(form: FormData, name: string): string | null {
+  const value = form.get(name);
+  return typeof value === "string" && value !== "" ? value : null;
+}
+
 /** 404 for the record named in the URL path, e.g. notFoundResponse("Model") -> "Model not found." */
 export function notFoundResponse(what?: string): NextResponse {
   return NextResponse.json({ error: what ? `${what} not found.` : "Not found." }, { status: 404 });

@@ -158,8 +158,9 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     if (!open) return;
     apiFetch<AssetType[]>("/api/asset-types").then((res) => {
       if (res.ok) setAssetTypes(res.data);
+      else showApiError(res.error);
     });
-  }, [open]);
+  }, [open, showApiError]);
 
   const manufacturers = useTypeScopedManufacturers({
     open,

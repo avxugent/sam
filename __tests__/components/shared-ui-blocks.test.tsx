@@ -88,6 +88,14 @@ describe("AssetDrilldownDialog", () => {
     render(<AssetDrilldownDialog source={{ name: "X", url: "/u" }} column="type" onClose={() => {}} />);
     expect(await screen.findByText("noAssetsFound")).toBeInTheDocument();
   });
+
+  it("reports a failed load instead of showing it as no assets", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ error: "Database down" }) });
+    render(<AssetDrilldownDialog source={{ name: "X", url: "/u" }} column="type" onClose={() => {}} />);
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ description: "Database down", variant: "destructive" }))
+    );
+  });
 });
 
 describe("ReportToolbar", () => {

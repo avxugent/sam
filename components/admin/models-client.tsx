@@ -145,10 +145,12 @@ export function ModelsClient({
     setDrilldownLoading(true);
     const res = await apiFetch<{ assets: DrilldownAsset[]; stockItems: DrilldownStockItem[] }>(`/api/models/${item.id}/usage`);
     setDrilldownLoading(false);
-    if (res.ok) {
-      setDrilldownAssets(res.data.assets);
-      setDrilldownStock(res.data.stockItems);
+    if (!res.ok) {
+      showApiError(res.error); // an outage must not look like "unused"
+      return;
     }
+    setDrilldownAssets(res.data.assets);
+    setDrilldownStock(res.data.stockItems);
   }
 
   async function handleSave() {

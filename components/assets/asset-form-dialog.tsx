@@ -256,17 +256,22 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       apiFetch<Supplier[]>("/api/suppliers"),
       apiFetch<UserLite[]>("/api/users/lite"),
     ]);
+    const failed = [typesRes, suppliersRes, usersRes].find((res) => !res.ok);
+    if (failed && !failed.ok) showApiError(failed.error);
     if (typesRes.ok) setAssetTypes(typesRes.data);
     const fetchedSuppliers = suppliersRes.ok ? suppliersRes.data : [];
     if (suppliersRes.ok) setSuppliers(fetchedSuppliers);
     if (usersRes.ok) setUsersLite(usersRes.data);
     return fetchedSuppliers;
-  }, []);
+  }, [showApiError]);
 
   const fetchAsset = useCallback(async () => {
     if (mode !== "edit" || !assetId) return;
     const res = await apiFetch<EditedAsset>(`/api/assets/${assetId}`);
-    if (!res.ok) return;
+    if (!res.ok) {
+      showApiError(res.error);
+      return;
+    }
     const asset = res.data;
     reset({
       typeId: asset.typeId || "",
@@ -287,7 +292,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       macAddresses: asset.macAddresses.map((m) => ({ address: m.address })),
       customFields: asset.customFields.map((f) => ({ key: f.key, value: f.value })),
     });
-  }, [mode, assetId, reset]);
+  }, [mode, assetId, reset, showApiError]);
 
   useEffect(() => {
     if (open) {

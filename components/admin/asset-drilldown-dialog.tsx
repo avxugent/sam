@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/dates";
 import { apiFetch } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type DrilldownAsset = {
   id: string;
@@ -38,6 +39,7 @@ export function AssetDrilldownDialog({
   const tAsset = useTranslations("asset");
   const [assets, setAssets] = useState<DrilldownAsset[]>([]);
   const [loading, setLoading] = useState(false);
+  const showApiError = useApiErrorToast();
 
   useEffect(() => {
     if (!source) return;
@@ -46,13 +48,14 @@ export function AssetDrilldownDialog({
     setLoading(true);
     apiFetch<DrilldownAsset[]>(source.url).then((res) => {
       if (stale) return;
-      setAssets(res.ok ? res.data : []);
+      if (res.ok) setAssets(res.data);
+      else showApiError(res.error); // an outage must not look like "no assets"
       setLoading(false);
     });
     return () => {
       stale = true;
     };
-  }, [source]);
+  }, [source, showApiError]);
 
   const headers = [tField("location"), tField(column), tField("model"), tField("serialNumber"), tField("hostname"), tField("installed")];
 

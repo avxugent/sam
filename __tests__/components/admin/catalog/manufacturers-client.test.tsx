@@ -9,7 +9,7 @@ vi.mock("next-intl", () => ({
 const { mockToast } = vi.hoisted(() => ({ mockToast: vi.fn() }));
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
-import { ManufacturersClient } from "@/components/admin/manufacturers-client";
+import { ManufacturersClient } from "@/components/admin/catalog/manufacturers-client";
 
 const ACME = { id: "m1", name: "Acme", _count: { assets: 2 } };
 const BOLT = { id: "m2", name: "Bolt", _count: { assets: 0 } };

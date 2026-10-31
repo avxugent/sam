@@ -6,7 +6,7 @@ import { invalidInput, readJsonBody, unknownReferenceResponse } from "@/lib/rout
  * The catalog merge and rename-conflict protocol shared by the merge routes
  * (asset types, manufacturers, models, locations), the rename (PUT) routes
  * that offer a merge on a name collision, and the admin merge UI
- * (components/admin/merge-conflict.ts, use-catalog-merge.ts). The data moves
+ * (components/admin/catalog/merge-conflict.ts, use-catalog-merge.ts). The data moves
  * themselves live with their domain (lib/models/reassign.ts, the routes).
  */
 

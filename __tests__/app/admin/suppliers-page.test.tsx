@@ -11,12 +11,12 @@ vi.mock("next/navigation", () => ({
 vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: string) => key) }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({ prisma: { supplier: { findMany: vi.fn() } } }));
-vi.mock("@/components/admin/suppliers-client", () => ({ SuppliersClient: vi.fn(() => null) }));
+vi.mock("@/components/admin/catalog/suppliers-client", () => ({ SuppliersClient: vi.fn(() => null) }));
 
 import SuppliersPage from "@/app/(dashboard)/admin/suppliers/page";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { SuppliersClient } from "@/components/admin/suppliers-client";
+import { SuppliersClient } from "@/components/admin/catalog/suppliers-client";
 import { NON_CATALOG_ROLES, propsOf, renderPage, session } from "../helpers";
 
 const mockAuth = vi.mocked(auth);

@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { computeHostnameCompliance } from "@/lib/compliance/hostname-report";
 import { computeNis2Compliance } from "@/lib/compliance/nis2";
-import { HostnameComplianceClient } from "@/components/admin/hostname-compliance-client";
-import { Nis2DashboardClient } from "@/components/admin/nis2-dashboard-client";
+import { HostnameComplianceClient } from "@/components/admin/compliance/hostname-compliance-client";
+import { Nis2DashboardClient } from "@/components/admin/compliance/nis2-dashboard-client";
 import { isAdmin } from "@/lib/permissions";
 
 export default async function CompliancePage() {

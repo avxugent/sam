@@ -14,7 +14,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Plus, Tag, Tags } from "lucide-react";
 import { validateTemplate } from "@/lib/prometheus/scrape-template";
-import { ScrapeTemplateFields } from "@/components/admin/scrape-template-fields";
+import { ScrapeTemplateFields } from "@/components/admin/catalog/scrape-template-fields";
 import type { TemplateOverride } from "@/lib/prometheus/template-overrides";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import type { ManufacturerOption } from "@/components/inventory/use-type-scoped-manufacturers";

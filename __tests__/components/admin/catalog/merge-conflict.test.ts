@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readMergeConflict } from "@/components/admin/merge-conflict";
+import { readMergeConflict } from "@/components/admin/catalog/merge-conflict";
 
 describe("readMergeConflict()", () => {
   it("builds the merge offer from a nameConflict body", () => {

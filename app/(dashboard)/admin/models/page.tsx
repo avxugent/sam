@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { getModelClusters } from "@/lib/models/clusters";
-import { ModelsClient } from "@/components/admin/models-client";
+import { ModelsClient } from "@/components/admin/catalog/models-client";
 import { canManageCatalog } from "@/lib/permissions";
 
 export default async function ModelsPage({

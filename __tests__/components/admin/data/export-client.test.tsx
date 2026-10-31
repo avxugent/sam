@@ -13,7 +13,7 @@ vi.mock("next-intl", () => ({
 const mockToast = vi.hoisted(() => vi.fn());
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
-import { ExportClient } from "@/components/admin/export-client";
+import { ExportClient } from "@/components/admin/data/export-client";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;

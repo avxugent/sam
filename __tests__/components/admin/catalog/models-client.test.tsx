@@ -13,7 +13,7 @@ vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
-import { ModelsClient } from "@/components/admin/models-client";
+import { ModelsClient } from "@/components/admin/catalog/models-client";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;

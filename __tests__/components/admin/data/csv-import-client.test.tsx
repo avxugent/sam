@@ -7,7 +7,7 @@ vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
-import { CsvImportClient } from "@/components/admin/csv-import-client";
+import { CsvImportClient } from "@/components/admin/data/csv-import-client";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;

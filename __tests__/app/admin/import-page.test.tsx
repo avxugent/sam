@@ -10,11 +10,11 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: string) => key) }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/components/admin/csv-import-client", () => ({ CsvImportClient: vi.fn(() => null) }));
+vi.mock("@/components/admin/data/csv-import-client", () => ({ CsvImportClient: vi.fn(() => null) }));
 
 import ImportPage from "@/app/(dashboard)/admin/import/page";
 import { auth } from "@/lib/auth";
-import { CsvImportClient } from "@/components/admin/csv-import-client";
+import { CsvImportClient } from "@/components/admin/data/csv-import-client";
 import { NON_ADMIN_ROLES, renderPage, session } from "../helpers";
 
 const mockAuth = vi.mocked(auth);

@@ -7,7 +7,7 @@ vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
-import { MaintenancePresetsManager } from "@/components/admin/maintenance-presets-manager";
+import { MaintenancePresetsManager } from "@/components/admin/catalog/maintenance-presets-manager";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;

@@ -10,7 +10,7 @@ vi.mock("next-intl", () => ({
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
 
-import { SuppliersClient, type SupplierRow } from "@/components/admin/suppliers-client";
+import { SuppliersClient, type SupplierRow } from "@/components/admin/catalog/suppliers-client";
 
 const ACME: SupplierRow = {
   id: "s1",

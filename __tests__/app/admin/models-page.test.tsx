@@ -18,13 +18,13 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 vi.mock("@/lib/models/clusters", () => ({ getModelClusters: vi.fn() }));
-vi.mock("@/components/admin/models-client", () => ({ ModelsClient: vi.fn(() => null) }));
+vi.mock("@/components/admin/catalog/models-client", () => ({ ModelsClient: vi.fn(() => null) }));
 
 import ModelsPage from "@/app/(dashboard)/admin/models/page";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getModelClusters } from "@/lib/models/clusters";
-import { ModelsClient } from "@/components/admin/models-client";
+import { ModelsClient } from "@/components/admin/catalog/models-client";
 import { NON_CATALOG_ROLES, propsOf, renderPage, session } from "../helpers";
 
 const mockAuth = vi.mocked(auth);

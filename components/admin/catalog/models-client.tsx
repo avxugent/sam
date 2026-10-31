@@ -34,9 +34,9 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Plus, Merge, TriangleAlert } from "lucide-react";
 import type { AssetStatus } from "@/generated/prisma/enums";
-import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
-import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
-import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
+import { readMergeConflict, type MergeConflict } from "@/components/admin/catalog/merge-conflict";
+import { MergeConfirmDialog } from "@/components/admin/catalog/merge-confirm-dialog";
+import { useCatalogMerge } from "@/components/admin/catalog/use-catalog-merge";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 

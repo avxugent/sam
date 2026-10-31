@@ -18,19 +18,19 @@ vi.mock("@/lib/app-settings", () => ({
   readBrandingSettings: vi.fn(),
   readComplianceSettings: vi.fn(),
 }));
-vi.mock("@/components/admin/general-settings-client", () => ({ GeneralSettingsClient: vi.fn(() => null) }));
-vi.mock("@/components/admin/branding-settings-client", () => ({ BrandingSettingsClient: vi.fn(() => null) }));
-vi.mock("@/components/admin/compliance-settings-client", () => ({ ComplianceSettingsClient: vi.fn(() => null) }));
-vi.mock("@/components/admin/work-log-items-manager", () => ({ WorkLogItemsManager: vi.fn(() => null) }));
+vi.mock("@/components/admin/settings/general-settings-client", () => ({ GeneralSettingsClient: vi.fn(() => null) }));
+vi.mock("@/components/admin/settings/branding-settings-client", () => ({ BrandingSettingsClient: vi.fn(() => null) }));
+vi.mock("@/components/admin/settings/compliance-settings-client", () => ({ ComplianceSettingsClient: vi.fn(() => null) }));
+vi.mock("@/components/admin/settings/work-log-items-manager", () => ({ WorkLogItemsManager: vi.fn(() => null) }));
 
 import SettingsPage from "@/app/(dashboard)/admin/settings/page";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { readBrandingSettings, readComplianceSettings, readGeneralSettings } from "@/lib/app-settings";
-import { GeneralSettingsClient } from "@/components/admin/general-settings-client";
-import { BrandingSettingsClient } from "@/components/admin/branding-settings-client";
-import { ComplianceSettingsClient } from "@/components/admin/compliance-settings-client";
-import { WorkLogItemsManager } from "@/components/admin/work-log-items-manager";
+import { GeneralSettingsClient } from "@/components/admin/settings/general-settings-client";
+import { BrandingSettingsClient } from "@/components/admin/settings/branding-settings-client";
+import { ComplianceSettingsClient } from "@/components/admin/settings/compliance-settings-client";
+import { WorkLogItemsManager } from "@/components/admin/settings/work-log-items-manager";
 import { NON_ADMIN_ROLES, propsOf, renderPage, session } from "../helpers";
 
 const mockAuth = vi.mocked(auth);

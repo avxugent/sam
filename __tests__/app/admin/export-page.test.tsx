@@ -11,12 +11,12 @@ vi.mock("next/navigation", () => ({
 vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: string) => key) }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/app-settings", () => ({ readExportSettings: vi.fn() }));
-vi.mock("@/components/admin/export-client", () => ({ ExportClient: vi.fn(() => null) }));
+vi.mock("@/components/admin/data/export-client", () => ({ ExportClient: vi.fn(() => null) }));
 
 import ExportPage from "@/app/(dashboard)/admin/export/page";
 import { auth } from "@/lib/auth";
 import { readExportSettings } from "@/lib/app-settings";
-import { ExportClient } from "@/components/admin/export-client";
+import { ExportClient } from "@/components/admin/data/export-client";
 import { NON_ADMIN_ROLES, propsOf, renderPage, session } from "../helpers";
 
 const mockAuth = vi.mocked(auth);

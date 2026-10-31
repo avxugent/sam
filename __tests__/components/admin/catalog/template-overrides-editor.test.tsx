@@ -6,13 +6,13 @@ const tFn = (key: string) => key;
 vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
-vi.mock("@/components/admin/scrape-template-fields", () => ({
+vi.mock("@/components/admin/catalog/scrape-template-fields", () => ({
   ScrapeTemplateFields: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
     <textarea aria-label="template" value={value} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
 
-import { TemplateOverridesEditor } from "@/components/admin/template-overrides-editor";
+import { TemplateOverridesEditor } from "@/components/admin/catalog/template-overrides-editor";
 
 const manufacturers = [
   { id: "m1", name: "Dell" },

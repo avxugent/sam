@@ -12,7 +12,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { BulkResultSummary } from "@/components/inventory/bulk-result-summary";
 import { MacAddressFields } from "@/components/inventory/mac-address-fields";
 import { AssetStateTable } from "@/components/assets/asset-state-table";
-import { AssetDrilldownDialog } from "@/components/admin/asset-drilldown-dialog";
+import { AssetDrilldownDialog } from "@/components/admin/catalog/asset-drilldown-dialog";
 import { ReportToolbar } from "@/components/reports/report-toolbar";
 
 const mockFetch = vi.fn();

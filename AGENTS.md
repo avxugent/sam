@@ -118,7 +118,7 @@ components/
   inventory/       — widgets shared by assets, stock and locations (location pickers, manufacturer + model autocomplete, MAC fields, bulk action dialog + results)
   locations/       — LocationFormDialog, LocationDetailClient, LocationMap, CoverImagePicker
   attachments/     — AttachmentGallery
-  admin/           — clients for every /admin page (users, catalog, settings, CSV import/export, compliance + NIS2 dashboards, …)
+  admin/           — clients for every /admin page: users and audit log at the top; catalog/ (asset types, manufacturers, models, suppliers, presets, template overrides, merge protocol UI, drilldown), settings/ (branding, general, compliance, work-log items), data/ (CSV import, export), compliance/ (hostname + NIS2 dashboards)
   settings/        — ProfileClient (per-user settings)
   stock/           — stock item table and dialogs
   reports/         — report builder, viewers, list

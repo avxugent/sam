@@ -7,7 +7,7 @@ const { mockToast, mockRefresh } = vi.hoisted(() => ({ mockToast: vi.fn(), mockR
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
 
-import { BrandingSettingsClient } from "@/components/admin/branding-settings-client";
+import { BrandingSettingsClient } from "@/components/admin/settings/branding-settings-client";
 import type { BackgroundMode } from "@/lib/branding/background-mode";
 
 const mockFetch = vi.fn();

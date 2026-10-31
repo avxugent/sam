@@ -8,10 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
-import { AssetDrilldownDialog } from "@/components/admin/asset-drilldown-dialog";
-import { readMergeConflict, type MergeConflict } from "@/components/admin/merge-conflict";
-import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
-import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
+import { AssetDrilldownDialog } from "@/components/admin/catalog/asset-drilldown-dialog";
+import { readMergeConflict, type MergeConflict } from "@/components/admin/catalog/merge-conflict";
+import { MergeConfirmDialog } from "@/components/admin/catalog/merge-confirm-dialog";
+import { useCatalogMerge } from "@/components/admin/catalog/use-catalog-merge";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 

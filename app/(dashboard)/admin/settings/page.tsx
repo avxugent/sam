@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { readBrandingSettings, readComplianceSettings, readGeneralSettings } from "@/lib/app-settings";
-import { GeneralSettingsClient } from "@/components/admin/general-settings-client";
-import { BrandingSettingsClient } from "@/components/admin/branding-settings-client";
-import { ComplianceSettingsClient } from "@/components/admin/compliance-settings-client";
-import { WorkLogItemsManager } from "@/components/admin/work-log-items-manager";
+import { GeneralSettingsClient } from "@/components/admin/settings/general-settings-client";
+import { BrandingSettingsClient } from "@/components/admin/settings/branding-settings-client";
+import { ComplianceSettingsClient } from "@/components/admin/settings/compliance-settings-client";
+import { WorkLogItemsManager } from "@/components/admin/settings/work-log-items-manager";
 import { isAdmin } from "@/lib/permissions";
 import { parseBackgroundMode } from "@/lib/branding/background-mode";
 

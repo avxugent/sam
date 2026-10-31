@@ -12,15 +12,15 @@ vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: st
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/compliance/nis2", () => ({ computeNis2Compliance: vi.fn() }));
 vi.mock("@/lib/compliance/hostname-report", () => ({ computeHostnameCompliance: vi.fn() }));
-vi.mock("@/components/admin/nis2-dashboard-client", () => ({ Nis2DashboardClient: vi.fn(() => null) }));
-vi.mock("@/components/admin/hostname-compliance-client", () => ({ HostnameComplianceClient: vi.fn(() => null) }));
+vi.mock("@/components/admin/compliance/nis2-dashboard-client", () => ({ Nis2DashboardClient: vi.fn(() => null) }));
+vi.mock("@/components/admin/compliance/hostname-compliance-client", () => ({ HostnameComplianceClient: vi.fn(() => null) }));
 
 import CompliancePage from "@/app/(dashboard)/admin/compliance/page";
 import { auth } from "@/lib/auth";
 import { computeNis2Compliance } from "@/lib/compliance/nis2";
 import { computeHostnameCompliance } from "@/lib/compliance/hostname-report";
-import { Nis2DashboardClient } from "@/components/admin/nis2-dashboard-client";
-import { HostnameComplianceClient } from "@/components/admin/hostname-compliance-client";
+import { Nis2DashboardClient } from "@/components/admin/compliance/nis2-dashboard-client";
+import { HostnameComplianceClient } from "@/components/admin/compliance/hostname-compliance-client";
 import { NON_ADMIN_ROLES, propsOf, renderPage, session } from "../helpers";
 
 const mockAuth = vi.mocked(auth);

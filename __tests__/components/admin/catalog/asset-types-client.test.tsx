@@ -9,13 +9,13 @@ vi.mock("next-intl", () => {
 });
 const { mockToast } = vi.hoisted(() => ({ mockToast: vi.fn() }));
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
-vi.mock("@/components/admin/template-overrides-editor", () => ({
+vi.mock("@/components/admin/catalog/template-overrides-editor", () => ({
   TemplateOverridesEditor: ({ kind }: { kind: string }) => <div>overrides-{kind}</div>,
 }));
-vi.mock("@/components/admin/maintenance-presets-manager", () => ({
+vi.mock("@/components/admin/catalog/maintenance-presets-manager", () => ({
   MaintenancePresetsManager: () => <div>presets</div>,
 }));
-vi.mock("@/components/admin/asset-drilldown-dialog", () => ({
+vi.mock("@/components/admin/catalog/asset-drilldown-dialog", () => ({
   AssetDrilldownDialog: ({ source, onClose }: { source: { name: string; url: string } | null; onClose: () => void }) =>
     source ? (
       <div>
@@ -25,7 +25,7 @@ vi.mock("@/components/admin/asset-drilldown-dialog", () => ({
     ) : null,
 }));
 
-import { AssetTypesClient } from "@/components/admin/asset-types-client";
+import { AssetTypesClient } from "@/components/admin/catalog/asset-types-client";
 
 type Type = Parameters<typeof AssetTypesClient>[0]["initialTypes"][number];
 const ALPHA: Type = {

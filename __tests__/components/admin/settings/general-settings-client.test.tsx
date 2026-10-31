@@ -6,7 +6,7 @@ vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 const mockToast = vi.hoisted(() => vi.fn());
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
-import { GeneralSettingsClient } from "@/components/admin/general-settings-client";
+import { GeneralSettingsClient } from "@/components/admin/settings/general-settings-client";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;

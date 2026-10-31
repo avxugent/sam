@@ -13,12 +13,12 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: { assetType: { findMany: vi.fn() }, manufacturer: { findMany: vi.fn() } },
 }));
-vi.mock("@/components/admin/asset-types-client", () => ({ AssetTypesClient: vi.fn(() => null) }));
+vi.mock("@/components/admin/catalog/asset-types-client", () => ({ AssetTypesClient: vi.fn(() => null) }));
 
 import AssetTypesPage from "@/app/(dashboard)/admin/asset-types/page";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { AssetTypesClient } from "@/components/admin/asset-types-client";
+import { AssetTypesClient } from "@/components/admin/catalog/asset-types-client";
 import { NON_ADMIN_ROLES, propsOf, renderPage, session } from "../helpers";
 
 const mockAuth = vi.mocked(auth);

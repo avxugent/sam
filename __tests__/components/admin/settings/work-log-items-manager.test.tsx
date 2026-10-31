@@ -9,7 +9,7 @@ vi.mock("next-intl", () => ({
 const { mockToast } = vi.hoisted(() => ({ mockToast: vi.fn() }));
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
-import { WorkLogItemsManager, type WorkLogItem } from "@/components/admin/work-log-items-manager";
+import { WorkLogItemsManager, type WorkLogItem } from "@/components/admin/settings/work-log-items-manager";
 
 const CLEAN: WorkLogItem = { id: "w1", name: "Cleaning", description: "Dust the filters", _count: { workLogs: 3 } };
 const PATCH: WorkLogItem = { id: "w2", name: "Patching", description: null, _count: { workLogs: 0 } };

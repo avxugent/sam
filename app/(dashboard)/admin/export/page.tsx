@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { readExportSettings } from "@/lib/app-settings";
-import { ExportClient } from "@/components/admin/export-client";
+import { ExportClient } from "@/components/admin/data/export-client";
 import { isAdmin } from "@/lib/permissions";
 
 export default async function ExportPage() {

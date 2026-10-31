@@ -8,8 +8,8 @@ vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
-import { MergeConfirmDialog } from "@/components/admin/merge-confirm-dialog";
-import { useCatalogMerge } from "@/components/admin/use-catalog-merge";
+import { MergeConfirmDialog } from "@/components/admin/catalog/merge-confirm-dialog";
+import { useCatalogMerge } from "@/components/admin/catalog/use-catalog-merge";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;

@@ -14,7 +14,7 @@ vi.mock("@/lib/prisma", () => ({
 import { prisma } from "@/lib/prisma";
 import { parseImportRow } from "@/lib/csv/import";
 import { CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
-import { generateActiveAssetsCsv, generateDecommissionedCsv, generateStockCsv } from "@/lib/csv/export";
+import { generateActiveAssetsCsv, generateDecommissionedCsv, generateHostnameComplianceCsv, generateReportCsv, generateStockCsv } from "@/lib/csv/export";
 
 const mockLocFind = vi.mocked(prisma.location.findMany);
 const mockAssetFind = vi.mocked(prisma.asset.findMany);
@@ -395,5 +395,34 @@ describe("CSV round-trip contract", () => {
     expect(lines[0].endsWith("OWNER;CRITICALITY;END_OF_SUPPORT;SUPPLIER")).toBe(true);
     const row = lines[1].split(";");
     expect(row.slice(-4)).toEqual(["jane@x.y", "HIGH", "2030-06-30", "CampusStore"]);
+  });
+});
+
+describe("generateReportCsv() / generateHostnameComplianceCsv()", () => {
+  it("writes an asset report's chosen columns, ';'-delimited", () => {
+    const csv = generateReportCsv(
+      { filters: [], groupBy: "none", columns: ["model", "hostname"] } as never,
+      { source: "asset", rows: [{ model: "XPS; 13", hostname: null }], groups: [], total: 1 } as never
+    );
+    expect(csv.split("\r\n")).toEqual(["Model;Hostname", '"XPS; 13";']);
+  });
+
+  it("writes a location report's review grid", () => {
+    const csv = generateReportCsv(
+      { source: "location" } as never,
+      {
+        source: "location",
+        itemColumns: [{ id: "i1", name: "Review" }],
+        rows: [{ campus: "C", building: null, name: "Room", fiNumber: null, items: { i1: { filled: false, date: "2026-01-01" } } }],
+      } as never
+    );
+    expect(csv.split("\r\n")).toEqual(["Campus;Building;Room;FI number;Review", "C;;Room;;Overdue (2026-01-01)"]);
+  });
+
+  it("writes one row per non-compliant hostname", () => {
+    const csv = generateHostnameComplianceCsv([
+      { typeName: "PC", pattern: "^pc-", nonCompliantAssets: [{ hostname: "x", model: null, serialNumber: "S", locationPath: "A > B", fiNumber: null }] },
+    ] as never);
+    expect(csv.split("\r\n")).toEqual(["TYPE;PATTERN;HOSTNAME;MODEL;SERIAL;LOCATION;FI_NUMBER", "PC;^pc-;x;;S;A > B;"]);
   });
 });

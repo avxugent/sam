@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/compliance/hostname-report", () => ({ computeHostnameCompliance: vi.fn() }));
+vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
 import { auth } from "@/lib/auth";
 import { computeHostnameCompliance } from "@/lib/compliance/hostname-report";

@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+const { mockLogAudit } = vi.hoisted(() => ({ mockLogAudit: vi.fn() }));
+vi.mock("@/lib/audit", () => ({ logAudit: mockLogAudit }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     report: {
@@ -256,7 +258,9 @@ describe("GET /api/reports/[id]/export", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="Q1___Report_.csv"');
     const body = await res.text();
-    expect(body.split("\n")[0]).toBe("Model");
-    expect(body).toContain("XPS");
+    expect(body.split("\r\n")).toEqual(["Model", "XPS"]);
+    expect(mockLogAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "EXPORT", entityType: "Report", entityId: "r1", entityName: "Q1 / Report!" })
+    );
   });
 });

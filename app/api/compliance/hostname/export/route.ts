@@ -3,11 +3,9 @@ import { auth } from "@/lib/auth";
 import { computeHostnameCompliance } from "@/lib/compliance/hostname-report";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
-import { escapeCsvCell } from "@/lib/csv/core";
+import { generateHostnameComplianceCsv } from "@/lib/csv/export";
 import { toIsoDay } from "@/lib/dates";
 import { csvDownload } from "@/lib/route-helpers";
-
-const COLUMNS = ["TYPE", "PATTERN", "HOSTNAME", "MODEL", "SERIAL", "LOCATION", "FI_NUMBER"];
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -16,22 +14,7 @@ export async function GET(req: NextRequest) {
 
   const { types } = await computeHostnameCompliance();
 
-  const rows: string[] = [COLUMNS.join(";")];
-  for (const t of types) {
-    for (const a of t.nonCompliantAssets) {
-      const cells = [
-        t.typeName,
-        t.pattern ?? "",
-        a.hostname,
-        a.model ?? "",
-        a.serialNumber ?? "",
-        a.locationPath ?? "",
-        a.fiNumber ?? "",
-      ];
-      rows.push(cells.map((cell) => escapeCsvCell(cell)).join(";"));
-    }
-  }
-  const csv = rows.join("\r\n");
+  const csv = generateHostnameComplianceCsv(types);
 
   const date = toIsoDay(new Date());
   const filename = `sam-hostname-noncompliant-${date}.csv`;

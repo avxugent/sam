@@ -368,11 +368,11 @@ describe("<AssetTable /> CSV export", () => {
     expect(clicked[0].href).toBe("blob:csv");
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:csv");
 
-    const lines = (await blobs[0].text()).split("\n");
-    expect(lines[0]).toBe("type,manufacturer,model,serialNumber,hostname,macAddresses,quantity,location,installed");
+    const lines = (await blobs[0].text()).split("\r\n");
+    expect(lines[0]).toBe("type;manufacturer;model;serialNumber;hostname;macAddresses;quantity;location;installed");
     expect(lines.slice(1)).toEqual([
-      "Camera,Epson,Charlie,S1,alpha.ugent.be,,3,Room 1,2023-01-01",
-      "Screen,Sony,Bravo,S2,zeta.ugent.be,AA:BB:CC:DD:EE:01,1,Hall B,2024-03-01",
+      "Camera;Epson;Charlie;S1;alpha.ugent.be;;3;Room 1;2023-01-01",
+      "Screen;Sony;Bravo;S2;zeta.ugent.be;AA:BB:CC:DD:EE:01;1;Hall B;2024-03-01",
     ]);
   });
 });

@@ -10,6 +10,8 @@ import { escapeCsvCell } from "@/lib/csv/core";
 import { toIsoDay } from "@/lib/dates";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
 import { userNamesById } from "@/lib/users/names";
+import { isLocationReport, type ColumnKey, type ReportDefinition, type ReportResult } from "@/lib/reports/types";
+import type { TypeCompliance } from "@/lib/compliance/hostname-report";
 import { ASSET_CSV_COLUMNS, CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
 
 const COLUMNS = ASSET_CSV_COLUMNS;
@@ -287,4 +289,64 @@ export function generateUsersCsv(
   }
 
   return rows.join("\r\n");
+}
+
+const REPORT_COLUMN_LABELS: Record<ColumnKey, string> = {
+  model: "Model",
+  serialNumber: "Serial Number",
+  hostname: "Hostname",
+  type: "Type",
+  manufacturer: "Manufacturer",
+  location: "Location",
+  installationDate: "Installation Date",
+  invoiceDate: "Invoice Date",
+  invoiceNumber: "Invoice Number",
+  notes: "Notes",
+  lastChanged: "Last Modified",
+  supplier: "Supplier",
+  criticality: "Criticality",
+  endOfSupportDate: "End of Support",
+};
+
+/** CSV of a saved report's result: the chosen columns of an asset report, or a location report's review grid. */
+export function generateReportCsv(definition: ReportDefinition, result: ReportResult): string {
+  if (isLocationReport(definition) && result.source === "location") {
+    const header = ["Campus", "Building", "Room", "FI number", ...result.itemColumns.map((c) => c.name)];
+    const rows = result.rows.map((row) => [
+      row.campus ?? "",
+      row.building ?? "",
+      row.name,
+      row.fiNumber ?? "",
+      ...result.itemColumns.map((c) => {
+        const status = row.items[c.id];
+        if (status?.filled) return `Filled${status.date ? ` (${status.date})` : ""}`;
+        return status?.date ? `Overdue (${status.date})` : "Not filled";
+      }),
+    ]);
+    return [header, ...rows].map(csvLine).join("\r\n");
+  }
+  if (!isLocationReport(definition) && result.source === "asset") {
+    const header = definition.columns.map((c) => REPORT_COLUMN_LABELS[c]);
+    const rows = result.rows.map((row) => definition.columns.map((c) => (row[c] as string | null) ?? ""));
+    return [header, ...rows].map(csvLine).join("\r\n");
+  }
+  return "";
+}
+
+const HOSTNAME_COMPLIANCE_COLUMNS = ["TYPE", "PATTERN", "HOSTNAME", "MODEL", "SERIAL", "LOCATION", "FI_NUMBER"];
+
+/** CSV of every hostname that breaks its asset type's pattern (or the FQDN rule). */
+export function generateHostnameComplianceCsv(types: TypeCompliance[]): string {
+  const rows = types.flatMap((t) =>
+    t.nonCompliantAssets.map((a) => [
+      t.typeName,
+      t.pattern ?? "",
+      a.hostname,
+      a.model ?? "",
+      a.serialNumber ?? "",
+      a.locationPath ?? "",
+      a.fiNumber ?? "",
+    ])
+  );
+  return [HOSTNAME_COMPLIANCE_COLUMNS, ...rows].map(csvLine).join("\r\n");
 }

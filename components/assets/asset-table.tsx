@@ -47,8 +47,9 @@ function exportToCsv(assets: AssetRow[], filename: string, headers: string[]) {
     String(a.quantity),
     a.location.name,
     a.installationDate ? new Date(a.installationDate).toLocaleDateString("sv-SE") : null,
-  ].map((cell) => escapeCsvCell(cell, ",")).join(","));
-  const csv = [headers.map((h) => escapeCsvCell(h, ",")).join(","), ...rows].join("\n");
+  ].map((cell) => escapeCsvCell(cell)).join(";"));
+  // Same ';' delimiter and line endings as the server-side CSV exports.
+  const csv = [headers.map((h) => escapeCsvCell(h)).join(";"), ...rows].join("\r\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

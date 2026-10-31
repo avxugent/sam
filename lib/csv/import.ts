@@ -16,21 +16,10 @@ import { normalizeMacAddress } from "@/lib/mac-address";
 import { CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
 import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
 import { hasDeviceIdentity } from "@/lib/schemas/asset";
+import { CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
 import type { Criticality } from "@/generated/prisma/enums";
 
 
-/** Legacy columns kept as custom fields: [custom field key, CSV column]. */
-const CUSTOM_FIELD_COLUMNS: [string, string][] = [
-  ["GUID", "GUID"],
-  ["Diagonal (inch)", "DIAGONAL"],
-  ["Width (cm)", "WIDTH"],
-  ["Height (cm)", "HEIGHT"],
-  ["Mic type", "MIC_TYPE"],
-  ["Frequency", "FREQUENCY"],
-  ["Room location", "ROOM_LOCATION"],
-  ["Integrator", "INTEGRATOR"],
-  ["Contact person", "CONTACTPERSOON"],
-];
 
 export type ParsedImportRow = {
   location: { campus: string; building: string; room: string; fiNumber: string | null };
@@ -121,7 +110,7 @@ export function parseImportRow(row: CsvRow, userIdByEmail: Map<string, string>):
   }
 
   // FI nummer is stored on the location directly — not as a custom field.
-  const customFields = CUSTOM_FIELD_COLUMNS.flatMap(([key, column]) => {
+  const customFields = CUSTOM_FIELD_COLUMNS.flatMap(({ key, column }) => {
     const value = v(row, column);
     return value ? [{ key, value }] : [];
   });

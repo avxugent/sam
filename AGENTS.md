@@ -96,7 +96,7 @@ lib/               — shared code; modules importing next/server are route-hand
   branding/        — logo/favicon/background upload + serve, background mode
   catalog/         — merge + rename-conflict protocol (merge routes, rename routes, admin merge UI)
   compliance/      — NIS2 and hostname compliance reports
-  csv/             — CSV cell/parse core, inventory export, import row parsing, import lookups, upload reading
+  csv/             — CSV cell/parse core, asset CSV columns (shared by import, export and the import page), inventory export, import row parsing, import lookups, upload reading
   export/          — JSON inventory snapshot (export route + backup script)
   hostname.ts      — hostname pattern/FQDN rules
   integrations/    — HashiCorp Vault KV client, read-only Jira client (native fetch, never throw; lookups report found / missing / unavailable)

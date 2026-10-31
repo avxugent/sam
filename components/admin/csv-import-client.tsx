@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-client";
+import { CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
 
 type PreviewData = {
   totalRows: number;
@@ -52,16 +53,8 @@ const COLUMN_MAPPING = [
   { csv: "CRITICALITY", sam: "Criticality (LOW / MEDIUM / HIGH / CRITICAL)" },
   { csv: "END_OF_SUPPORT", sam: "End-of-support date" },
   { csv: "SUPPLIER", sam: "Supplier (auto-created)" },
-  { csv: "GUID", sam: "Custom Field: GUID" },
   { csv: "QUANTITY", sam: "Quantity (ignored when a serial number, hostname, or MAC address is set)" },
-  { csv: "DIAGONAL", sam: "Custom Field: Diagonal (inch)" },
-  { csv: "WIDTH", sam: "Custom Field: Width (cm)" },
-  { csv: "HEIGHT", sam: "Custom Field: Height (cm)" },
-  { csv: "MIC_TYPE", sam: "Custom Field: Mic type" },
-  { csv: "FREQUENCY", sam: "Custom Field: Frequency" },
-  { csv: "ROOM_LOCATION", sam: "Custom Field: Room location" },
-  { csv: "INTEGRATOR", sam: "Custom Field: Integrator" },
-  { csv: "CONTACTPERSOON", sam: "Custom Field: Contact person" },
+  ...CUSTOM_FIELD_COLUMNS.map(({ column, key }) => ({ csv: column, sam: `Custom Field: ${key}` })),
 ];
 
 export function CsvImportClient() {

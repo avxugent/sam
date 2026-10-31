@@ -12,6 +12,8 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
+import { parseImportRow } from "@/lib/csv/import";
+import { CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
 import { generateActiveAssetsCsv, generateDecommissionedCsv, generateStockCsv } from "@/lib/csv/export";
 
 const mockLocFind = vi.mocked(prisma.location.findMany);
@@ -60,6 +62,21 @@ describe("generateActiveAssetsCsv()", () => {
     expect(header.startsWith("CAMPUS;GEBOUW;LOKAAL;FI NUMMER;")).toBe(true);
     expect(header).toContain("GUID");
     expect(header).toContain("CONTACTPERSOON");
+  });
+
+  it("writes every custom field the import stores back under its import column", async () => {
+    // Exactly what parseImportRow stores for a row that fills every legacy column.
+    const parsed = parseImportRow(
+      Object.fromEntries([["LOKAAL", "Room 101"], ...CUSTOM_FIELD_COLUMNS.map(({ column }) => [column, `v-${column}`])]),
+      new Map()
+    );
+    if ("skip" in parsed) throw new Error("row skipped");
+    mockAssetFind.mockResolvedValue([asset({ customFields: parsed.asset.customFields })] as never);
+
+    const [header, row] = (await generateActiveAssetsCsv()).split("\r\n").map((line) => line.split(";"));
+    for (const { column } of CUSTOM_FIELD_COLUMNS) {
+      expect(row[header.indexOf(column)]).toBe(`v-${column}`);
+    }
   });
 
   it("maps an asset row with full hierarchy, mac, dates, and custom fields", async () => {

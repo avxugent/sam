@@ -10,19 +10,9 @@ import { escapeCsvCell } from "@/lib/csv/core";
 import { toIsoDay } from "@/lib/dates";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
 import { userNamesById } from "@/lib/user-names";
+import { ASSET_CSV_COLUMNS, CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
 
-const CUSTOM_FIELD_COLUMNS = [
-  "GUID", "DIAGONAL", "WIDTH", "HEIGHT",
-  "MIC_TYPE", "FREQUENCY", "ROOM_LOCATION", "INTEGRATOR", "CONTACTPERSOON",
-];
-
-const COLUMNS = [
-  "CAMPUS", "GEBOUW", "LOKAAL", "FI NUMMER",
-  "TYPE", "BRAND", "MODEL", "SERIAL", "QUANTITY", "MAC", "IP_HOSTNAME",
-  "INSTALL_DATE", "Factuurdatum", "Factuurnummer",
-  ...CUSTOM_FIELD_COLUMNS,
-  "OWNER", "CRITICALITY", "END_OF_SUPPORT", "SUPPLIER",
-];
+const COLUMNS = ASSET_CSV_COLUMNS;
 
 /**
  * Owner is exported as email (unique + re-importable). Soft ref — deleted
@@ -79,10 +69,8 @@ function assetCells(
   locationMap: Map<string, LocationRow>,
   ownerEmailById: Map<string, string>
 ): string[] {
-  const customFieldMap: Record<string, string> = {};
-  for (const cf of asset.customFields) {
-    customFieldMap[cf.key.toUpperCase()] = cf.value;
-  }
+  // By custom field key (as the import stores it), case-insensitively.
+  const customFieldByKey = new Map(asset.customFields.map((cf) => [cf.key.toLowerCase(), cf.value]));
   return [
     ...locationCells(asset.location, locationMap),
     asset.type?.name ?? "",
@@ -95,7 +83,7 @@ function assetCells(
     formatDateCell(asset.installationDate),
     formatDateCell(asset.invoiceDate),
     asset.invoiceNumber ?? "",
-    ...CUSTOM_FIELD_COLUMNS.map((col) => customFieldMap[col] ?? ""),
+    ...CUSTOM_FIELD_COLUMNS.map(({ key }) => customFieldByKey.get(key.toLowerCase()) ?? ""),
     asset.ownerId ? ownerEmailById.get(asset.ownerId) ?? asset.ownerId : "",
     asset.criticality ?? "",
     formatDateCell(asset.endOfSupportDate),

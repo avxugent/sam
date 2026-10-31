@@ -48,9 +48,10 @@ function jsonReq(url: string, body: object, method = "PUT") {
   });
 }
 
+// SVG: text content survives jsdom's multipart round trip and passes the content check.
 function fileReq(url: string, type: string) {
   const fd = new FormData();
-  fd.set("file", new File(["abc"], "f", { type }));
+  fd.set("file", new File(["<svg xmlns=\"http://www.w3.org/2000/svg\"/>"], "f.svg", { type }));
   return new NextRequest(url, { method: "POST", body: fd });
 }
 
@@ -108,7 +109,7 @@ describe("audit — branding settings", () => {
 describe("audit — branding asset uploads/removals", () => {
   it("logs logo upload", async () => {
     mockAuth.mockResolvedValue(session() as never);
-    const res = await uploadLogo(fileReq("http://localhost/api/settings/branding/logo", "image/png"));
+    const res = await uploadLogo(fileReq("http://localhost/api/settings/branding/logo", "image/svg+xml"));
     expect(res.status).toBe(200);
     expect(putObject).toHaveBeenCalled();
     expect(mockLogAudit).toHaveBeenCalledWith(
@@ -128,7 +129,7 @@ describe("audit — branding asset uploads/removals", () => {
 
   it("logs favicon upload", async () => {
     mockAuth.mockResolvedValue(session() as never);
-    const res = await uploadFavicon(fileReq("http://localhost/api/settings/branding/favicon", "image/png"));
+    const res = await uploadFavicon(fileReq("http://localhost/api/settings/branding/favicon", "image/svg+xml"));
     expect(res.status).toBe(200);
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({ detail: expect.objectContaining({ event: "Favicon uploaded" }) })
@@ -146,7 +147,7 @@ describe("audit — branding asset uploads/removals", () => {
 
   it("logs background upload", async () => {
     mockAuth.mockResolvedValue(session() as never);
-    const res = await uploadBackground(fileReq("http://localhost/api/settings/branding/background", "image/png"));
+    const res = await uploadBackground(fileReq("http://localhost/api/settings/branding/background", "image/svg+xml"));
     expect(res.status).toBe(200);
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({ detail: expect.objectContaining({ event: "Background image uploaded" }) })
@@ -164,7 +165,7 @@ describe("audit — branding asset uploads/removals", () => {
 
   it("does not log upload for non-admin (403)", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
-    const res = await uploadLogo(fileReq("http://localhost/api/settings/branding/logo", "image/png"));
+    const res = await uploadLogo(fileReq("http://localhost/api/settings/branding/logo", "image/svg+xml"));
     expect(res.status).toBe(403);
     expect(mockLogAudit).not.toHaveBeenCalled();
   });

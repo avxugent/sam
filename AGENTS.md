@@ -82,6 +82,7 @@ lib/               — shared code; modules importing next/server are route-hand
   route-helpers.ts — readJsonBody, invalidInput, Prisma error checks, notFoundResponse / nameTakenResponse / unknownReferenceResponse, csvDownload
   prisma.ts        — PrismaClient singleton
   storage.ts       — upload storage driver (local filesystem or S3)
+  uploads.ts       — upload policy: attachment allowlists and size cap, content-vs-declared-type check
   app-settings.ts  — AppSetting key/value table: readSettings / writeSettings, plus typed groups (compliance, general, branding, export) that own each key, default and decoding
   criticality.ts   — criticality levels, parseCriticality, effectiveCriticality; client-safe
   dates.ts         — toIsoDay / formatDate; no dependencies (used by server exports and the UI)
@@ -196,7 +197,7 @@ prisma/
 ## File uploads
 
 - Files go through the storage driver in `lib/storage.ts`: the local filesystem under `UPLOAD_DIR` (default `./uploads`), or an S3-compatible bucket when `STORAGE_DRIVER=s3` and `S3_BUCKET` are set.
-- The upload route validates MIME type against an allowlist and the file extension against a separate allowlist (to prevent double-extension attacks like `.jpg.php`).
+- Upload policy lives in `lib/uploads.ts`: the attachment MIME and extension allowlists (separate, to prevent double-extension attacks like `.jpg.php`), the 50 MB cap, and `contentMatchesType()` (magic bytes / no NUL in text), which branding uploads use too.
 - All file paths are resolved with `path.resolve()` and checked against the upload root with `assertSafePath()` to prevent path traversal.
 - `originalName` is sanitised (strip `\r`, `\n`, `"`, `\`) before storing in the database.
 - Max upload size: 50 MB.

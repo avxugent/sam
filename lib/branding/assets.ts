@@ -4,6 +4,7 @@ import { attemptStorage, getStorageDriver, StorageNotFoundError } from "@/lib/st
 import { logAudit } from "@/lib/audit";
 import { BRANDING_FILE_KEYS, BRANDING_KEYS, deleteSettings, readSettings, writeSettings } from "@/lib/app-settings";
 import { formFile, readFormData } from "@/lib/route-helpers";
+import { contentMatchesType } from "@/lib/uploads";
 
 /**
  * Logo, favicon and background image share one lifecycle: an admin uploads a file,
@@ -103,6 +104,9 @@ export async function uploadBrandingAsset(req: Request, session: Session, asset:
       { error: `File too large. Maximum size is ${config.maxBytes / MB} MB` },
       { status: 400 }
     );
+  }
+  if (!contentMatchesType(buffer, file.type)) {
+    return NextResponse.json({ error: "File content does not match declared type." }, { status: 400 });
   }
 
   const stored = await attemptStorage(`${config.label} write`, "Could not store the file. Please try again.", () =>

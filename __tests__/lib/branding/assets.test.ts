@@ -22,10 +22,21 @@ import { removeBrandingAsset, uploadBrandingAsset } from "@/lib/branding/assets"
 const session = { user: { id: "u1", role: "ADMIN" } } as never;
 
 // jsdom's File does not survive a real multipart round-trip, so stub formData().
-function uploadReq(file: { type: string; size: number } | null) {
+// Leading bytes that make the content match its declared type.
+const SIGNATURES: Record<string, number[]> = {
+  "image/png": [0x89, 0x50, 0x4e, 0x47],
+  "image/jpeg": [0xff, 0xd8, 0xff, 0xe0],
+  "image/webp": [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50],
+};
+
+function uploadReq(file: { type: string; size: number; bytes?: number[] } | null) {
   const fake = file && {
     type: file.type,
-    arrayBuffer: async () => new ArrayBuffer(file.size),
+    arrayBuffer: async () => {
+      const bytes = new Uint8Array(file.size);
+      bytes.set((file.bytes ?? SIGNATURES[file.type] ?? []).slice(0, file.size));
+      return bytes.buffer;
+    },
   };
   return { formData: async () => ({ get: () => fake }) } as unknown as Request;
 }
@@ -53,7 +64,7 @@ describe("uploadBrandingAsset()", () => {
   });
 
   it("stores the file, records settings and audits", async () => {
-    const res = await uploadBrandingAsset(uploadReq({ type: "image/webp", size: 10 }), session, "logo");
+    const res = await uploadBrandingAsset(uploadReq({ type: "image/webp", size: 16 }), session, "logo");
     expect(res.status).toBe(200);
     expect(putObject).toHaveBeenCalledWith("branding/logo", expect.any(Buffer), "image/webp");
     const keys = vi.mocked(prisma.appSetting.upsert).mock.calls.map(([arg]) => arg.where.key);
@@ -72,7 +83,7 @@ describe("storage failures", () => {
   it("upload: 502 and no settings written", async () => {
     putObject.mockRejectedValueOnce(new Error("disk full"));
     vi.spyOn(console, "error").mockImplementation(() => {});
-    const res = await uploadBrandingAsset(uploadReq({ type: "image/webp", size: 10 }), session, "logo");
+    const res = await uploadBrandingAsset(uploadReq({ type: "image/webp", size: 16 }), session, "logo");
     expect(res.status).toBe(502);
     expect(prisma.appSetting.upsert).not.toHaveBeenCalled();
   });
@@ -95,5 +106,14 @@ describe("removeBrandingAsset()", () => {
       where: { key: { in: ["branding.backgroundStorageKey", "branding.backgroundContentType", "branding.backgroundMode"] } },
     });
     expect(vi.mocked(logAudit).mock.calls[0][0].detail).toEqual({ event: "Background image removed" });
+  });
+});
+
+describe("uploadBrandingAsset() content check", () => {
+  it("rejects a file whose content does not match its declared type", async () => {
+    const res = await uploadBrandingAsset(uploadReq({ type: "image/png", size: 16, bytes: [0x3c, 0x68, 0x74, 0x6d] }), session, "logo");
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/does not match/);
+    expect(putObject).not.toHaveBeenCalled();
   });
 });

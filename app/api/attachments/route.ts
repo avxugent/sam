@@ -9,94 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { attemptStorage, getStorageDriver } from "@/lib/storage";
 import { canEdit } from "@/lib/permissions";
 import { formFile, formText, invalidInput, isForeignKeyError, readFormData, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
-
-const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
-const ALLOWED_TYPES = new Set([
-  "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "text/plain", "text/csv",
-]);
-
-// Only allow safe extensions to land on disk, regardless of MIME claim
-const ALLOWED_EXTENSIONS = new Set([
-  ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg",
-  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".csv",
-]);
-
-/**
- * Validate file content against known magic bytes for the declared MIME type.
- * This prevents a client from uploading a dangerous file with a spoofed MIME type.
- */
-function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
-  if (buffer.length < 4) return false;
-  switch (mimeType) {
-    case "image/jpeg":
-      return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
-    case "image/png":
-      return (
-        buffer[0] === 0x89 &&
-        buffer[1] === 0x50 &&
-        buffer[2] === 0x4e &&
-        buffer[3] === 0x47
-      );
-    case "image/gif":
-      return (
-        buffer[0] === 0x47 &&
-        buffer[1] === 0x49 &&
-        buffer[2] === 0x46 &&
-        buffer[3] === 0x38
-      );
-    case "image/webp":
-      return (
-        buffer.length >= 12 &&
-        buffer[0] === 0x52 &&
-        buffer[1] === 0x49 &&
-        buffer[2] === 0x46 &&
-        buffer[3] === 0x46 &&
-        buffer[8] === 0x57 &&
-        buffer[9] === 0x45 &&
-        buffer[10] === 0x42 &&
-        buffer[11] === 0x50
-      );
-    case "application/pdf":
-      return (
-        buffer[0] === 0x25 &&
-        buffer[1] === 0x50 &&
-        buffer[2] === 0x44 &&
-        buffer[3] === 0x46
-      );
-    case "application/msword":
-      // Legacy .doc — Compound Document File (OLE2)
-      return (
-        buffer[0] === 0xd0 &&
-        buffer[1] === 0xcf &&
-        buffer[2] === 0x11 &&
-        buffer[3] === 0xe0
-      );
-    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-    case "application/vnd.ms-excel":
-    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-      // OOXML (.docx, .xlsx) and .xls (when misreported) are ZIP archives
-      return (
-        buffer[0] === 0x50 &&
-        buffer[1] === 0x4b &&
-        buffer[2] === 0x03 &&
-        buffer[3] === 0x04
-      );
-    case "image/svg+xml":
-    case "text/plain":
-    case "text/csv":
-      // Text formats: reject files containing null bytes in the first 512 bytes,
-      // which would indicate binary content masquerading as text
-      return !buffer.subarray(0, 512).includes(0x00);
-    default:
-      return false;
-  }
-}
+import { ATTACHMENT_EXTENSIONS, ATTACHMENT_MIME_TYPES, MAX_ATTACHMENT_BYTES, contentMatchesType } from "@/lib/uploads";
 
 const linkSchema = z.object({
   url: z.url().max(2000),
@@ -172,14 +85,14 @@ async function createFileAttachment(req: NextRequest, session: Session) {
 
   if (!file) return NextResponse.json({ error: "No file provided." }, { status: 400 });
   if (!locationId && !assetId) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
-  if (file.size > MAX_SIZE) return NextResponse.json({ error: "File too large (max 50 MB)." }, { status: 400 });
-  if (!ALLOWED_TYPES.has(file.type)) {
+  if (file.size > MAX_ATTACHMENT_BYTES) return NextResponse.json({ error: "File too large (max 50 MB)." }, { status: 400 });
+  if (!ATTACHMENT_MIME_TYPES.has(file.type)) {
     return NextResponse.json({ error: "File type not allowed." }, { status: 400 });
   }
 
   // Validate and normalise the file extension
   const rawExt = extname(file.name).toLowerCase();
-  const ext = ALLOWED_EXTENSIONS.has(rawExt) ? rawExt : "";
+  const ext = ATTACHMENT_EXTENSIONS.has(rawExt) ? rawExt : "";
 
   // Reject IDs that would otherwise compose into a traversal-shaped key.
   // The storage driver enforces the ultimate safety boundary, but rejecting
@@ -196,7 +109,7 @@ async function createFileAttachment(req: NextRequest, session: Session) {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   // Validate actual file content against the declared MIME type
-  if (!validateMagicBytes(buffer, file.type)) {
+  if (!contentMatchesType(buffer, file.type)) {
     return NextResponse.json({ error: "File content does not match declared type." }, { status: 400 });
   }
 

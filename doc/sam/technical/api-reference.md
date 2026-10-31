@@ -99,7 +99,7 @@ Key validated fields:
 | `POST` | `/api/manufacturers` | MAINTAINER | Create; `409` on a duplicate name |
 | `PUT` | `/api/manufacturers/[id]` | MAINTAINER | Update; renaming onto an existing name returns `409` with `code: "nameConflict"` and the existing manufacturer, so the client can offer a merge |
 | `DELETE` | `/api/manufacturers/[id]` | MAINTAINER | Delete; `404` if unknown, `400` while assets or models reference it |
-| `GET` | `/api/manufacturers/[id]/assets` | VIEWER | Active (INSTALLED) assets by manufacturer — decommissioned assets are historical and excluded |
+| `GET` | `/api/manufacturers/[id]/assets` | VIEWER | Active assets by manufacturer. `?status=DECOMMISSIONED` lists decommissioned only; `?status=all` lists both |
 | `POST` | `/api/manufacturers/[id]/merge` | MAINTAINER | Merge into another manufacturer — moves its assets, stock items and models (a model whose name already exists under the target is folded into it) |
 
 ---

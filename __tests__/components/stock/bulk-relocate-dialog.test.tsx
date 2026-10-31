@@ -99,6 +99,7 @@ describe("<BulkRelocateDialog />", () => {
 
     expect(await screen.findByText("bulkRelocateResultsTitle")).toBeInTheDocument();
     expect(screen.getByText("s2")).toBeInTheDocument();
-    expect(screen.getByText("NOT_FOUND")).toBeInTheDocument();
+    // Translated, not the raw code.
+    expect(screen.getByText("bulkSkipReason.NOT_FOUND")).toBeInTheDocument();
   });
 });

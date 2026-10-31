@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DISPOSAL_METHODS } from "@/components/assets/remove-asset-dialog";
 import { BulkActionDialog } from "@/components/inventory/bulk-action-dialog";
-import type { BulkResult } from "@/components/inventory/bulk-result-summary";
+import type { BulkResult } from "@/lib/bulk";
 
 type Props = {
   open: boolean;

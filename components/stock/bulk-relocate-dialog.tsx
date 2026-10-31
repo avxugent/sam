@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { BulkActionDialog } from "@/components/inventory/bulk-action-dialog";
-import type { BulkResult } from "@/components/inventory/bulk-result-summary";
+import type { BulkResult } from "@/lib/bulk";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
 
 type Props = {
@@ -17,6 +17,7 @@ type Props = {
 
 export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: Props) {
   const t = useTranslations("stock");
+  const tDecom = useTranslations("decommissioned");
 
   const { locations } = useLocationOptions(open);
   const [selectedLocationId, setSelectedLocationId] = useState("");
@@ -34,7 +35,7 @@ export function BulkRelocateDialog({ open, onOpenChange, itemIds, onComplete }: 
       contentClassName="max-w-md"
       resultTitle={t("bulkRelocateResultsTitle")}
       resultSummary={(count) => t("bulkRelocateSkipped", { count })}
-      reasonLabel={(reason) => reason}
+      reasonLabel={(reason) => tDecom(`bulkSkipReason.${reason}`)}
       confirmLabel={(submitting) => (
         <>
           {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}

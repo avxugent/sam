@@ -6,6 +6,7 @@ import { checkReturnToStock } from "@/lib/assets/lifecycle-rules";
 import { RETURN_TO_STOCK_INCLUDE, STATUS_CHANGED, returnAssetToStock } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import type { BulkFailure, BulkResult } from "@/lib/bulk";
 
 const schema = z.object({
   ids: z.array(z.string().min(1)).min(1).max(200),
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
   if (!location) return unknownReferenceResponse("Location");
 
   const succeeded: string[] = [];
-  const failed: { id: string; reason: string }[] = [];
+  const failed: BulkFailure[] = [];
 
   for (const id of ids) {
     const found = await prisma.asset.findUnique({ where: { id }, include: RETURN_TO_STOCK_INCLUDE });
@@ -45,5 +46,5 @@ export async function POST(req: NextRequest) {
     succeeded.push(id);
   }
 
-  return NextResponse.json({ succeeded, failed });
+  return NextResponse.json<BulkResult>({ succeeded, failed });
 }

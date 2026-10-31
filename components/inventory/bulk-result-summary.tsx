@@ -3,9 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-/** Response of the bulk asset/stock endpoints. */
-export type BulkResult = { succeeded: string[]; failed: { id: string; reason: string }[] };
+import type { BulkResult, BulkSkipReason } from "@/lib/bulk";
 
 /** Dialog body listing the items a bulk action skipped, with the reason for each. */
 export function BulkResultSummary({
@@ -18,7 +16,7 @@ export function BulkResultSummary({
   title: string;
   summary: string;
   failed: BulkResult["failed"];
-  reasonLabel: (reason: string) => string;
+  reasonLabel: (reason: BulkSkipReason) => string;
   onClose: () => void;
 }) {
   const tCommon = useTranslations("common");

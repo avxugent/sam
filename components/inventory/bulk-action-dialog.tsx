@@ -5,7 +5,8 @@ import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { BulkResultSummary, type BulkResult } from "@/components/inventory/bulk-result-summary";
+import { BulkResultSummary } from "@/components/inventory/bulk-result-summary";
+import type { BulkResult, BulkSkipReason } from "@/lib/bulk";
 import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 
@@ -24,7 +25,7 @@ type Props = {
   contentClassName?: string;
   resultTitle: string;
   resultSummary: (skipped: number) => string;
-  reasonLabel: (reason: string) => string;
+  reasonLabel: (reason: BulkSkipReason) => string;
   confirmLabel: (submitting: boolean) => React.ReactNode;
   confirmDisabled?: boolean;
   confirmClassName: string;

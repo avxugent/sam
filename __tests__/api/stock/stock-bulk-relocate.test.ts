@@ -79,10 +79,10 @@ describe("POST /api/stock/bulk-relocate", () => {
 
   it("relocates found items and reports missing ones as failed", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
-    mockLocationFindUnique.mockResolvedValue({ id: "loc-1" } as never);
+    mockLocationFindUnique.mockResolvedValue({ name: "Store B" } as never);
     mockFindMany.mockResolvedValue([
-      { id: "item-1", model: "Dell U2722D", locationId: "loc-old" },
-      { id: "item-2", model: "HP Monitor", locationId: null },
+      { id: "item-1", lineageId: "lin-1", model: { name: "Dell U2722D" }, locationId: "loc-old", location: { name: "Store A" } },
+      { id: "item-2", lineageId: "lin-2", model: { name: "HP Monitor" }, locationId: null, location: null },
     ] as never);
 
     const res = await POST(req({ ids: ["item-1", "item-2", "item-missing"], locationId: "loc-1" }));
@@ -100,8 +100,13 @@ describe("POST /api/stock/bulk-relocate", () => {
       expect.objectContaining({
         entityType: "StockItem",
         entityId: "item-1",
-        detail: { changes: { Location: { from: "loc-old", to: "loc-1" } } },
+        entityName: "Dell U2722D",
+        detail: { changes: { Location: { from: "Store A", to: "Store B" } } },
+        lineageId: "lin-1",
       })
+    );
+    expect(mockLogAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ entityId: "item-2", detail: { changes: { Location: { from: null, to: "Store B" } } }, lineageId: "lin-2" })
     );
   });
 

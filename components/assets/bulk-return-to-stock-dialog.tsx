@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Label } from "@/components/ui/label";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { BulkActionDialog } from "@/components/inventory/bulk-action-dialog";
-import type { BulkResult } from "@/components/inventory/bulk-result-summary";
+import type { BulkResult } from "@/lib/bulk";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
 
 type Props = {

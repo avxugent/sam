@@ -6,6 +6,7 @@ import { decommissionViolation } from "@/lib/assets/lifecycle-rules";
 import { DECOMMISSION_SELECT, STATUS_CHANGED, decommissionAsset, decommissionFields } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import type { BulkFailure, BulkResult } from "@/lib/bulk";
 
 const schema = z.object({
   ids: z.array(z.string().min(1)).min(1).max(200),
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
   const { ids, ...input } = parsed.data;
 
   const succeeded: string[] = [];
-  const failed: { id: string; reason: string }[] = [];
+  const failed: BulkFailure[] = [];
 
   for (const id of ids) {
     const existing = await prisma.asset.findUnique({ where: { id }, select: DECOMMISSION_SELECT });
@@ -38,5 +39,5 @@ export async function POST(req: NextRequest) {
     succeeded.push(id);
   }
 
-  return NextResponse.json({ succeeded, failed });
+  return NextResponse.json<BulkResult>({ succeeded, failed });
 }

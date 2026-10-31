@@ -16,6 +16,7 @@ import {
   type LifecycleViolation,
   type Returnable,
 } from "@/lib/assets/lifecycle-rules";
+import type { BulkSkipReason } from "@/lib/bulk";
 
 /**
  * Persisting half of the asset state transitions (decommission, repair,
@@ -38,7 +39,7 @@ export function lifecycleViolationResponse(violation: LifecycleViolation | null)
 }
 
 /** Bulk failure reason when another request changed the asset first. */
-export const STATUS_CHANGED = "STATUS_CHANGED";
+export const STATUS_CHANGED: BulkSkipReason = "STATUS_CHANGED";
 
 /** The 409 for a stock deploy that lost the race to a concurrent change of the stock item. */
 export function stockChangedResponse(): NextResponse {

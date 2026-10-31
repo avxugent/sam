@@ -30,7 +30,7 @@ import { buildInventorySnapshot } from "@/lib/export/snapshot";
 import { writeFile, mkdir } from "fs/promises";
 import { resolve, join } from "path";
 import { createHash } from "crypto";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getStorageDriver } from "@/lib/storage";
 
 const dryRun = process.argv.includes("--dry-run");
 const outputOverride = getArg("--output");
@@ -40,10 +40,7 @@ const outputOverride = getArg("--output");
 async function main() {
   // Resolution: --output forces local disk; otherwise STORAGE_DRIVER=s3 picks
   // S3; otherwise local disk at the configured outputDir.
-  const useS3 =
-    !outputOverride &&
-    process.env.STORAGE_DRIVER === "s3" &&
-    !!process.env.S3_BUCKET;
+  const useS3 = !outputOverride && getStorageDriver().name === "s3";
 
   let outputDir = outputOverride ?? "";
   if (!useS3 && !outputDir) {
@@ -101,23 +98,8 @@ async function main() {
     const bucket = process.env.S3_BUCKET;
     const prefix = (process.env.EXPORT_S3_PREFIX || "backups/").replace(/^\/+/, "");
     const normalizedPrefix = prefix.endsWith("/") || prefix === "" ? prefix : prefix + "/";
-    const region = process.env.S3_REGION || "us-east-1";
-    const client = new S3Client({
-      region,
-      ...(process.env.S3_ENDPOINT ? { endpoint: process.env.S3_ENDPOINT } : {}),
-      ...(process.env.S3_FORCE_PATH_STYLE === "true" ? { forcePathStyle: true } : {}),
-    });
     for (const out of outputs) {
-      await client.send(
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: `${normalizedPrefix}${out.name}`,
-          Body: out.body,
-          ContentType: out.contentType,
-          ContentLength: out.body.length,
-          ServerSideEncryption: "AES256",
-        })
-      );
+      await getStorageDriver().putObject(`${normalizedPrefix}${out.name}`, out.body, out.contentType);
     }
     console.log(`  ✓ Uploaded ${dataRows} data rows + snapshot + manifest to:`);
     console.log(`    s3://${bucket}/${normalizedPrefix}{${filename}, ${snapshotFilename}, ${manifestFilename}}`);

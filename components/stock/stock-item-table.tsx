@@ -39,7 +39,8 @@ import {
 import * as permissions from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 import { SortableTh } from "@/components/ui/sortable-th";
-import { toIsoDay, apiErrorMessage } from "@/lib/utils";
+import { apiErrorMessage } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
 import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
 import { apiFetch } from "@/lib/api-client";

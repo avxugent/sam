@@ -84,6 +84,7 @@ lib/               — shared code; modules importing next/server are route-hand
   storage.ts       — upload storage driver (local filesystem or S3)
   app-settings.ts  — AppSetting key/value table: readSettings / writeSettings, plus typed groups (compliance, general, branding, export) that own each key, default and decoding
   criticality.ts   — criticality levels, parseCriticality, effectiveCriticality; client-safe
+  dates.ts         — toIsoDay / formatDate; no dependencies (used by server exports and the UI)
   user-preferences.ts — theme / location-tab value sets; client-safe
   user-names.ts    — names behind soft user references (owner, decommissioned/sent-for-repair by)
   stock-metadata.ts — StockItem.metadata JSON (an asset's identity while in stock); client-safe

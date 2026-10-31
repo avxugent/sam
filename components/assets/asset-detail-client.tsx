@@ -21,7 +21,8 @@ import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
 import type { Attachment } from "@/components/attachments/attachment";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { RemoveAssetDialog } from "@/components/assets/remove-asset-dialog";
-import { formatDate, apiErrorMessage } from "@/lib/utils";
+import { apiErrorMessage } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 import {
   ChevronRight,
   Pencil,

@@ -7,7 +7,7 @@ import { supplierSchema } from "@/lib/schemas/supplier";
 import { findConflictingWindows } from "@/lib/suppliers/conflicts";
 import { canManageCatalog } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 
 function dateCell(d: Date | null): string {
   return toIsoDay(d) ?? "";

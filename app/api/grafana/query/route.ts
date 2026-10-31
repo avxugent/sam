@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { integrationTokenResponse } from "@/lib/tokens/integration";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 import { grafanaQuerySchema, type AdhocFilter, type AdhocFilterKey } from "@/lib/schemas/grafana";
 

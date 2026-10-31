@@ -5,15 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return "—";
-  return new Date(date).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -28,13 +19,6 @@ export function getInitials(name?: string | null, email?: string | null): string
     return parts[0].slice(0, 2).toUpperCase();
   }
   return (email?.[0] ?? "U").toUpperCase();
-}
-
-/** UTC calendar day as YYYY-MM-DD — the format of date inputs, CSV exports and audit diffs. */
-export function toIsoDay(date: Date | string | number): string;
-export function toIsoDay(date: Date | string | number | null | undefined): string | null;
-export function toIsoDay(date: Date | string | number | null | undefined): string | null {
-  return date == null ? null : new Date(date).toISOString().slice(0, 10);
 }
 
 /**

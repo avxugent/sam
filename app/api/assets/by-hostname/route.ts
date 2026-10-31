@@ -42,7 +42,7 @@ import {
   findFiNumber,
   parseFiNumber,
 } from "@/lib/locations/path";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 
 export async function GET(req: NextRequest) {
   // Any signed-in role, or the integration token (Grafana server-side queries).

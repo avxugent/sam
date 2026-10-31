@@ -17,7 +17,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatDate, apiErrorMessage } from "@/lib/utils";
+import { apiErrorMessage } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 import { apiFetch } from "@/lib/api-client";
 
 type ReportSummary = {

@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminSessionOrExportToken } from "@/lib/tokens/session-or-export";
 import { buildInventorySnapshot } from "@/lib/export/snapshot";
 import { logAudit } from "@/lib/audit";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 
 export async function GET(req: NextRequest) {
   const access = await adminSessionOrExportToken(req);

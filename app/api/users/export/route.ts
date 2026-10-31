@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { generateUsersCsv } from "@/lib/csv/export";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 import { csvDownload } from "@/lib/route-helpers";
 
 export async function GET(req: NextRequest) {

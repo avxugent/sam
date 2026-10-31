@@ -4,7 +4,7 @@ import { computeHostnameCompliance } from "@/lib/compliance/hostname";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { escapeCsvCell } from "@/lib/csv/core";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 import { csvDownload } from "@/lib/route-helpers";
 
 const COLUMNS = ["TYPE", "PATTERN", "HOSTNAME", "MODEL", "SERIAL", "LOCATION", "FI_NUMBER"];

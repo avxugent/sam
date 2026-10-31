@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { SortableTh } from "@/components/ui/sortable-th";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 
 /** One asset in a lifecycle-state list (decommissioned, in repair). */
 export type AssetStateRow = {

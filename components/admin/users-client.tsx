@@ -36,7 +36,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { cn, formatDate, getInitials, toIsoDay, apiErrorMessage } from "@/lib/utils";
+import { cn, getInitials, apiErrorMessage } from "@/lib/utils";
+import { formatDate, toIsoDay } from "@/lib/dates";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Loader2, ShieldOff, Download } from "lucide-react";
 import { SortableTh } from "@/components/ui/sortable-th";

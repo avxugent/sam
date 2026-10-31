@@ -7,7 +7,7 @@ import { updateWorkLogSchema } from "@/lib/schemas/work-log";
 import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
 import { canEdit, isAdmin } from "@/lib/permissions";
 import { invalidInput, isForeignKeyError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 
 export async function GET(
   _req: NextRequest,

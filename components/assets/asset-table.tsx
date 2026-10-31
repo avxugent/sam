@@ -12,7 +12,7 @@ import { BulkDecommissionDialog } from "@/components/assets/bulk-decommission-di
 import { BulkReturnToStockDialog } from "@/components/assets/bulk-return-to-stock-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 import { Search, Package, Pencil, Trash2, ExternalLink, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { renderHostnameUrl } from "@/lib/url-templates";
 import {

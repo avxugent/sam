@@ -30,10 +30,9 @@
 import "./_env.mjs";
 import { getArg } from "./_args.mjs";
 import { prisma } from "@/lib/prisma";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getStorageDriver } from "@/lib/storage";
 import { JSDOM } from "jsdom";
-import { mkdir, writeFile } from "fs/promises";
-import { resolve, dirname, basename } from "path";
+import { basename } from "path";
 import { randomUUID } from "crypto";
 
 // ── Field label → value mapping ──────────────────────────────────────────────
@@ -61,42 +60,8 @@ const fiNumberArg = getArg("--fi-number");
 const userIdArg   = getArg("--user-id");
 
 // ── storage ──────────────────────────────────────────────────────────────────
-const useS3 = process.env.STORAGE_DRIVER === "s3" && !!process.env.S3_BUCKET;
-
-let s3 = null;
-if (useS3) {
-  const endpoint = process.env.S3_ENDPOINT;
-  if (endpoint) {
-    try { new URL(endpoint); } catch {
-      console.error(`❌  S3_ENDPOINT="${endpoint}" is not a valid URL. Add the protocol, e.g. https://${endpoint}`);
-      process.exit(1);
-    }
-  }
-  s3 = new S3Client({
-    region: process.env.S3_REGION || "us-east-1",
-    ...(endpoint ? { endpoint }                                                             : {}),
-    ...(process.env.S3_FORCE_PATH_STYLE === "true" ? { forcePathStyle: true }             : {}),
-  });
-}
-
-async function putObject(key, buffer, contentType) {
-  if (useS3) {
-    await s3.send(new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET,
-      Key: key,
-      Body: buffer,
-      ContentType: contentType,
-      ContentLength: buffer.length,
-      ServerSideEncryption: "AES256",
-    }));
-  } else {
-    const uploadRoot = resolve(process.cwd(), process.env.UPLOAD_DIR || "./uploads");
-    const fullPath   = resolve(uploadRoot, key);
-    if (!fullPath.startsWith(uploadRoot + "/")) throw new Error(`Path traversal detected: ${key}`);
-    await mkdir(dirname(fullPath), { recursive: true });
-    await writeFile(fullPath, buffer);
-  }
-}
+// Same driver (and so the same bucket or upload directory) as uploads made in the app.
+const storage = getStorageDriver();
 
 // ── HTTP with cookie jar ─────────────────────────────────────────────────────
 // lokalen.ugent.be (Apache Wicket) sets JSESSIONID on first request and
@@ -233,7 +198,7 @@ async function main() {
   console.log(`  Dry run     : ${dryRun ? "YES (no changes will be made)" : "no"}`);
   console.log(`  Skip images : ${skipImages}`);
   console.log(`  Force       : ${force}`);
-  console.log(`  Storage     : ${useS3 ? "S3" : "local"}`);
+  console.log(`  Storage     : ${storage.name === "s3" ? "S3" : "local"}`);
   if (fiNumberArg) console.log(`  FI number   : ${fiNumberArg}`);
   console.log("");
 
@@ -469,7 +434,7 @@ async function main() {
             const relativePath = `locations/${location.id}/${filename}`;
             const originalName = basename(new URL(imgUrl).pathname).replace(/[\r\n"\\]/g, "") || filename;
 
-            await putObject(relativePath, imgBuffer, imgContentType);
+            await storage.putObject(relativePath, imgBuffer, imgContentType);
 
             const attachment = await prisma.attachment.create({
               data: {

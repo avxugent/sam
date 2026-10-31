@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 import { apiFetch } from "@/lib/api-client";
 
 type DrilldownAsset = {

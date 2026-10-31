@@ -20,7 +20,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Plus, Loader2, Trash2, ChevronDown, ChevronUp, Save } from "lucide-react";
-import { apiErrorMessage, formatDate, toIsoDay } from "@/lib/utils";
+import { apiErrorMessage } from "@/lib/utils";
+import { formatDate, toIsoDay } from "@/lib/dates";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 
 export type SupplierRow = {

@@ -28,7 +28,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { JIRA_KEY_REGEX, createWorkLogSchema } from "@/lib/schemas/work-log";
 import { z } from "zod";
-import { toIsoDay, apiErrorMessage } from "@/lib/utils";
+import { apiErrorMessage } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 
 type WorkLogFormValues = z.infer<typeof createWorkLogSchema>;

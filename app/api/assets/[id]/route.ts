@@ -8,7 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { auditChanges, type FieldChange } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isForeignKeyError, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 import { ASSET_ROW_INCLUDE } from "@/lib/assets/include";
 
 export async function GET(

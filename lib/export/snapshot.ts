@@ -4,7 +4,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { effectiveCriticality } from "@/lib/criticality";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 import type { AssetStatus, Criticality, DisposalMethod } from "@/generated/prisma/enums";
 
 export type InventorySnapshot = {

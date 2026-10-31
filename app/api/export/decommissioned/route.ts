@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { adminSessionOrExportToken } from "@/lib/tokens/session-or-export";
 import { generateDecommissionedCsv } from "@/lib/csv/export";
 import { logAudit } from "@/lib/audit";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 import { csvDownload } from "@/lib/route-helpers";
 
 export async function GET(req: NextRequest) {

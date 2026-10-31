@@ -16,7 +16,7 @@ import type {
   LocationReportRow,
 } from "@/lib/reports/types";
 import { isLocationReport } from "@/lib/reports/types";
-import { toIsoDay } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 
 function periodCutoff(count: number, unit: "days" | "months" | "years"): Date {
   const d = new Date();

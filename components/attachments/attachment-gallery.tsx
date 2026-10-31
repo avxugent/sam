@@ -15,7 +15,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { formatDate, formatFileSize, apiErrorMessage } from "@/lib/utils";
+import { formatFileSize, apiErrorMessage } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 import {
   FileText,
   File,

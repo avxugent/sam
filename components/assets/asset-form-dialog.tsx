@@ -25,7 +25,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/inventory/model-autocomplete";
-import { cn, toIsoDay, apiErrorMessage } from "@/lib/utils";
+import { cn, apiErrorMessage } from "@/lib/utils";
+import { toIsoDay } from "@/lib/dates";
 import { isHostnameCompliant } from "@/lib/hostname";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { isWindowActive } from "@/lib/suppliers/window";

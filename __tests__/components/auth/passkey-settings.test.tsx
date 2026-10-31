@@ -8,9 +8,9 @@ const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 const router = { refresh: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
-vi.mock("@/lib/two-factor/enrollment-client", () => ({ registerPasskey: vi.fn() }));
+vi.mock("@/components/auth/enrollment-client", () => ({ registerPasskey: vi.fn() }));
 
-import { registerPasskey } from "@/lib/two-factor/enrollment-client";
+import { registerPasskey } from "@/components/auth/enrollment-client";
 import { PasskeySettings, type PasskeySummary } from "@/components/auth/passkey-settings";
 
 const KEY: PasskeySummary = { id: "pk1", label: "YubiKey", deviceType: "singleDevice", backedUp: false, createdAt: "2026-01-01T00:00:00.000Z", lastUsedAt: null };

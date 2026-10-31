@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Monitor, Loader2, ShieldCheck, Fingerprint } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { confirmTotpSetup, normalizeTotpCode, registerPasskey, requestTotpSetup } from "@/lib/two-factor/enrollment-client";
+import { confirmTotpSetup, normalizeTotpCode, registerPasskey, requestTotpSetup } from "@/components/auth/enrollment-client";
 
 type Step = "intro" | "scanning" | "passkey-setup" | "done";
 

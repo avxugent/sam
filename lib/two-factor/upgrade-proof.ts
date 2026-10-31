@@ -6,12 +6,9 @@
  * which never leaves the server.
  */
 import { SignJWT, jwtVerify } from "jose";
+import { signingKey } from "@/lib/two-factor/signing-key";
 
 const AUDIENCE = "sam-2fa-upgrade";
-
-function signingSecret() {
-  return new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
-}
 
 export async function signUpgradeProof(userId: string): Promise<string> {
   return new SignJWT({ sub: userId })
@@ -19,14 +16,14 @@ export async function signUpgradeProof(userId: string): Promise<string> {
     .setAudience(AUDIENCE)
     .setIssuedAt()
     .setExpirationTime("60s")
-    .sign(signingSecret());
+    .sign(signingKey());
 }
 
 /** Whether `proof` is a valid, unexpired upgrade proof issued for `userId`. */
 export async function verifyUpgradeProof(proof: unknown, userId: string): Promise<boolean> {
   if (typeof proof !== "string" || !proof) return false;
   try {
-    const { payload } = await jwtVerify(proof, signingSecret(), { audience: AUDIENCE });
+    const { payload } = await jwtVerify(proof, signingKey(), { audience: AUDIENCE });
     return payload.sub === userId;
   } catch {
     return false;

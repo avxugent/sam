@@ -49,4 +49,11 @@ describe("upgrade proof", () => {
     process.env.NEXTAUTH_SECRET = "a-completely-different-secret-value-1234";
     expect(await verifyUpgradeProof(proof, "user-1")).toBe(false);
   });
+
+  it("fails closed without NEXTAUTH_SECRET: no signing, and nothing verifies", async () => {
+    const proof = await signUpgradeProof("user-1");
+    process.env.NEXTAUTH_SECRET = "";
+    await expect(signUpgradeProof("user-1")).rejects.toThrow(/NEXTAUTH_SECRET/);
+    expect(await verifyUpgradeProof(proof, "user-1")).toBe(false);
+  });
 });

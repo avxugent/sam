@@ -14,6 +14,7 @@ import { isoBase64URL, isoUint8Array } from "@simplewebauthn/server/helpers";
 import type { RegistrationResponseJSON, AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { APP_NAME } from "@/lib/two-factor/totp";
 import { SignJWT, jwtVerify } from "jose";
+import { signingKey } from "@/lib/two-factor/signing-key";
 import type { NextRequest, NextResponse } from "next/server";
 
 export function getRpConfig(): { rpName: string; rpID: string; origin: string } {
@@ -189,12 +190,11 @@ export async function setChallengeCookie(
   purpose: ChallengePurpose,
   challenge: string
 ): Promise<void> {
-  const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
   const token = await new SignJWT({ challenge, userId, purpose })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${CHALLENGE_TTL_SECONDS}s`)
-    .sign(secret);
+    .sign(signingKey());
   response.cookies.set(CHALLENGE_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -217,8 +217,7 @@ export async function readChallengeCookie(
   const token = req.cookies.get(CHALLENGE_COOKIE)?.value;
   if (!token) return null;
   try {
-    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, signingKey());
     if (payload.userId !== userId || payload.purpose !== purpose) return null;
     return typeof payload.challenge === "string" ? payload.challenge : null;
   } catch {

@@ -29,7 +29,7 @@ import {
   Info,
   RefreshCw,
 } from "lucide-react";
-import { confirmTotpSetup, normalizeTotpCode, requestTotpSetup } from "@/lib/two-factor/enrollment-client";
+import { confirmTotpSetup, normalizeTotpCode, requestTotpSetup } from "@/components/auth/enrollment-client";
 import { apiErrorMessage } from "@/lib/utils";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 

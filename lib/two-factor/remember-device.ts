@@ -5,16 +5,13 @@
  */
 import { NextResponse } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
+import { signingKey } from "@/lib/two-factor/signing-key";
 
 export const REMEMBER_ME_COOKIE = "sam_2fa_rm";
 const REMEMBER_DAYS = 30;
 
-function signingSecret() {
-  return new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
-}
-
 export async function signRememberMeToken(userId: string): Promise<string> {
-  const secret = signingSecret();
+  const secret = signingKey();
   return new SignJWT({ sub: userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -38,7 +35,7 @@ export async function setRememberMeCookie(response: NextResponse, userId: string
 export async function verifyRememberMeToken(token: string | undefined, userId: string): Promise<boolean> {
   if (!token) return false;
   try {
-    const { payload } = await jwtVerify(token, signingSecret());
+    const { payload } = await jwtVerify(token, signingKey());
     return payload.sub === userId;
   } catch {
     return false;

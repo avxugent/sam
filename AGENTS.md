@@ -109,7 +109,7 @@ lib/               — shared code; modules importing next/server are route-hand
   schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …); no DB code
   suppliers/       — default-window rules and conflict lookup
   tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), session-or-token, session-or-export token
-  two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy, sign-in steps
+  two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy, sign-in steps, signing key (NEXTAUTH_SECRET, fails closed)
   work-logs/       — relations returned with every work-log entry
 components/
   layout/          — Sidebar (locations only) + Header (search + admin + user)

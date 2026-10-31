@@ -6,7 +6,7 @@ import { auditChanges } from "@/lib/audit/diff";
 import { attemptStorage, getStorageDriver, StorageNotFoundError } from "@/lib/storage";
 import { z } from "zod";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 const updateSchema = z.object({
   displayName: z.string().max(255).nullable().optional(),
@@ -39,7 +39,7 @@ export async function PATCH(
 
   const { id } = await params;
   const attachment = await prisma.attachment.findUnique({ where: { id } });
-  if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!attachment) return notFoundResponse();
 
   const body = await readJsonBody(req);
   const parsed = updateSchema.safeParse(body);
@@ -90,7 +90,7 @@ export async function DELETE(
 
   const { id } = await params;
   const attachment = await prisma.attachment.findUnique({ where: { id } });
-  if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!attachment) return notFoundResponse();
 
   if (attachment.attachmentType !== "link" && attachment.path) {
     // Drivers already treat a missing file as deleted. Any other storage
@@ -126,7 +126,7 @@ export async function GET(
 
   const { id } = await params;
   const attachment = await prisma.attachment.findUnique({ where: { id } });
-  if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!attachment) return notFoundResponse();
 
   // Link attachments: redirect to the stored URL
   if (attachment.attachmentType === "link" && attachment.url) {
@@ -142,7 +142,7 @@ export async function GET(
     buffer = await getStorageDriver().getObject(attachment.path);
   } catch (err) {
     if (err instanceof StorageNotFoundError) {
-      return NextResponse.json({ error: "File not found." }, { status: 404 });
+      return notFoundResponse("File");
     }
     console.error("[attachments] storage read failed", err);
     return NextResponse.json({ error: "Could not read the stored file. Please try again." }, { status: 502 });

@@ -5,7 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { getAllDescendantLocationIds, getSubtreeIdsDeepestFirst } from "@/lib/locations/path";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { updateLocationSchema } from "@/lib/schemas/location";
 
 export async function GET(
@@ -30,7 +30,7 @@ export async function GET(
     },
   });
 
-  if (!location) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!location) return notFoundResponse();
   return NextResponse.json(location);
 }
 
@@ -53,7 +53,7 @@ export async function PUT(
     where: { id },
     include: { parent: { select: { name: true } } },
   });
-  if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!before) return notFoundResponse();
 
   // Validate coverImageId: must be an image attachment belonging to this location
   if (parsed.data.coverImageId) {
@@ -94,12 +94,7 @@ export async function PUT(
       where: { id: newParentId },
       select: { id: true },
     });
-    if (!target) {
-      return NextResponse.json(
-        { error: "Target location does not exist." },
-        { status: 400 }
-      );
-    }
+    if (!target) return unknownReferenceResponse("Target location");
     const descendants = await getAllDescendantLocationIds(id);
     if (descendants.includes(newParentId)) {
       return NextResponse.json(
@@ -191,7 +186,7 @@ export async function DELETE(
     where: { id },
     select: { name: true, fiNumber: true, address: true, city: true, country: true },
   });
-  if (!loc) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!loc) return notFoundResponse();
 
   const childCount = await prisma.location.count({ where: { parentId: id } });
   if (childCount > 0 && !cascade) {

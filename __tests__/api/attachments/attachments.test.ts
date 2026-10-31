@@ -150,6 +150,15 @@ describe("POST /api/attachments (file upload)", () => {
     await expect(POST(makeMultipartReq(new File([TEXT_BODY], "x.txt", { type: "text/plain" }), { locationId: "loc-1" }))).rejects.toThrow("db down");
     expect(deleteObject).toHaveBeenCalledWith(putObject.mock.calls[0][0]);
   });
+
+  it("answers 400 unknownReference and removes the file when the parent no longer exists", async () => {
+    mockAuth.mockResolvedValue(editorSession() as never);
+    mockCreate.mockRejectedValueOnce(Object.assign(new Error("fk"), { code: "P2003" }));
+    const res = await POST(makeMultipartReq(new File([TEXT_BODY], "x.txt", { type: "text/plain" }), { locationId: "loc-gone" }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "The location or asset does not exist.", code: "unknownReference" });
+    expect(deleteObject).toHaveBeenCalledWith(putObject.mock.calls[0][0]);
+  });
 });
 
 // Binary signatures do not survive jsdom's multipart round trip, so these
@@ -241,6 +250,13 @@ describe("POST /api/attachments (link)", () => {
     expect((await POST(linkReq({ url: "not a url", label: "Docs", locationId: "loc-1" }))).status).toBe(400);
     expect((await POST(linkReq({ url: "https://example.org", label: "Docs" }))).status).toBe(400);
     expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("answers 400 unknownReference for a link to a parent that no longer exists", async () => {
+    mockCreate.mockRejectedValueOnce(Object.assign(new Error("fk"), { code: "P2003" }));
+    const res = await POST(linkReq({ url: "https://example.org", label: "Docs", assetId: "gone" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("unknownReference");
   });
 
   it("creates a link on an asset and names the asset in the audit entry", async () => {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { notFoundResponse } from "@/lib/route-helpers";
 
 export async function GET(
   _req: NextRequest,
@@ -11,7 +12,7 @@ export async function GET(
 
   const { id } = await params;
   const asset = await prisma.asset.findUnique({ where: { id }, select: { lineageId: true } });
-  if (!asset) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!asset) return notFoundResponse();
 
   const entries = await prisma.auditLog.findMany({
     where: { lineageId: asset.lineageId },

@@ -227,16 +227,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.dbCheck = Math.floor(Date.now() / 1000);
       }
 
-      // Verify user still exists in the database every 5 minutes.
-      // Returns null to invalidate the session if the user has been deleted.
+      // Every 5 minutes, re-read the user: a deleted user loses the session
+      // (null), and a role change (e.g. a demotion) reaches the token within
+      // 5 minutes instead of at the next sign-in.
+      if (!token.id) return null;
       const now = Math.floor(Date.now() / 1000);
       const lastCheck = token.dbCheck ?? 0;
       if (now - lastCheck > 300) {
-        const exists = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { id: true },
+        const current = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { role: true },
         });
-        if (!exists) return null;
+        if (!current) return null;
+        token.role = current.role;
         token.dbCheck = now;
       }
 
@@ -244,8 +247,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
+      if (token?.id) {
+        session.user.id = token.id;
         session.user.role = token.role ?? "VIEWER";
         if (token.needs2FA) session.needs2FA = true;
         if (token.needsPasswordChange) session.needsPasswordChange = true;
@@ -294,10 +297,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!token?.id) return;
       void logAudit({
         session: null,
-        actor: { id: token.id as string, email: token.email },
+        actor: { id: token.id, email: token.email },
         action: "LOGOUT",
         entityType: "Auth",
-        entityId: token.id as string,
+        entityId: token.id,
         entityName: token.email ?? undefined,
       });
     },

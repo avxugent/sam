@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 import { nameConflictResponse } from "@/lib/catalog/merge";
 
 const schema = z.object({ name: z.string().min(1).max(255) });
@@ -49,10 +49,10 @@ export async function PUT(
     return NextResponse.json(manufacturer);
   } catch (err) {
     if (isRecordNotFoundError(err)) {
-      return NextResponse.json({ error: "Manufacturer not found." }, { status: 404 });
+      return notFoundResponse("Manufacturer");
     }
     if (isUniqueConstraintError(err)) {
-      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+      return nameTakenResponse();
     }
     throw err;
   }
@@ -68,7 +68,7 @@ export async function DELETE(
 
   const { id } = await params;
   const manufacturer = await prisma.manufacturer.findUnique({ where: { id }, select: { name: true } });
-  if (!manufacturer) return NextResponse.json({ error: "Manufacturer not found." }, { status: 404 });
+  if (!manufacturer) return notFoundResponse("Manufacturer");
 
   const count = await prisma.asset.count({ where: { manufacturerId: id } });
   if (count > 0) {

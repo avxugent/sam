@@ -19,7 +19,7 @@ import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 import { isAdmin } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({
   userId: z.string().optional(),
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     where: { id: targetId },
     select: { provider: true, totpEnabled: true, totpSecret: true, email: true },
   });
-  if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
+  if (!user) return notFoundResponse("User");
   if (user.provider !== "credentials") {
     return NextResponse.json({ error: "Not applicable to SSO accounts." }, { status: 400 });
   }

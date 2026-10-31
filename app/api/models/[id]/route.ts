@@ -5,7 +5,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isForeignKeyError, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { nameConflictResponse } from "@/lib/catalog/merge";
 
 const updateSchema = z.object({
@@ -39,12 +39,21 @@ export async function PUT(
       include: { _count: { select: { assets: true, stockItems: true } } },
     }),
   ]);
-  if (!current) return NextResponse.json({ error: "Model not found." }, { status: 404 });
+  if (!current) return notFoundResponse("Model");
   if (existing) {
     return nameConflictResponse(`"${existing.name}" already exists for this type/manufacturer.`, existing);
   }
 
-  const model = await prisma.model.update({ where: { id }, data: { typeId, manufacturerId, name, documentationUrl } });
+  let model;
+  try {
+    model = await prisma.model.update({ where: { id }, data: { typeId, manufacturerId, name, documentationUrl } });
+  } catch (err) {
+    // Races with a concurrent delete or rename, and a stale type/manufacturer id.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Model");
+    if (isUniqueConstraintError(err)) return nameTakenResponse(`"${name}" already exists for this type/manufacturer.`);
+    if (isForeignKeyError(err)) return unknownReferenceResponse("The asset type or manufacturer");
+    throw err;
+  }
 
   const changes = auditChanges([
     { label: "Asset type", before: current.typeId, after: typeId },
@@ -75,6 +84,9 @@ export async function DELETE(
   if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
+  const model = await prisma.model.findUnique({ where: { id }, select: { name: true } });
+  if (!model) return notFoundResponse("Model");
+
   const [assetCount, stockCount] = await Promise.all([
     prisma.asset.count({ where: { modelId: id } }),
     prisma.stockItem.count({ where: { modelId: id } }),
@@ -86,7 +98,6 @@ export async function DELETE(
     );
   }
 
-  const model = await prisma.model.findUnique({ where: { id }, select: { name: true } });
   await prisma.model.delete({ where: { id } });
   await logAudit({
     session,
@@ -94,7 +105,7 @@ export async function DELETE(
     action: "DELETE",
     entityType: "Model",
     entityId: id,
-    entityName: model?.name,
+    entityName: model.name,
   });
   return NextResponse.json({ ok: true });
 }

@@ -5,7 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { createWorkLogSchema } from "@/lib/schemas/work-log";
 import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isForeignKeyError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 
 export async function GET(
   _req: NextRequest,
@@ -41,24 +41,31 @@ export async function POST(
 
   // Verify location exists
   const location = await prisma.location.findUnique({ where: { id: locationId }, select: { id: true, name: true } });
-  if (!location) return NextResponse.json({ error: "Location not found" }, { status: 404 });
+  if (!location) return notFoundResponse("Location");
 
   const data = parsed.data;
   const performedById = data.performedById || session.user.id;
   const performedAt = data.performedAt ? new Date(data.performedAt) : new Date();
 
-  const created = await prisma.workLog.create({
-    data: {
-      locationId,
-      assetId: data.assetId || null,
-      itemId: data.itemId || null,
-      performedById,
-      performedAt,
-      description: data.description ?? "",
-      jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null,
-    },
-    include: WORK_LOG_INCLUDE,
-  });
+  let created;
+  try {
+    created = await prisma.workLog.create({
+      data: {
+        locationId,
+        assetId: data.assetId || null,
+        itemId: data.itemId || null,
+        performedById,
+        performedAt,
+        description: data.description ?? "",
+        jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null,
+      },
+      include: WORK_LOG_INCLUDE,
+    });
+  } catch (err) {
+    // A stale asset, item or performer id from the body.
+    if (isForeignKeyError(err)) return unknownReferenceResponse();
+    throw err;
+  }
 
   const assetName = created.asset
     ? (created.asset.model?.name ?? created.asset.serialNumber ?? created.asset.hostname ?? null)

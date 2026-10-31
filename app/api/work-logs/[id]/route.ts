@@ -5,8 +5,8 @@ import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { updateWorkLogSchema } from "@/lib/schemas/work-log";
 import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
-import { isAdmin } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { canEdit, isAdmin } from "@/lib/permissions";
+import { invalidInput, isForeignKeyError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { toIsoDay } from "@/lib/utils";
 
 export async function GET(
@@ -22,7 +22,7 @@ export async function GET(
     include: { ...WORK_LOG_INCLUDE, location: { select: { id: true, name: true } } },
   });
 
-  if (!log) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!log) return notFoundResponse();
   return NextResponse.json(log);
 }
 
@@ -35,10 +35,11 @@ export async function PUT(
 
   const { id } = await params;
   const existing = await prisma.workLog.findUnique({ where: { id } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return notFoundResponse();
 
+  // Writers only; among them, the entry's performer or an admin.
   const isAuthor = existing.performedById === session.user.id;
-  if (!isAuthor && !isAdmin(session.user.role)) {
+  if (!canEdit(session.user.role) || (!isAuthor && !isAdmin(session.user.role))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -49,18 +50,25 @@ export async function PUT(
   }
 
   const data = parsed.data;
-  const updated = await prisma.workLog.update({
-    where: { id },
-    data: {
-      ...(data.assetId !== undefined ? { assetId: data.assetId || null } : {}),
-      ...(data.itemId !== undefined ? { itemId: data.itemId || null } : {}),
-      ...(data.performedById !== undefined ? { performedById: data.performedById } : {}),
-      ...(data.performedAt !== undefined ? { performedAt: new Date(data.performedAt) } : {}),
-      ...(data.description !== undefined ? { description: data.description ?? "" } : {}),
-      ...(data.jiraIssueKey !== undefined ? { jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null } : {}),
-    },
-    include: WORK_LOG_INCLUDE,
-  });
+  let updated;
+  try {
+    updated = await prisma.workLog.update({
+      where: { id },
+      data: {
+        ...(data.assetId !== undefined ? { assetId: data.assetId || null } : {}),
+        ...(data.itemId !== undefined ? { itemId: data.itemId || null } : {}),
+        ...(data.performedById !== undefined ? { performedById: data.performedById } : {}),
+        ...(data.performedAt !== undefined ? { performedAt: new Date(data.performedAt) } : {}),
+        ...(data.description !== undefined ? { description: data.description ?? "" } : {}),
+        ...(data.jiraIssueKey !== undefined ? { jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null } : {}),
+      },
+      include: WORK_LOG_INCLUDE,
+    });
+  } catch (err) {
+    // A stale asset, item or performer id from the body.
+    if (isForeignKeyError(err)) return unknownReferenceResponse();
+    throw err;
+  }
 
   const changes = auditChanges([
     data.description !== undefined && { label: "Description", before: existing.description, after: data.description },
@@ -90,10 +98,11 @@ export async function DELETE(
 
   const { id } = await params;
   const existing = await prisma.workLog.findUnique({ where: { id } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return notFoundResponse();
 
+  // Writers only; among them, the entry's performer or an admin.
   const isAuthor = existing.performedById === session.user.id;
-  if (!isAuthor && !isAdmin(session.user.role)) {
+  if (!canEdit(session.user.role) || (!isAuthor && !isAdmin(session.user.role))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

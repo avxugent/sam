@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { runReport } from "@/lib/reports/engine";
 import { parseReportDefinition } from "@/lib/schemas/report";
-import { csvDownload } from "@/lib/route-helpers";
+import { csvDownload, notFoundResponse } from "@/lib/route-helpers";
 import { isLocationReport } from "@/lib/reports/types";
 import type { ColumnKey } from "@/lib/reports/types";
 import { escapeCsvCell } from "@/lib/csv/core";
@@ -31,7 +31,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
   const report = await prisma.report.findUnique({ where: { id } });
-  if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!report) return notFoundResponse();
 
   const definition = parseReportDefinition(report.definition);
   if (!definition) {

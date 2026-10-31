@@ -79,7 +79,7 @@ proxy.ts           — NextAuth session guard (replaces middleware.ts)
 lib/               — shared code; modules importing next/server are route-handler helpers (server only)
   auth.ts          — NextAuth config + ssoEnabled flag
   permissions.ts   — role predicates (isAdmin, canManageCatalog, canEdit); client-safe
-  route-helpers.ts — readJsonBody, invalidInput, Prisma error checks, unknownReferenceResponse, csvDownload
+  route-helpers.ts — readJsonBody, invalidInput, Prisma error checks, notFoundResponse / nameTakenResponse / unknownReferenceResponse, csvDownload
   prisma.ts        — PrismaClient singleton
   storage.ts       — upload storage driver (local filesystem or S3)
   app-settings.ts  — AppSetting key/value table: readSettings / writeSettings, plus typed groups (compliance, general, branding, export) that own each key, default and decoding
@@ -158,8 +158,8 @@ prisma/
 - Auth errors: `401` for unauthenticated, `403` for insufficient role.
 - Read request bodies with `readJsonBody(req)` (malformed JSON becomes a Zod 400, not a 500) and return Zod failures with `invalidInput(parsed.error)` — `400` with `{ error: "Invalid input", details }`.
 - Error bodies are `{ error, code?, details? }`: `error` is readable English, `code` a stable id for a case the client localizes, `details` either `string[]` or the Zod flatten object. Client components call the API through `apiFetch()` from `lib/api-client.ts` (it never throws: a network failure is `{ ok: false, status: 0 }`, a body-less 500 gives `error: {}`), show `res.error` with `apiErrorMessage()` from `lib/utils.ts`, and download CSV exports with `downloadFile()`. Client code never calls `fetch` directly (pass an `AbortSignal` in the init and check `signal.aborted` for superseded requests); build JSON requests with `jsonBody(method, body)`.
-- Missing records: `404` only for the record named in the URL path; an id inside the request body that names no record is invalid input — `400` with `code: "unknownReference"` (`unknownReferenceResponse()`; catch `isForeignKeyError(err)` on writes).
-- Conflict (unique constraint): `409`. Detect it with `isUniqueConstraintError(err)`; never map every caught error to one status — rethrow what you don't handle.
+- Missing records: `404` only for the record named in the URL path (`notFoundResponse("Model")` → "Model not found."); an id inside the request body that names no record is invalid input — `400` with `code: "unknownReference"` (`unknownReferenceResponse()`; catch `isForeignKeyError(err)` on writes).
+- Conflict (unique constraint): `409` (`nameTakenResponse()`, or `nameConflictResponse()` for catalog renames that can offer a merge). Detect it with `isUniqueConstraintError(err)`; never map every caught error to one status — rethrow what you don't handle.
 - `DELETE` handlers return `200` with `{ ok: true }`.
 - All write endpoints validate input with Zod before touching the database.
 - Zod schemas enforce length caps on all string fields. Do not remove them.

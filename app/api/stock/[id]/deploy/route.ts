@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { DEPLOY_INCLUDE, deployStockItem, stockChangedResponse } from "@/lib/assets/transitions";
 import { hostnameTakenResponse } from "@/lib/assets/input";
 
@@ -44,7 +44,7 @@ export async function POST(
   if (!location) return unknownReferenceResponse("The location");
 
   const stockItem = await prisma.stockItem.findUnique({ where: { id }, include: DEPLOY_INCLUDE });
-  if (!stockItem) return NextResponse.json({ error: "Stock item not found" }, { status: 404 });
+  if (!stockItem) return notFoundResponse("Stock item");
 
   if (quantity > stockItem.quantity) {
     return NextResponse.json(

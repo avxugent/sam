@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, nameTakenResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 
 const createSchema = z.object({
   typeId: z.string().min(1),
@@ -86,10 +86,7 @@ export async function POST(req: NextRequest) {
     where: { typeId, manufacturerId, name },
   });
   if (existing) {
-    return NextResponse.json(
-      { error: `"${existing.name}" already exists for this type/manufacturer.`, existingId: existing.id, existingName: existing.name },
-      { status: 409 }
-    );
+    return nameTakenResponse(`"${existing.name}" already exists for this type/manufacturer.`);
   }
 
   try {
@@ -105,7 +102,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(model, { status: 201 });
   } catch (err: unknown) {
     if (isUniqueConstraintError(err)) {
-      return NextResponse.json({ error: `"${name}" already exists for this type/manufacturer.` }, { status: 409 });
+      return nameTakenResponse(`"${name}" already exists for this type/manufacturer.`);
     }
     throw err;
   }

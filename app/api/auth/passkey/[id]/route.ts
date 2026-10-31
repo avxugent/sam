@@ -10,6 +10,7 @@ import { auth } from "@/lib/auth";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
+import { notFoundResponse } from "@/lib/route-helpers";
 
 export async function DELETE(
   req: NextRequest,
@@ -25,7 +26,7 @@ export async function DELETE(
 
   // 404 (not 403) for another user's passkey — don't confirm it exists.
   if (!passkey || passkey.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return notFoundResponse();
   }
 
   await prisma.passkey.delete({ where: { id } });

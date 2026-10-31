@@ -8,7 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { Criticality } from "@/generated/prisma/enums";
 import { isAdmin } from "@/lib/permissions";
-import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 import { nameConflictResponse } from "@/lib/catalog/merge";
 
 const schema = z.object({
@@ -102,10 +102,10 @@ export async function PUT(
     return NextResponse.json(type);
   } catch (err) {
     if (isRecordNotFoundError(err)) {
-      return NextResponse.json({ error: "Asset type not found." }, { status: 404 });
+      return notFoundResponse("Asset type");
     }
     if (isUniqueConstraintError(err)) {
-      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+      return nameTakenResponse();
     }
     throw err;
   }
@@ -120,6 +120,9 @@ export async function DELETE(
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
+  const assetType = await prisma.assetType.findUnique({ where: { id }, select: { name: true } });
+  if (!assetType) return notFoundResponse("Asset type");
+
   const count = await prisma.asset.count({ where: { typeId: id } });
   if (count > 0) {
     return NextResponse.json(
@@ -135,7 +138,6 @@ export async function DELETE(
     );
   }
 
-  const assetType = await prisma.assetType.findUnique({ where: { id }, select: { name: true } });
   await prisma.assetType.delete({ where: { id } });
   await logAudit({
     session,
@@ -143,7 +145,7 @@ export async function DELETE(
     action: "DELETE",
     entityType: "AssetType",
     entityId: id,
-    entityName: assetType?.name,
+    entityName: assetType.name,
   });
   return NextResponse.json({ ok: true });
 }

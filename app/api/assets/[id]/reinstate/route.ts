@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { reinstateViolation } from "@/lib/assets/lifecycle-rules";
 import { REPAIR_SELECT, lifecycleViolationResponse, reinstateAsset, statusChangedResponse } from "@/lib/assets/transitions";
+import { notFoundResponse } from "@/lib/route-helpers";
 
 export async function POST(
   req: NextRequest,
@@ -15,7 +16,7 @@ export async function POST(
 
   const { id } = await params;
   const existing = await prisma.asset.findUnique({ where: { id }, select: REPAIR_SELECT });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return notFoundResponse();
   const violation = lifecycleViolationResponse(reinstateViolation(existing));
   if (violation) return violation;
 

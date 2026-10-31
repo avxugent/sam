@@ -164,6 +164,18 @@ describe("POST /api/locations/[id]/work-logs", () => {
     const call = mockWlCreate.mock.calls[0][0];
     expect(call.data.performedById).toBe("ed-1");
   });
+
+  it("returns 400 unknownReference for a stale asset, item or performer id", async () => {
+    mockAuth.mockResolvedValue(editorSession() as never);
+    mockLocFindUnique.mockResolvedValue({ id: "loc-1", name: "L" } as never);
+    mockWlCreate.mockRejectedValue(Object.assign(new Error("fk"), { code: "P2003" }));
+    const res = await listPost(
+      makeReq("http://x/api/locations/loc-1/work-logs", "POST", { description: "Cleaned", assetId: "gone" }),
+      { params: Promise.resolve({ id: "loc-1" }) }
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("unknownReference");
+  });
 });
 
 // ── Single GET / PUT / DELETE ────────────────────────────────────────────────

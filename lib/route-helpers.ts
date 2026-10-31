@@ -39,6 +39,16 @@ export function isForeignKeyError(err: unknown): boolean {
   return hasPrismaCode(err, "P2003");
 }
 
+/** 404 for the record named in the URL path, e.g. notFoundResponse("Model") -> "Model not found." */
+export function notFoundResponse(what?: string): NextResponse {
+  return NextResponse.json({ error: what ? `${what} not found.` : "Not found." }, { status: 404 });
+}
+
+/** 409 for a create or rename onto a name that is already taken (unique constraint). */
+export function nameTakenResponse(message = "Name already exists."): NextResponse {
+  return NextResponse.json({ error: message }, { status: 409 });
+}
+
 /**
  * 400 for an id in the request body that names no record (a stale location,
  * type, model, …). The record in the URL path is the 404 case; a body

@@ -78,10 +78,12 @@ describe("POST /api/asset-types/[id]/merge", () => {
     expect((await mergeType(jreq("http://x", {}), { params: params("t1") })).status).toBe(400);
     expect((await mergeType(jreq("http://x", { targetId: "t1" }), { params: params("t1") })).status).toBe(400);
   });
-  it("404 when a type is missing", async () => {
+  it("400 unknownReference when the target type from the body is missing", async () => {
     mockAuth.mockResolvedValue(session() as never);
     vi.mocked(prisma.assetType.findUnique).mockResolvedValueOnce({ id: "t1", name: "A" } as never).mockResolvedValueOnce(null as never);
-    expect((await mergeType(jreq("http://x", { targetId: "t2" }), { params: params("t1") })).status).toBe(404);
+    const res = await mergeType(jreq("http://x", { targetId: "t2" }), { params: params("t1") });
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("unknownReference");
   });
   it("moves assets, deletes source, and audits the merge", async () => {
     mockAuth.mockResolvedValue(session() as never);

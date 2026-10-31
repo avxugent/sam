@@ -8,7 +8,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { attemptStorage, getStorageDriver } from "@/lib/storage";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isForeignKeyError, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
 const ALLOWED_TYPES = new Set([
@@ -124,18 +124,24 @@ async function createLinkAttachment(req: NextRequest, session: Session) {
   const { url, label, description, locationId, assetId } = parsed.data;
   if (!locationId && !assetId) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
 
-  const attachment = await prisma.attachment.create({
-    data: {
-      attachmentType: "link",
-      url,
-      originalName: label,
-      description: description ?? null,
-      locationId: locationId || null,
-      assetId: assetId || null,
-      uploadedById: session.user.id,
-    },
-    include: { uploadedBy: { select: { id: true, name: true } } },
-  });
+  let attachment;
+  try {
+    attachment = await prisma.attachment.create({
+      data: {
+        attachmentType: "link",
+        url,
+        originalName: label,
+        description: description ?? null,
+        locationId: locationId || null,
+        assetId: assetId || null,
+        uploadedById: session.user.id,
+      },
+      include: { uploadedBy: { select: { id: true, name: true } } },
+    });
+  } catch (err) {
+    if (isForeignKeyError(err)) return unknownReferenceResponse("The location or asset");
+    throw err;
+  }
   await logAudit({
     session,
     req,
@@ -201,25 +207,29 @@ async function createFileAttachment(req: NextRequest, session: Session) {
   const safeOriginalName = file.name.replace(/[\r\n\\"]/g, "_").slice(0, 255);
 
   // Remove the stored file again if the row cannot be written, so it is not orphaned.
-  const attachment = await prisma.attachment.create({
-    data: {
-      filename,
-      originalName: safeOriginalName,
-      description: safeDescription,
-      mimeType: file.type,
-      size: file.size,
-      path: relativePath,
-      locationId: locationId || null,
-      assetId: assetId || null,
-      uploadedById: session.user.id,
-    },
-    include: {
-      uploadedBy: { select: { id: true, name: true } },
-    },
-  }).catch(async (err) => {
+  let attachment;
+  try {
+    attachment = await prisma.attachment.create({
+      data: {
+        filename,
+        originalName: safeOriginalName,
+        description: safeDescription,
+        mimeType: file.type,
+        size: file.size,
+        path: relativePath,
+        locationId: locationId || null,
+        assetId: assetId || null,
+        uploadedById: session.user.id,
+      },
+      include: {
+        uploadedBy: { select: { id: true, name: true } },
+      },
+    });
+  } catch (err) {
     await getStorageDriver().deleteObject(relativePath).catch(() => {});
+    if (isForeignKeyError(err)) return unknownReferenceResponse("The location or asset");
     throw err;
-  });
+  }
 
   await logAudit({
     session,

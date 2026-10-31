@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { csvDownload, invalidInput, isRecordNotFoundError, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { csvDownload, invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 import { readMergeRequest, nameConflictResponse } from "@/lib/catalog/merge";
 
 describe("readJsonBody()", () => {
@@ -61,7 +61,7 @@ describe("readMergeRequest()", () => {
     [{}, "a", 400, "Invalid input"],
     [{ targetId: "a" }, "a", 400, "Cannot merge a model into itself."],
     [{ targetId: "b" }, "x", 404, "Source model not found."],
-    [{ targetId: "x" }, "a", 404, "Target model not found."],
+    [{ targetId: "x" }, "a", 400, "Target model does not exist."],
   ])("body %j for source %s → %i", async (body, sourceId, status, message) => {
     const result = await readMergeRequest(req(body), sourceId, noun, load);
     if (!("error" in result)) throw new Error("expected an error");
@@ -97,5 +97,23 @@ describe("nameConflictResponse()", () => {
   it("omits the stock count when the catalog has none", async () => {
     const res = nameConflictResponse("dup", { id: "x", name: "Recorder", _count: { assets: 0 } });
     expect(await res.json()).not.toHaveProperty("existingStockCount");
+  });
+});
+
+describe("notFoundResponse()", () => {
+  it("names the missing record when given one", async () => {
+    const res = notFoundResponse("Model");
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Model not found." });
+    expect(await notFoundResponse().json()).toEqual({ error: "Not found." });
+  });
+});
+
+describe("nameTakenResponse()", () => {
+  it("answers 409 with the default or a given message", async () => {
+    const res = nameTakenResponse();
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "Name already exists." });
+    expect(await nameTakenResponse("Taken.").json()).toEqual({ error: "Taken." });
   });
 });

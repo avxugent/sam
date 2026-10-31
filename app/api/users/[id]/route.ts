@@ -6,7 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { isAdmin } from "@/lib/permissions";
 import { updateUserSchema } from "@/lib/schemas/user";
-import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 export async function PUT(
   req: NextRequest,
@@ -25,7 +25,7 @@ export async function PUT(
     where: { id },
     select: { provider: true, name: true, email: true, role: true, twoFactorRequired: true },
   });
-  if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (!target) return notFoundResponse("User");
 
   if (isAdmin(target.role) && parsed.data.role !== undefined && !isAdmin(parsed.data.role)) {
     const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
@@ -102,7 +102,7 @@ export async function DELETE(
   }
 
   const userToDelete = await prisma.user.findUnique({ where: { id }, select: { role: true, email: true } });
-  if (!userToDelete) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (!userToDelete) return notFoundResponse("User");
 
   const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
   if (isAdmin(userToDelete.role) && adminCount <= 1) {

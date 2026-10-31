@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { validateTemplate } from "@/lib/prometheus/scrape-template";
-import { invalidInput, isUniqueConstraintError, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import type { AuditEntityType } from "@/lib/audit";
 
 /**
@@ -145,7 +145,7 @@ export async function listTemplateOverrides(store: OverrideStore, typeId: string
 
 export async function createTemplateOverride(req: Request, session: Session, store: OverrideStore, typeId: string) {
   const type = await prisma.assetType.findUnique({ where: { id: typeId }, select: { id: true, name: true } });
-  if (!type) return NextResponse.json({ error: "Asset type not found" }, { status: 404 });
+  if (!type) return notFoundResponse("Asset type");
 
   const parsed = store.createSchema.safeParse(await readJsonBody(req));
   if (!parsed.success) return invalidInput(parsed.error);
@@ -185,7 +185,7 @@ export async function createTemplateOverride(req: Request, session: Session, sto
 
 export async function updateTemplateOverride(req: Request, session: Session, store: OverrideStore, id: string) {
   const existing = await store.find(id);
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return notFoundResponse();
 
   const parsed = updateSchema.safeParse(await readJsonBody(req));
   if (!parsed.success) return invalidInput(parsed.error);
@@ -207,7 +207,7 @@ export async function updateTemplateOverride(req: Request, session: Session, sto
 
 export async function deleteTemplateOverride(req: Request, session: Session, store: OverrideStore, id: string) {
   const existing = await store.find(id);
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return notFoundResponse();
 
   await store.remove(id);
   await logAudit({

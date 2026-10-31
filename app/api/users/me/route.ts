@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 import { LOCATION_TABS, THEMES } from "@/lib/user-preferences";
 
 const schema = z.object({
@@ -28,7 +28,7 @@ export async function GET() {
     where: { id: session.user.id },
     select: { id: true, name: true, email: true, role: true, provider: true, locationDefaultTab: true, theme: true },
   });
-  if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
+  if (!user) return notFoundResponse("User");
 
   return NextResponse.json(user);
 }
@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest) {
     where: { id: session.user.id },
     select: { passwordHash: true, provider: true },
   });
-  if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
+  if (!user) return notFoundResponse("User");
 
   const updateData: Record<string, unknown> = {};
 

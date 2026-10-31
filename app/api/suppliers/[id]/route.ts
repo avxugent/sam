@@ -6,7 +6,7 @@ import { auditChanges } from "@/lib/audit/diff";
 import { supplierSchema } from "@/lib/schemas/supplier";
 import { findConflictingWindows } from "@/lib/suppliers/conflicts";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 import { toIsoDay } from "@/lib/utils";
 
 function dateCell(d: Date | null): string {
@@ -28,7 +28,7 @@ export async function PUT(
   if (!parsed.success) return invalidInput(parsed.error);
 
   const current = await prisma.supplier.findUnique({ where: { id } });
-  if (!current) return NextResponse.json({ error: "Supplier not found." }, { status: 404 });
+  if (!current) return notFoundResponse("Supplier");
 
   const conflicts = await findConflictingWindows(
     {
@@ -77,7 +77,7 @@ export async function PUT(
     return NextResponse.json(supplier);
   } catch (err) {
     if (isUniqueConstraintError(err)) {
-      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+      return nameTakenResponse();
     }
     throw err;
   }
@@ -101,7 +101,7 @@ export async function DELETE(
   }
 
   const supplier = await prisma.supplier.findUnique({ where: { id }, select: { name: true } });
-  if (!supplier) return NextResponse.json({ error: "Supplier not found." }, { status: 404 });
+  if (!supplier) return notFoundResponse("Supplier");
 
   await prisma.supplier.delete({ where: { id } });
   await logAudit({

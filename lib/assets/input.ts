@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { unknownReferenceResponse } from "@/lib/route-helpers";
 import { prisma } from "@/lib/prisma";
 import { isHostnameCompliant } from "@/lib/hostname";
 
@@ -11,11 +12,11 @@ import { isHostnameCompliant } from "@/lib/hostname";
  * Each *Response helper returns the 400 to send back, or null to proceed.
  */
 
-/** 400 when `supplierId` is set but names no supplier. */
+/** 400 unknownReference when `supplierId` is set but names no supplier. */
 export async function unknownSupplierResponse(supplierId: string | null | undefined): Promise<NextResponse | null> {
   if (!supplierId) return null;
   const supplier = await prisma.supplier.findUnique({ where: { id: supplierId }, select: { id: true } });
-  return supplier ? null : NextResponse.json({ error: "Unknown supplier." }, { status: 400 });
+  return supplier ? null : unknownReferenceResponse("Supplier");
 }
 
 /** 400 when `hostname` breaks the hostname pattern of asset type `typeId`. */

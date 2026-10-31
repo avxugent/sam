@@ -104,6 +104,20 @@ describe("PUT /api/models/[id]", () => {
     });
   });
 
+  it.each([
+    ["P2025", 404, undefined],
+    ["P2002", 409, undefined],
+    ["P2003", 400, "unknownReference"],
+  ])("maps a %s error from a racing update to %i", async (code, status, errorCode) => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockFindUnique.mockResolvedValue({ typeId: "t1", manufacturerId: "m1", name: "Old", documentationUrl: null } as never);
+    mockFindFirst.mockResolvedValue(null as never);
+    mockUpdate.mockRejectedValue(Object.assign(new Error(code), { code }));
+    const res = await PUT(put({ typeId: "t1", manufacturerId: "m1", name: "New" }), { params: params() });
+    expect(res.status).toBe(status);
+    expect((await res.json()).code).toBe(errorCode);
+  });
+
   it("updates documentationUrl and records it in the audit diff", async () => {
     mockAuth.mockResolvedValue(session() as never);
     mockFindUnique.mockResolvedValue({ typeId: "t1", manufacturerId: "m1", name: "Old", documentationUrl: null } as never);
@@ -146,8 +160,18 @@ describe("DELETE /api/models/[id]", () => {
     expect((await DELETE(del(), { params: params() })).status).not.toBe(403);
   });
 
+  it("returns 404 when the model doesn't exist", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    mockFindUnique.mockResolvedValue(null as never);
+    const res = await DELETE(del(), { params: params() });
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Model not found." });
+    expect(mockDelete).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when the model is still used by assets or stock items", async () => {
     mockAuth.mockResolvedValue(session() as never);
+    mockFindUnique.mockResolvedValue({ name: "M" } as never);
     mockAssetCount.mockResolvedValue(2);
     mockStockCount.mockResolvedValue(1);
     const res = await DELETE(del(), { params: params() });

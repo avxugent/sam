@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 
 /**
  * The catalog merge and rename-conflict protocol shared by the merge routes
@@ -32,7 +32,8 @@ export async function readMergeRequest<T>(
   }
   const [source, target] = await Promise.all([load(sourceId), load(targetId)]);
   if (!source) return { error: NextResponse.json({ error: `Source ${noun.name} not found.` }, { status: 404 }) };
-  if (!target) return { error: NextResponse.json({ error: `Target ${noun.name} not found.` }, { status: 404 }) };
+  // The target comes from the body: an unknown one is invalid input, not a missing page.
+  if (!target) return { error: unknownReferenceResponse(`Target ${noun.name}`) };
   return { source, target, targetId };
 }
 

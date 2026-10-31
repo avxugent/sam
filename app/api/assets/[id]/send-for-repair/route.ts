@@ -5,7 +5,7 @@ import { z } from "zod";
 import { repairViolation } from "@/lib/assets/lifecycle-rules";
 import { REPAIR_SELECT, lifecycleViolationResponse, sendAssetForRepair, statusChangedResponse } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({
   note: z.string().max(500).optional().nullable(),
@@ -21,7 +21,7 @@ export async function POST(
 
   const { id } = await params;
   const existing = await prisma.asset.findUnique({ where: { id }, select: REPAIR_SELECT });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return notFoundResponse();
   const violation = lifecycleViolationResponse(repairViolation(existing));
   if (violation) return violation;
 

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { checkReturnToStock } from "@/lib/assets/lifecycle-rules";
 import { RETURN_TO_STOCK_INCLUDE, STATUS_CHANGED, returnAssetToStock } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 
 const schema = z.object({
   ids: z.array(z.string().min(1)).min(1).max(200),
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   const { ids, locationId } = parsed.data;
 
   const location = await prisma.location.findUnique({ where: { id: locationId }, select: { id: true } });
-  if (!location) return NextResponse.json({ error: "Location not found" }, { status: 400 });
+  if (!location) return unknownReferenceResponse("Location");
 
   const succeeded: string[] = [];
   const failed: { id: string; reason: string }[] = [];

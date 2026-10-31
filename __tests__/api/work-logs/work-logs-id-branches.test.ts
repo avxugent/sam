@@ -51,6 +51,22 @@ describe("PUT /api/work-logs/[id]", () => {
     vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
     expect((await PUT(put({ description: "x" }), { params: params() })).status).toBe(403);
   });
+  it("403 for a viewer, even as the entry's performer", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER", "u1") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    expect((await PUT(put({ description: "x" }), { params: params() })).status).toBe(403);
+    expect((await DELETE(del(), { params: params() })).status).toBe(403);
+    expect(prisma.workLog.update).not.toHaveBeenCalled();
+    expect(prisma.workLog.delete).not.toHaveBeenCalled();
+  });
+  it("400 unknownReference for a stale asset, item or performer id", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR", "u1") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    vi.mocked(prisma.workLog.update).mockRejectedValue(Object.assign(new Error("fk"), { code: "P2003" }));
+    const res = await PUT(put({ assetId: "gone" }), { params: params() });
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("unknownReference");
+  });
   it("400 on invalid body", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);

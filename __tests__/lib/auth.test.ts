@@ -182,6 +182,20 @@ describe("callbacks", () => {
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 
+  it("jwt picks up a role change at the 5-minute recheck", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-28T12:00:00Z"));
+    const now = Math.floor(Date.now() / 1000);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "VIEWER" } as never);
+    const token = await config.callbacks.jwt({ token: { id: "u1", role: "ADMIN", dbCheck: now - 301 } });
+    expect(token).toMatchObject({ id: "u1", role: "VIEWER", dbCheck: now });
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { id: "u1" }, select: { role: true } });
+  });
+
+  it("jwt rejects a token without a user id", async () => {
+    expect(await config.callbacks.jwt({ token: {} })).toBeNull();
+  });
+
   it("session exposes the id, role and pending steps", () => {
     const session = config.callbacks.session({ session: { user: {} }, token: { id: "u1", role: "ADMIN", needs2FA: true } });
     expect(session).toMatchObject({ user: { id: "u1", role: "ADMIN" }, needs2FA: true });

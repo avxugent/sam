@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { updateWorkLogItemSchema } from "@/lib/schemas/work-log-item";
 import { isAdmin } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 export async function PUT(
   req: NextRequest,
@@ -22,7 +22,7 @@ export async function PUT(
   }
 
   const current = await prisma.workLogItem.findUnique({ where: { id }, select: { name: true } });
-  if (!current) return NextResponse.json({ error: "Work log item not found." }, { status: 404 });
+  if (!current) return notFoundResponse("Work log item");
 
   try {
     const item = await prisma.workLogItem.update({
@@ -46,7 +46,7 @@ export async function PUT(
     return NextResponse.json(item);
   } catch (err) {
     if (isUniqueConstraintError(err)) {
-      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+      return nameTakenResponse();
     }
     throw err;
   }
@@ -62,7 +62,7 @@ export async function DELETE(
 
   const { id } = await params;
   const item = await prisma.workLogItem.findUnique({ where: { id }, select: { name: true } });
-  if (!item) return NextResponse.json({ error: "Work log item not found." }, { status: 404 });
+  if (!item) return notFoundResponse("Work log item");
 
   // onDelete: SetNull clears itemId on any work logs that referenced this item.
   await prisma.workLogItem.delete({ where: { id } });

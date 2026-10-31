@@ -7,7 +7,7 @@ import { hasDeviceIdentity, IDENTITY_QUANTITY_MESSAGE, updateAssetSchema } from 
 import { logAudit } from "@/lib/audit";
 import { auditChanges, type FieldChange } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, readJsonBody, unknownReferenceResponse, isForeignKeyError } from "@/lib/route-helpers";
+import { invalidInput, isForeignKeyError, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { toIsoDay } from "@/lib/utils";
 import { ASSET_ROW_INCLUDE } from "@/lib/assets/include";
 
@@ -36,7 +36,7 @@ export async function GET(
     },
   });
 
-  if (!asset) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!asset) return notFoundResponse();
   return NextResponse.json(asset);
 }
 
@@ -90,7 +90,7 @@ export async function PUT(
     },
   });
 
-  if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!before) return notFoundResponse();
 
   // Values the asset will have after this (possibly partial) update.
   const effective = {
@@ -210,7 +210,7 @@ export async function DELETE(
       location: { select: { name: true } },
     },
   });
-  if (!asset) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!asset) return notFoundResponse();
   await prisma.asset.delete({ where: { id } });
 
   const snapshot: Record<string, string> = {};

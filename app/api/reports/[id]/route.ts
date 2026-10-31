@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { updateReportSchema } from "@/lib/schemas/report";
 import { logAudit } from "@/lib/audit";
 import { canEdit, isAdmin } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -12,7 +12,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
   const report = await prisma.report.findUnique({ where: { id } });
-  if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!report) return notFoundResponse();
 
   return NextResponse.json(report);
 }
@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const report = await prisma.report.findUnique({ where: { id } });
-  if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!report) return notFoundResponse();
 
   const body = await readJsonBody(req);
   const parsed = updateReportSchema.safeParse(body);
@@ -64,7 +64,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const { id } = await params;
   const report = await prisma.report.findUnique({ where: { id } });
-  if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!report) return notFoundResponse();
 
   await prisma.report.delete({ where: { id } });
 

@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, nameTakenResponse, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({ name: z.string().min(1).max(255) });
 
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(type, { status: 201 });
   } catch (err) {
     if (isUniqueConstraintError(err)) {
-      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+      return nameTakenResponse();
     }
     throw err;
   }

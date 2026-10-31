@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 
 const bulkRelocateSchema = z.object({
   ids: z.array(z.string().min(1)).min(1).max(200),
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   if (locationId) {
     const location = await prisma.location.findUnique({ where: { id: locationId }, select: { id: true } });
-    if (!location) return NextResponse.json({ error: "Location not found" }, { status: 400 });
+    if (!location) return unknownReferenceResponse("Location");
   }
 
   const existing = await prisma.stockItem.findMany({

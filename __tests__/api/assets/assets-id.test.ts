@@ -100,7 +100,7 @@ describe("PUT /api/assets/[id]", () => {
     vi.mocked(prisma.supplier.findUnique).mockResolvedValue(null as never);
     const res = await PUT(req("PUT", { supplierId: "nope" }), params);
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe("Unknown supplier.");
+    expect(await res.json()).toEqual({ error: "Supplier does not exist.", code: "unknownReference" });
   });
 
   it("404 for an unknown asset", async () => {

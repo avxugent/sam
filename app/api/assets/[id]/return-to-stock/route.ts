@@ -5,7 +5,7 @@ import { z } from "zod";
 import { checkReturnToStock } from "@/lib/assets/lifecycle-rules";
 import { RETURN_TO_STOCK_INCLUDE, lifecycleViolationResponse, returnAssetToStock, statusChangedResponse } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 
 const schema = z.object({
   locationId: z.string().min(1),
@@ -24,12 +24,12 @@ export async function POST(
   const { locationId } = parsed.data;
 
   const location = await prisma.location.findUnique({ where: { id: locationId }, select: { id: true } });
-  if (!location) return NextResponse.json({ error: "Location not found" }, { status: 400 });
+  if (!location) return unknownReferenceResponse("Location");
 
   const { id } = await params;
 
   const found = await prisma.asset.findUnique({ where: { id }, include: RETURN_TO_STOCK_INCLUDE });
-  if (!found) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!found) return notFoundResponse();
   const check = checkReturnToStock(found);
   if (check.violation) return lifecycleViolationResponse(check.violation);
 

@@ -11,6 +11,7 @@ import { auth } from "@/lib/auth";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { prisma } from "@/lib/prisma";
 import { buildRegistrationOptions, setChallengeCookie } from "@/lib/two-factor/webauthn";
+import { notFoundResponse } from "@/lib/route-helpers";
 
 export async function POST() {
   const session = await auth();
@@ -22,7 +23,7 @@ export async function POST() {
     where: { id: session.user.id },
     select: { id: true, provider: true, email: true, name: true },
   });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (!user) return notFoundResponse("User");
   if (user.provider !== "credentials") {
     return NextResponse.json(
       { error: "Passkeys are only available for local accounts." },

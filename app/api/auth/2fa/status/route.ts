@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { prisma } from "@/lib/prisma";
+import { notFoundResponse } from "@/lib/route-helpers";
 
 export async function GET() {
   const session = await auth();
@@ -20,7 +21,7 @@ export async function GET() {
     select: { provider: true, totpEnabled: true },
   });
 
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (!user) return notFoundResponse("User");
 
   return NextResponse.json({
     provider: user.provider,

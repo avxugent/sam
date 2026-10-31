@@ -5,7 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { supplierSchema } from "@/lib/schemas/supplier";
 import { findConflictingWindows } from "@/lib/suppliers/conflicts";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, nameTakenResponse, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET() {
   const session = await auth();
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(supplier, { status: 201 });
   } catch (err) {
     if (isUniqueConstraintError(err)) {
-      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+      return nameTakenResponse();
     }
     throw err;
   }

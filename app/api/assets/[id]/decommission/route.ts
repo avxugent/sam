@@ -5,7 +5,7 @@ import { z } from "zod";
 import { decommissionViolation } from "@/lib/assets/lifecycle-rules";
 import { DECOMMISSION_SELECT, decommissionAsset, decommissionFields, lifecycleViolationResponse, statusChangedResponse } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object(decommissionFields);
 
@@ -20,7 +20,7 @@ export async function POST(
   const { id } = await params;
 
   const existing = await prisma.asset.findUnique({ where: { id }, select: DECOMMISSION_SELECT });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return notFoundResponse();
   const violation = lifecycleViolationResponse(decommissionViolation(existing));
   if (violation) return violation;
 

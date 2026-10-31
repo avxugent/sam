@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, readJsonBody, unknownReferenceResponse, isForeignKeyError } from "@/lib/route-helpers";
+import { invalidInput, isForeignKeyError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { parseStockMetadata, serializeStockMetadata } from "@/lib/stock-metadata";
 import { updateStockItemSchema } from "@/lib/schemas/stock";
 
@@ -33,7 +33,7 @@ export async function GET(
       location: { select: { id: true, name: true } },
     },
   });
-  if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!item) return notFoundResponse();
 
   return NextResponse.json(item);
 }
@@ -48,7 +48,7 @@ export async function PUT(
 
   const { id } = await params;
   const existing = await prisma.stockItem.findUnique({ where: { id }, include: { model: { select: { name: true } } } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return notFoundResponse();
 
   const body = await readJsonBody(req);
   const parsed = updateStockItemSchema.safeParse(body);
@@ -122,7 +122,7 @@ export async function DELETE(
     where: { id },
     select: { model: { select: { name: true } }, lineageId: true },
   });
-  if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!item) return notFoundResponse();
 
   await prisma.stockItem.delete({ where: { id } });
 

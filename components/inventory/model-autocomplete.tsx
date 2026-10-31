@@ -64,7 +64,7 @@ export function ModelAutocomplete({
 
   // Keep the visible search text in sync with the selected model's name
   // (handles edit mode, where `value` arrives before the user has typed
-  // anything) — same pattern as the manufacturer combobox on this form.
+  // anything) — same pattern as ManufacturerAutocomplete.
   useEffect(() => {
     const m = models.find((x) => x.id === value);
     setSearch(m ? m.name : "");

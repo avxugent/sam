@@ -35,6 +35,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { MacAddressFields } from "@/components/inventory/mac-address-fields";
 import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
+import { ManufacturerAutocomplete } from "@/components/inventory/manufacturer-autocomplete";
 import { Criticality } from "@/generated/prisma/enums";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 
@@ -174,8 +175,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [usersLite, setUsersLite] = useState<UserLite[]>([]);
-  const [manufacturerSearch, setManufacturerSearch] = useState("");
-  const [showManufacturerDropdown, setShowManufacturerDropdown] = useState(false);
   const [vaultTestResult, setVaultTestResult] = useState<VaultTestResult | null>(null);
   const [vaultTesting, setVaultTesting] = useState(false);
 
@@ -311,12 +310,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     },
   });
 
-  // Sync manufacturer display name when manufacturerId or manufacturers list changes (handles edit mode)
-  useEffect(() => {
-    const m = manufacturers.find((m) => m.id === manufacturerIdValue);
-    setManufacturerSearch(m ? m.name : "");
-  }, [manufacturerIdValue, manufacturers]);
-
   async function handleTestVault() {
     const path = vaultPathValue?.trim();
     if (!path) return;
@@ -380,10 +373,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     onSuccess?.();
   }
 
-  const filteredManufacturers = manufacturers.filter((m) =>
-    m.name.toLowerCase().includes(manufacturerSearch.toLowerCase())
-  );
-
   // Derived state for contextual hints
   const hostnameSet = !!hostnameValue?.trim();
   const selectedTypePattern = assetTypes.find((at) => at.id === typeIdValue)?.hostnamePattern;
@@ -434,59 +423,24 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               )}
             </div>
 
-            {/* Manufacturer — required, with autocomplete */}
             <div className="space-y-1.5 relative">
               <Label htmlFor="asset-manufacturer">
                 {tField("manufacturer")} <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
-              <Input
+              <ManufacturerAutocomplete
                 id="asset-manufacturer"
                 aria-required="true"
                 aria-invalid={!!errors.manufacturerId}
                 aria-describedby={errors.manufacturerId ? "asset-manufacturer-err" : undefined}
-                value={manufacturerSearch}
-                onChange={(e) => {
-                  setManufacturerSearch(e.target.value);
-                  setShowManufacturerDropdown(true);
-                  setValue("manufacturerId", "", { shouldValidate: false });
-                }}
-                onFocus={() => setShowManufacturerDropdown(true)}
-                onBlur={() => setTimeout(() => setShowManufacturerDropdown(false), 200)}
+                value={manufacturerIdValue}
+                options={manufacturers}
                 placeholder={t("selectManufacturer")}
-                autoComplete="off"
-                className={cn(errors.manufacturerId && "border-destructive")}
+                error={!!errors.manufacturerId}
+                noneLabel={t("noneManufacturer")}
+                onChange={(id, picked) => setValue("manufacturerId", id, { shouldValidate: picked })}
               />
               {errors.manufacturerId && (
                 <p id="asset-manufacturer-err" className="text-xs text-destructive">{errors.manufacturerId.message}</p>
-              )}
-              {showManufacturerDropdown && (
-                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md overflow-hidden max-h-48 overflow-y-auto">
-                  <button
-                    type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent text-muted-foreground"
-                    onMouseDown={() => {
-                      setValue("manufacturerId", "", { shouldValidate: true });
-                      setManufacturerSearch("");
-                      setShowManufacturerDropdown(false);
-                    }}
-                  >
-                    {t("noneManufacturer")}
-                  </button>
-                  {filteredManufacturers.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
-                      onMouseDown={() => {
-                        setValue("manufacturerId", m.id, { shouldValidate: true });
-                        setManufacturerSearch(m.name);
-                        setShowManufacturerDropdown(false);
-                      }}
-                    >
-                      {m.name}
-                    </button>
-                  ))}
-                </div>
               )}
             </div>
 

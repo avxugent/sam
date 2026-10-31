@@ -112,7 +112,7 @@ components/
   layout/          — Sidebar (locations only) + Header (search + admin + user)
   ui/              — shadcn-style primitives (Button, Input, Dialog, …)
   assets/          — AssetFormDialog, AssetTable, AssetDetailClient, decommissioned/in-repair tables
-  inventory/       — widgets shared by assets, stock and locations (location pickers, model autocomplete, MAC fields, bulk results)
+  inventory/       — widgets shared by assets, stock and locations (location pickers, manufacturer + model autocomplete, MAC fields, bulk results)
   locations/       — LocationFormDialog, LocationDetailClient, LocationMap, CoverImagePicker
   attachments/     — AttachmentGallery
   admin/           — clients for every /admin page (users, catalog, settings, CSV import/export, compliance + NIS2 dashboards, …)

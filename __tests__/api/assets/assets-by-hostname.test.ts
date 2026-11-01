@@ -8,6 +8,8 @@ vi.mock("@/lib/locations/path", () => ({
     { id: "root", name: "Campus", fiNumber: null },
     { id: "l1", name: "Room 1", fiNumber: "AB.01.02.003" },
   ]),
+}));
+vi.mock("@/lib/locations/tree", () => ({
   buildLocationPathString: vi.fn(() => "Campus > Room 1"),
   findFiNumber: vi.fn(() => "AB.01.02.003"),
   parseFiNumber: vi.fn(() => ({ campus: "AB", building: "01", floor: "02", room: "003" })),
@@ -73,6 +75,10 @@ describe("GET /api/assets/by-hostname", () => {
 
   it("400 without a hostname", async () => {
     expect((await GET(req("?hostname=%20", "Bearer sd-token"))).status).toBe(400);
+    expect((await GET(req("", "Bearer sd-token"))).status).toBe(400);
+    const res = await GET(req(`?hostname=${"h".repeat(256)}`, "Bearer sd-token"));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Invalid input");
   });
 
   it("returns installed assets enriched with their location path", async () => {

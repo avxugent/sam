@@ -15,7 +15,7 @@ import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import type { Role } from "@/lib/permissions";
 
 function renderHeader(role: Role) {
-  return render(<Header user={{ name: "Pat", email: "pat@x.com", role }} />);
+  return render(<Header user={{ name: "Pat", email: "pat@x.com", role }} appTitle="SAM" logoUrl={null} />);
 }
 
 describe("Header administration menu", () => {

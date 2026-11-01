@@ -31,6 +31,7 @@ import { Loader2, Hash } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
+import { parseFiNumber } from "@/lib/locations/tree";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
@@ -68,16 +69,6 @@ function autoFormatFiNumber(raw: string): string {
   ].filter(Boolean);
 
   return segments.join(".");
-}
-
-/**
- * Decodes an FI number into human-readable segment labels.
- * Returns null if the number is not fully formed.
- */
-function parseFiNumber(fi: string): { campus: string; building: string; floor: string; room: string } | null {
-  if (!FI_NUMBER_REGEX.test(fi)) return null;
-  const [campus, building, floor, room] = fi.split(".");
-  return { campus, building, floor, room };
 }
 
 type Props = {

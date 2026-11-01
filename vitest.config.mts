@@ -51,7 +51,6 @@ export default defineConfig({
         "components/attachments/attachment-gallery.tsx",
         // Tested only in part (specific flows) or only through a parent's
         // tests; not yet held to the line/branch threshold.
-        "components/layout/header.tsx",
         "components/layout/language-switcher.tsx",
         "components/admin/catalog/scrape-template-fields.tsx",
         "**/*.d.ts",

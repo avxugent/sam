@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { readBrandingSettings } from "@/lib/app-settings";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -62,6 +63,7 @@ export default async function DashboardLayout({
   };
 
   const showAdminNav = canManageCatalog(session.user.role);
+  const tNav = await getTranslations("nav");
 
   return (
     <>
@@ -72,7 +74,7 @@ export default async function DashboardLayout({
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:bg-card focus:text-foreground focus:border focus:border-primary focus:rounded-md focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-md"
       >
-        Skip to main content
+        {tNav("skipToMainContent")}
       </a>
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — hidden on mobile, visible on lg+ */}

@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { canManageCatalog, isAdmin, type Role } from "@/lib/permissions";
 import { apiFetch } from "@/lib/api-client";
+import { assetLabel } from "@/lib/assets/label";
 
 type HeaderUser = {
   name?: string | null;
@@ -51,7 +52,7 @@ type HeaderUser = {
 
 /** The parts of GET /api/search the quick results use. */
 type QuickSearchResponse = {
-  assets?: {
+  assets: {
     id: string;
     hostname: string | null;
     serialNumber: string | null;
@@ -59,7 +60,7 @@ type QuickSearchResponse = {
     type?: { name: string } | null;
     location: { id: string; name: string };
   }[];
-  locations?: { id: string; name: string; fiNumber: string | null; _count: { assets: number } }[];
+  locations: { id: string; name: string; fiNumber: string | null; _count: { assets: number } }[];
 };
 
 type QuickResult = {
@@ -74,20 +75,21 @@ type AdminNavItem = {
   href: string;
   labelKey: "users" | "assetTypes" | "manufacturers" | "suppliers" | "models" | "importCsv" | "exportCsv" | "auditLog" | "compliance" | "settings";
   icon: React.ReactNode;
-  minRole: "MAINTAINER" | "ADMIN";
+  /** The predicate that guards the page itself. */
+  allowed: (role: Role | undefined) => boolean;
 };
 
 const ADMIN_NAV: AdminNavItem[] = [
-  { href: "/admin/users", labelKey: "users", icon: <Users className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/asset-types", labelKey: "assetTypes", icon: <Tag className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/manufacturers", labelKey: "manufacturers", icon: <Factory className="h-4 w-4" />, minRole: "MAINTAINER" },
-  { href: "/admin/suppliers", labelKey: "suppliers", icon: <Truck className="h-4 w-4" />, minRole: "MAINTAINER" },
-  { href: "/admin/models", labelKey: "models", icon: <Boxes className="h-4 w-4" />, minRole: "MAINTAINER" },
-  { href: "/admin/import", labelKey: "importCsv", icon: <Upload className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/export", labelKey: "exportCsv", icon: <Download className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/audit", labelKey: "auditLog", icon: <ClipboardList className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/compliance", labelKey: "compliance", icon: <ShieldCheck className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/settings", labelKey: "settings", icon: <Settings className="h-4 w-4" />, minRole: "ADMIN" },
+  { href: "/admin/users", labelKey: "users", icon: <Users className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/asset-types", labelKey: "assetTypes", icon: <Tag className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/manufacturers", labelKey: "manufacturers", icon: <Factory className="h-4 w-4" />, allowed: canManageCatalog },
+  { href: "/admin/suppliers", labelKey: "suppliers", icon: <Truck className="h-4 w-4" />, allowed: canManageCatalog },
+  { href: "/admin/models", labelKey: "models", icon: <Boxes className="h-4 w-4" />, allowed: canManageCatalog },
+  { href: "/admin/import", labelKey: "importCsv", icon: <Upload className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/export", labelKey: "exportCsv", icon: <Download className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/audit", labelKey: "auditLog", icon: <ClipboardList className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/compliance", labelKey: "compliance", icon: <ShieldCheck className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/settings", labelKey: "settings", icon: <Settings className="h-4 w-4" />, allowed: isAdmin },
 ];
 
 function SearchBar() {
@@ -130,16 +132,16 @@ function SearchBar() {
       const data = res.data;
       const results: QuickResult[] = [];
 
-      for (const a of (data.assets ?? []).slice(0, 4)) {
+      for (const a of data.assets.slice(0, 4)) {
         results.push({
           id: a.id,
           kind: "asset",
-          title: a.model?.name || a.hostname || a.serialNumber || tAsset("title"),
-          subtitle: [a.type?.name, a.location?.name].filter(Boolean).join(" · "),
+          title: assetLabel(a) ?? tAsset("title"),
+          subtitle: [a.type?.name, a.location.name].filter(Boolean).join(" · "),
           href: `/locations/${a.location.id}/assets/${a.id}`,
         });
       }
-      for (const l of (data.locations ?? []).slice(0, 3)) {
+      for (const l of data.locations.slice(0, 3)) {
         results.push({
           id: l.id,
           kind: "location",
@@ -257,7 +259,7 @@ function SearchBar() {
         <ul
           id="global-search-listbox"
           role="listbox"
-          aria-label="Search results"
+          aria-label={t("searchResults")}
           className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-card border border-border rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.08)] overflow-hidden list-none m-0 p-0"
         >
           {quickResults.map((r, idx) => (
@@ -304,7 +306,7 @@ function SearchBar() {
                 router.push(`/search?q=${encodeURIComponent(query.trim())}`);
               }}
             >
-              See all results for &quot;{query}&quot; →
+              {t("seeAllResultsFor", { query })}
             </button>
           </li>
         </ul>
@@ -313,14 +315,12 @@ function SearchBar() {
   );
 }
 
-export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: HeaderUser; appTitle?: string; logoUrl?: string | null }) {
+export function Header({ user, appTitle, logoUrl }: { user: HeaderUser; appTitle: string; logoUrl: string | null }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const initials = getInitials(user.name, user.email);
 
-  const visibleAdminItems = ADMIN_NAV.filter((item) =>
-    item.minRole === "ADMIN" ? isAdmin(user.role) : canManageCatalog(user.role)
-  );
+  const visibleAdminItems = ADMIN_NAV.filter((item) => item.allowed(user.role));
   const isInAdmin = pathname.startsWith("/admin");
 
   return (
@@ -402,7 +402,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              aria-label={`Account menu for ${user.name ?? user.email ?? "user"}`}
+              aria-label={t("accountMenu", { name: user.name ?? user.email ?? "" })}
               className="w-8 h-8 rounded-full bg-primary text-white text-[13px] font-semibold flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
             >
               <span aria-hidden="true">{initials}</span>
@@ -427,7 +427,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
                   <KeyRound className="h-4 w-4" />
                   {t("twoFactorAuth")}
                   {user.totpEnabled && (
-                    <span className="ml-auto text-xs text-green-600">On</span>
+                    <span className="ml-auto text-xs text-green-600">{t("twoFactorOn")}</span>
                   )}
                 </Link>
               </DropdownMenuItem>

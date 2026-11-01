@@ -141,7 +141,7 @@ describe("locations/[id] page", () => {
     expect(propsOf(LocationDetailClient)).toMatchObject({ userRole: "VIEWER", currentUserId: "" });
   });
 
-  it("shapes work logs (ISO date, selected fields) and user labels", async () => {
+  it("shapes work logs (YYYY-MM-DD day, selected fields) and user labels", async () => {
     vi.mocked(prisma.workLog.findMany).mockResolvedValue([
       {
         id: "wl1",
@@ -168,7 +168,7 @@ describe("locations/[id] page", () => {
     expect(props.workLogs).toEqual([
       {
         id: "wl1",
-        performedAt: "2026-05-01T08:00:00.000Z",
+        performedAt: "2026-05-01",
         description: "Replaced disk",
         jiraIssueKey: "OPS-1",
         performedBy: { id: "u1", name: "Alice", email: "a@example.com" },

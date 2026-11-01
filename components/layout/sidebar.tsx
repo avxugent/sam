@@ -21,16 +21,10 @@ import {
 } from "lucide-react";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 import { StockNavItems } from "@/components/layout/stock-nav-items";
-import * as permissions from "@/lib/permissions";
-import type { Role } from "@/lib/permissions";
-import { subtreeMatchesFilter, treeFilterState } from "@/lib/locations/tree";
+import { canEdit, type Role } from "@/lib/permissions";
+import { subtreeMatchesFilter, treeFilterState, type Nested } from "@/lib/locations/tree";
 
-type LocationNode = {
-  id: string;
-  name: string;
-  inMaintenance?: boolean;
-  children: LocationNode[];
-};
+type LocationNode = Nested<{ id: string; name: string; inMaintenance: boolean }>;
 
 type StockTypeNode = { id: string; name: string };
 
@@ -38,12 +32,12 @@ type SidebarProps = {
   locationTree: LocationNode[];
   userRole: Role;
   assetCountMap: Record<string, number>;
-  stockItemCount?: number;
-  stockTypes?: StockTypeNode[];
-  decommissionedCount?: number;
-  inRepairCount?: number;
-  appTitle?: string;
-  logoUrl?: string | null;
+  stockItemCount: number;
+  stockTypes: StockTypeNode[];
+  decommissionedCount: number;
+  inRepairCount: number;
+  appTitle: string;
+  logoUrl: string | null;
 };
 
 function LocationTreeItem({
@@ -60,6 +54,8 @@ function LocationTreeItem({
   showAll?: boolean;
 }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
+  const tLocation = useTranslations("location");
   const isActive = pathname === `/locations/${location.id}` || pathname.startsWith(`/locations/${location.id}/`);
   const hasChildren = location.children.length > 0;
   const [open, setOpen] = useState(
@@ -88,7 +84,7 @@ function LocationTreeItem({
           type="button"
           className="flex-shrink-0 h-4 w-4 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
           onClick={() => setOpen((v) => !v)}
-          aria-label={open ? `Collapse ${location.name}` : `Expand ${location.name}`}
+          aria-label={open ? t("collapseLocation", { name: location.name }) : t("expandLocation", { name: location.name })}
           aria-expanded={hasChildren ? open : undefined}
           disabled={!hasChildren}
         >
@@ -109,7 +105,7 @@ function LocationTreeItem({
             {selfMatches ? <mark className="bg-yellow-100 text-inherit rounded-[2px]">{location.name}</mark> : location.name}
           </span>
           {location.inMaintenance && (
-            <Wrench className="h-3 w-3 flex-shrink-0 stroke-amber-500" aria-label="In maintenance" />
+            <Wrench className="h-3 w-3 flex-shrink-0 stroke-amber-500" aria-label={tLocation("inMaintenance")} />
           )}
         </Link>
 
@@ -164,12 +160,12 @@ function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
 }
 
 
-export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount = 0, stockTypes = [], decommissionedCount = 0, inRepairCount = 0, appTitle = "SAM", logoUrl = null }: SidebarProps) {
+export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount, stockTypes, decommissionedCount, inRepairCount, appTitle, logoUrl }: SidebarProps) {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const isStockPath = pathname === "/stock" || pathname.startsWith("/stock") || pathname === "/decommissioned" || pathname === "/in-repair";
 
-  const canEdit = permissions.canEdit(userRole);
+  const editable = canEdit(userRole);
   const totalAssets = locationTree.reduce((sum, loc) => sum + (assetCountMap[loc.id] ?? 0), 0);
   const [filterQuery, setFilterQuery] = useState("");
 
@@ -222,7 +218,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
                 {t("locations")}
               </span>
             </button>
-            {canEdit && locationOpen && (
+            {editable && locationOpen && (
               <LocationFormDialog mode="create" parentId={null}>
                 <Button variant="ghost" size="icon" aria-label={t("addTopLocation")} className="h-6 w-6">
                   <Plus className="h-3.5 w-3.5" />
@@ -235,7 +231,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
             <>
               <div className="px-3 mb-2 relative">
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-3 w-3 text-subtle pointer-events-none" aria-hidden="true" />
-                <label htmlFor="sidebar-location-filter" className="sr-only">Filter locations</label>
+                <label htmlFor="sidebar-location-filter" className="sr-only">{t("filterLocations")}</label>
                 <input
                   id="sidebar-location-filter"
                   type="search"
@@ -247,7 +243,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
                 {filterQuery && (
                   <button
                     type="button"
-                    aria-label="Clear location filter"
+                    aria-label={t("clearLocationFilter")}
                     onClick={() => setFilterQuery("")}
                     className="absolute right-5 top-1/2 -translate-y-1/2 text-subtle hover:text-secondary-foreground"
                   >
@@ -266,7 +262,7 @@ export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount 
                 <div className="px-3 py-4 text-center">
                   <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground">{t("noLocationsYet")}</p>
-                  {canEdit && (
+                  {editable && (
                     <LocationFormDialog mode="create" parentId={null}>
                       <Button variant="outline" size="sm" className="mt-2 text-xs">
                         {t("addLocation")}

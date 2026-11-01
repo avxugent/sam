@@ -10,7 +10,7 @@
  *
  * Returns:
  *   - 200: array of matching assets (may be empty, may have >1 if duplicates exist)
- *   - 400: missing hostname parameter
+ *   - 400: missing or over-long hostname parameter
  *   - 401: unauthenticated
  *   - 503: no session and PROMETHEUS_SD_TOKEN is not configured
  *
@@ -34,30 +34,27 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sessionOrIntegrationTokenResponse } from "@/lib/tokens/session-or-integration";
-import {
-  getLocationAncestors,
-  buildLocationPathString,
-  findFiNumber,
-  parseFiNumber,
-} from "@/lib/locations/path";
+import { getLocationAncestors } from "@/lib/locations/path";
+import { buildLocationPathString, findFiNumber, parseFiNumber } from "@/lib/locations/tree";
 import { toIsoDay } from "@/lib/dates";
+import { invalidInput } from "@/lib/route-helpers";
+
+// Same cap as an asset's hostname.
+const querySchema = z.object({
+  hostname: z.string().trim().min(1).max(255),
+});
 
 export async function GET(req: NextRequest) {
   // Any signed-in role, or the integration token (Grafana server-side queries).
   const authError = await sessionOrIntegrationTokenResponse(req, () => true);
   if (authError) return authError;
 
-  const { searchParams } = new URL(req.url);
-  const hostname = searchParams.get("hostname")?.trim();
-
-  if (!hostname) {
-    return NextResponse.json(
-      { error: "Missing required query parameter: hostname" },
-      { status: 400 }
-    );
-  }
+  const parsed = querySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams));
+  if (!parsed.success) return invalidInput(parsed.error);
+  const { hostname } = parsed.data;
 
   const assets = await prisma.asset.findMany({
     // Decommissioned assets are historical, not current inventory — excluded

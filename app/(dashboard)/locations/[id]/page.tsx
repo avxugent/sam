@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
+import { Role } from "@/lib/permissions";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
 import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/locations/path";
 import { withInstalledQuantities } from "@/lib/locations/asset-quantities";
@@ -10,6 +11,7 @@ import { jiraBaseUrl } from "@/lib/integrations/jira";
 import { parseLocationTab } from "@/lib/users/preferences";
 import { ASSET_LIST_INCLUDE } from "@/lib/assets/include";
 import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
+import { toIsoDay } from "@/lib/dates";
 import { LOCATION_PAGE_INCLUDE } from "@/lib/locations/include";
 
 
@@ -86,7 +88,7 @@ export default async function LocationPage({
       assets={assets}
       subtreeAssetCount={subtreeAssetCount}
       breadcrumbs={breadcrumbs}
-      userRole={session?.user?.role || "VIEWER"}
+      userRole={session?.user?.role ?? Role.VIEWER}
       currentUserId={session?.user?.id ?? ""}
       showLocation={hasChildren}
       defaultTab={defaultTab}
@@ -94,7 +96,7 @@ export default async function LocationPage({
       locationUrlTemplate={locationUrlTemplate}
       workLogs={workLogs.map((w) => ({
         id: w.id,
-        performedAt: w.performedAt.toISOString(),
+        performedAt: toIsoDay(w.performedAt),
         description: w.description,
         jiraIssueKey: w.jiraIssueKey,
         performedBy: w.performedBy,

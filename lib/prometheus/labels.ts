@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { buildLocationPathString, findFiNumber, parseFiNumber, type LocationAncestor } from "@/lib/locations/path";
+import type { LocationAncestor } from "@/lib/locations/path";
+import { buildLocationPathString, findFiNumber, parseFiNumber } from "@/lib/locations/tree";
 
 /**
  * Assets that should report to Prometheus: installed, with a hostname, and of

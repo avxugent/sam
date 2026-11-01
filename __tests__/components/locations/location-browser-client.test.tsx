@@ -3,12 +3,13 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/locations/x" }));
-const tFn = (key: string) => key;
+const tFn = (key: string, values?: { name?: string }) => (values?.name ? `${key} ${values.name}` : key);
 vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 
-import { LocationBrowserClient, type LocationNode } from "@/components/locations/location-browser-client";
+import { LocationBrowserClient } from "@/components/locations/location-browser-client";
+import type { Nested } from "@/lib/locations/tree";
 
-const TREE: LocationNode[] = [
+const TREE: Nested<{ id: string; name: string; fiNumber: string | null }>[] = [
   {
     id: "campus", name: "Campus A", fiNumber: "14.10.000.000", children: [
       { id: "room", name: "Room 101", fiNumber: "14.10.100.013", children: [] },
@@ -40,7 +41,7 @@ describe("<LocationBrowserClient />", () => {
     const user = userEvent.setup();
     renderBrowser();
     expect(screen.queryByText("Room 101")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Expand Campus A" }));
+    await user.click(screen.getByRole("button", { name: "expandLocation Campus A" }));
     expect(screen.getByText("Room 101")).toBeInTheDocument();
   });
 
@@ -59,7 +60,7 @@ describe("<LocationBrowserClient />", () => {
     const input = screen.getByPlaceholderText("filterLocations");
     await user.type(input, "zzzzz");
     expect(screen.getByText("noLocationsMatch")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Clear filter" }));
+    await user.click(screen.getByRole("button", { name: "clearLocationFilter" }));
     expect(screen.getByText("Campus A")).toBeInTheDocument();
   });
 });

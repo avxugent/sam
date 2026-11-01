@@ -49,7 +49,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sessionOrIntegrationTokenResponse } from "@/lib/tokens/session-or-integration";
-import { ancestorChain } from "@/lib/locations/path";
+import { ancestorChain } from "@/lib/locations/tree";
 import { MONITORED_ASSET_WHERE, samAssetLabels } from "@/lib/prometheus/labels";
 import {
   renderScrapeTemplate,

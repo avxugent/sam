@@ -7,14 +7,9 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
 vi.mock("@/lib/tokens/integration", () => ({ integrationTokenResponse: vi.fn() }));
-// location-path is mocked to keep the test focused on target/address handling;
-// scrape-template is intentionally NOT mocked so template rendering is real.
-vi.mock("@/lib/locations/path", () => ({
-  ancestorChain: vi.fn(() => []),
-  parseFiNumber: vi.fn(() => null),
-  buildLocationPathString: vi.fn(() => ""),
-  findFiNumber: vi.fn(() => null),
-}));
+// No location rows, so every asset has an empty ancestor chain and the test
+// stays focused on target/address handling; scrape-template is intentionally
+// NOT mocked so template rendering is real.
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";

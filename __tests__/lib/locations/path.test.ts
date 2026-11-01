@@ -8,143 +8,18 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import {
-  parseFiNumber,
-  buildLocationPathString,
-  findFiNumber,
   getAllDescendantLocationIds,
   getRecursiveAssetCounts,
   getSubtreeIdsDeepestFirst,
-  ancestorChain,
   locationBreadcrumbs,
   getLocationAncestors,
   getAncestorChainsBatch,
   buildLocationPathsFromRows,
-  type LocationAncestor,
 } from "@/lib/locations/path";
 import { prisma } from "@/lib/prisma";
 
 const mockQueryRaw = vi.mocked(prisma.$queryRaw);
 const mockLocFindMany = vi.mocked(prisma.location.findMany);
-
-// ── parseFiNumber ───────────────────────────────────────────────────────────
-
-describe("parseFiNumber()", () => {
-  it("parses a valid FI number", () => {
-    const result = parseFiNumber("14.10.100.013");
-    expect(result).toEqual({
-      campus: "14",
-      building: "10",
-      floor: "100",
-      room: "013",
-    });
-  });
-
-  it("parses leading-zero numbers correctly", () => {
-    const result = parseFiNumber("01.02.003.004");
-    expect(result).toEqual({
-      campus: "01",
-      building: "02",
-      floor: "003",
-      room: "004",
-    });
-  });
-
-  it("accepts a 2-digit room segment", () => {
-    expect(parseFiNumber("14.10.100.13")).toEqual({
-      campus: "14",
-      building: "10",
-      floor: "100",
-      room: "13",
-    });
-  });
-
-  it("returns null for null input", () => {
-    expect(parseFiNumber(null)).toBeNull();
-  });
-
-  it("returns null for undefined input", () => {
-    expect(parseFiNumber(undefined)).toBeNull();
-  });
-
-  it("returns null for empty string", () => {
-    expect(parseFiNumber("")).toBeNull();
-  });
-
-  it("returns null for wrong segment count", () => {
-    expect(parseFiNumber("14.10.100")).toBeNull();
-    expect(parseFiNumber("14.10.100.013.999")).toBeNull();
-  });
-
-  it("returns null for wrong digit counts", () => {
-    expect(parseFiNumber("1.10.100.013")).toBeNull();   // CC must be 2 digits
-    expect(parseFiNumber("14.1.100.013")).toBeNull();   // BB must be 2 digits
-    expect(parseFiNumber("14.10.10.013")).toBeNull();   // FFF must be 3 digits
-    expect(parseFiNumber("14.10.100.1")).toBeNull();    // room must be 2-3 digits
-    expect(parseFiNumber("14.10.100.0134")).toBeNull(); // room max 3 digits
-  });
-
-  it("returns null for non-numeric segments", () => {
-    expect(parseFiNumber("AB.10.100.013")).toBeNull();
-  });
-});
-
-// ── buildLocationPathString ─────────────────────────────────────────────────
-
-describe("buildLocationPathString()", () => {
-  const ancestors: LocationAncestor[] = [
-    { id: "1", name: "Campus A",   fiNumber: null },
-    { id: "2", name: "Building 10", fiNumber: null },
-    { id: "3", name: "Floor 1",    fiNumber: null },
-    { id: "4", name: "Room 013",   fiNumber: "14.10.100.013" },
-  ];
-
-  it("joins ancestor names with ' / '", () => {
-    expect(buildLocationPathString(ancestors)).toBe(
-      "Campus A / Building 10 / Floor 1 / Room 013"
-    );
-  });
-
-  it("returns the single name for a single ancestor", () => {
-    expect(buildLocationPathString([{ id: "x", name: "Only", fiNumber: null }])).toBe("Only");
-  });
-
-  it("returns empty string for no ancestors", () => {
-    expect(buildLocationPathString([])).toBe("");
-  });
-});
-
-// ── findFiNumber ─────────────────────────────────────────────────────────────
-
-describe("findFiNumber()", () => {
-  it("returns the leaf-level fiNumber", () => {
-    const ancestors: LocationAncestor[] = [
-      { id: "1", name: "Campus",   fiNumber: null },
-      { id: "2", name: "Building", fiNumber: null },
-      { id: "3", name: "Room",     fiNumber: "14.10.100.013" },
-    ];
-    expect(findFiNumber(ancestors)).toBe("14.10.100.013");
-  });
-
-  it("returns the deepest fiNumber when multiple levels have one", () => {
-    const ancestors: LocationAncestor[] = [
-      { id: "1", name: "Campus",   fiNumber: "14.00.000.000" },
-      { id: "2", name: "Room",     fiNumber: "14.10.100.013" },
-    ];
-    expect(findFiNumber(ancestors)).toBe("14.10.100.013");
-  });
-
-  it("returns null when no ancestor has a fiNumber", () => {
-    const ancestors: LocationAncestor[] = [
-      { id: "1", name: "Campus", fiNumber: null },
-      { id: "2", name: "Room",   fiNumber: null },
-    ];
-    expect(findFiNumber(ancestors)).toBeNull();
-  });
-
-  it("returns null for empty ancestor array", () => {
-    expect(findFiNumber([])).toBeNull();
-  });
-});
 
 // ── getAllDescendantLocationIds ────────────────────────────────────────────────
 
@@ -219,15 +94,10 @@ describe("buildLocationPathsFromRows()", () => {
     { id: "room", name: "Room", parentId: "b10" },
   ];
 
-  it("builds a path string for every row", () => {
-    const result = buildLocationPathsFromRows(rows, " › ");
+  it("builds a ' › ' breadcrumb for every row", () => {
+    const result = buildLocationPathsFromRows(rows);
     expect(result.get("room")).toBe("Campus 14 › Building 10 › Room");
     expect(result.get("c14")).toBe("Campus 14");
-  });
-
-  it("defaults to ' - ' as the separator", () => {
-    const result = buildLocationPathsFromRows(rows);
-    expect(result.get("room")).toBe("Campus 14 - Building 10 - Room");
   });
 
   it("falls back to just the row's own name if its parent isn't in the row set", () => {
@@ -265,33 +135,6 @@ describe("getSubtreeIdsDeepestFirst()", () => {
   it("returns the ids in the order the query yields them (deepest first)", async () => {
     mockQueryRaw.mockResolvedValueOnce([{ id: "room", depth: 2 }, { id: "bldg", depth: 1 }, { id: "campus", depth: 0 }] as never);
     expect(await getSubtreeIdsDeepestFirst("campus")).toEqual(["room", "bldg", "campus"]);
-  });
-});
-
-// ── ancestorChain ────────────────────────────────────────────────────────────
-
-describe("ancestorChain()", () => {
-  const rows = [
-    { id: "campus", parentId: null },
-    { id: "building", parentId: "campus" },
-    { id: "room", parentId: "building" },
-  ];
-  const byId = new Map(rows.map((r) => [r.id, r]));
-
-  it("returns root → leaf including the location itself", () => {
-    expect(ancestorChain("room", byId).map((r) => r.id)).toEqual(["campus", "building", "room"]);
-  });
-
-  it("is empty for an unknown id", () => {
-    expect(ancestorChain("nope", byId)).toEqual([]);
-  });
-
-  it("stops on a parentId cycle", () => {
-    const cyclic = new Map([
-      ["a", { id: "a", parentId: "b" }],
-      ["b", { id: "b", parentId: "a" }],
-    ]);
-    expect(ancestorChain("a", cyclic).map((r) => r.id)).toEqual(["b", "a"]);
   });
 });
 

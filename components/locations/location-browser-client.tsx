@@ -7,14 +7,9 @@ import { useTranslations } from "next-intl";
 import { MapPin, ChevronRight, ChevronDown, Search, FolderOpen, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { subtreeMatchesFilter, treeFilterState } from "@/lib/locations/tree";
+import { subtreeMatchesFilter, treeFilterState, type Nested } from "@/lib/locations/tree";
 
-export type LocationNode = {
-  id: string;
-  name: string;
-  fiNumber: string | null;
-  children: LocationNode[];
-};
+type LocationNode = Nested<{ id: string; name: string; fiNumber: string | null }>;
 
 function LocationTreeItem({
   location,
@@ -30,6 +25,7 @@ function LocationTreeItem({
   insideMatch?: boolean;
 }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const isActive =
     pathname === `/locations/${location.id}` ||
     pathname.startsWith(`/locations/${location.id}/`);
@@ -59,7 +55,7 @@ function LocationTreeItem({
           type="button"
           className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           onClick={() => setOpen((v) => !v)}
-          aria-label={expanded ? `Collapse ${location.name}` : `Expand ${location.name}`}
+          aria-label={expanded ? t("collapseLocation", { name: location.name }) : t("expandLocation", { name: location.name })}
           aria-expanded={hasChildren ? expanded : undefined}
           disabled={!hasChildren}
         >
@@ -149,7 +145,7 @@ export function LocationBrowserClient({
           <button
             type="button"
             onClick={() => setFilter("")}
-            aria-label="Clear filter"
+            aria-label={t("clearLocationFilter")}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-secondary-foreground"
           >
             <X className="h-4 w-4" />

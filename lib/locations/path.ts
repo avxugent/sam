@@ -1,5 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { ancestorChain } from "@/lib/locations/tree";
 
 export type LocationAncestor = {
   id: string;
@@ -46,69 +47,13 @@ export async function locationBreadcrumbs(locationId: string): Promise<{ id: str
 }
 
 /**
- * Parses a FI number string (CC.BB.FFF.RR(R)) into its four segments.
- * The last (room) segment may be 2 or 3 digits. Returns null if it doesn't match.
- */
-export function parseFiNumber(
-  fi: string | null | undefined
-): { campus: string; building: string; floor: string; room: string } | null {
-  if (!fi) return null;
-  const match = fi.match(/^(\d{2})\.(\d{2})\.(\d{3})\.(\d{2,3})$/);
-  if (!match) return null;
-  return {
-    campus: match[1],
-    building: match[2],
-    floor: match[3],
-    room: match[4],
-  };
-}
-
-/**
- * Builds a human-readable path string from an ancestor array.
- * e.g. "Campus 14 / Building 10 / Floor 100 / Room 013"
- */
-export function buildLocationPathString(ancestors: { name: string }[]): string {
-  return ancestors.map((a) => a.name).join(" / ");
-}
-
-/**
- * Finds the most specific (deepest) FI number across the ancestor chain.
- */
-export function findFiNumber(ancestors: { fiNumber: string | null }[]): string | null {
-  // Walk from leaf to root — take the first fiNumber we find
-  for (let i = ancestors.length - 1; i >= 0; i--) {
-    if (ancestors[i].fiNumber) return ancestors[i].fiNumber;
-  }
-  return null;
-}
-
-type TreeRow = { id: string; parentId: string | null };
-
-/**
- * Walks parentId links in an already-loaded location map and returns the
- * chain root → leaf, including the location itself. Empty when `id` is
- * unknown. Stops on a cycle instead of looping forever.
- */
-export function ancestorChain<T extends TreeRow>(id: string, byId: Map<string, T>): T[] {
-  const chain: T[] = [];
-  const seen = new Set<string>();
-  let cur = byId.get(id);
-  while (cur && !seen.has(cur.id)) {
-    seen.add(cur.id);
-    chain.unshift(cur);
-    cur = cur.parentId ? byId.get(cur.parentId) : undefined;
-  }
-  return chain;
-}
-
-/**
  * Fetches all locations once and resolves full path strings (root → leaf)
  * for each requested ID. Returns a map of locationId → path string.
- * Separator defaults to " - " for display contexts like reports.
+ * Joined with " - ", the separator of report, compliance and CSV output.
+ * Ids that name no location are left out of the map.
  */
 export async function getLocationPathsBatch(
-  locationIds: string[],
-  separator = " - "
+  locationIds: string[]
 ): Promise<Map<string, string>> {
   if (locationIds.length === 0) return new Map();
 
@@ -120,7 +65,7 @@ export async function getLocationPathsBatch(
   const result = new Map<string, string>();
   for (const id of locationIds) {
     const chain = ancestorChain(id, byId);
-    if (chain.length > 0) result.set(id, chain.map((l) => l.name).join(separator));
+    if (chain.length > 0) result.set(id, chain.map((l) => l.name).join(" - "));
   }
   return result;
 }
@@ -129,17 +74,17 @@ export async function getLocationPathsBatch(
  * Like getLocationPathsBatch, but takes rows the caller already fetched
  * (must include parentId) instead of issuing its own query — for callers
  * that need the full (id, name, parentId) row set for another purpose too,
- * so a second full-table scan isn't worth it just to get paths.
+ * so a second full-table scan isn't worth it just to get paths. Joined with
+ * " › ", the breadcrumb separator of the UI pickers that use it.
  */
 export function buildLocationPathsFromRows(
-  rows: { id: string; name: string; parentId: string | null }[],
-  separator = " - "
+  rows: { id: string; name: string; parentId: string | null }[]
 ): Map<string, string> {
   const byId = new Map(rows.map((l) => [l.id, l]));
 
   const result = new Map<string, string>();
   for (const row of rows) {
-    result.set(row.id, ancestorChain(row.id, byId).map((l) => l.name).join(separator));
+    result.set(row.id, ancestorChain(row.id, byId).map((l) => l.name).join(" › "));
   }
   return result;
 }

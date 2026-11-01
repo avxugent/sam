@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { authIncludingPendingSteps } from "@/lib/auth";
 import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import bcrypt from "bcryptjs";
+import { hashPassword } from "@/lib/passwords";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
@@ -87,7 +88,7 @@ export async function PATCH(req: NextRequest) {
     if (!valid) {
       return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
     }
-    updateData.passwordHash = await bcrypt.hash(newPassword, 13);
+    updateData.passwordHash = await hashPassword(newPassword);
     updateData.mustChangePassword = false;
   }
 

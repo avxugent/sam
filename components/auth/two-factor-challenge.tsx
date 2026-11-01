@@ -10,9 +10,8 @@ import { Monitor, Loader2, ShieldCheck, LogOut, Fingerprint } from "lucide-react
 import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { startAuthentication } from "@simplewebauthn/browser";
-import { normalizeTotpCode } from "@/components/auth/enrollment-client";
-import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch, jsonBody } from "@/lib/api-client";
+import { normalizeTotpCode } from "@/components/auth/enrollment-api";
+import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
 
 export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolean }) {
   const t = useTranslations("auth");

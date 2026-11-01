@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    user: { create: vi.fn(), count: vi.fn() },
-  },
-}));
+vi.mock("@/lib/prisma", () => {
+  const user = { create: vi.fn(), count: vi.fn() };
+  return { prisma: { user, $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn({ user })) } };
+});
 
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("bcryptjs", () => ({

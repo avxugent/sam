@@ -11,8 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Monitor, Loader2, ShieldAlert } from "lucide-react";
 import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
-import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch, jsonBody } from "@/lib/api-client";
+import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
 
 export function ForcedPasswordChangeClient() {
   const t = useTranslations("auth");

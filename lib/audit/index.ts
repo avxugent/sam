@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Session } from "next-auth";
 import type { AuditLog } from "@/generated/prisma/client";
-import { forwardAuditEntry, isSyslogConfigured } from "@/lib/audit/syslog";
+import { forwardAuditBatch, isSyslogConfigured } from "@/lib/audit/syslog";
 import { clientIp } from "@/lib/rate-limit/http";
 
 export type AuditAction =
@@ -61,7 +61,7 @@ export async function logAudit({
 }): Promise<void> {
   try {
     const ip = req ? clientIp(req.headers) : null;
-    const userAgent = req ? req.headers.get("user-agent") ?? null : null;
+    const userAgent = req ? req.headers.get("user-agent") : null;
 
     const created = await prisma.auditLog.create({
       data: {
@@ -94,19 +94,7 @@ export async function logAudit({
 
 async function forwardAndMark(row: AuditLog): Promise<void> {
   try {
-    const ok = await forwardAuditEntry({
-      id: row.id,
-      timestamp: row.timestamp,
-      userId: row.userId,
-      userEmail: row.userEmail,
-      action: row.action,
-      entityType: row.entityType,
-      entityId: row.entityId,
-      entityName: row.entityName,
-      detail: row.detail,
-      ipAddress: row.ipAddress,
-      userAgent: row.userAgent,
-    });
+    const ok = await forwardAuditBatch([row]);
     if (ok) {
       await prisma.auditLog.update({
         where: { id: row.id },

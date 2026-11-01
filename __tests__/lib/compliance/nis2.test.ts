@@ -127,6 +127,10 @@ describe("computeNis2Compliance()", () => {
 
     const result = await computeNis2Compliance();
     expect(result.usersWithout2fa).toEqual({ count: 2, globallyRequired: true });
+    // A passkey is a second factor too, as at sign-in: only users with neither are counted.
+    expect(mockUserCount).toHaveBeenCalledWith({
+      where: { provider: "credentials", totpEnabled: false, passkeys: { none: {} } },
+    });
     expect(result.auditBacklog).toEqual({ count: 7, syslogConfigured: true });
   });
 });
@@ -155,6 +159,9 @@ describe("computeNis2Counts()", () => {
     const counts = await computeNis2Counts();
     expect(counts.assetsMissingOwner).toBe(5);
     expect(counts.usersWithout2fa).toBe(1);
+    expect(mockUserCount).toHaveBeenCalledWith({
+      where: { provider: "credentials", totpEnabled: false, passkeys: { none: {} } },
+    });
     expect(counts.auditBacklog).toBe(9);
     expect(counts.locationsMissingReview).toBe(3);
   });

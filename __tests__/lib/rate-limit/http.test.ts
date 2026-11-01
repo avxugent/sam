@@ -7,6 +7,11 @@ describe("clientIp()", () => {
     expect(clientIp(new Headers({ "x-real-ip": "198.51.100.7" }))).toBe("198.51.100.7");
     expect(clientIp(new Headers())).toBeNull();
   });
+
+  it("treats a blank X-Forwarded-For like a missing one", () => {
+    expect(clientIp(new Headers({ "x-forwarded-for": " ", "x-real-ip": "198.51.100.7" }))).toBe("198.51.100.7");
+    expect(clientIp(new Headers({ "x-forwarded-for": "" }))).toBeNull();
+  });
 });
 
 describe("tooManyAttemptsResponse()", () => {

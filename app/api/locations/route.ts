@@ -3,7 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, readJsonBody } from "@/lib/route-helpers";
+import {
+  invalidInput,
+  isForeignKeyError,
+  isUniqueConstraintError,
+  nameTakenResponse,
+  readJsonBody,
+  unknownReferenceResponse,
+} from "@/lib/route-helpers";
 import { createLocationSchema } from "@/lib/schemas/location";
 
 export async function GET() {
@@ -58,12 +65,8 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err: unknown) {
-    if (isUniqueConstraintError(err)) {
-      return NextResponse.json(
-        { error: "This FI number is already assigned to another location." },
-        { status: 409 }
-      );
-    }
+    if (isUniqueConstraintError(err)) return nameTakenResponse("This FI number is already assigned to another location.");
+    if (isForeignKeyError(err)) return unknownReferenceResponse("The parent location");
     throw err;
   }
 

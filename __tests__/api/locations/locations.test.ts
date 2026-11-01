@@ -124,6 +124,14 @@ describe("POST /api/locations", () => {
     const body = await res.json();
     expect(body.error).toMatch(/FI number/);
   });
+
+  it("returns 400 unknownReference when the parent location no longer exists (P2003)", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    mockCreate.mockRejectedValue(Object.assign(new Error("Foreign key"), { code: "P2003" }));
+    const res = await POST(makeReq("POST", { name: "Room", parentId: "gone" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("unknownReference");
+  });
 });
 
 // ── GET /api/locations/[id] ───────────────────────────────────────────────────

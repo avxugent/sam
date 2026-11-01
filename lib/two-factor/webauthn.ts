@@ -34,7 +34,8 @@ type StoredPasskey = {
 function parseTransports(transports: string | null): string[] | undefined {
   if (!transports) return undefined;
   try {
-    return JSON.parse(transports);
+    const parsed: unknown = JSON.parse(transports);
+    return Array.isArray(parsed) && parsed.every((t) => typeof t === "string") ? parsed : undefined;
   } catch {
     return undefined;
   }

@@ -100,7 +100,6 @@ import {
   isSyslogConfigured,
   syslogDestination,
   formatRfc5424,
-  forwardAuditEntry,
   forwardAuditBatch,
   type AuditEntryForSyslog,
 } from "@/lib/audit/syslog";
@@ -248,9 +247,9 @@ describe("formatRfc5424()", () => {
   });
 });
 
-// ── forwardAuditEntry / forwardAuditBatch ────────────────────────────────────
+// ── forwardAuditBatch ─────────────────────────────────────────────────────────
 
-describe("forwardAuditEntry() — UDP transport", () => {
+describe("forwardAuditBatch() — single entry, UDP transport", () => {
   beforeEach(() => {
     vi.stubEnv("SYSLOG_HOST", "logs.example.com");
     vi.stubEnv("SYSLOG_TRANSPORT", "udp");
@@ -260,11 +259,11 @@ describe("forwardAuditEntry() — UDP transport", () => {
 
   it("returns false when not configured", async () => {
     vi.stubEnv("SYSLOG_HOST", "");
-    expect(await forwardAuditEntry(baseEntry)).toBe(false);
+    expect(await forwardAuditBatch([baseEntry])).toBe(false);
   });
 
   it("sends one UDP datagram per entry and closes the socket", async () => {
-    const ok = await forwardAuditEntry(baseEntry);
+    const ok = await forwardAuditBatch([baseEntry]);
     expect(ok).toBe(true);
     const sock = FakeUdp.__last;
     expect(sock.sent).toHaveLength(1);
@@ -275,26 +274,26 @@ describe("forwardAuditEntry() — UDP transport", () => {
 
   it("falls back to the default port for an out-of-range SYSLOG_PORT", async () => {
     vi.stubEnv("SYSLOG_PORT", "99999");
-    await forwardAuditEntry(baseEntry);
+    await forwardAuditBatch([baseEntry]);
     expect(FakeUdp.__last.sent[0].port).toBe(514);
   });
 
   it("falls back to the default port for a non-numeric SYSLOG_PORT", async () => {
     vi.stubEnv("SYSLOG_PORT", "abc");
-    await forwardAuditEntry(baseEntry);
+    await forwardAuditBatch([baseEntry]);
     expect(FakeUdp.__last.sent[0].port).toBe(514);
   });
 
   it("defaults to UDP transport for an unknown SYSLOG_TRANSPORT", async () => {
     vi.stubEnv("SYSLOG_TRANSPORT", "carrier-pigeon");
-    const ok = await forwardAuditEntry(baseEntry);
+    const ok = await forwardAuditBatch([baseEntry]);
     expect(ok).toBe(true);
     expect(FakeUdp.__last.sent).toHaveLength(1);
   });
 
   it("returns false on UDP send error", async () => {
     (FakeUdp as { __failNext?: Error }).__failNext = new Error("ENETUNREACH");
-    const ok = await forwardAuditEntry(baseEntry);
+    const ok = await forwardAuditBatch([baseEntry]);
     expect(ok).toBe(false);
   });
 
@@ -339,7 +338,7 @@ describe("forwardAuditBatch() — TCP transport with octet-counting framing", ()
     vi.mocked(net.connect).mockImplementationOnce((() => (sock = new Ctor())) as never);
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    expect(await forwardAuditEntry(baseEntry)).toBe(false);
+    expect(await forwardAuditBatch([baseEntry])).toBe(false);
     expect(sock?.destroyed).toBe(true);
   });
 });

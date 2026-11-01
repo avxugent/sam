@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { validateTemplate } from "@/lib/prometheus/scrape-template";
-import { invalidInput, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import type { AuditEntityType } from "@/lib/audit";
 
 /**
@@ -164,10 +164,7 @@ export async function createTemplateOverride(req: Request, session: Session, sto
     created = await store.create(typeId, parsed.data, manufacturer.name);
   } catch (err) {
     if (isUniqueConstraintError(err)) {
-      return NextResponse.json(
-        { error: `${name} already has a scrape template override for this asset type.` },
-        { status: 409 }
-      );
+      return nameTakenResponse(`${name} already has a scrape template override for this asset type.`);
     }
     throw err;
   }

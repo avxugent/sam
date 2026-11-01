@@ -7,14 +7,14 @@ vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 vi.mock("next-auth/react", () => ({ signOut: vi.fn() }));
-vi.mock("@/components/auth/enrollment-client", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/components/auth/enrollment-client")>()),
+vi.mock("@/components/auth/enrollment-api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/auth/enrollment-api")>()),
   requestTotpSetup: vi.fn(),
   confirmTotpSetup: vi.fn(),
   registerPasskey: vi.fn(),
 }));
 
-import { confirmTotpSetup, registerPasskey, requestTotpSetup } from "@/components/auth/enrollment-client";
+import { confirmTotpSetup, registerPasskey, requestTotpSetup } from "@/components/auth/enrollment-api";
 import { Forced2FASetupClient } from "@/components/auth/forced-2fa-setup-client";
 
 beforeEach(() => {

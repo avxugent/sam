@@ -43,12 +43,16 @@ describe("admin/users page", () => {
 
   it("passes the users and the current user id to the client for an admin", async () => {
     mockAuth.mockResolvedValue(session("ADMIN", "admin-1") as never);
-    const users = [{ id: "u1", name: "Alice", email: "a@example.com", role: "VIEWER" }];
+    const users = [{ id: "u1", name: "Alice", email: "a@example.com", role: "VIEWER", lastLoginAt: null, createdAt: new Date("2026-01-01T00:00:00.000Z") }];
     vi.mocked(prisma.user.findMany).mockResolvedValue(users as never);
 
     await renderPage(UsersPage());
 
-    expect(propsOf(UsersClient)).toEqual({ initialUsers: users, currentUserId: "admin-1" });
+    // Dates cross to the client as ISO strings, the same shape the API returns.
+    expect(propsOf(UsersClient)).toEqual({
+      initialUsers: [{ ...users[0], createdAt: "2026-01-01T00:00:00.000Z" }],
+      currentUserId: "admin-1",
+    });
     // Never select the password hash or TOTP secret for the client.
     const select = vi.mocked(prisma.user.findMany).mock.calls[0][0]!.select!;
     expect(select).not.toHaveProperty("passwordHash");

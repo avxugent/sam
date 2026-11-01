@@ -213,16 +213,6 @@ async function sendStream(
 // ── Public send helpers ──────────────────────────────────────────────────────
 
 /**
- * Forward a single audit entry. Returns true on success, false on any
- * failure. Never throws.
- */
-export async function forwardAuditEntry(
-  entry: AuditEntryForSyslog
-): Promise<boolean> {
-  return forwardAuditBatch([entry]);
-}
-
-/**
  * Forward many entries in one connection (when stream-based). Returns true
  * iff every entry was sent successfully. Never throws.
  */

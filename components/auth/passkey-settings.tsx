@@ -22,7 +22,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Fingerprint, Loader2, Trash2, Info } from "lucide-react";
-import { registerPasskey } from "@/components/auth/enrollment-client";
+import { registerPasskey } from "@/components/auth/enrollment-api";
 import { apiFetch } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 

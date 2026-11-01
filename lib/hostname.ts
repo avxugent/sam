@@ -12,7 +12,11 @@ export function validateHostnamePattern(pattern: string): string | null {
   }
 }
 
-/** The pattern as a case-insensitive RegExp, or null when it is empty or invalid. */
+/**
+ * The pattern as a case-insensitive RegExp, or null when it is empty or
+ * invalid. Not auto-anchored: the pattern author decides whether ^/$ are
+ * required for a full-string match.
+ */
 function compilePattern(pattern: string | null | undefined): RegExp | null {
   if (!pattern) return null;
   try {
@@ -20,17 +24,6 @@ function compilePattern(pattern: string | null | undefined): RegExp | null {
   } catch {
     return null;
   }
-}
-
-/**
- * Tests a hostname against an asset type's pattern. Matching is
- * case-insensitive and not auto-anchored — the pattern author controls
- * whether ^/$ are required for a full-string match. A null/empty/invalid
- * pattern always matches; isHostnameCompliant() then applies the generic
- * FQDN check instead.
- */
-export function matchesHostnamePattern(hostname: string, pattern: string | null | undefined): boolean {
-  return compilePattern(pattern)?.test(hostname) ?? true;
 }
 
 /**

@@ -68,3 +68,41 @@ describe("audit — 2FA enable", () => {
     expect(mockLogAudit).not.toHaveBeenCalled();
   });
 });
+
+describe("POST /api/auth/2fa/enable — guards", () => {
+  const enable = () => enable2fa(req("http://localhost/api/auth/2fa/enable", { code: "123456" }));
+  const pendingUser = { provider: "credentials", totpSecret: "S", totpEnabled: false };
+
+  it("401 without a session", async () => {
+    mockAuth.mockResolvedValue(null as never);
+    expect((await enable()).status).toBe(401);
+  });
+
+  it("403 when the session still owes a step other than 2FA setup", async () => {
+    mockAuth.mockResolvedValue({ ...session("EDITOR"), needsPasswordChange: true } as never);
+    expect((await enable()).status).toBe(403);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["an SSO account", { ...pendingUser, provider: "microsoft-entra-id" }],
+    ["no pending secret", { ...pendingUser, totpSecret: null }],
+    ["2FA already enabled", { ...pendingUser, totpEnabled: true }],
+  ])("400 for %s", async (_label, user) => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user as never);
+    expect((await enable()).status).toBe(400);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("upgrades a forced-setup session, and 401s when the upgrade fails", async () => {
+    mockAuth.mockResolvedValue({ ...session("EDITOR"), needs2FASetup: true } as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(pendingUser as never);
+    mockVerify.mockReturnValue(true);
+    expect((await enable()).status).toBe(200);
+    expect(upgradeSession).toHaveBeenCalledWith("u1", "totp");
+
+    vi.mocked(upgradeSession).mockResolvedValue(false);
+    expect((await enable()).status).toBe(401);
+  });
+});

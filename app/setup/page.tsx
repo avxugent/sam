@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Monitor, Loader2, CheckCircle } from "lucide-react";
-import { apiFetch, jsonBody } from "@/lib/api-client";
-import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
 
 export default function SetupPage() {
   const router = useRouter();

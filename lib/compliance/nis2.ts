@@ -10,6 +10,16 @@ import type { Prisma } from "@/generated/prisma/client";
 
 const SAMPLE_SIZE = 50;
 
+/**
+ * Local (credentials) users with no second factor: neither TOTP nor a
+ * passkey. A passkey counts, as it does at sign-in (lib/auth.ts needs2FA).
+ */
+const WITHOUT_SECOND_FACTOR_WHERE: Prisma.UserWhereInput = {
+  provider: "credentials",
+  totpEnabled: false,
+  passkeys: { none: {} },
+};
+
 export type AssetSample = {
   id: string;
   locationId: string;
@@ -113,7 +123,7 @@ export async function computeNis2Compliance(): Promise<Nis2ComplianceResult> {
       assetStat({ status: "INSTALLED", endOfSupportDate: { lt: today } }),
       prisma.asset.count({ where: { status: "INSTALLED", endOfSupportDate: null } }),
       locationsMissingReview(),
-      prisma.user.count({ where: { provider: "credentials", totpEnabled: false } }),
+      prisma.user.count({ where: WITHOUT_SECOND_FACTOR_WHERE }),
       readComplianceSetting("requireTwoFactor"),
       prisma.auditLog.count({ where: { forwardedAt: null } }),
     ]);
@@ -138,7 +148,7 @@ export async function computeNis2Counts(): Promise<Nis2Counts> {
       prisma.asset.count({ where: UNCLASSIFIED_WHERE }),
       prisma.asset.count({ where: { status: "INSTALLED", endOfSupportDate: { lt: today } } }),
       prisma.asset.count({ where: { status: "INSTALLED", endOfSupportDate: null } }),
-      prisma.user.count({ where: { provider: "credentials", totpEnabled: false } }),
+      prisma.user.count({ where: WITHOUT_SECOND_FACTOR_WHERE }),
       prisma.auditLog.count({ where: { forwardedAt: null } }),
       readComplianceSetting("reviewWorkLogItemId"),
     ]);

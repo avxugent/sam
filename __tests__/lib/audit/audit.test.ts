@@ -10,17 +10,17 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/audit/syslog", () => ({
   __esModule: true,
   isSyslogConfigured: vi.fn(),
-  forwardAuditEntry: vi.fn(),
+  forwardAuditBatch: vi.fn(),
 }));
 
 import { prisma } from "@/lib/prisma";
-import { isSyslogConfigured, forwardAuditEntry } from "@/lib/audit/syslog";
+import { isSyslogConfigured, forwardAuditBatch } from "@/lib/audit/syslog";
 import { logAudit } from "@/lib/audit";
 
 const mockCreate = vi.mocked(prisma.auditLog.create);
 const mockUpdate = vi.mocked(prisma.auditLog.update);
 const mockConfigured = vi.mocked(isSyslogConfigured);
-const mockForward = vi.mocked(forwardAuditEntry);
+const mockForward = vi.mocked(forwardAuditBatch);
 
 const SESSION = { user: { id: "u1", email: "a@b.com", role: "ADMIN" } } as never;
 
@@ -118,7 +118,7 @@ describe("logAudit()", () => {
     await flush();
 
     // Forwards the row create() returned, without reading it back.
-    expect(mockForward).toHaveBeenCalledWith(row);
+    expect(mockForward).toHaveBeenCalledWith([expect.objectContaining(row)]);
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "log1" }, data: expect.objectContaining({ forwardedAt: expect.any(Date) }) })
     );

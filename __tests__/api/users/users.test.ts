@@ -80,14 +80,18 @@ describe("POST /api/users", () => {
     expect((await POST(req("POST", { ...validCreate, role: "ROOT" }))).status).toBe(400);
   });
 
-  it("409 when the email is taken", async () => {
-    user.findUnique.mockResolvedValue({ id: "other" } as never);
+  it("409 when the email is taken (unique constraint, also under a concurrent create)", async () => {
+    user.create.mockRejectedValueOnce(Object.assign(new Error("dup"), { code: "P2002" }));
     expect((await POST(req("POST", validCreate))).status).toBe(409);
-    expect(user.create).not.toHaveBeenCalled();
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("rethrows other database errors", async () => {
+    user.create.mockRejectedValueOnce(new Error("db down"));
+    await expect(POST(req("POST", validCreate))).rejects.toThrow("db down");
   });
 
   it("creates a credentials user with a bcrypt cost-13 hash", async () => {
-    user.findUnique.mockResolvedValue(null as never);
     user.create.mockResolvedValue({ id: "u9", name: "Pat", email: "pat@x.com", role: "EDITOR" } as never);
     const res = await POST(req("POST", validCreate));
     expect(res.status).toBe(201);

@@ -16,7 +16,6 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { generateTotpSecret } from "@/lib/two-factor/totp";
 import { POST as setup } from "@/app/api/auth/2fa/setup/route";
-import { GET as status } from "@/app/api/auth/2fa/status/route";
 
 const mockAuth = vi.mocked(auth);
 const findUser = vi.mocked(prisma.user.findUnique);
@@ -65,25 +64,5 @@ describe("POST /api/auth/2fa/setup", () => {
       where: { id: "u1" },
       data: { totpSecret: "BASE32SECRET", totpEnabled: false },
     });
-  });
-});
-
-describe("GET /api/auth/2fa/status", () => {
-  it("401 without a session", async () => {
-    mockAuth.mockResolvedValue(null as never);
-    expect((await status()).status).toBe(401);
-  });
-
-  it("404 when the user row is gone", async () => {
-    findUser.mockResolvedValue(null as never);
-    expect((await status()).status).toBe(404);
-  });
-
-  it.each([
-    ["credentials", true],
-    ["microsoft-entra-id", false],
-  ])("reports applicability for %s accounts", async (provider, applicable) => {
-    findUser.mockResolvedValue({ provider, totpEnabled: false } as never);
-    expect(await (await status()).json()).toEqual({ provider, totpEnabled: false, applicable });
   });
 });

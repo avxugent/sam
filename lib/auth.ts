@@ -29,6 +29,14 @@ export const ssoEnabled =
   !!process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET &&
   !!process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER;
 
+/**
+ * The pending login-step flags authorize() sets, copied into the JWT and the
+ * session. needs2FA: owes a 2FA code challenge (TOTP or passkey already
+ * enrolled). needs2FASetup: must enrol a second factor first.
+ * needsPasswordChange: must replace an admin-set password.
+ */
+const PENDING_STEP_FLAGS = ["needs2FA", "needsPasswordChange", "needs2FASetup"] as const;
+
 const nextAuth = NextAuth({
   providers: [
     // ── Primary credentials provider ──────────────────────────────────────
@@ -82,36 +90,21 @@ const nextAuth = NextAuth({
           return null;
         }
 
+        const identity = { id: user.id, name: user.name, email: user.email, role: user.role };
+
         // Forced enrollment flags take priority over 2FA challenge
-        if (user.mustChangePassword) {
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            needsPasswordChange: true,
-          };
-        }
+        if (user.mustChangePassword) return { ...identity, needsPasswordChange: true };
 
         const hasPasskey = user._count.passkeys > 0;
 
         // Global requirement (AppSetting) ORs with the per-user flag
         const requireTwoFactor = await readComplianceSetting("requireTwoFactor");
         if (isTwoFactorSetupRequired({ ...user, hasPasskey }, requireTwoFactor)) {
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            needs2FASetup: true,
-          };
+          return { ...identity, needs2FASetup: true };
         }
 
         return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
+          ...identity,
           // Signal that a 2FA step is still required before granting full access
           needs2FA: (user.totpEnabled || hasPasskey) ? true : undefined,
         };
@@ -212,20 +205,9 @@ const nextAuth = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        if (user.needs2FA) {
-          token.needs2FA = true;
-        } else {
-          delete token.needs2FA;
-        }
-        if (user.needsPasswordChange) {
-          token.needsPasswordChange = true;
-        } else {
-          delete token.needsPasswordChange;
-        }
-        if (user.needs2FASetup) {
-          token.needs2FASetup = true;
-        } else {
-          delete token.needs2FASetup;
+        for (const flag of PENDING_STEP_FLAGS) {
+          if (user[flag]) token[flag] = true;
+          else delete token[flag];
         }
         token.dbCheck = Math.floor(Date.now() / 1000);
       }
@@ -253,9 +235,7 @@ const nextAuth = NextAuth({
       if (token?.id) {
         session.user.id = token.id;
         session.user.role = token.role ?? "VIEWER";
-        if (token.needs2FA) session.needs2FA = true;
-        if (token.needsPasswordChange) session.needsPasswordChange = true;
-        if (token.needs2FASetup) session.needs2FASetup = true;
+        for (const flag of PENDING_STEP_FLAGS) if (token[flag]) session[flag] = true;
       }
       return session;
     },

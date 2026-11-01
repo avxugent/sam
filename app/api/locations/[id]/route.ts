@@ -5,7 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { getAllDescendantLocationIds, getSubtreeIdsDeepestFirst } from "@/lib/locations/path";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { updateLocationSchema } from "@/lib/schemas/location";
 import { LOCATION_DETAIL_INCLUDE } from "@/lib/locations/include";
 
@@ -126,12 +126,7 @@ export async function PUT(
       include: { parent: { select: { name: true } } },
     });
   } catch (err: unknown) {
-    if (isUniqueConstraintError(err)) {
-      return NextResponse.json(
-        { error: "This FI number is already assigned to another location." },
-        { status: 409 }
-      );
-    }
+    if (isUniqueConstraintError(err)) return nameTakenResponse("This FI number is already assigned to another location.");
     throw err;
   }
 

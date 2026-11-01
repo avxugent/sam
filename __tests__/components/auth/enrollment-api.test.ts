@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@simplewebauthn/browser", () => ({ startRegistration: vi.fn() }));
 
 import { startRegistration } from "@simplewebauthn/browser";
-import { confirmTotpSetup, normalizeTotpCode, registerPasskey, requestTotpSetup } from "@/components/auth/enrollment-client";
+import { confirmTotpSetup, normalizeTotpCode, registerPasskey, requestTotpSetup } from "@/components/auth/enrollment-api";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;

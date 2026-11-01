@@ -68,3 +68,51 @@ describe("audit — 2FA disable", () => {
     );
   });
 });
+
+describe("POST /api/auth/2fa/disable — guards", () => {
+  const enabledUser = { provider: "credentials", totpEnabled: true, totpSecret: "S", email: "t@test.com" };
+  const disable = (body: object) => disable2fa(req("http://localhost/api/auth/2fa/disable", body));
+
+  it("401 without a session", async () => {
+    mockAuth.mockResolvedValue(null as never);
+    expect((await disable({ code: "123456" })).status).toBe(401);
+  });
+
+  it("403 when a non-admin disables another user's 2FA", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR", "u1") as never);
+    const res = await disable({ userId: "u2" });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: "Forbidden" });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("400 unknownReference when the body names no user", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN", "admin1") as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null as never);
+    const res = await disable({ userId: "gone" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("unknownReference");
+  });
+
+  it("400 for an over-long userId", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN", "admin1") as never);
+    expect((await disable({ userId: "x".repeat(65) })).status).toBe(400);
+  });
+
+  it.each([
+    ["without a code", {}, true],
+    ["with a wrong code", { code: "000000" }, false],
+  ])("400 for self-disable %s", async (_label, body, verifies) => {
+    mockAuth.mockResolvedValue(session("EDITOR", "u1") as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(enabledUser as never);
+    mockVerify.mockReturnValue(verifies);
+    expect((await disable(body)).status).toBe(400);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("400 when 2FA is not enabled", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN", "admin1") as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ ...enabledUser, totpEnabled: false } as never);
+    expect((await disable({ userId: "u2" })).status).toBe(400);
+  });
+});

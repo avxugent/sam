@@ -1,6 +1,5 @@
 import { startRegistration } from "@simplewebauthn/browser";
-import { apiFetch, jsonBody, type ApiErrorBody } from "@/lib/api-client";
-import { apiErrorMessage } from "@/lib/utils";
+import { apiFetch, jsonBody, type ApiErrorBody, apiErrorMessage } from "@/lib/api-client";
 
 /**
  * Browser-side calls for enrolling a second factor, shared by the forced setup

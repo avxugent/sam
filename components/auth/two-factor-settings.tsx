@@ -29,9 +29,8 @@ import {
   Info,
   RefreshCw,
 } from "lucide-react";
-import { confirmTotpSetup, normalizeTotpCode, requestTotpSetup } from "@/components/auth/enrollment-client";
-import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch, jsonBody } from "@/lib/api-client";
+import { confirmTotpSetup, normalizeTotpCode, requestTotpSetup } from "@/components/auth/enrollment-api";
+import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
 
 type Props = {
   provider: string;

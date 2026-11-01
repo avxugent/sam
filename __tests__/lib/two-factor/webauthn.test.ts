@@ -79,6 +79,18 @@ describe("buildRegistrationOptions", () => {
     expect(call.excludeCredentials[0].transports).toEqual(["internal"]);
     expect(call.excludeCredentials[0].id).toBe(credentialId);
   });
+
+  it("drops stored transports that are not a JSON array of strings", async () => {
+    process.env.NEXTAUTH_URL = "https://sam.example.com";
+    mockGenerateRegistrationOptions.mockResolvedValue({ challenge: "chal" });
+    await buildRegistrationOptions({ id: "u1", email: "a@b.com", name: "Alice" }, [
+      { credentialId: "a", transports: JSON.stringify({ usb: true }) },
+      { credentialId: "b", transports: JSON.stringify(["usb", 3]) },
+      { credentialId: "c", transports: "not json" },
+    ]);
+    const call = mockGenerateRegistrationOptions.mock.calls[0][0];
+    expect(call.excludeCredentials.map((c: { transports?: string[] }) => c.transports)).toEqual([undefined, undefined, undefined]);
+  });
 });
 
 describe("verifyRegistration", () => {

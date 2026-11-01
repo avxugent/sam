@@ -25,7 +25,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { integrationTokenResponse } from "@/lib/tokens/integration";
-import { ancestorChain, findFiNumber, parseFiNumber } from "@/lib/locations/path";
+import { ancestorChain, findFiNumber, parseFiNumber } from "@/lib/locations/tree";
 import { MONITORED_ASSET_WHERE, samAssetLabels, samLocationLabels } from "@/lib/prometheus/labels";
 import { computeNis2Counts } from "@/lib/compliance/nis2";
 import { effectiveCriticality } from "@/lib/criticality";
@@ -167,7 +167,7 @@ export async function GET(req: NextRequest) {
   const sections: string[] = [];
 
   sections.push(
-    gauge("sam_assets_total", "Total number of assets in SAM", [
+    gauge("sam_assets_total", "Installed assets in SAM (in-repair and decommissioned assets excluded)", [
       { value: totalAssets },
     ])
   );
@@ -181,7 +181,7 @@ export async function GET(req: NextRequest) {
   sections.push(
     gauge(
       "sam_assets_without_hostname_total",
-      "Assets with no hostname set — cannot be matched to monitoring targets",
+      "Installed assets with no hostname set — cannot be matched to monitoring targets",
       [{ value: assetsWithoutHostname }]
     )
   );
@@ -282,7 +282,7 @@ export async function GET(req: NextRequest) {
   sections.push(
     gauge(
       "sam_users_credentials_without_2fa",
-      "Local (credentials) user accounts without TOTP two-factor enabled",
+      "Local (credentials) user accounts with no second factor (neither TOTP nor a passkey)",
       [{ value: nis2.usersWithout2fa }]
     )
   );

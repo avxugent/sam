@@ -8,7 +8,7 @@ declare module "next-auth" {
       id: string;
       role: Role;
     } & DefaultSession["user"];
-    /** True while the user has passed password auth but not yet verified their TOTP code */
+    /** Owes a 2FA code challenge (TOTP or passkey already enrolled); enrolment itself is needs2FASetup */
     needs2FA?: boolean;
     /** True when the admin has required the user to change their password on next login */
     needsPasswordChange?: boolean;
@@ -18,7 +18,7 @@ declare module "next-auth" {
 
   interface User extends DefaultUser {
     role?: Role;
-    /** Set by the Credentials authorize() when 2FA is required */
+    /** Set by the Credentials authorize(): owes a 2FA code challenge (TOTP or passkey already enrolled) */
     needs2FA?: boolean;
     needsPasswordChange?: boolean;
     needs2FASetup?: boolean;
@@ -31,7 +31,7 @@ declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     id?: string;
     role?: Role;
-    /** True while 2FA verification is still pending */
+    /** Owes a 2FA code challenge (TOTP or passkey already enrolled) */
     needs2FA?: boolean;
     needsPasswordChange?: boolean;
     needs2FASetup?: boolean;

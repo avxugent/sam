@@ -8,13 +8,13 @@ const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 const router = { refresh: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
-vi.mock("@/components/auth/enrollment-client", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/components/auth/enrollment-client")>()),
+vi.mock("@/components/auth/enrollment-api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/auth/enrollment-api")>()),
   requestTotpSetup: vi.fn(),
   confirmTotpSetup: vi.fn(),
 }));
 
-import { confirmTotpSetup, requestTotpSetup } from "@/components/auth/enrollment-client";
+import { confirmTotpSetup, requestTotpSetup } from "@/components/auth/enrollment-api";
 import { TwoFactorSettings } from "@/components/auth/two-factor-settings";
 
 const mockFetch = vi.fn();

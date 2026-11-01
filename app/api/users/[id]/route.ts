@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "@/lib/passwords";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
-import { isAdmin } from "@/lib/permissions";
+import { isAdmin, Role } from "@/lib/permissions";
 import { updateUserSchema } from "@/lib/schemas/user";
-import { invalidInput, isUniqueConstraintError, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 import type { Prisma } from "@/generated/prisma/client";
 
 export async function PUT(
@@ -29,7 +29,7 @@ export async function PUT(
   if (!target) return notFoundResponse("User");
 
   if (isAdmin(target.role) && parsed.data.role !== undefined && !isAdmin(parsed.data.role)) {
-    const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+    const adminCount = await prisma.user.count({ where: { role: Role.ADMIN } });
     if (adminCount <= 1) {
       return NextResponse.json({ error: "Cannot demote the last admin account." }, { status: 400 });
     }
@@ -46,7 +46,7 @@ export async function PUT(
         { status: 400 }
       );
     }
-    updateData.passwordHash = await bcrypt.hash(password, 13);
+    updateData.passwordHash = await hashPassword(password);
     // Admin password reset forces user to change it on next login
     updateData.mustChangePassword = true;
   }
@@ -59,9 +59,7 @@ export async function PUT(
       select: { id: true, name: true, email: true, role: true, provider: true, totpEnabled: true, mustChangePassword: true, twoFactorRequired: true, createdAt: true },
     });
   } catch (err) {
-    if (isUniqueConstraintError(err)) {
-      return NextResponse.json({ error: "Email already in use." }, { status: 409 });
-    }
+    if (isUniqueConstraintError(err)) return nameTakenResponse("Email already in use.");
     throw err;
   }
 
@@ -105,7 +103,7 @@ export async function DELETE(
   const userToDelete = await prisma.user.findUnique({ where: { id }, select: { role: true, email: true } });
   if (!userToDelete) return notFoundResponse("User");
 
-  const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+  const adminCount = await prisma.user.count({ where: { role: Role.ADMIN } });
   if (isAdmin(userToDelete.role) && adminCount <= 1) {
     return NextResponse.json({ error: "Cannot delete the last admin account." }, { status: 400 });
   }

@@ -1,15 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    user: {
-      count: vi.fn(),
-      create: vi.fn(),
-    },
-  },
-}));
+vi.mock("@/lib/prisma", () => {
+  const user = { count: vi.fn(), create: vi.fn() };
+  // The interactive transaction runs its callback against the same mocked client.
+  return { prisma: { user, $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn({ user })) } };
+});
 
 vi.mock("bcryptjs", () => ({
   default: { hash: vi.fn().mockResolvedValue("$2b$12$hashed") },
@@ -20,6 +17,8 @@ import { GET, POST } from "@/app/api/setup/route";
 
 const mockCount = vi.mocked(prisma.user.count);
 const mockCreate = vi.mocked(prisma.user.create);
+
+beforeEach(() => vi.clearAllMocks());
 
 // ── GET /api/setup ────────────────────────────────────────────────────────────
 
@@ -122,6 +121,22 @@ describe("POST /api/setup", () => {
     mockCount.mockResolvedValue(0);
     mockCreate.mockRejectedValueOnce(Object.assign(new Error("dup"), { code: "P2002" }));
     const res = await POST(makeRequest({ name: "Admin", email: "admin@test.com", password: "securepassword" }));
+    expect(res.status).toBe(403);
+  });
+
+  it("re-checks the user count inside a Serializable transaction", async () => {
+    // Two different-email requests can both pass the first count; the second one is in the transaction.
+    mockCount.mockResolvedValueOnce(0).mockResolvedValueOnce(1);
+    const res = await POST(makeRequest({ name: "Admin", email: "other@test.com", password: "securepassword" }));
+    expect(res.status).toBe(403);
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(vi.mocked(prisma.$transaction)).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: "Serializable" });
+  });
+
+  it("returns 403 when a concurrent setup won the transaction (deadlock rollback)", async () => {
+    mockCount.mockResolvedValue(0);
+    mockCreate.mockRejectedValueOnce(Object.assign(new Error("deadlock"), { code: "P2034" }));
+    const res = await POST(makeRequest({ name: "Admin", email: "other@test.com", password: "securepassword" }));
     expect(res.status).toBe(403);
   });
 

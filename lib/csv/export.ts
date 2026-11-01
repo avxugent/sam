@@ -1,11 +1,14 @@
 /**
- * CSV export logic — generates a CSV compatible with the CSV import format.
- * Used by the export API endpoint and the export-backup CLI script.
+ * Every CSV the app produces (";"-delimited, CRLF line breaks): the
+ * import-compatible inventory exports (export API endpoint and the
+ * export-backup CLI script) plus the users, report and hostname-compliance
+ * downloads.
  */
 
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { ancestorChain, getLocationPathsBatch } from "@/lib/locations/path";
+import { getLocationPathsBatch } from "@/lib/locations/path";
+import { ancestorChain } from "@/lib/locations/tree";
 import { escapeCsvCell } from "@/lib/csv/core";
 import { toIsoDay } from "@/lib/dates";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
@@ -98,9 +101,10 @@ function csvLine(cells: string[]): string {
 }
 
 /**
- * Import-compatible inventory export of installed assets only: in-repair and
+ * Import-compatible inventory export of installed assets only (in-repair and
  * decommissioned assets are not current inventory for re-import purposes and
- * have their own pages (decommissioned also its own export).
+ * have their own pages, decommissioned also its own export), plus one row with
+ * empty asset fields per leaf location without installed assets.
  */
 export async function generateActiveAssetsCsv(): Promise<string> {
   // Fetch all locations into a map for hierarchy lookup
@@ -308,9 +312,13 @@ const REPORT_COLUMN_LABELS: Record<ColumnKey, string> = {
   endOfSupportDate: "End of Support",
 };
 
-/** CSV of a saved report's result: the chosen columns of an asset report, or a location report's review grid. */
+/**
+ * CSV of a saved report's result: the chosen columns of an asset report, or a
+ * location report's review grid. Throws when the result is not the
+ * definition's own (an asset result needs the definition's columns).
+ */
 export function generateReportCsv(definition: ReportDefinition, result: ReportResult): string {
-  if (isLocationReport(definition) && result.source === "location") {
+  if (result.source === "location") {
     const header = ["Campus", "Building", "Room", "FI number", ...result.itemColumns.map((c) => c.name)];
     const rows = result.rows.map((row) => [
       row.campus ?? "",
@@ -325,12 +333,10 @@ export function generateReportCsv(definition: ReportDefinition, result: ReportRe
     ]);
     return [header, ...rows].map(csvLine).join("\r\n");
   }
-  if (!isLocationReport(definition) && result.source === "asset") {
-    const header = definition.columns.map((c) => REPORT_COLUMN_LABELS[c]);
-    const rows = result.rows.map((row) => definition.columns.map((c) => (row[c] as string | null) ?? ""));
-    return [header, ...rows].map(csvLine).join("\r\n");
-  }
-  return "";
+  if (isLocationReport(definition)) throw new Error("Report result does not match its definition");
+  const header = definition.columns.map((c) => REPORT_COLUMN_LABELS[c]);
+  const rows = result.rows.map((row) => definition.columns.map((c) => (row[c] as string | null) ?? ""));
+  return [header, ...rows].map(csvLine).join("\r\n");
 }
 
 const HOSTNAME_COMPLIANCE_COLUMNS = ["TYPE", "PATTERN", "HOSTNAME", "MODEL", "SERIAL", "LOCATION", "FI_NUMBER"];

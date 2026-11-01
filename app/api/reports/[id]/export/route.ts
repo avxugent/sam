@@ -17,10 +17,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const definition = parseReportDefinition(report.definition);
   if (!definition) {
-    return NextResponse.json({ error: "Report definition is invalid" }, { status: 422 });
+    return NextResponse.json({ error: "Report definition is invalid." }, { status: 422 });
   }
 
-  const csv = generateReportCsv(definition, await runReport(definition));
+  // Uncapped: a download must hold every matching row, not the on-screen cap.
+  const csv = generateReportCsv(definition, await runReport(definition, { capRows: false }));
   const filename = `${report.name.replace(/[^a-z0-9]/gi, "_")}.csv`;
 
   await logAudit({

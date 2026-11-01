@@ -249,6 +249,7 @@ describe("runReport()", () => {
     mockLocFindMany.mockResolvedValue([{ id: "loc1", name: "Room 101", parentId: null }] as never);
 
     const result = await runAssetReport({
+      source: "asset",
       filters: [],
       groupBy: "none",
       columns: ["model", "type", "location"],
@@ -284,7 +285,7 @@ describe("runReport()", () => {
       { id: "room1", name: "Room A", parentId: "building1" },
     ] as never);
 
-    const result = await runAssetReport({ filters: [], groupBy: "none", columns: ["location"] });
+    const result = await runAssetReport({ source: "asset", filters: [], groupBy: "none", columns: ["location"] });
     expect(result.rows[0].location).toBe("Campus 14 - Building 10 - Room A");
   });
 
@@ -297,7 +298,7 @@ describe("runReport()", () => {
         updatedAt: null, type: null, manufacturer: null, location: { name: "Store" },
       } as never,
     ]);
-    const result = await runAssetReport({ filters: [], groupBy: "none", columns: ["model", "location"] });
+    const result = await runAssetReport({ source: "asset", filters: [], groupBy: "none", columns: ["model", "location"] });
     expect(result.total).toBe(1);
     const r = result.rows[0];
     expect(r.model).toBeNull();
@@ -320,7 +321,7 @@ describe("runReport()", () => {
     ]);
     // path map resolves a DIFFERENT id, so lookup misses → location.name fallback
     mockLocFindMany.mockResolvedValue([{ id: "other", name: "x", parentId: null }] as never);
-    const result = await runAssetReport({ filters: [], groupBy: "none", columns: ["location"] });
+    const result = await runAssetReport({ source: "asset", filters: [], groupBy: "none", columns: ["location"] });
     expect(result.rows[0].location).toBe("Fallback Room");
     expect(result.rows[0].installationDate).toBe("2021-06-01");
     expect(result.rows[0].invoiceDate).toBe("2021-07-01");
@@ -335,6 +336,7 @@ describe("runReport()", () => {
     mockTypeFindMany.mockResolvedValue([{ id: "t1", name: "Projector" }] as never);
 
     const result = await runAssetReport({
+      source: "asset",
       filters: [],
       groupBy: "type",
       columns: ["model"],
@@ -351,7 +353,7 @@ describe("runReport()", () => {
     ]);
     mockMfFindMany.mockResolvedValue([{ id: "m1", name: "Epson" }] as never);
 
-    const result = await runAssetReport({ filters: [], groupBy: "manufacturer", columns: ["model"] });
+    const result = await runAssetReport({ source: "asset", filters: [], groupBy: "manufacturer", columns: ["model"] });
     expect(result.groups).toContainEqual({ label: "Epson", count: 5 });
   });
 
@@ -362,7 +364,7 @@ describe("runReport()", () => {
     ]);
     mockLocFindMany.mockResolvedValue([{ id: "l1", name: "Lab A", parentId: null }] as never);
 
-    const result = await runAssetReport({ filters: [], groupBy: "location", columns: ["model"] });
+    const result = await runAssetReport({ source: "asset", filters: [], groupBy: "location", columns: ["model"] });
     expect(result.groups).toContainEqual({ label: "Lab A", count: 2 });
   });
 
@@ -374,7 +376,7 @@ describe("runReport()", () => {
     ]);
     mockLocFindMany.mockResolvedValue([{ id: "l1", name: "X", parentId: null }] as never);
 
-    const result = await runAssetReport({ filters: [], groupBy: "installationYear", columns: ["model"] });
+    const result = await runAssetReport({ source: "asset", filters: [], groupBy: "installationYear", columns: ["model"] });
     expect(result.groups).toContainEqual({ label: "2020", count: 2 });
     expect(result.groups).toContainEqual({ label: "2022", count: 1 });
   });
@@ -391,7 +393,7 @@ describe("runReport()", () => {
     vi.mocked(prisma.asset.count).mockResolvedValue(ASSET_REPORT_ROW_CAP + 2);
     mockLocFindMany.mockResolvedValue([] as never);
 
-    const result = await runAssetReport({ filters: [], groupBy: "installationYear", columns: ["model"] });
+    const result = await runAssetReport({ source: "asset", filters: [], groupBy: "installationYear", columns: ["model"] });
     expect(result.rows).toHaveLength(ASSET_REPORT_ROW_CAP);
     expect(result.total).toBe(ASSET_REPORT_ROW_CAP + 2);
     expect(result.groups).toEqual([
@@ -401,9 +403,27 @@ describe("runReport()", () => {
     ]);
   });
 
+  it("returns every row without a cap when capRows is false", async () => {
+    const row = (i: number) => ({ id: `a${i}`, model: null, serialNumber: null, hostname: null, locationId: "loc0", installationDate: null, invoiceDate: null, invoiceNumber: null, notes: null, type: null, manufacturer: null, location: { name: "Store" } });
+    mockFindMany.mockResolvedValue(Array.from({ length: ASSET_REPORT_ROW_CAP + 1 }, (_, i) => row(i)) as never);
+    mockLocFindMany.mockResolvedValue([] as never);
+
+    const result = await runAssetReport({ source: "asset", filters: [], groupBy: "none", columns: ["model"] }, { capRows: false });
+    expect(mockFindMany.mock.calls[0][0]).toMatchObject({ take: undefined });
+    expect(result.rows).toHaveLength(ASSET_REPORT_ROW_CAP + 1);
+    expect(result.total).toBe(ASSET_REPORT_ROW_CAP + 1);
+    expect(prisma.asset.count).not.toHaveBeenCalled();
+  });
+
+  it("caps the on-screen run by default", async () => {
+    mockFindMany.mockResolvedValue([]);
+    await runAssetReport({ source: "asset", filters: [], groupBy: "none", columns: ["model"] });
+    expect(mockFindMany.mock.calls[0][0]).toMatchObject({ take: ASSET_REPORT_ROW_CAP });
+  });
+
   it("excludes decommissioned assets by default when no status filter is set", async () => {
     mockFindMany.mockResolvedValue([]);
-    await runAssetReport({ filters: [{ field: "typeId", op: "eq", value: "t1" }], groupBy: "none", columns: ["model"] });
+    await runAssetReport({ source: "asset", filters: [{ field: "typeId", op: "eq", value: "t1" }], groupBy: "none", columns: ["model"] });
     const whereArg = mockFindMany.mock.calls[0][0]?.where as { AND: unknown[] };
     expect(whereArg).toEqual({
       AND: [{ AND: [{ typeId: "t1" }] }, { status: { not: "DECOMMISSIONED" } }],
@@ -413,6 +433,7 @@ describe("runReport()", () => {
   it("does not add the implicit decommissioned exclusion when the user already filters on status", async () => {
     mockFindMany.mockResolvedValue([]);
     await runAssetReport({
+      source: "asset",
       filters: [{ field: "status", op: "eq", value: "DECOMMISSIONED" }],
       groupBy: "none",
       columns: ["model"],
@@ -426,7 +447,7 @@ describe("runReport()", () => {
     ["an op other than eq/neq", { field: "status", op: "isNull" }],
   ] as const)("keeps the decommissioned exclusion when the status filter has %s", async (_label, filter) => {
     mockFindMany.mockResolvedValue([]);
-    await runAssetReport({ filters: [filter], groupBy: "none", columns: ["model"] });
+    await runAssetReport({ source: "asset", filters: [filter], groupBy: "none", columns: ["model"] });
     const whereArg = mockFindMany.mock.calls[0][0]?.where;
     expect(whereArg).toEqual({ AND: [{}, { status: { not: "DECOMMISSIONED" } }] });
   });
@@ -436,7 +457,7 @@ describe("runReport()", () => {
     mockGroupBy.mockResolvedValue([{ typeId: "t1", _count: { id: 2 } } as never]);
     mockTypeFindMany.mockResolvedValue([{ id: "t1", name: "Projector" }] as never);
 
-    await runAssetReport({ filters: [], groupBy: "type", columns: ["model"] });
+    await runAssetReport({ source: "asset", filters: [], groupBy: "type", columns: ["model"] });
 
     const groupByWhere = mockGroupBy.mock.calls[0][0]?.where as { AND: unknown[] };
     expect(groupByWhere).toEqual({ AND: [{}, { status: { not: "DECOMMISSIONED" } }] });
@@ -543,7 +564,7 @@ describe("runAssetReport() — NIS2 columns", () => {
       },
     ] as never);
 
-    const result = await runAssetReport({ filters: [], groupBy: "none", columns: ["model"] });
+    const result = await runAssetReport({ source: "asset", filters: [], groupBy: "none", columns: ["model"] });
     expect(result.rows[0].supplier).toBe("CampusStore");
     expect(result.rows[0].criticality).toBe("MEDIUM"); // inherited from type
     expect(result.rows[0].endOfSupportDate).toBe("2030-06-30");

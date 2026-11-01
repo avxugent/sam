@@ -9,6 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { prismaErrorCode } from "@/lib/route-helpers";
 import { isHostnameCompliant } from "@/lib/hostname";
+import { customFieldRows, macAddressRows } from "@/lib/assets/input";
 
 /** Database errors caused by a row's own data: that row is skipped, the import goes on. */
 const ROW_ERROR_REASONS: Record<string, string> = {
@@ -80,12 +81,8 @@ export async function POST(req: NextRequest) {
           modelId,
           ownerId: parsed.ownerId ?? ctx.creationDefaults.ownerId,
           supplierId,
-          macAddresses: macAddresses.length > 0
-            ? { create: macAddresses.map((address) => ({ address })) }
-            : undefined,
-          customFields: customFields.length > 0
-            ? { create: customFields }
-            : undefined,
+          macAddresses: macAddresses.length > 0 ? { create: macAddressRows(macAddresses) } : undefined,
+          customFields: customFields.length > 0 ? { create: customFieldRows(customFields) } : undefined,
         },
       });
 

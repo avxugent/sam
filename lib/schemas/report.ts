@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { idSchema } from "@/lib/schemas/ids";
 
 const filterOpSchema = z.enum([
   "eq",
@@ -134,10 +135,9 @@ const columnKeySchema = z.enum([
   "endOfSupportDate",
 ]);
 
-// Asset report — the original report shape. `source` is optional so existing
-// saved reports (which predate the location report type) still parse as asset.
+// Asset report — filtered asset rows with chosen columns and an optional grouping.
 const assetReportDefinitionSchema = z.object({
-  source: z.literal("asset").optional(),
+  source: z.literal("asset"),
   filters: z.array(reportFilterSchema).max(20),
   groupBy: groupBySchema,
   columns: z.array(columnKeySchema).min(1).max(10),
@@ -148,7 +148,7 @@ const assetReportDefinitionSchema = z.object({
 // that item filled in (i.e. at least one work-log entry with that item).
 const locationReportDefinitionSchema = z.object({
   source: z.literal("location"),
-  itemIds: z.array(z.string().min(1).max(64)).min(1).max(50),
+  itemIds: z.array(idSchema).min(1).max(50),
   status: z.enum(["all", "filled", "notFilled"]),
   // Optional time window. When set, an item only counts as "filled" if its
   // most recent entry falls within the window (e.g. 1 year). Combined with
@@ -158,15 +158,12 @@ const locationReportDefinitionSchema = z.object({
   // Optional scope: location ids (any tree level — campus, building, floor,
   // room). When set, only leaf locations under one of these ids are included.
   // Empty/omitted means all locations.
-  locationIds: z.array(z.string().min(1).max(64)).max(200).optional(),
+  locationIds: z.array(idSchema).max(200).optional(),
 });
 
-// Location schema is tried first so a `source: "location"` definition matches
-// it; everything else (including legacy reports with no `source`) falls through
-// to the asset schema.
-export const reportDefinitionSchema = z.union([
-  locationReportDefinitionSchema,
+export const reportDefinitionSchema = z.discriminatedUnion("source", [
   assetReportDefinitionSchema,
+  locationReportDefinitionSchema,
 ]);
 
 // The report definition types are inferred from these schemas so the two

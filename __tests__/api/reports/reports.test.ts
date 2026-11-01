@@ -28,7 +28,6 @@ import { auth } from "@/lib/auth";
 import { runReport } from "@/lib/reports/engine";
 import { GET as listGet, POST } from "@/app/api/reports/route";
 import { GET as getOne, PUT, DELETE } from "@/app/api/reports/[id]/route";
-import { GET as runGet } from "@/app/api/reports/[id]/run/route";
 import { GET as exportGet } from "@/app/api/reports/[id]/export/route";
 
 const mockAuth = vi.mocked(auth);
@@ -50,6 +49,7 @@ function viewerSession() {
 }
 
 const VALID_DEFINITION = {
+  source: "asset",
   filters: [],
   groupBy: "none",
   columns: ["model", "type"],
@@ -179,6 +179,16 @@ describe("PUT /api/reports/[id]", () => {
     mockUpdate.mockResolvedValue({ ...SAMPLE_REPORT, name: "Updated" } as never);
     const res = await PUT(makeReq("http://localhost/api/reports/r1", "PUT", { name: "Updated" }), { params: Promise.resolve({ id: "r1" }) });
     expect(res.status).toBe(200);
+    expect(mockUpdate.mock.calls.at(-1)?.[0].data.definition).toBeUndefined();
+  });
+
+  it("stores a given definition as JSON text", async () => {
+    mockAuth.mockResolvedValue(editorSession() as never);
+    mockFindUnique.mockResolvedValue(SAMPLE_REPORT as never);
+    mockUpdate.mockResolvedValue(SAMPLE_REPORT as never);
+    const res = await PUT(makeReq("http://localhost/api/reports/r1", "PUT", { definition: VALID_DEFINITION }), { params: Promise.resolve({ id: "r1" }) });
+    expect(res.status).toBe(200);
+    expect(mockUpdate.mock.calls.at(-1)?.[0].data.definition).toBe(JSON.stringify(VALID_DEFINITION));
   });
 });
 
@@ -202,39 +212,12 @@ describe("DELETE /api/reports/[id]", () => {
   });
 });
 
-// ── GET /api/reports/[id]/run ────────────────────────────────────────────────
-
-describe("GET /api/reports/[id]/run", () => {
-  it("returns 401 when unauthenticated", async () => {
-    mockAuth.mockResolvedValue(null as never);
-    const res = await runGet(makeReq("http://localhost/api/reports/r1/run", "GET"), { params: Promise.resolve({ id: "r1" }) });
-    expect(res.status).toBe(401);
-  });
-
-  it("returns 404 for unknown report", async () => {
-    mockAuth.mockResolvedValue(viewerSession() as never);
-    mockFindUnique.mockResolvedValue(null as never);
-    const res = await runGet(makeReq("http://localhost/api/reports/r1/run", "GET"), { params: Promise.resolve({ id: "r1" }) });
-    expect(res.status).toBe(404);
-  });
-
-  it("runs report and returns result", async () => {
-    mockAuth.mockResolvedValue(viewerSession() as never);
-    mockFindUnique.mockResolvedValue(SAMPLE_REPORT as never);
-    mockRunReport.mockResolvedValue({ source: "asset", rows: [], groups: [], total: 0 });
-    const res = await runGet(makeReq("http://localhost/api/reports/r1/run", "GET"), { params: Promise.resolve({ id: "r1" }) });
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data).toHaveProperty("total", 0);
-  });
-});
-
 // ── GET /api/reports/[id]/export ─────────────────────────────────────────────
 
 describe("GET /api/reports/[id]/export", () => {
   const params = Promise.resolve({ id: "r1" });
   const req = () => makeReq("http://localhost/api/reports/r1/export", "GET");
-  const VALID_DEF = JSON.stringify({ filters: [], groupBy: "none", columns: ["model"] });
+  const VALID_DEF = JSON.stringify({ source: "asset", filters: [], groupBy: "none", columns: ["model"] });
 
   it("401 unauthenticated", async () => {
     mockAuth.mockResolvedValue(null as never);
@@ -259,6 +242,8 @@ describe("GET /api/reports/[id]/export", () => {
     expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="Q1___Report_.csv"');
     const body = await res.text();
     expect(body.split("\r\n")).toEqual(["Model", "XPS"]);
+    // The download holds every matching row, not the on-screen cap.
+    expect(mockRunReport).toHaveBeenCalledWith(expect.objectContaining({ source: "asset" }), { capRows: false });
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "EXPORT", entityType: "Report", entityId: "r1", entityName: "Q1 / Report!" })
     );

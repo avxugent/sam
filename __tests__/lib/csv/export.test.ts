@@ -10,8 +10,13 @@ vi.mock("@/lib/prisma", () => ({
     $queryRaw: vi.fn(),
   },
 }));
+// The stock export resolves its location paths through this helper; its own
+// tree query is covered by the path tests, so it is stubbed with the fixture.
+vi.mock("@/lib/locations/path", () => ({ getLocationPathsBatch: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
+import { getLocationPathsBatch } from "@/lib/locations/path";
+import { ancestorChain } from "@/lib/locations/tree";
 import { parseImportRow } from "@/lib/csv/import";
 import { CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
 import { generateActiveAssetsCsv, generateDecommissionedCsv, generateHostnameComplianceCsv, generateReportCsv, generateStockCsv } from "@/lib/csv/export";
@@ -259,13 +264,12 @@ describe("generateStockCsv()", () => {
   }
 
   beforeEach(() => {
-    // The path helper's full-tree read, and the export's own FI-number lookup.
-    mockLocFind.mockImplementation(((args?: { select?: Record<string, unknown>; where?: unknown }) => {
-      const isTreeRead = !args?.where && args?.select && Object.keys(args.select).sort().join() === "id,name,parentId";
-      return Promise.resolve(
-        isTreeRead ? LOCATIONS.map((l) => ({ id: l.id, name: l.name, parentId: l.parentId })) : [{ id: "room", fiNumber: "14.10.100.013" }]
-      );
-    }) as never);
+    // Paths from the fixture tree; the export's own query is the FI-number lookup.
+    const byId = new Map(LOCATIONS.map((l) => [l.id, l]));
+    vi.mocked(getLocationPathsBatch).mockImplementation(async (ids, separator = " - ") =>
+      new Map(ids.map((id) => [id, ancestorChain(id, byId).map((l) => l.name).join(separator)]))
+    );
+    mockLocFind.mockResolvedValue([{ id: "room", fiNumber: "14.10.100.013" }] as never);
   });
 
   it("emits the stock header and maps a row with reserved location and mac", async () => {
@@ -424,5 +428,16 @@ describe("generateReportCsv() / generateHostnameComplianceCsv()", () => {
       { typeName: "PC", pattern: "^pc-", nonCompliantAssets: [{ hostname: "x", model: null, serialNumber: "S", locationPath: "A > B", fiNumber: null }] },
     ] as never);
     expect(csv.split("\r\n")).toEqual(["TYPE;PATTERN;HOSTNAME;MODEL;SERIAL;LOCATION;FI_NUMBER", "PC;^pc-;x;;S;A > B;"]);
+  });
+});
+
+describe("generateReportCsv() — mismatched result", () => {
+  it("throws instead of returning an empty CSV when an asset result meets a location definition", () => {
+    expect(() =>
+      generateReportCsv(
+        { source: "location", itemIds: ["i1"], status: "all" },
+        { source: "asset", rows: [], groups: [], total: 0 }
+      )
+    ).toThrow("Report result does not match its definition");
   });
 });

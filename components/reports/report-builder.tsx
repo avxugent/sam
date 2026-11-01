@@ -17,9 +17,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { Plus, Trash2, Save, Search, X } from "lucide-react";
 import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey, ReportDefinition, ReportSource, LocationReportStatus, LocationReportPeriodUnit } from "@/lib/reports/types";
 import { isLocationReport } from "@/lib/reports/types";
-import { apiErrorMessage } from "@/lib/utils";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
-import { apiFetch, jsonBody } from "@/lib/api-client";
+import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
 import { allowedFilterOps, filterValueInput, isOptionFilterField, type OptionFilterField } from "@/lib/schemas/report";
 
 

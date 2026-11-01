@@ -8,6 +8,7 @@ const mockToast = vi.fn();
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
 import { CsvImportClient } from "@/components/admin/data/csv-import-client";
+import { ASSET_CSV_COLUMNS } from "@/lib/csv/columns";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch as never;
@@ -77,5 +78,13 @@ describe("CsvImportClient", () => {
     await screen.findByText(/detectedRows/);
     await userEvent.click(screen.getByRole("button", { name: "removeFile" }));
     expect(screen.queryByText(/detectedRows/)).not.toBeInTheDocument();
+  });
+
+  it("builds the column guide from the shared CSV columns, custom fields included", async () => {
+    render(<CsvImportClient />);
+    await userEvent.click(screen.getByText("mappingTitle"));
+    for (const column of ASSET_CSV_COLUMNS) expect(screen.getByText(column)).toBeInTheDocument();
+    expect(screen.getByText(/columnGuide\.LOKAAL/)).toBeInTheDocument();
+    expect(screen.getByText(/columnGuide\.customField:\{"key":"GUID"\}/)).toBeInTheDocument();
   });
 });

@@ -17,6 +17,10 @@ describe("parseReportDefinition()", () => {
     expect(parseReportDefinition(JSON.stringify({ source: "location", locationIds: "nope" }))).toBeNull();
   });
 
+  it("rejects a definition without a source", () => {
+    expect(parseReportDefinition(JSON.stringify({ filters: [], groupBy: "none", columns: ["model"] }))).toBeNull();
+  });
+
   it("parses a valid stored definition", () => {
     const definition = { source: "location", itemIds: ["i1"], status: "all" };
     expect(parseReportDefinition(JSON.stringify(definition))).toEqual(definition);
@@ -67,7 +71,7 @@ describe("filterValueInput()", () => {
 });
 
 describe("reportDefinitionSchema filters", () => {
-  const asset = (filters: unknown[]) => ({ filters, groupBy: "none", columns: ["model"] });
+  const asset = (filters: unknown[]) => ({ source: "asset", filters, groupBy: "none", columns: ["model"] });
 
   it("accepts every op a field allows", () => {
     const filters = Object.entries(REPORT_FILTER_FIELDS).flatMap(([field, def]) =>

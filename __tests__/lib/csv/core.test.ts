@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { parseCsv, parseDate, splitCsvLine, csvValue, escapeCsvCell } from "@/lib/csv/core";
+import { parseCsv, parseCsvDate, splitCsvLine, csvValue, escapeCsvCell } from "@/lib/csv/core";
 
-// ── parseDate ───────────────────────────────────────────────────────────────
+// ── parseCsvDate ───────────────────────────────────────────────────────────────
 
-describe("parseDate()", () => {
+describe("parseCsvDate()", () => {
   it("parses ISO format YYYY-MM-DD", () => {
-    const d = parseDate("2024-01-15");
+    const d = parseCsvDate("2024-01-15");
     expect(d).not.toBeNull();
     expect(d!.getFullYear()).toBe(2024);
     expect(d!.getMonth()).toBe(0); // January
@@ -13,7 +13,7 @@ describe("parseDate()", () => {
   });
 
   it("parses DD/MM/YYYY with slash separator", () => {
-    const d = parseDate("15/01/2024");
+    const d = parseCsvDate("15/01/2024");
     expect(d).not.toBeNull();
     expect(d!.getFullYear()).toBe(2024);
     expect(d!.getMonth()).toBe(0);
@@ -21,39 +21,39 @@ describe("parseDate()", () => {
   });
 
   it("parses DD-MM-YYYY with hyphen separator", () => {
-    const d = parseDate("15-01-2024");
+    const d = parseCsvDate("15-01-2024");
     expect(d).not.toBeNull();
     expect(d!.getFullYear()).toBe(2024);
   });
 
   it("parses DD.MM.YYYY with dot separator", () => {
-    const d = parseDate("15.01.2024");
+    const d = parseCsvDate("15.01.2024");
     expect(d).not.toBeNull();
     expect(d!.getFullYear()).toBe(2024);
   });
 
   it("parses DD/MM/YY short year (2-digit → 20xx)", () => {
-    const d = parseDate("15/01/24");
+    const d = parseCsvDate("15/01/24");
     expect(d).not.toBeNull();
     expect(d!.getFullYear()).toBe(2024);
   });
 
   it("returns null for empty string", () => {
-    expect(parseDate("")).toBeNull();
+    expect(parseCsvDate("")).toBeNull();
   });
 
   it("returns null for whitespace", () => {
-    expect(parseDate("   ")).toBeNull();
+    expect(parseCsvDate("   ")).toBeNull();
   });
 
   it("returns null for completely invalid string", () => {
-    expect(parseDate("not-a-date")).toBeNull();
+    expect(parseCsvDate("not-a-date")).toBeNull();
   });
 
   it("returns null for a string that has no date-like structure", () => {
     // Confirmed: JS Date rolls over (Feb 31 → Mar 2), so we test a
     // genuinely unparseable string that no Date constructor handles
-    expect(parseDate("99-99-9999")).toBeNull();
+    expect(parseCsvDate("99-99-9999")).toBeNull();
   });
 });
 
@@ -186,13 +186,12 @@ describe("escapeCsvCell()", () => {
   it("leaves plain values alone and maps null/undefined to empty", () => {
     expect(escapeCsvCell("plain")).toBe("plain");
     expect(escapeCsvCell(null)).toBe("");
-    expect(escapeCsvCell(undefined, ",")).toBe("");
+    expect(escapeCsvCell(undefined)).toBe("");
   });
 
-  it("quotes only the active delimiter", () => {
+  it("quotes the ';' delimiter but not a comma", () => {
     expect(escapeCsvCell("a;b")).toBe('"a;b"');
     expect(escapeCsvCell("a,b")).toBe("a,b");
-    expect(escapeCsvCell("a,b", ",")).toBe('"a,b"');
   });
 
   it("quotes and doubles embedded quotes and line breaks", () => {

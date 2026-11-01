@@ -17,9 +17,8 @@ import {
   ChevronUp,
   X,
 } from "lucide-react";
-import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch } from "@/lib/api-client";
-import { CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
+import { apiFetch, apiErrorMessage } from "@/lib/api-client";
+import { ASSET_CSV_COLUMNS, CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
 
 type PreviewData = {
   totalRows: number;
@@ -34,28 +33,8 @@ type ImportResult = {
   errors: string[];
 };
 
-// Which CSV columns map to which SAM fields
-const COLUMN_MAPPING = [
-  { csv: "CAMPUS", sam: "Location — Level 1 (Campus)" },
-  { csv: "GEBOUW", sam: "Location — Level 2 (Building)" },
-  { csv: "LOKAAL", sam: "Location — Level 3 (Room) *required*" },
-  { csv: "TYPE", sam: "Asset Type (auto-created)" },
-  { csv: "BRAND", sam: "Manufacturer (auto-created)" },
-  { csv: "MODEL", sam: "Model" },
-  { csv: "SERIAL", sam: "Serial Number" },
-  { csv: "MAC", sam: "MAC Address(es)" },
-  { csv: "IP_HOSTNAME", sam: "Hostname" },
-  { csv: "INSTALL_DATE", sam: "Installation Date" },
-  { csv: "Factuurnummer", sam: "Invoice Number" },
-  { csv: "Factuurdatum", sam: "Invoice Date" },
-  { csv: "FI NUMMER", sam: "FI Number → stored on the room location (CC.BB.FFF.RRR)" },
-  { csv: "OWNER", sam: "Owner (matched by user email; unmatched → default owner)" },
-  { csv: "CRITICALITY", sam: "Criticality (LOW / MEDIUM / HIGH / CRITICAL)" },
-  { csv: "END_OF_SUPPORT", sam: "End-of-support date" },
-  { csv: "SUPPLIER", sam: "Supplier (auto-created)" },
-  { csv: "QUANTITY", sam: "Quantity (ignored when a serial number, hostname, or MAC address is set)" },
-  ...CUSTOM_FIELD_COLUMNS.map(({ column, key }) => ({ csv: column, sam: `Custom Field: ${key}` })),
-];
+// Custom field key per legacy CSV column, for the column guide.
+const CUSTOM_FIELD_KEY_BY_COLUMN = new Map<string, string>(CUSTOM_FIELD_COLUMNS.map(({ column, key }) => [column, key]));
 
 export function CsvImportClient() {
   const { toast } = useToast();
@@ -179,14 +158,19 @@ export function CsvImportClient() {
         {showMapping && (
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm">
-              {COLUMN_MAPPING.map(({ csv, sam }) => (
-                <div key={csv} className="flex items-start gap-2">
-                  <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono flex-shrink-0 mt-0.5">
-                    {csv}
-                  </code>
-                  <span className="text-muted-foreground">→ {sam}</span>
-                </div>
-              ))}
+              {ASSET_CSV_COLUMNS.map((csv) => {
+                const customFieldKey = CUSTOM_FIELD_KEY_BY_COLUMN.get(csv);
+                return (
+                  <div key={csv} className="flex items-start gap-2">
+                    <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono flex-shrink-0 mt-0.5">
+                      {csv}
+                    </code>
+                    <span className="text-muted-foreground">
+                      → {customFieldKey ? t("columnGuide.customField", { key: customFieldKey }) : t(`columnGuide.${csv}`)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         )}
@@ -218,7 +202,7 @@ export function CsvImportClient() {
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {preview.columns.map((col) => {
-                  const known = COLUMN_MAPPING.some((m) => m.csv === col);
+                  const known = ASSET_CSV_COLUMNS.includes(col);
                   return (
                     <Badge key={col} variant={known ? "default" : "outline"} className="text-xs font-mono">
                       {col}

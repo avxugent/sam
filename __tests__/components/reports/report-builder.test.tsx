@@ -66,7 +66,7 @@ describe("<ReportBuilder />", () => {
 
   it("shows the no-columns error when all columns are removed", async () => {
     const user = userEvent.setup();
-    renderBuilder({ initialDefinition: { filters: [], groupBy: "none", columns: ["model"] } });
+    renderBuilder({ initialDefinition: { source: "asset", filters: [], groupBy: "none", columns: ["model"] } });
     expect(screen.queryByText("selectColumnError")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "model" })); // remove last column
     expect(screen.getByText("selectColumnError")).toBeInTheDocument();
@@ -83,6 +83,7 @@ describe("<ReportBuilder />", () => {
   it("picks the value control from the filter field's kind and op", () => {
     const { container } = renderBuilder({
       initialDefinition: {
+        source: "asset",
         filters: [
           { field: "installationDate", op: "olderThanYears", value: "5" },
           { field: "invoiceDate", op: "before", value: "2024-01-01" },

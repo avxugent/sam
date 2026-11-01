@@ -12,7 +12,7 @@ export type CsvRow = Record<string, string>;
  *   DD/MM/YY  (2-digit year, treated as 20xx)
  * Returns null if the value is empty or unparseable.
  */
-export function parseDate(val: string): Date | null {
+export function parseCsvDate(val: string): Date | null {
   if (!val || val.trim() === "") return null;
 
   const s = val.trim();
@@ -102,12 +102,11 @@ function splitCsvRecords(text: string): string[] {
 
 /**
  * Quotes a cell for CSV output when it contains the delimiter, a quote or a
- * line break (doubling inner quotes). The import-compatible exports use ";",
- * report and table downloads use ",".
+ * line break (doubling inner quotes). Every CSV export uses ";".
  */
-export function escapeCsvCell(value: string | null | undefined, delimiter: ";" | "," = ";"): string {
+export function escapeCsvCell(value: string | null | undefined): string {
   const s = value ?? "";
-  return s.includes(delimiter) || /["\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return /[;"\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 /**

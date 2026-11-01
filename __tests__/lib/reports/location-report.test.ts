@@ -8,20 +8,27 @@ vi.mock("@/lib/prisma", () => ({
     $queryRaw: vi.fn(),
   },
 }));
+// The report reads campus/building through this helper; its own tree query is
+// covered by the path tests, so it is stubbed with the fixture tree.
+vi.mock("@/lib/locations/path", () => ({ getAncestorChainsBatch: vi.fn(), getLocationPathsBatch: vi.fn() }));
 
 import { runLocationReport } from "@/lib/reports/engine";
 import { prisma } from "@/lib/prisma";
+import { getAncestorChainsBatch } from "@/lib/locations/path";
+import { ancestorChain } from "@/lib/locations/tree";
 
 const mockItemFindMany = vi.mocked(prisma.workLogItem.findMany);
 const mockLocFindMany = vi.mocked(prisma.location.findMany);
 const mockLogFindMany = vi.mocked(prisma.workLog.findMany);
 
-/** Answers location.findMany: the full-tree read of the path helpers gets `tree`, any other query `other`. */
-function locationRows(tree: unknown[], other: unknown[] = []) {
-  mockLocFindMany.mockImplementation(((args?: { select?: Record<string, unknown>; where?: unknown }) => {
-    const isTreeRead = !args?.where && args?.select && Object.keys(args.select).sort().join() === "id,name,parentId";
-    return Promise.resolve(isTreeRead ? tree : other);
-  }) as never);
+/** Ancestor chains come from `tree`; the report's own location.findMany returns `rooms`. */
+function locationRows(tree: { id: string; name: string; parentId: string | null }[], rooms: unknown[]) {
+  const byId = new Map(tree.map((l) => [l.id, l]));
+  vi.mocked(getAncestorChainsBatch).mockImplementation(async (ids) => {
+    const chains = ids.map((id) => ancestorChain(id, byId)).filter((chain) => chain.length > 0);
+    return new Map(chains.map((chain) => [chain[chain.length - 1].id, { ids: chain.map((l) => l.id), names: chain.map((l) => l.name) }]));
+  });
+  mockLocFindMany.mockResolvedValue(rooms as never);
 }
 
 function daysAgo(n: number): Date {
@@ -31,7 +38,7 @@ function daysAgo(n: number): Date {
 beforeEach(() => {
   vi.clearAllMocks();
   mockItemFindMany.mockResolvedValue([{ id: "wi1", name: "Review asset list" }] as never);
-  // Full tree read by getAncestorChainsBatch (campus → building → rooms), and the report's own room list.
+  // Tree behind getAncestorChainsBatch (campus → building → rooms), and the report's own room list.
   locationRows(
     [
       { id: "c14", name: "Campus 14", parentId: null },

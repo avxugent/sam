@@ -38,7 +38,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     data: {
       name,
       description,
-      ...(definition !== undefined ? { definition: JSON.stringify(definition) } : {}),
+      definition: definition && JSON.stringify(definition),
     },
   });
 

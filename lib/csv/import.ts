@@ -11,7 +11,7 @@
  * plus OWNER, CRITICALITY, END_OF_SUPPORT and SUPPLIER from the current export.
  */
 
-import { csvValue as v, parseDate, type CsvRow } from "@/lib/csv/core";
+import { csvValue as v, parseCsvDate, type CsvRow } from "@/lib/csv/core";
 import { normalizeMacAddress } from "@/lib/mac-address";
 import { CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
 import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
@@ -132,10 +132,10 @@ export function parseImportRow(row: CsvRow, userIdByEmail: Map<string, string>):
       serialNumber,
       hostname,
       quantity,
-      installationDate: parseDate(v(row, "INSTALL_DATE")),
-      invoiceDate: parseDate(v(row, "Factuurdatum")),
+      installationDate: parseCsvDate(v(row, "INSTALL_DATE")),
+      invoiceDate: parseCsvDate(v(row, "Factuurdatum")),
       invoiceNumber: v(row, "Factuurnummer") || null,
-      endOfSupportDate: parseDate(v(row, "END_OF_SUPPORT")),
+      endOfSupportDate: parseCsvDate(v(row, "END_OF_SUPPORT")),
       criticality,
       macAddresses,
       customFields,

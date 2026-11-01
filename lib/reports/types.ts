@@ -13,7 +13,7 @@ export type {
   ReportDefinition,
 } from "@/lib/schemas/report";
 
-export type ReportSource = NonNullable<ReportDefinition["source"]>;
+export type ReportSource = ReportDefinition["source"];
 
 export type LocationReportStatus = LocationReportDefinition["status"];
 

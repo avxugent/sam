@@ -64,7 +64,7 @@ function scalarCondition(
 }
 
 /** Parses a before/after filter value; null for an unparseable date. */
-function parseDate(value: string): Date | null {
+function parseFilterDate(value: string): Date | null {
   const d = new Date(value);
   return isNaN(d.getTime()) ? null : d;
 }
@@ -72,7 +72,7 @@ function parseDate(value: string): Date | null {
 /** before/after an absolute date, or older/newer than N days or years; null otherwise. */
 function dateCondition(field: string, op: ReportFilter["op"], value: string | undefined): Prisma.AssetWhereInput | null {
   if (op === "before" || op === "after") {
-    const d = value ? parseDate(value) : null;
+    const d = value ? parseFilterDate(value) : null;
     return d && { [field]: op === "before" ? { lt: d } : { gt: d } };
   }
   const n = numberOrNull(value);
@@ -178,19 +178,30 @@ export function translateFilters(filters: ReportFilter[]): Prisma.AssetWhereInpu
   return conditions.length === 0 ? {} : { AND: conditions };
 }
 
-export async function runReport(definition: ReportDefinition): Promise<ReportResult> {
+/**
+ * `capRows: false` returns every matching asset row instead of the first
+ * ASSET_REPORT_ROW_CAP (a CSV export must be complete; the on-screen run stays capped).
+ */
+export async function runReport(
+  definition: ReportDefinition,
+  options: { capRows?: boolean } = {}
+): Promise<ReportResult> {
   if (isLocationReport(definition)) {
     return runLocationReport(definition);
   }
-  return runAssetReport(definition);
+  return runAssetReport(definition, options);
 }
 
-/** Asset counts per value of `by`, labelled with the names `resolveNames` returns. */
+/**
+ * Asset counts per value of `by`, labelled with the names `resolveNames`
+ * returns. `noneLabel` labels the assets without a value; locationId is
+ * required, so location groups pass none.
+ */
 async function countGroups(
   by: "typeId" | "manufacturerId" | "locationId",
   where: Prisma.AssetWhereInput,
-  noneLabel: string,
-  resolveNames: (ids: string[]) => Promise<Map<string, string>>
+  resolveNames: (ids: string[]) => Promise<Map<string, string>>,
+  noneLabel = "Unknown"
 ): Promise<GroupCount[]> {
   const rows = await prisma.asset.groupBy({ by: [by], where, _count: { id: true } });
   const keyed = rows.map((row) => ({ id: row[by] as string | null, count: row._count.id }));
@@ -202,10 +213,13 @@ async function namesById(rows: Promise<{ id: string; name: string }[]>): Promise
   return new Map((await rows).map((row) => [row.id, row.name]));
 }
 
-/** Most rows an asset report returns; `total` still counts every match. */
+/** Most rows a capped asset report returns; `total` still counts every match. */
 export const ASSET_REPORT_ROW_CAP = 5000;
 
-export async function runAssetReport(definition: AssetReportDefinition): Promise<AssetReportResult> {
+export async function runAssetReport(
+  definition: AssetReportDefinition,
+  { capRows = true }: { capRows?: boolean } = {}
+): Promise<AssetReportResult> {
   // Decommissioned assets are historical, not current inventory — excluded by
   // default. Unlike the INSTALLED-only overviews, reports keep IN_REPAIR
   // assets. A report that is specifically about decommissioned assets (the
@@ -227,10 +241,10 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
       location: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
-    take: ASSET_REPORT_ROW_CAP,
+    take: capRows ? ASSET_REPORT_ROW_CAP : undefined,
   });
-  // Rows are capped; the total and the groups always cover every match.
-  const truncated = assets.length === ASSET_REPORT_ROW_CAP;
+  // Rows may be capped; the total and the groups always cover every match.
+  const truncated = capRows && assets.length === ASSET_REPORT_ROW_CAP;
   const total = truncated ? await prisma.asset.count({ where }) : assets.length;
 
   const uniqueLocationIds = [
@@ -260,15 +274,17 @@ export async function runAssetReport(definition: AssetReportDefinition): Promise
   let groups: GroupCount[] = [];
 
   if (definition.groupBy === "type") {
-    groups = await countGroups("typeId", where, "No type", (ids) =>
-      namesById(prisma.assetType.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }))
+    groups = await countGroups("typeId", where, (ids) =>
+      namesById(prisma.assetType.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })),
+      "No type"
     );
   } else if (definition.groupBy === "manufacturer") {
-    groups = await countGroups("manufacturerId", where, "No manufacturer", (ids) =>
-      namesById(prisma.manufacturer.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }))
+    groups = await countGroups("manufacturerId", where, (ids) =>
+      namesById(prisma.manufacturer.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })),
+      "No manufacturer"
     );
   } else if (definition.groupBy === "location") {
-    groups = await countGroups("locationId", where, "No location", getLocationPathsBatch);
+    groups = await countGroups("locationId", where, getLocationPathsBatch);
   } else if (definition.groupBy === "installationYear") {
     const yearMap = new Map<string, number>();
     const dated = truncated ? await prisma.asset.findMany({ where, select: { installationDate: true } }) : assets;

@@ -22,6 +22,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SELECT_NONE,
 } from "@/components/ui/select";
 import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -72,9 +73,6 @@ type Props = {
   children: React.ReactNode;
   onSuccess?: () => void;
 };
-
-const NO_ASSET = "__none__";
-const NO_ITEM = "__none__";
 
 function todayIsoDate(): string {
   return toIsoDay(new Date());
@@ -174,8 +172,8 @@ export function WorkLogFormDialog({
 
     const payload = {
       ...data,
-      assetId: data.assetId === NO_ASSET ? null : data.assetId || null,
-      itemId: data.itemId === NO_ITEM ? null : data.itemId || null,
+      assetId: data.assetId === SELECT_NONE ? null : data.assetId || null,
+      itemId: data.itemId === SELECT_NONE ? null : data.itemId || null,
       // Send null (not "") so an item-only entry passes the API's non-empty
       // description rule.
       description: data.description?.trim() ? data.description : null,
@@ -221,14 +219,14 @@ export function WorkLogFormDialog({
           <div className="space-y-1.5">
             <Label htmlFor="wl-asset">{t("asset")} <span className="text-xs text-muted-foreground">({tCommon("optional")})</span></Label>
             <Select
-              value={assetIdValue ?? NO_ASSET}
-              onValueChange={(v) => setValue("assetId", v === NO_ASSET ? null : v, { shouldValidate: true })}
+              value={assetIdValue ?? SELECT_NONE}
+              onValueChange={(v) => v && setValue("assetId", v === SELECT_NONE ? null : v, { shouldValidate: true })}
             >
               <SelectTrigger id="wl-asset">
                 <SelectValue placeholder={t("noSpecificAsset")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_ASSET}>— {t("noAsset")} —</SelectItem>
+                <SelectItem value={SELECT_NONE}>— {t("noAsset")} —</SelectItem>
                 {assets.map((a) => (
                   <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>
                 ))}
@@ -240,14 +238,14 @@ export function WorkLogFormDialog({
             <div className="space-y-1.5">
               <Label htmlFor="wl-item">{t("item")} <span className="text-xs text-muted-foreground">({tCommon("optional")})</span></Label>
               <Select
-                value={itemIdValue ?? NO_ITEM}
-                onValueChange={(v) => setValue("itemId", v === NO_ITEM ? null : v, { shouldValidate: true })}
+                value={itemIdValue ?? SELECT_NONE}
+                onValueChange={(v) => v && setValue("itemId", v === SELECT_NONE ? null : v, { shouldValidate: true })}
               >
                 <SelectTrigger id="wl-item">
                   <SelectValue placeholder={t("noItem")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_ITEM}>— {t("noItem")} —</SelectItem>
+                  <SelectItem value={SELECT_NONE}>— {t("noItem")} —</SelectItem>
                   {items.map((it) => (
                     <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>
                   ))}
@@ -279,7 +277,7 @@ export function WorkLogFormDialog({
               </Label>
               <Select
                 value={watch("performedById") ?? currentUserId}
-                onValueChange={(v) => setValue("performedById", v, { shouldValidate: true })}
+                onValueChange={(v) => v && setValue("performedById", v, { shouldValidate: true })}
               >
                 <SelectTrigger id="wl-user" aria-required="true">
                   <SelectValue />

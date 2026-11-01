@@ -5,6 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { createWorkLogSchema } from "@/lib/schemas/work-log";
 import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
 import { canEdit } from "@/lib/permissions";
+import { assetLabel } from "@/lib/assets/label";
 import { invalidInput, isForeignKeyError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 
 export async function GET(
@@ -68,7 +69,7 @@ export async function POST(
   }
 
   const assetName = created.asset
-    ? (created.asset.model?.name ?? created.asset.serialNumber ?? created.asset.hostname ?? null)
+    ? assetLabel(created.asset)
     : null;
 
   await logAudit({

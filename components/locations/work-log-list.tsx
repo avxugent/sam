@@ -22,13 +22,14 @@ import { JiraIssueBadge } from "@/components/locations/jira-issue-badge";
 import { useTranslations } from "next-intl";
 import { getInitials } from "@/lib/utils";
 import { formatDate } from "@/lib/dates";
-import * as permissions from "@/lib/permissions";
-import type { Role } from "@/lib/permissions";
+import { canEdit, canModifyWorkLog, type Role } from "@/lib/permissions";
+import { assetLabel } from "@/lib/assets/label";
 import { apiFetch } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export type WorkLogEntry = {
   id: string;
+  /** The day the work was done, YYYY-MM-DD. */
   performedAt: string;
   description: string;
   jiraIssueKey: string | null;
@@ -54,9 +55,9 @@ type Props = {
   jiraBaseUrl: string | null;
 };
 
-function assetLabel(asset: WorkLogEntry["asset"]): string {
+function assetDisplayName(asset: WorkLogEntry["asset"]): string {
   if (!asset) return "";
-  return asset.model?.name || asset.hostname || asset.serialNumber || "Asset";
+  return assetLabel(asset) ?? "Asset";
 }
 
 export function WorkLogList({
@@ -83,8 +84,7 @@ export function WorkLogList({
   // once and new entries don't appear until a manual page reload.
   useEffect(() => { setEntries(initialEntries); }, [initialEntries]);
 
-  const canCreate = permissions.canEdit(userRole);
-  const isAdmin = permissions.isAdmin(userRole);
+  const canCreate = canEdit(userRole);
 
   const filtered = entries.filter((e) => {
     if (!search) return true;
@@ -94,7 +94,7 @@ export function WorkLogList({
       e.performedBy.name?.toLowerCase().includes(q) ||
       e.jiraIssueKey?.toLowerCase().includes(q) ||
       e.item?.name.toLowerCase().includes(q) ||
-      assetLabel(e.asset).toLowerCase().includes(q)
+      assetDisplayName(e.asset).toLowerCase().includes(q)
     );
   });
 
@@ -110,12 +110,11 @@ export function WorkLogList({
   }
 
   function canModify(entry: WorkLogEntry): boolean {
-    return isAdmin || entry.performedBy.id === currentUserId;
+    return canModifyWorkLog(userRole, currentUserId, entry.performedBy.id);
   }
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -145,7 +144,6 @@ export function WorkLogList({
         )}
       </div>
 
-      {/* Empty state */}
       {entries.length === 0 ? (
         <div className="text-center py-12 border border-border rounded-[10px] bg-card">
           <Wrench className="h-10 w-10 mx-auto mb-3 text-subtle opacity-60" />
@@ -162,7 +160,7 @@ export function WorkLogList({
         <div className="space-y-2">
           {filtered.map((entry) => {
             const initials = getInitials(entry.performedBy.name, entry.performedBy.email);
-            const assetText = assetLabel(entry.asset);
+            const assetText = assetDisplayName(entry.asset);
             return (
               <div
                 key={entry.id}
@@ -222,7 +220,6 @@ export function WorkLogList({
                     )}
                   </div>
 
-                  {/* Actions */}
                   {canModify(entry) && (
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <WorkLogFormDialog
@@ -233,7 +230,7 @@ export function WorkLogList({
                           assetId: entry.asset?.id ?? null,
                           itemId: entry.item?.id ?? null,
                           performedById: entry.performedBy.id,
-                          performedAt: entry.performedAt.split("T")[0],
+                          performedAt: entry.performedAt,
                           description: entry.description,
                           jiraIssueKey: entry.jiraIssueKey,
                         }}

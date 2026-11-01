@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/users/names", () => ({ userNamesById: vi.fn(async () => new Map([["u1", "Ada"]])) }));
 vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: { workLog: { findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() } },
@@ -85,6 +86,37 @@ describe("PUT /api/work-logs/[id]", () => {
         detail: { changes: expect.objectContaining({ Description: { from: "old", to: "new" }, "JIRA issue": { from: null, to: "AVT-1" }, "Performed at": { from: "2024-01-01", to: "2024-02-02" } }) },
       })
     );
+  });
+});
+
+describe("PUT /api/work-logs/[id] — performer change", () => {
+  it("audits a change of performer (the ownership key) with names", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR", "u1") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    vi.mocked(prisma.workLog.update).mockResolvedValue({ id: "w1", performedBy: { id: "u2", name: "Bob" } } as never);
+    expect((await PUT(put({ performedById: "u2" }), { params: params() })).status).toBe(200);
+    expect(vi.mocked(prisma.workLog.update).mock.calls[0][0].data).toMatchObject({ performedById: "u2" });
+    expect(mockLogAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { changes: { "Performed by": { from: "Ada", to: "Bob" } } } })
+    );
+  });
+
+  it("records nothing when the performer is resubmitted unchanged", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR", "u1") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    vi.mocked(prisma.workLog.update).mockResolvedValue({ id: "w1", performedBy: { id: "u1", name: "Ada" } } as never);
+    await PUT(put({ performedById: "u1" }), { params: params() });
+    expect(mockLogAudit).toHaveBeenCalledWith(expect.objectContaining({ detail: undefined }));
+  });
+
+  it("leaves untouched fields out of the update", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR", "u1") as never);
+    vi.mocked(prisma.workLog.findUnique).mockResolvedValue(EXISTING as never);
+    vi.mocked(prisma.workLog.update).mockResolvedValue({ id: "w1", performedBy: { id: "u1", name: "Ada" } } as never);
+    await PUT(put({ assetId: null, jiraIssueKey: "" }), { params: params() });
+    expect(vi.mocked(prisma.workLog.update).mock.calls[0][0].data).toEqual({
+      assetId: null, itemId: undefined, performedById: undefined, performedAt: undefined, description: undefined, jiraIssueKey: null,
+    });
   });
 });
 

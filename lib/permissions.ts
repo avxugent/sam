@@ -25,3 +25,11 @@ export function canManageCatalog(role: MaybeRole): boolean {
 export function canEdit(role: MaybeRole): boolean {
   return role === Role.ADMIN || role === Role.MAINTAINER || role === Role.EDITOR;
 }
+
+/**
+ * Edit or delete a work-log entry: writers only, and among them the entry's
+ * performer or an admin. The one record-level (ownership) rule in the app.
+ */
+export function canModifyWorkLog(role: MaybeRole, userId: string | null | undefined, performedById: string): boolean {
+  return canEdit(role) && (isAdmin(role) || performedById === userId);
+}

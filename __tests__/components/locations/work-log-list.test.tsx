@@ -18,7 +18,7 @@ import { WorkLogList, type WorkLogEntry } from "@/components/locations/work-log-
 function entry(over: Partial<WorkLogEntry> = {}): WorkLogEntry {
   return {
     id: "w1",
-    performedAt: "2024-03-10T00:00:00Z",
+    performedAt: "2024-03-10",
     description: "Replaced power supply",
     jiraIssueKey: null,
     performedBy: { id: "u1", name: "Alice Smith", email: "alice@x.com" },
@@ -88,6 +88,11 @@ describe("<WorkLogList />", () => {
 
   it("hides modify actions for entries authored by others when not admin", () => {
     renderList([entry({ performedBy: { id: "u2", name: "Bob", email: "bob@x.com" } })], { userRole: "EDITOR", currentUserId: "u1" });
+    expect(screen.queryByLabelText(/deleteEntry/)).toBeNull();
+  });
+
+  it("hides modify actions from a viewer, even on their own entries (the server would answer 403)", () => {
+    renderList([entry({ performedBy: { id: "u1", name: "Ada", email: "ada@x.com" } })], { userRole: "VIEWER", currentUserId: "u1" });
     expect(screen.queryByLabelText(/deleteEntry/)).toBeNull();
   });
 });

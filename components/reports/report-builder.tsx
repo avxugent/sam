@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Plus, Trash2, Save, Search, X } from "lucide-react";
 import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey, ReportDefinition, ReportSource, LocationReportStatus, LocationReportPeriodUnit } from "@/lib/reports/types";
 import { isLocationReport } from "@/lib/reports/types";
+import { useColumnLabels } from "@/components/reports/use-column-labels";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
 import { allowedFilterOps, filterValueInput, isOptionFilterField, type OptionFilterField } from "@/lib/schemas/report";
@@ -101,22 +102,7 @@ export function ReportBuilder({
   };
   const groupByOptions = (Object.keys(groupByLabels) as GroupByField[]).map((value) => ({ value, label: groupByLabels[value] }));
 
-  const columnLabels: Record<ColumnKey, string> = {
-    model: tField("model"),
-    serialNumber: tField("serialNumber"),
-    hostname: tField("hostname"),
-    type: tField("type"),
-    manufacturer: tField("manufacturer"),
-    location: tField("location"),
-    installationDate: tField("installationDate"),
-    invoiceDate: tField("invoiceDate"),
-    invoiceNumber: tField("invoiceNumber"),
-    notes: tField("notes"),
-    lastChanged: tField("lastModified"),
-    supplier: tField("supplier"),
-    criticality: tField("criticality"),
-    endOfSupportDate: tField("endOfSupport"),
-  };
+  const columnLabels = useColumnLabels();
   const columnOptions = (Object.keys(columnLabels) as ColumnKey[]).map((value) => ({ value, label: columnLabels[value] }));
 
   const assetStatusOptions: AssetOption[] = [

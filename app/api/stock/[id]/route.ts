@@ -9,6 +9,7 @@ import { parseStockMetadata, serializeStockMetadata, stockMetadataMacs } from "@
 import { STOCK_IDENTITY_QUANTITY_MESSAGE, updateStockItemSchema } from "@/lib/schemas/stock";
 import { hasDeviceIdentity } from "@/lib/schemas/asset";
 import { toDateUpdate } from "@/lib/dates";
+import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/assets/include";
 
 export async function GET(
   _req: NextRequest,
@@ -90,7 +91,7 @@ export async function PUT(
       invoiceDate: toDateUpdate(invoiceDate),
       ...metadataUpdate,
     },
-    include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
+    include: STOCK_ITEM_ROW_INCLUDE,
     });
   } catch (err) {
     if (isForeignKeyError(err)) return unknownReferenceResponse();

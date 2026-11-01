@@ -37,3 +37,11 @@ export async function signInIncompleteResponse(
   if (!step || allowed.includes(step)) return null;
   return NextResponse.json({ error: "Sign-in is not complete." }, { status: 403 });
 }
+
+/**
+ * 401 for a session whose second-factor state no longer matches the user
+ * (factor removed, user deleted, upgrade refused): sign in again.
+ */
+export function sessionMismatchResponse() {
+  return NextResponse.json({ error: "Session state mismatch. Please log in again." }, { status: 401 });
+}

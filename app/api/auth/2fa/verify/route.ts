@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authIncludingPendingSteps } from "@/lib/auth";
 import { upgradeSession } from "@/lib/two-factor/session-upgrade";
+import { sessionMismatchResponse } from "@/lib/two-factor/sign-in-steps";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -57,10 +58,7 @@ export async function POST(req: NextRequest) {
   if (!user?.totpEnabled || !user.totpSecret) {
     // 2FA was disabled between login and this call — the session state is
     // inconsistent. Require the user to log in again rather than silently granting access.
-    return NextResponse.json(
-      { error: "Session state mismatch. Please log in again." },
-      { status: 401 }
-    );
+    return sessionMismatchResponse();
   }
 
   const valid = verifyTotpCode(user.totpSecret, parsed.data.code);
@@ -73,7 +71,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!(await upgradeSession(session.user.id, "totp"))) {
-    return NextResponse.json({ error: "Session state mismatch. Please log in again." }, { status: 401 });
+    return sessionMismatchResponse();
   }
 
   const response = NextResponse.json({ ok: true });

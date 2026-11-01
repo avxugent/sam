@@ -18,10 +18,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
+import { Pencil, Trash2, Check, X } from "lucide-react";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 import { useServerList } from "@/components/admin/use-server-list";
+import { AddButton } from "@/components/admin/catalog/add-name-row";
 
 export type WorkLogItem = {
   id: string;
@@ -114,10 +115,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
             className="max-w-md text-sm"
           />
         </div>
-        <Button onClick={handleAdd} disabled={adding || !newName.trim()}>
-          {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          {tCommon("add")}
-        </Button>
+        <AddButton name={newName} adding={adding} onAdd={handleAdd} />
       </div>
 
       <div className="border rounded-lg divide-y">

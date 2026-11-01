@@ -8,7 +8,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { authIncludingPendingSteps } from "@/lib/auth";
-import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
+import { signInIncompleteResponse, sessionMismatchResponse } from "@/lib/two-factor/sign-in-steps";
 import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   // clean session so the proxy no longer redirects to /login/setup-2fa.
   // Mirrors what /api/auth/2fa/verify does for the needs2FA flag.
   if (session.needs2FASetup && !(await upgradeSession(session.user.id, "totp"))) {
-    return NextResponse.json({ error: "Session state mismatch. Please log in again." }, { status: 401 });
+    return sessionMismatchResponse();
   }
 
   return NextResponse.json({ ok: true, message: "2FA has been enabled." });

@@ -48,3 +48,11 @@ export const CATALOG_DRILLDOWN_SELECT = {
   manufacturer: { select: { name: true } },
   macAddresses: { select: { id: true, address: true } },
 } satisfies Prisma.AssetSelect;
+
+/** Relations of a stock item as the stock table and form expect it; the stock page and the stock create/update endpoints return this shape. */
+export const STOCK_ITEM_ROW_INCLUDE = {
+  type: true,
+  manufacturer: true,
+  model: true,
+  location: { select: { id: true, name: true } },
+} satisfies Prisma.StockItemInclude;

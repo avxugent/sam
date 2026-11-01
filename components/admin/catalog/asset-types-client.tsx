@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Pencil, Trash2, Check, X, Plus, Activity, ChevronDown, ChevronRight, Info, Hash } from "lucide-react";
+import { Loader2, Pencil, Trash2, Check, X, Activity, ChevronDown, ChevronRight, Info, Hash } from "lucide-react";
 import { validateTemplate } from "@/lib/prometheus/scrape-template";
 import { validateHostnamePattern } from "@/lib/hostname";
 import { MaintenancePresetsManager } from "@/components/admin/catalog/maintenance-presets-manager";
@@ -25,6 +25,7 @@ import { apiFetch, jsonBody } from "@/lib/api-client";
 import type { ManufacturerOption } from "@/components/inventory/use-type-scoped-manufacturers";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 import { useServerList } from "@/components/admin/use-server-list";
+import { AddNameRow } from "@/components/admin/catalog/add-name-row";
 
 type AssetType = {
   id: string;
@@ -206,19 +207,7 @@ export function AssetTypesClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <Input
-          placeholder={t("namePlaceholder")}
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
-          className="max-w-sm"
-        />
-        <Button onClick={handleAdd} disabled={adding || !newName.trim()}>
-          {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          {tCommon("add")}
-        </Button>
-      </div>
+      <AddNameRow name={newName} onNameChange={setNewName} placeholder={t("namePlaceholder")} adding={adding} onAdd={handleAdd} />
 
       <div className="border rounded-lg divide-y">
         {types.length === 0 ? (

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
+import { Pencil, Trash2, Check, X } from "lucide-react";
 import { AssetDrilldownDialog } from "@/components/admin/catalog/asset-drilldown-dialog";
 import { readMergeConflict, type MergeConflict } from "@/components/admin/catalog/merge-conflict";
 import { MergeConfirmDialog } from "@/components/admin/catalog/merge-confirm-dialog";
@@ -15,6 +15,7 @@ import { useCatalogMerge } from "@/components/admin/catalog/use-catalog-merge";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 import { useServerList } from "@/components/admin/use-server-list";
+import { AddNameRow } from "@/components/admin/catalog/add-name-row";
 
 type Manufacturer = {
   id: string;
@@ -113,19 +114,7 @@ export function ManufacturersClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <Input
-          placeholder={t("addNewManufacturer")}
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
-          className="max-w-sm"
-        />
-        <Button onClick={handleAdd} disabled={adding || !newName.trim()}>
-          {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          {tCommon("add")}
-        </Button>
-      </div>
+      <AddNameRow name={newName} onNameChange={setNewName} placeholder={t("addNewManufacturer")} adding={adding} onAdd={handleAdd} />
 
       <div className="border rounded-lg divide-y">
         {items.length === 0 ? (

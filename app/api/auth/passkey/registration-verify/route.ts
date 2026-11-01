@@ -12,7 +12,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { authIncludingPendingSteps } from "@/lib/auth";
-import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
+import { signInIncompleteResponse, sessionMismatchResponse } from "@/lib/two-factor/sign-in-steps";
 import { upgradeSession } from "@/lib/two-factor/session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
   // When this is a forced-setup session, re-issue a clean session so the
   // proxy no longer redirects to /login/setup-2fa. Mirrors /api/auth/2fa/enable.
   if (session.needs2FASetup && !(await upgradeSession(session.user.id, "passkey"))) {
-    return NextResponse.json({ error: "Session state mismatch. Please log in again." }, { status: 401 });
+    return sessionMismatchResponse();
   }
 
   const response = NextResponse.json({ ok: true });

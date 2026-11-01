@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { buildLocationPathsFromRows } from "@/lib/locations/path";
 import { canEdit, Role } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
+import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/assets/include";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function StockPage({
         ...(typeId ? { typeId } : {}),
         ...(locationId ? { locationId } : {}),
       },
-      include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
+      include: STOCK_ITEM_ROW_INCLUDE,
       orderBy: { createdAt: "desc" },
     }),
     typeId

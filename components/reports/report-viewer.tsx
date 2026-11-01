@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
 import type { AssetReportResult, ColumnKey } from "@/lib/reports/types";
 import { ReportToolbar } from "@/components/reports/report-toolbar";
+import { useColumnLabels } from "@/components/reports/use-column-labels";
 
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
@@ -27,7 +28,6 @@ type Props = {
 export function ReportViewer({ reportId, reportName, columns, result, canEdit, grafanaUrl }: Props) {
   const t = useTranslations("report");
   const tCommon = useTranslations("common");
-  const tField = useTranslations("field");
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<ColumnKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -37,22 +37,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
     else { setSortCol(col); setSortDir("asc"); }
   }
 
-  const columnLabels: Record<ColumnKey, string> = {
-    model: tField("model"),
-    serialNumber: tField("serialNumber"),
-    hostname: tField("hostname"),
-    type: tField("type"),
-    manufacturer: tField("manufacturer"),
-    location: tField("location"),
-    installationDate: tField("installed"),
-    invoiceDate: tField("invoiceDate"),
-    invoiceNumber: tField("invoiceNumber"),
-    notes: tField("notes"),
-    lastChanged: tField("lastModified"),
-    supplier: tField("supplier"),
-    criticality: tField("criticality"),
-    endOfSupportDate: tField("endOfSupport"),
-  };
+  const columnLabels = useColumnLabels();
 
   const filtered = result.rows.filter((row) => {
     if (!search) return true;

@@ -8,7 +8,7 @@ vi.mock("@/lib/two-factor/remember-device", () => ({
 
 import { cookies } from "next/headers";
 import { verifyRememberMeToken } from "@/lib/two-factor/remember-device";
-import { pendingSignInStep, signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
+import { pendingSignInStep, sessionMismatchResponse, signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 
 const mockVerifyRememberMe = vi.mocked(verifyRememberMeToken);
 const mockCookies = vi.mocked(cookies);
@@ -61,5 +61,13 @@ describe("signInIncompleteResponse", () => {
     expect(await signInIncompleteResponse(session({ needs2FASetup: true }), ["2fa-setup"])).toBeNull();
     expect((await signInIncompleteResponse(session({ needs2FASetup: true })))?.status).toBe(403);
     expect((await signInIncompleteResponse(session({ needsPasswordChange: true }), ["2fa-setup"]))?.status).toBe(403);
+  });
+});
+
+describe("sessionMismatchResponse()", () => {
+  it("answers 401 asking to sign in again", async () => {
+    const res = sessionMismatchResponse();
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Session state mismatch. Please log in again." });
   });
 });

@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authIncludingPendingSteps } from "@/lib/auth";
 import { upgradeSession } from "@/lib/two-factor/session-upgrade";
+import { sessionMismatchResponse } from "@/lib/two-factor/sign-in-steps";
 import { prisma } from "@/lib/prisma";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { clientIp, tooManyAttemptsResponse } from "@/lib/rate-limit/http";
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!(await upgradeSession(session.user.id, "passkey"))) {
-    return NextResponse.json({ error: "Session state mismatch. Please log in again." }, { status: 401 });
+    return sessionMismatchResponse();
   }
 
   const response = NextResponse.json({ ok: true });

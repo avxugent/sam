@@ -8,6 +8,7 @@ import { serializeStockMetadata } from "@/lib/stock-metadata";
 import { createStockItemSchema } from "@/lib/schemas/stock";
 import { z } from "zod";
 import { MAX_ID_LENGTH } from "@/lib/schemas/ids";
+import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/assets/include";
 
 const querySchema = z.object({
   typeId: z.string().max(MAX_ID_LENGTH).optional(),
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
       invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
       metadata: serializeStockMetadata({ macAddresses: macAddresses?.map((address) => ({ address })) }),
     },
-    include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
+    include: STOCK_ITEM_ROW_INCLUDE,
     });
   } catch (err) {
     if (isForeignKeyError(err)) return unknownReferenceResponse();

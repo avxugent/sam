@@ -26,7 +26,6 @@ Successful `DELETE` requests return `200` with `{ ok: true }`.
 
 | Method | Path | Min role | Description |
 |---|---|---|---|
-| `POST` | `/api/assets` | EDITOR | Create asset |
 | `GET` | `/api/assets/[id]` | VIEWER | Get asset detail |
 | `PUT` | `/api/assets/[id]` | EDITOR | Update asset |
 | `DELETE` | `/api/assets/[id]` | EDITOR | Delete asset |
@@ -35,11 +34,19 @@ Successful `DELETE` requests return `200` with `{ ok: true }`.
 | `POST` | `/api/assets/[id]/return-to-stock` | EDITOR | Move asset back to stock. Body: `{ locationId (required, must reference an existing location) }`. Allowed from INSTALLED or IN_REPAIR |
 | `POST` | `/api/assets/[id]/send-for-repair` | EDITOR | Mark an INSTALLED asset IN_REPAIR. Body: `{ note? }`. Records who sent it and when (`repairStartedAt`). There is no "return from repair" endpoint — an IN_REPAIR asset exits via return-to-stock, decommission, or delete |
 | `GET` | `/api/assets/[id]/history` | VIEWER | Full audit trail for this asset's `lineageId`, across Asset ↔ StockItem conversions — see [Database → Asset history](database.md#asset-history) |
-| `GET` | `/api/assets/by-hostname` | Bearer token | Grafana Infinity datasource lookup. Matches active (INSTALLED) assets only — decommissioned assets are historical and excluded |
+| `POST` | `/api/assets/bulk-decommission` | EDITOR | Decommission several assets. Body: `{ ids (1–200), disposalMethod, note? }` |
+| `POST` | `/api/assets/bulk-return-to-stock` | EDITOR | Move several assets back to stock. Body: `{ ids (1–200), locationId }`; an unknown `locationId` returns `400` `code: "unknownReference"` |
+| `GET` | `/api/assets/by-hostname` | VIEWER session or Bearer token | Grafana Infinity datasource lookup (`?hostname=`, 1–255 chars; otherwise `400` `Invalid input`). Matches active (INSTALLED) assets only — decommissioned assets are historical and excluded |
+
+Assets are created under their location: `POST /api/locations/[id]/assets` (see [Locations](#locations)).
+
+The bulk routes (`/api/assets/bulk-*`, `/api/stock/bulk-relocate`) report per id and return `200` with `{ succeeded: string[], failed: { id, reason }[] }`; `reason` is `NOT_FOUND`, a lifecycle rule code, or `STATUS_CHANGED`.
 
 The lifecycle routes (decommission, reinstate, return-to-stock, send-for-repair and the bulk variants) only write while the asset still has the status they checked. If a concurrent request changed it first, the single-asset routes return `409` with `code: "statusChanged"` and the bulk routes report the id as failed with reason `STATUS_CHANGED`. `POST /api/stock/[id]/deploy` likewise only draws units while the stock item still holds the quantity it checked; otherwise it returns `409` with `code: "stockChanged"`.
 
 ### Asset body (create/update)
+
+Create: `POST /api/locations/[id]/assets` (the location comes from the path). Update: `PUT /api/assets/[id]`.
 
 Key validated fields:
 - `locationId` — required
@@ -64,8 +71,9 @@ Key validated fields:
 | `PUT` | `/api/locations/[id]` | EDITOR | Update location (returns `409` with `code: "locationNameExists"`, `existingId` and `existingName` when the new name collides with a sibling, so the client can offer a merge). Accepts `inMaintenance` (boolean) — allowed only on rooms (leaf locations); setting it `true` on a location with sub-locations returns `400` |
 | `POST` | `/api/locations/[id]/merge` | EDITOR | Merge this location into a sibling (`targetId`): moves its assets, stock items, sub-locations, attachments and work logs to the target, then deletes it |
 | `DELETE` | `/api/locations/[id]` | EDITOR | Delete location and its assets. Blocked with `400` `code: "hasSublocations"` if children exist, unless `?cascade=true` is passed — then the whole sub-tree is deleted. Also blocked with `400` `code: "hasStock"` if the location (or, when cascading, any descendant) still holds stock |
-| `GET` | `/api/locations/[id]/assets` | VIEWER | Assets in location |
-| `GET` | `/api/locations/[id]/attachments` | VIEWER | Location attachments |
+| `GET` | `/api/locations/[id]/assets` | VIEWER | Assets in location. `?recursive=true` includes sub-locations; `?status=` as for the asset-type and manufacturer lists |
+| `POST` | `/api/locations/[id]/assets` | EDITOR | Create asset in this location — see [Asset body](#asset-body-createupdate) |
+| `GET` | `/api/locations/[id]/work-logs` | VIEWER | Work logs of this location, newest first |
 | `POST` | `/api/locations/[id]/work-logs` | EDITOR | Create work log for location |
 
 ---
@@ -76,18 +84,22 @@ Key validated fields:
 |---|---|---|---|
 | `GET` | `/api/asset-types` | VIEWER | List all |
 | `POST` | `/api/asset-types` | ADMIN | Create; `409` on a duplicate name |
-| `GET` | `/api/asset-types/[id]` | VIEWER | Get detail |
 | `PUT` | `/api/asset-types/[id]` | ADMIN | Update (including scrape template, `hostnamePattern`, and `defaultCriticality`); renaming onto an existing name returns `409` with `code: "nameConflict"` and the existing type, so the client can offer a merge |
 | `DELETE` | `/api/asset-types/[id]` | ADMIN | Delete |
 | `POST` | `/api/asset-types/[id]/merge` | ADMIN | Merge into another asset type (`targetId`) — moves its assets, stock items and models (a model whose name already exists under the target is folded into it), drops its maintenance presets, then deletes it |
-| `GET` | `/api/asset-types/[id]/assets` | VIEWER | Active assets of this type. `?status=DECOMMISSIONED` lists decommissioned only; `?status=all` lists both |
+| `GET` | `/api/asset-types/[id]/assets` | VIEWER | Installed assets of this type. `?status=` takes `INSTALLED` (default), `IN_REPAIR`, `DECOMMISSIONED` or `all`; any other value is a `400` |
+| `GET` | `/api/asset-types/[id]/presets` | VIEWER | List this type's maintenance presets |
 | `POST` | `/api/asset-types/[id]/presets` | ADMIN | Create maintenance preset |
-| `GET` | `/api/asset-types/presets/[id]` | VIEWER | Get preset |
 | `PUT` | `/api/asset-types/presets/[id]` | ADMIN | Update preset |
+| `DELETE` | `/api/asset-types/presets/[id]` | ADMIN | Delete preset |
 | `GET` | `/api/asset-types/[id]/manufacturer-templates` | VIEWER | List brand-specific scrape template overrides for this type |
 | `POST` | `/api/asset-types/[id]/manufacturer-templates` | ADMIN | Create a brand-specific scrape template override |
 | `PUT` | `/api/asset-types/manufacturer-templates/[id]` | ADMIN | Update a brand-specific scrape template override |
 | `DELETE` | `/api/asset-types/manufacturer-templates/[id]` | ADMIN | Delete a brand-specific scrape template override |
+| `GET` | `/api/asset-types/[id]/model-templates` | VIEWER | List model-specific scrape template overrides for this type |
+| `POST` | `/api/asset-types/[id]/model-templates` | ADMIN | Create a model-specific scrape template override |
+| `PUT` | `/api/asset-types/model-templates/[id]` | ADMIN | Update a model-specific scrape template override |
+| `DELETE` | `/api/asset-types/model-templates/[id]` | ADMIN | Delete a model-specific scrape template override |
 
 ---
 
@@ -99,7 +111,7 @@ Key validated fields:
 | `POST` | `/api/manufacturers` | MAINTAINER | Create; `409` on a duplicate name |
 | `PUT` | `/api/manufacturers/[id]` | MAINTAINER | Update; renaming onto an existing name returns `409` with `code: "nameConflict"` and the existing manufacturer, so the client can offer a merge |
 | `DELETE` | `/api/manufacturers/[id]` | MAINTAINER | Delete; `404` if unknown, `400` while assets or models reference it |
-| `GET` | `/api/manufacturers/[id]/assets` | VIEWER | Active assets by manufacturer. `?status=DECOMMISSIONED` lists decommissioned only; `?status=all` lists both |
+| `GET` | `/api/manufacturers/[id]/assets` | VIEWER | Installed assets by manufacturer. `?status=` as for the asset-type list |
 | `POST` | `/api/manufacturers/[id]/merge` | MAINTAINER | Merge into another manufacturer — moves its assets, stock items and models (a model whose name already exists under the target is folded into it) |
 
 ---
@@ -118,7 +130,6 @@ Fixed lookup table for the Asset/StockItem "model" field, scoped by `(typeId, ma
 | `POST` | `/api/models/[id]/merge` | MAINTAINER | Merge into another model — reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source. If the two models don't share the same `typeId`, every moved asset/stock item's own `typeId` is cascaded to the target's as part of the merge, so it never ends up pointing at a model from a different type than itself |
 
 Every merge endpoint takes `{ targetId }` and returns `{ ok: true, assetsMoved, … }` with the counts that apply — `stockItemsMoved`, `modelsMoved`, `modelsFolded`, `sublocationsMoved` — and logs a `DELETE` audit entry on the source with the same counts.
-| `GET` | `/api/models/clusters` | MAINTAINER | List clusters of 2+ similar-but-not-identical model names (fuzzy edit-distance matching), for the admin page's "possible duplicates" panel. Clustered per `typeId` — a shared name across different asset types is never offered as a merge candidate |
 
 ---
 
@@ -141,7 +152,7 @@ The **default window** (`defaultFrom` → `defaultUntil`, `defaultUntil` empty =
 |---|---|---|---|
 | `POST` | `/api/attachments` | EDITOR | Upload file or create link |
 | `GET` | `/api/attachments/[id]` | VIEWER | Download file |
-| `PUT` | `/api/attachments/[id]` | EDITOR | Edit display name, description, or URL |
+| `PATCH` | `/api/attachments/[id]` | EDITOR | Edit display name, description, or URL |
 | `DELETE` | `/api/attachments/[id]` | EDITOR | Delete attachment |
 
 Upload request: `multipart/form-data` with `file` field. Max size: 50 MB.
@@ -152,12 +163,13 @@ Upload request: `multipart/form-data` with `file` field. Max size: 50 MB.
 
 | Method | Path | Min role | Description |
 |---|---|---|---|
-| `GET` | `/api/stock` | VIEWER | List stock items |
+| `GET` | `/api/stock` | VIEWER | List stock items. Optional `typeId`, `locationId` (≤ 64 chars) and `q` (≤ 200 chars); longer values are a `400` |
 | `POST` | `/api/stock` | EDITOR | Create stock item |
 | `GET` | `/api/stock/[id]` | VIEWER | Get stock item detail |
 | `PUT` | `/api/stock/[id]` | EDITOR | Update stock item |
 | `DELETE` | `/api/stock/[id]` | EDITOR | Delete stock item |
 | `POST` | `/api/stock/[id]/deploy` | EDITOR | Deploy stock item as asset at a location |
+| `POST` | `/api/stock/bulk-relocate` | EDITOR | Move several stock items to one storage location. Body: `{ ids (1–200), locationId }` (`null` clears the storage location). An item moved or deleted by another request meanwhile is reported as `STATUS_CHANGED` |
 
 Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom fields) from the stock item to the new asset. Returns `409` if the carried-over hostname is already assigned to another asset.
 
@@ -173,7 +185,8 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | `POST` | `/api/users` | ADMIN | Create user; `409` if the email is taken |
 | `PUT` | `/api/users/[id]` | ADMIN | Update user. Rejects a password change for SSO accounts and demoting the last admin (`400`); `409` if the new email is taken |
 | `DELETE` | `/api/users/[id]` | ADMIN | Delete user. `404` if unknown; `400` for your own account or the last admin |
-| `GET` | `/api/users/me` | VIEWER | Current user's profile |
+| `GET` | `/api/users/me` | VIEWER | Current user's profile (also reachable while a forced password change is pending) |
+| `PATCH` | `/api/users/me` | VIEWER | Update own name, password (`currentPassword` required; not for SSO accounts), theme or default location tab |
 | `GET` | `/api/users/lite` | EDITOR | Minimal `{id, name}` list (asset form owner dropdown) |
 | `GET` | `/api/users/export` | ADMIN | Access-review CSV (name, email, role, provider, 2FA status, last login). Session only — no token access |
 
@@ -187,23 +200,21 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | `POST` | `/api/auth/2fa/setup` | session | Generate TOTP secret + QR code |
 | `POST` | `/api/auth/2fa/enable` | session | Verify first code and enable 2FA |
 | `POST` | `/api/auth/2fa/disable` | session | Disable 2FA |
-| `GET` | `/api/auth/2fa/status` | session | Check 2FA status |
 | `POST` | `/api/auth/2fa/verify` | session | Verify TOTP code during login |
 | `POST` | `/api/auth/passkey/registration-options` | session | Generate WebAuthn registration options |
 | `POST` | `/api/auth/passkey/registration-verify` | session | Verify registration response, persist the passkey |
 | `POST` | `/api/auth/passkey/authentication-options` | session (pending 2FA) | Generate WebAuthn authentication options during login |
 | `POST` | `/api/auth/passkey/authentication-verify` | session (pending 2FA) | Verify passkey assertion during login |
-| `GET` | `/api/auth/passkey/list` | session | List the current user's passkeys |
 | `DELETE` | `/api/auth/passkey/[id]` | session | Remove one of the current user's passkeys |
 
 ---
 
 ## Work Logs
 
+Work logs are listed and created under their location: `GET`/`POST /api/locations/[id]/work-logs` (see [Locations](#locations)).
+
 | Method | Path | Min role | Description |
 |---|---|---|---|
-| `GET` | `/api/work-logs` | VIEWER | List work logs (with optional JIRA summaries) |
-| `POST` | `/api/work-logs` | EDITOR | Create work log |
 | `GET` | `/api/work-logs/[id]` | VIEWER | Get work log |
 | `PUT` | `/api/work-logs/[id]` | EDITOR | Update work log — only its author or an ADMIN |
 | `DELETE` | `/api/work-logs/[id]` | EDITOR | Delete work log — only its author or an ADMIN |
@@ -231,7 +242,6 @@ Where an export lives: whole-inventory exports (active assets, decommissioned as
 | `GET` | `/api/export/decommissioned` | ADMIN or Bearer `EXPORT_TOKEN` | Download decommissioned-asset CSV (adds decommission metadata columns) |
 | `GET` | `/api/export/stock` | ADMIN or Bearer `EXPORT_TOKEN` | Download current stock inventory CSV |
 | `GET` | `/api/export/snapshot` | ADMIN session or Bearer `EXPORT_TOKEN` | Point-in-time JSON inventory snapshot (assets incl. owner/criticality/end-of-support/supplier/disposal, suppliers, locations) — NIS2 evidence artifact |
-| `POST` | `/api/settings/export` | ADMIN | Trigger backup script |
 
 ---
 
@@ -247,15 +257,24 @@ Where an export lives: whole-inventory exports (active assets, decommissioned as
 
 | Method | Path | Min role | Description |
 |---|---|---|---|
+| `GET` | `/api/settings/general` | VIEWER | Link templates: `hostnameUrlTemplate`, `macAddressUrlTemplate`, `locationUrlTemplate` |
+| `PUT` | `/api/settings/general` | ADMIN | Update the link templates. An omitted field is left unchanged; `null` or `""` clears it (the same rule as the other settings PUTs) |
 | `GET/PUT` | `/api/settings/compliance` | ADMIN | Security & compliance settings: `requireTwoFactor`, `auditRetentionDays` (30–3650), `defaultOwnerId`, `reviewWorkLogItemId`, `reviewPeriodMonths` (1–120) |
+| `GET/PUT` | `/api/settings/export` | ADMIN | Scheduled export settings: `enabled`, `cronExpression`, `outputDir` |
+| `GET` | `/api/settings/branding` | VIEWER | Branding settings (`appTitle`, `backgroundMode`, which images are set) |
+| `PUT` | `/api/settings/branding` | ADMIN | Update `appTitle` and `backgroundMode` |
+| `POST` | `/api/settings/branding/logo` | ADMIN | Upload the logo (`multipart/form-data`, `file` field; PNG, JPEG, SVG, WebP; max 2 MB) |
+| `POST` | `/api/settings/branding/favicon` | ADMIN | Upload the favicon (ICO, PNG, SVG; max 1 MB) |
+| `POST` | `/api/settings/branding/background` | ADMIN | Upload the login background image (PNG, SVG, WebP; max 2 MB); sets `backgroundMode` to `custom` |
+| `DELETE` | `/api/settings/branding/{logo,favicon,background}` | ADMIN | Remove that image |
+
+The uploaded images are served without authentication at `GET /api/branding/logo`, `/api/branding/favicon` and `/api/branding/background` (`404` when none is set, `502` with `code: "storageUnavailable"` when storage cannot be read), because the login page shows them.
 
 ---
 
 ## Audit Log
 
-| Method | Path | Min role | Description |
-|---|---|---|---|
-| `GET` | `/api/audit-logs` | ADMIN | List audit log entries (filterable by entity, user, date) |
+The audit log is viewed at **Administration → Audit log** (an ADMIN-only page that reads the database directly); there is no audit API.
 
 Actions recorded: `CREATE`, `UPDATE`, `DELETE`, `IMPORT`, `EXPORT`, plus authentication events `LOGIN_SUCCESS`, `LOGIN_FAILED` (with reason: rate_limited / unknown_user / sso_only / invalid_password / TOTP failures), and `LOGOUT`. There is deliberately no delete endpoint — retention is enforced only by `scripts/purge-audit.mjs`.
 
@@ -265,7 +284,7 @@ Actions recorded: `CREATE`, `UPDATE`, `DELETE`, `IMPORT`, `EXPORT`, plus authent
 
 | Method | Path | Min role | Description |
 |---|---|---|---|
-| `GET` | `/api/search?q=…` | VIEWER | Full-text search across assets and locations |
+| `GET` | `/api/search?q=…` | VIEWER | Full-text search across assets and locations; `q` over 200 characters is a `400` |
 
 ---
 
@@ -278,14 +297,15 @@ Actions recorded: `CREATE`, `UPDATE`, `DELETE`, `IMPORT`, `EXPORT`, plus authent
 | `GET` | `/api/reports/[id]` | VIEWER | Get report |
 | `PUT` | `/api/reports/[id]` | EDITOR | Update report |
 | `DELETE` | `/api/reports/[id]` | ADMIN | Delete report |
-| `POST` | `/api/reports/[id]/run` | VIEWER | Execute report query. Decommissioned assets are excluded by default unless the report's own filters explicitly target `status` |
-| `GET` | `/api/reports/[id]/export` | VIEWER | Export report results as CSV (same decommissioned-exclusion default as run) |
+| `GET` | `/api/reports/[id]/export` | VIEWER | Export report results as CSV. Decommissioned assets are excluded by default unless the report's own filters explicitly target `status`. Contains every matching row (the on-screen result is capped at 5,000) |
+
+Reports are run on the report page itself (a server component); there is no separate run endpoint.
 
 ---
 
 ## Prometheus
 
-All endpoints use Bearer token authentication (`Authorization: Bearer <PROMETHEUS_SD_TOKEN>`). Return 503 when `PROMETHEUS_SD_TOKEN` is not configured.
+All endpoints use Bearer token authentication (`Authorization: Bearer <PROMETHEUS_SD_TOKEN>`); `/api/prometheus/sd` also accepts an ADMIN session, to browse it directly. Return 503 when `PROMETHEUS_SD_TOKEN` is not configured.
 
 | Method | Path | Description |
 |---|---|---|
@@ -296,22 +316,15 @@ All endpoints use Bearer token authentication (`Authorization: Bearer <PROMETHEU
 
 ## Grafana
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/grafana` | session | Index endpoint |
-| `GET` | `/api/grafana/search` | session | Field search |
-| `GET` | `/api/grafana/query` | session | Query execution. Every target implicitly filters to active (INSTALLED) assets — decommissioned assets are historical and excluded, with no adhoc filter to opt back in |
-| `GET` | `/api/grafana/tag-keys` | session | Tag autocomplete |
-| `GET` | `/api/grafana/tag-values` | session | Tag value lookup. `hostname` values are limited to active (INSTALLED) assets |
+A Grafana SimpleJSON-protocol datasource. Same Bearer token as Prometheus (`PROMETHEUS_SD_TOKEN`, 503 when unset); no session is accepted. See [Integrations → Grafana](integrations.md#grafana).
 
----
-
-## Settings
-
-| Method | Path | Min role | Description |
-|---|---|---|---|
-| `GET` | `/api/settings/general` | VIEWER | Get application settings |
-| `PUT` | `/api/settings/general` | ADMIN | Update application settings |
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/grafana` | Health check (`{ status: "ok" }`) |
+| `POST` | `/api/grafana/search` | Available targets: `assets_table`, `assets_by_type`, `assets_by_manufacturer`, `assets_by_location`, `assets_by_install_year` |
+| `POST` | `/api/grafana/query` | Run `targets`, narrowed by `adhocFilters` (`=` on `type`, `manufacturer`, `location`, `hostname`). Every target implicitly filters to active (INSTALLED) assets — decommissioned assets are historical and excluded, with no adhoc filter to opt back in |
+| `POST` | `/api/grafana/tag-keys` | Ad-hoc filter keys |
+| `POST` | `/api/grafana/tag-values` | Values for one key (`{ key }`). `hostname` values are limited to active (INSTALLED) assets |
 
 ---
 
@@ -322,4 +335,5 @@ All endpoints use Bearer token authentication (`Authorization: Bearer <PROMETHEU
 | `GET` | `/api/setup` | public | Check if setup is needed (returns `userCount`) |
 | `POST` | `/api/setup` | public | Create first admin (only when `userCount === 0`) |
 | `GET` | `/api/jira/issue/[key]` | VIEWER | Fetch JIRA issue summary and status (`{ found: false }` for an unknown key; 502 `jiraUnavailable` when JIRA cannot be reached) |
-| `GET` | `/api/vault/test` | EDITOR | Test Vault connection for an asset's vault path (404 `vaultSecretMissing`; 502 `vaultDenied` / `vaultUnavailable`) |
+| `GET` | `/api/geocode?q=…` | VIEWER | Address search for the location map (OpenStreetMap Nominatim, up to 5 results). `400` `Invalid input` for a blank `q` or one over 200 characters; `502` with `code: "geocodeUnavailable"` when the geocoding service fails or times out (10 s) |
+| `GET` | `/api/vault/test` | EDITOR | Test Vault connection for an asset's vault path (`?path=`, 1–500 chars). Returns the key names, never values. `400` `Invalid input` for a missing or over-long path, `400` `vaultSecretMissing` when nothing is stored there, `503` `vaultNotConfigured`, `502` `vaultDenied` / `vaultUnavailable` |

@@ -21,6 +21,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | Styling | tailwindcss | v4 (via `@import "tailwindcss"`) |
 | Validation | zod | v4 |
 | Forms | react-hook-form | v7 |
+| i18n | next-intl | v4 |
 
 ---
 
@@ -62,7 +63,7 @@ The production build produces `.next/standalone/server.js`. The Dockerfile relie
 
 ```
 app/
-  (auth)/          — login page (outside dashboard layout)
+  (auth)/          — login/ and its steps (2fa, setup-2fa, change-password), outside the dashboard layout
   (dashboard)/     — protected layout: sidebar + top nav header
     admin/         — admin sub-pages (users, asset-types, manufacturers, models, suppliers, import, export, audit, compliance, settings)
     locations/     — location detail + asset detail pages
@@ -75,38 +76,41 @@ app/
     search/        — full-text search results
   api/             — all API route handlers
   setup/           — first-run wizard (no auth required)
+  actions/locale.ts — setLocale, the only server action: writes the NEXT_LOCALE cookie (no data, no auth check) for the header language switcher; everything else goes through API routes
+i18n/              — next-intl: locales.ts (supported locales en/nl, default, cookie name), request.ts (per-request locale from the cookie + message loading; wired in next.config.ts)
+messages/          — en.json / nl.json, nested keys per area; add every key to both files
 proxy.ts           — NextAuth session guard (replaces middleware.ts)
 lib/               — shared code; modules importing next/server are route-handler helpers (server only)
   auth.ts          — NextAuth config + ssoEnabled flag
   permissions.ts   — role predicates (isAdmin, canManageCatalog, canEdit); client-safe
   route-helpers.ts — readJsonBody, invalidInput, Prisma error checks, notFoundResponse / nameTakenResponse / unknownReferenceResponse, csvDownload
   prisma.ts        — PrismaClient singleton
-  storage.ts       — upload storage driver (local filesystem or S3)
-  uploads.ts       — upload policy: attachment allowlists and size cap, content-vs-declared-type check
+  uploads/         — storage.ts: upload storage driver (local filesystem or S3) + attemptStorage / attemptStorageRead; policy.ts: attachment allowlists and size cap, content-vs-declared-type check, safeFilename
+  passwords.ts     — hashPassword / BCRYPT_COST (server; also used by scripts/reset-password.mjs)
   app-settings.ts  — AppSetting key/value table: readSettings / writeSettings, plus typed groups (compliance, general, branding, export) that own each key, default and decoding
   criticality.ts   — criticality levels, parseCriticality, effectiveCriticality; client-safe
   dates.ts         — toIsoDay / formatDate; no dependencies (used by server exports and the UI)
-  bulk.ts          — BulkResult / BulkSkipReason, the response of the bulk endpoints; client-safe
   users/           — preferences.ts: theme / location-tab value sets (client-safe); names.ts: names behind soft user references (owner, decommissioned/sent-for-repair by)
   stock-metadata.ts — StockItem.metadata JSON (an asset's identity while in stock); client-safe
   mac-address.ts   — canonical MAC address form + validation; client-safe
   url-templates.ts — hostname / MAC / location link templates
-  api-client.ts    — apiFetch / jsonBody / downloadFile for client components; client-safe
-  assets/          — lifecycle rules (pure), state transitions (writes + audit), history snapshot keys (audit ↔ timeline contract), input checks + nested rows, shared response includes, creation defaults, type icons
+  utils.ts         — cn(), formatFileSize, getInitials; client-safe
+  api-client.ts    — apiFetch / jsonBody / downloadFile / saveBlob and apiErrorMessage (the error-body formatter) for client components; client-safe
+  assets/          — lifecycle rules (pure), state transitions (writes + audit), history snapshot keys and change labels (audit ↔ timeline contract), assetLabel (display name), BulkResult / BulkSkipReason of the bulk endpoints (bulk.ts, client-safe), input checks + nested rows, shared response includes, creation defaults, type icons
   audit/           — logAudit (index), audit diffs, login-failure audit, syslog forwarding
   branding/        — logo/favicon/background upload + serve, background mode
   catalog/         — merge + rename-conflict protocol (merge routes, rename routes, admin merge UI)
   compliance/      — NIS2 and hostname compliance reports
   csv/             — CSV cell/parse core, asset CSV columns (shared by import, export and the import page), inventory export, import row parsing, import lookups, upload reading
-  export/          — JSON inventory snapshot (export route + backup script)
+  inventory-snapshot.ts — JSON inventory snapshot (export route + backup script)
   hostname.ts      — hostname pattern/FQDN rules
-  integrations/    — HashiCorp Vault KV client, read-only Jira client (native fetch, never throw; lookups report found / missing / unavailable)
-  locations/       — path.ts: recursive-CTE tree queries (server); tree.ts: nesting/flattening/filtering a location tree (client-safe); include.ts: detail/page includes and LocationPageData; asset-quantities.ts: installed-unit counts for the location page
+  integrations/    — HashiCorp Vault KV client, read-only Jira client, Nominatim geocoding (native fetch with a 10 s timeout, never throw; lookups report found / missing / unavailable), Grafana Explore link (GRAFANA_URL)
+  locations/       — path.ts: recursive-CTE and other DB tree queries (server); tree.ts: nesting/flattening/filtering a location tree, the in-memory ancestor chain and the FI-number / path-string helpers (client-safe); include.ts: detail/page includes and LocationPageData; asset-quantities.ts: installed-unit counts for the location page
   models/          — model clustering + name similarity
   prometheus/      — sam_* labels, scrape template renderer, per-brand/model template overrides
   rate-limit/      — in-memory rate limiter (index) + client IP key and 429 response (http)
   reports/         — report engine + definition types
-  schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …); no DB code
+  schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …), and ids.ts (idSchema / MAX_ID_LENGTH for every body or query id); no DB code
   suppliers/       — default-window rules and conflict lookup
   tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), session-or-token, session-or-export token
   two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy, sign-in steps, signing key (NEXTAUTH_SECRET, fails closed)
@@ -161,12 +165,12 @@ prisma/
 - Auth errors: `401` for unauthenticated, `403` for insufficient role.
 - A helper that either yields a value or the response to send back returns `{ <value> } | { error: Response }`; callers write `if ("error" in result) return result.error;` (readCsvUpload, readFormData, readMergeRequest, attemptStorage, adminSessionOrExportToken).
 - Read request bodies with `readJsonBody(req)` (malformed JSON becomes a Zod 400, not a 500) and return Zod failures with `invalidInput(parsed.error)` — `400` with `{ error: "Invalid input", details }`.
-- Error bodies are `{ error, code?, details? }`: `error` is readable English, `code` a stable id for a case the client localizes, `details` either `string[]` or the Zod flatten object. Client components call the API through `apiFetch()` from `lib/api-client.ts` (it never throws: a network failure is `{ ok: false, status: 0 }`, a body-less 500 gives `error: {}`), show `res.error` with `useApiErrorToast()` (or `apiErrorMessage()` from `lib/utils.ts` for inline messages), and download CSV exports with `downloadFile()`. Client code never calls `fetch` directly (pass an `AbortSignal` in the init and check `signal.aborted` for superseded requests); build JSON requests with `jsonBody(method, body)`.
+- Error bodies are `{ error, code?, details? }`: `error` is readable English, `code` a stable id for a case the client localizes, `details` either `string[]` or the Zod flatten object. Client components call the API through `apiFetch()` from `lib/api-client.ts` (it never throws: a network failure is `{ ok: false, status: 0 }`, a body-less 500 gives `error: {}`), show `res.error` with `useApiErrorToast()` (or `apiErrorMessage()` from `lib/api-client.ts` for inline messages), and download CSV exports with `downloadFile()`. Client code never calls `fetch` directly (pass an `AbortSignal` in the init and check `signal.aborted` for superseded requests); build JSON requests with `jsonBody(method, body)`.
 - Missing records: `404` only for the record named in the URL path (`notFoundResponse("Model")` → "Model not found."); an id inside the request body that names no record is invalid input — `400` with `code: "unknownReference"` (`unknownReferenceResponse()`; catch `isForeignKeyError(err)` on writes).
 - Conflict (unique constraint): `409` (`nameTakenResponse()`, or `nameConflictResponse()` for catalog renames that can offer a merge). Detect it with `isUniqueConstraintError(err)`; never map every caught error to one status — rethrow what you don't handle.
 - `DELETE` handlers return `200` with `{ ok: true }`.
 - All write endpoints validate input with Zod before touching the database.
-- Zod schemas enforce length caps on all string fields. Do not remove them.
+- Zod schemas enforce length caps on all string fields, including query parameters (parse `Object.fromEntries(searchParams)` with a small schema and answer `invalidInput`). Record ids use `idSchema` / `MAX_ID_LENGTH` from `lib/schemas/ids.ts`. Do not remove them.
 - Cross-field validation (e.g. hostname → MAC required) uses `.superRefine()`. Shared schemas live in `lib/schemas/` and are imported by the API routes (and by the form when no translated messages are needed); the asset form mirrors `lib/schemas/asset.ts` with translated messages, so the server check can never be bypassed.
 
 ---
@@ -196,10 +200,10 @@ prisma/
 
 ## File uploads
 
-- Files go through the storage driver in `lib/storage.ts`: the local filesystem under `UPLOAD_DIR` (default `./uploads`), or an S3-compatible bucket when `STORAGE_DRIVER=s3` and `S3_BUCKET` are set.
-- Upload policy lives in `lib/uploads.ts`: the attachment MIME and extension allowlists (separate, to prevent double-extension attacks like `.jpg.php`), the 50 MB cap, and `contentMatchesType()` (magic bytes / no NUL in text), which branding uploads use too.
+- Files go through the storage driver in `lib/uploads/storage.ts`: the local filesystem under `UPLOAD_DIR` (default `./uploads`), or an S3-compatible bucket when `STORAGE_DRIVER=s3` and `S3_BUCKET` are set.
+- Upload policy lives in `lib/uploads/policy.ts`: the attachment MIME and extension allowlists (separate, to prevent double-extension attacks like `.jpg.php`), the 50 MB cap, and `contentMatchesType()` (magic bytes / no NUL in text), which branding uploads use too.
 - All file paths are resolved with `path.resolve()` and checked against the upload root with `assertSafePath()` to prevent path traversal.
-- `originalName` is sanitised (strip `\r`, `\n`, `"`, `\`) before storing in the database.
+- `originalName` goes through `safeFilename()` (`lib/uploads/policy.ts`: `\r`, `\n`, `"`, `\` become `_`, capped at 255) before storing in the database.
 - Max upload size: 50 MB.
 - In Docker, `uploads/` is a named volume — never bake uploaded files into the image.
 

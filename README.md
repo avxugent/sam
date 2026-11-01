@@ -412,7 +412,7 @@ Authorization: Bearer <PROMETHEUS_SD_TOKEN>
 
 - All HTTP responses include: `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and (in production) `Strict-Transport-Security`
 - File uploads: MIME type + extension allowlist, 50 MB cap, path traversal protection
-- Passwords hashed with bcrypt (cost 12)
+- Passwords hashed with bcrypt (cost 13)
 - JWT sessions expire after 8 hours
 - Input validated with Zod on all API endpoints (string length caps, array size caps)
 - SSO users cannot have a local password set
@@ -421,35 +421,4 @@ Authorization: Bearer <PROMETHEUS_SD_TOKEN>
 
 ## Project Structure
 
-```
-app/
-  (auth)/login/          Login page (credentials + optional SSO button)
-  (dashboard)/           Protected layout with sidebar
-    locations/[id]/      Location detail (assets, sub-locations, map, attachments, cover)
-    locations/[id]/assets/[assetId]/  Asset detail
-    admin/               Administration section (users, types, manufacturers, CSV import)
-  api/                   REST API routes
-    prometheus/sd/       HTTP Service Discovery for Prometheus
-    prometheus/metrics/  Prometheus text-format inventory metrics
-    assets/by-hostname/  Hostname lookup for Grafana Infinity datasource
-  setup/                 First-run setup wizard
-components/
-  auth/                  LoginClient component
-  layout/                Sidebar (recursive CTE counts) + Header
-  locations/             Location form, detail client, map, cover image picker
-  assets/                Asset table, form dialog, detail client
-  attachments/           Attachment gallery with upload
-  settings/              Lookup list manager, users client
-  import/                CSV import client
-  ui/                    shadcn/ui component library
-lib/
-  auth.ts                NextAuth config (Credentials + optional Entra ID)
-  prisma.ts              Prisma client singleton
-  permissions.ts         Role helper functions
-prisma/
-  schema.prisma          MySQL schema
-uploads/                 Uploaded files (gitignored; Docker volume in production)
-Dockerfile               Multi-stage production build (standalone output ~180 MB)
-docker-compose.yml       Production: app + MySQL, secrets from .env
-docker-compose.dev.yml   Development: MySQL only
-```
+Top-level directories are described in [doc/sam/technical/architecture.md](doc/sam/technical/architecture.md#project-structure); the per-module list lives in [AGENTS.md](AGENTS.md#project-architecture).

@@ -19,6 +19,7 @@ sync_to_confluence: true
 | Styling | Tailwind CSS | v4 |
 | Validation | Zod | v4 |
 | Forms | react-hook-form | v7 |
+| i18n | next-intl | v4 |
 | Icons | lucide-react | latest |
 | UI primitives | hand-written shadcn-style | — |
 | Test runner | Vitest | latest |
@@ -31,77 +32,21 @@ sync_to_confluence: true
 
 ```
 SAMproject/
-├── app/                      # Next.js app directory
-│   ├── (auth)/               # Unauthenticated pages (login, setup-2fa, …)
-│   ├── (dashboard)/          # Authenticated layout (sidebar + header)
-│   │   ├── locations/        # Location browser and detail pages
-│   │   ├── admin/            # Admin-only pages
-│   │   ├── settings/         # User settings
-│   │   ├── stock/            # Stock management
-│   │   ├── reports/          # Report builder
-│   │   └── …
-│   ├── api/                  # REST API route handlers
-│   │   ├── assets/
-│   │   ├── locations/
-│   │   ├── prometheus/
-│   │   ├── grafana/
-│   │   └── …
-│   ├── setup/                # First-run wizard (no auth)
-│   ├── globals.css           # Tailwind v4 config + CSS variables
-│   └── layout.tsx            # Root layout
-├── components/
-│   ├── ui/                   # Reusable UI primitives (Button, Dialog, Input, …)
-│   ├── layout/               # Sidebar, Header, mobile nav
-│   ├── assets/               # Asset form, table, detail
-│   ├── locations/            # Location form, detail, map
-│   ├── attachments/          # Attachment gallery
-│   ├── auth/                 # Login, 2FA, password reset forms
-│   ├── admin/                # Clients for every /admin page (users, catalog, import/export, compliance, …)
-│   ├── settings/             # Per-user profile client
-│   ├── stock/                # Stock management
-│   ├── inventory/            # Widgets shared by assets, stock and locations (pickers, MAC fields)
-│   ├── reports/              # Report builder/viewer
-├── lib/                      # Shared code (modules importing next/server are server-only route helpers)
-│   ├── auth.ts               # NextAuth config + ssoEnabled flag
-│   ├── permissions.ts        # Role predicates (isAdmin, canManageCatalog, canEdit)
-│   ├── route-helpers.ts      # readJsonBody, invalidInput, Prisma error checks
-│   ├── prisma.ts             # PrismaClient singleton
-│   ├── app-settings.ts       # readSettings / writeSettings (AppSetting table)
-│   ├── storage.ts            # File upload abstraction (local/S3)
-│   ├── rate-limit/           # In-memory rate limiter + client IP / 429 helpers
-│   ├── criticality.ts        # Criticality levels and effective criticality
-│   ├── utils.ts              # cn() utility (clsx + tailwind-merge)
-│   ├── assets/               # Lifecycle rules, state transitions, input checks, creation defaults, type icons
-│   ├── audit/                # logAudit, audit diffs, login-failure audit, RFC 5424 syslog client
-│   ├── branding/             # Logo/favicon/background serve + upload
-│   ├── catalog/              # Merge + rename-conflict protocol
-│   ├── compliance/           # NIS2 and hostname compliance reports
-│   ├── export/               # JSON inventory snapshot
-│   ├── integrations/         # Vault and Jira clients
-│   ├── csv/                  # CSV core, inventory export, import row parsing
-│   ├── hostname.ts           # Hostname pattern rules
-│   ├── locations/            # Recursive-CTE tree queries (path.ts) + client tree helpers (tree.ts)
-│   ├── models/               # Model clustering + name similarity
-│   ├── prometheus/           # sam_* labels, scrape template renderer + overrides
-│   ├── reports/              # Report query executor + definition types
-│   ├── schemas/              # Zod schemas shared by routes and forms (no DB code)
-│   ├── suppliers/            # Default-window rules + conflict lookup
-│   ├── tokens/               # Constant-time Bearer check, integration + export tokens
-│   ├── url-templates.ts      # Hostname / MAC / location link templates
-│   └── two-factor/           # TOTP (RFC 6238 on node:crypto), passkeys, remember-device, sign-in steps
-├── prisma/
-│   └── schema.prisma         # MySQL schema (source of truth)
-├── __tests__/                # Test files mirroring source structure
-│   ├── lib/
-│   ├── api/
-│   └── components/
-├── scripts/                  # Maintenance scripts (cron, export, audit forwarding)
-├── proxy.ts                  # NextAuth session guard (replaces middleware.ts)
-├── next.config.ts            # Security headers, standalone output
-├── docker-compose.yml        # Production stack
-├── docker-compose.dev.yml    # Dev MySQL only
-└── Dockerfile                # Multi-stage production build
+├── app/            # App Router: (auth)/ login pages, (dashboard)/ protected pages, api/ route handlers,
+│                   # setup/ first-run wizard, actions/ the locale server action
+├── components/     # React components by feature; ui/ holds the hand-written primitives
+├── lib/            # Shared code (modules importing next/server are server-only route helpers)
+├── i18n/           # next-intl setup: supported locales + per-request config
+├── messages/       # Translations: en.json, nl.json
+├── prisma/         # schema.prisma (source of truth) + committed migrations
+├── scripts/        # Maintenance scripts (backup export, audit purge/forwarding, password reset, data fixes)
+├── __tests__/      # Tests mirroring the source layout (lib/, api/, components/)
+├── proxy.ts        # NextAuth session guard (replaces middleware.ts)
+├── next.config.ts  # Security headers, standalone output, next-intl plugin
+└── Dockerfile      # Multi-stage production build
 ```
+
+The per-module list (what each `lib/` module and `components/` folder owns) is kept in one place: the *Project architecture* section of `AGENTS.md` at the repository root.
 
 ---
 
@@ -162,6 +107,12 @@ Design tokens are CSS custom properties on `:root`. Primary color: `#1e64c8` (UG
 ### UI Components
 
 UI primitives in `components/ui/` are hand-written shadcn-style components. Do **not** run `npx shadcn` — it will overwrite with incompatible versions.
+
+### Internationalisation
+
+UI text comes from `next-intl`. `i18n/locales.ts` lists the supported locales (`en`, `nl`; default `en`) and the `NEXT_LOCALE` cookie name; `i18n/request.ts` picks the locale from that cookie per request and loads `messages/<locale>.json`. The message files use nested keys per area (`common`, `assets`, …); components read them with `useTranslations` / `getTranslations`. Add a key to `en.json` and `nl.json` together.
+
+The language switcher in the header calls `setLocale` in `app/actions/locale.ts` — the codebase's only server action, and the one exception to "client code talks to API routes through `apiFetch`". It writes only the locale cookie and revalidates the layout; it touches no data, so it has no auth check.
 
 ### Database
 

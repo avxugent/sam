@@ -6,17 +6,18 @@ import { extname } from "path";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { attemptStorage, getStorageDriver } from "@/lib/storage";
+import { attemptStorage, getStorageDriver } from "@/lib/uploads/storage";
 import { canEdit } from "@/lib/permissions";
 import { formFile, formText, invalidInput, isForeignKeyError, readFormData, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
-import { ATTACHMENT_EXTENSIONS, ATTACHMENT_MIME_TYPES, MAX_ATTACHMENT_BYTES, contentMatchesType } from "@/lib/uploads";
+import { ATTACHMENT_EXTENSIONS, ATTACHMENT_MIME_TYPES, MAX_ATTACHMENT_BYTES, contentMatchesType, safeFilename } from "@/lib/uploads/policy";
+import { MAX_ID_LENGTH } from "@/lib/schemas/ids";
 
 const linkSchema = z.object({
   url: z.url().max(2000),
   label: z.string().min(1).max(255),
   description: z.string().max(2000).nullable().optional(),
-  locationId: z.string().optional().nullable(),
-  assetId: z.string().optional().nullable(),
+  locationId: z.string().max(MAX_ID_LENGTH).optional().nullable(),
+  assetId: z.string().max(MAX_ID_LENGTH).optional().nullable(),
 });
 
 /** The audit snapshot entry naming what the attachment was added to. */
@@ -118,16 +119,13 @@ async function createFileAttachment(req: NextRequest, session: Session) {
   );
   if ("error" in stored) return stored.error;
 
-  // Sanitize original name stored in DB (strip control chars)
-  const safeOriginalName = file.name.replace(/[\r\n\\"]/g, "_").slice(0, 255);
-
   // Remove the stored file again if the row cannot be written, so it is not orphaned.
   let attachment;
   try {
     attachment = await prisma.attachment.create({
       data: {
         filename,
-        originalName: safeOriginalName,
+        originalName: safeFilename(file.name),
         description: safeDescription,
         mimeType: file.type,
         size: file.size,
@@ -141,7 +139,9 @@ async function createFileAttachment(req: NextRequest, session: Session) {
       },
     });
   } catch (err) {
-    await getStorageDriver().deleteObject(relativePath).catch(() => {});
+    await getStorageDriver()
+      .deleteObject(relativePath)
+      .catch((cleanupErr) => console.error("[storage] orphan cleanup failed", relativePath, cleanupErr));
     if (isForeignKeyError(err)) return unknownReferenceResponse("The location or asset");
     throw err;
   }

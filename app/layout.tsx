@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/layout/theme-provider";
@@ -9,13 +9,14 @@ import { readBrandingSettings } from "@/lib/app-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { appTitle, hasFavicon } = await readBrandingSettings();
+  const t = await getTranslations("common");
 
   return {
     title: {
       default: `${appTitle} – Simple Asset Management`,
       template: `%s – ${appTitle}`,
     },
-    description: "Manage AV hardware assets across your facilities",
+    description: t("appDescription"),
     ...(hasFavicon
       ? { icons: [{ rel: "icon", url: "/api/branding/favicon" }] }
       : {}),

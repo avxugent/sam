@@ -17,6 +17,7 @@ import {
   readGeneralSettings,
   readSettings,
   writeComplianceSettings,
+  writeBrandingSettings,
   writeExportSettings,
   writeGeneralSettings,
   writeSettings,
@@ -89,9 +90,32 @@ describe("setting groups", () => {
     expect(writtenKeys()).toEqual({ "hostname.urlTemplate": "", "macAddress.urlTemplate": "m", "location.urlTemplate": "" });
   });
 
+  it("general: an omitted template is left unchanged, null clears one", async () => {
+    await writeGeneralSettings({ hostnameUrlTemplate: "h", locationUrlTemplate: null });
+    expect(writtenKeys()).toEqual({ "hostname.urlTemplate": "h", "location.urlTemplate": "" });
+  });
+
   it("branding: an empty title falls back to SAM", async () => {
     stored({ "app.title": "", "branding.logoStorageKey": "branding/logo.png" });
     expect(await readBrandingSettings()).toEqual({ appTitle: "SAM", hasLogo: true, hasFavicon: false, backgroundMode: "", hasCustomBackground: false });
+  });
+
+  it("branding: an unknown stored background mode reads as the default", async () => {
+    stored({ "branding.backgroundMode": "bogus" });
+    expect((await readBrandingSettings()).backgroundMode).toBe("");
+  });
+
+  it("branding: writes the given fields; an empty background mode removes the setting", async () => {
+    expect(await writeBrandingSettings({ appTitle: "Inv", backgroundMode: "preset:testing" })).toEqual({
+      "app.title": "Inv",
+      "branding.backgroundMode": "preset:testing",
+    });
+    expect(prisma.appSetting.deleteMany).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    expect(await writeBrandingSettings({ backgroundMode: "" })).toEqual({ "branding.backgroundMode": "(none)" });
+    expect(prisma.appSetting.upsert).not.toHaveBeenCalled();
+    expect(prisma.appSetting.deleteMany).toHaveBeenCalledWith({ where: { key: { in: ["branding.backgroundMode"] } } });
   });
 
   it("export: defaults, and partial writes", async () => {
@@ -99,5 +123,10 @@ describe("setting groups", () => {
     expect(await readExportSettings()).toEqual({ cronExpression: "0 2 * * *", outputDir: "/backups", enabled: false });
     await writeExportSettings({ enabled: true, outputDir: null });
     expect(writtenKeys()).toEqual({ "export.enabled": "true", "export.outputDir": "" });
+  });
+
+  it("export: an empty stored schedule or directory reads as the default", async () => {
+    stored({ "export.cronExpression": "", "export.outputDir": "" });
+    expect(await readExportSettings()).toMatchObject({ cronExpression: "0 2 * * *", outputDir: "/backups" });
   });
 });

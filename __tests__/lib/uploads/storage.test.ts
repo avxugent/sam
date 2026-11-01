@@ -43,10 +43,11 @@ vi.mock("@aws-sdk/client-s3", () => {
 import * as awsS3 from "@aws-sdk/client-s3";
 import {
   assertSafePath,
+  attemptStorageRead,
   getStorageDriver,
   StorageNotFoundError,
   _resetStorageDriverForTest,
-} from "@/lib/storage";
+} from "@/lib/uploads/storage";
 
 // Pull mock state out of the mocked module
 const sendMock = (awsS3 as unknown as { __sendMock: ReturnType<typeof vi.fn> }).__sendMock;
@@ -251,5 +252,25 @@ describe("S3Driver", () => {
     sendMock.mockRejectedValue(new FakeS3ServiceException("Forbidden", 403));
     const driver = getStorageDriver();
     await expect(driver.deleteObject("k")).rejects.toThrow();
+  });
+});
+
+describe("attemptStorageRead()", () => {
+  it("returns the bytes that were read", async () => {
+    expect(await attemptStorageRead("x read", "msg", async () => Buffer.from("ok"))).toEqual({ value: Buffer.from("ok") });
+  });
+
+  it("maps a missing object to null", async () => {
+    expect(await attemptStorageRead("x read", "msg", async () => { throw new StorageNotFoundError("k"); })).toEqual({ value: null });
+  });
+
+  it("logs any other failure and answers the coded 502", async () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const result = await attemptStorageRead("x read", "Could not read.", async () => { throw new Error("down"); });
+    if (!("error" in result)) throw new Error("expected an error response");
+    expect(result.error.status).toBe(502);
+    expect(await result.error.json()).toEqual({ error: "Could not read.", code: "storageUnavailable" });
+    expect(errSpy).toHaveBeenCalledWith("[storage] x read failed", expect.any(Error));
+    errSpy.mockRestore();
   });
 });

@@ -28,14 +28,8 @@ export async function PUT(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return invalidInput(parsed.error);
 
-  const { hostnameUrlTemplate, macAddressUrlTemplate, locationUrlTemplate } = parsed.data;
-
-  // All three templates are always written; an omitted one is cleared.
-  const written = await writeGeneralSettings({
-    hostnameUrlTemplate: hostnameUrlTemplate ?? "",
-    macAddressUrlTemplate: macAddressUrlTemplate ?? "",
-    locationUrlTemplate: locationUrlTemplate ?? "",
-  });
+  // An omitted template is left unchanged; null or "" clears it.
+  const written = await writeGeneralSettings(parsed.data);
 
   await logAudit({
     session,

@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/root/.npm \
 #
 # Installs scripts/package.json (pinned to the root lockfile's versions):
 # the handful of packages the maintenance scripts and the lib/ code they
-# import need (Prisma client + CLI, tsx, S3, jsdom, bcryptjs, zod, …).
+# import need (Prisma client + CLI, tsx, S3, node-html-parser, bcryptjs, zod, …).
 # Copied into the runner under scripts/node_modules for the Nomad Actions;
 # it also provides the Prisma CLI for `prisma migrate deploy`.
 # openssl lets Prisma's postinstall pick the matching engine build.

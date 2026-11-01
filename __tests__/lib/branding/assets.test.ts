@@ -9,15 +9,16 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 const putObject = vi.fn();
 const deleteObject = vi.fn();
-vi.mock("@/lib/storage", async () => ({
-  ...(await vi.importActual<typeof import("@/lib/storage")>("@/lib/storage")),
-  getStorageDriver: () => ({ getObject: vi.fn(), putObject, deleteObject }),
+const getObject = vi.fn();
+vi.mock("@/lib/uploads/storage", async () => ({
+  ...(await vi.importActual<typeof import("@/lib/uploads/storage")>("@/lib/uploads/storage")),
+  getStorageDriver: () => ({ getObject, putObject, deleteObject }),
   StorageNotFoundError: class extends Error {},
 }));
 
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { removeBrandingAsset, uploadBrandingAsset } from "@/lib/branding/assets";
+import { removeBrandingAsset, serveBrandingAsset, uploadBrandingAsset } from "@/lib/branding/assets";
 
 const session = { user: { id: "u1", role: "ADMIN" } } as never;
 
@@ -47,7 +48,7 @@ describe("uploadBrandingAsset()", () => {
   it("400 when no file is sent", async () => {
     const res = await uploadBrandingAsset(uploadReq(null), session, "logo");
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "No file provided" });
+    expect(await res.json()).toEqual({ error: "No file provided." });
   });
 
   it("400 for a MIME type outside the asset allowlist", async () => {
@@ -115,5 +116,31 @@ describe("uploadBrandingAsset() content check", () => {
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/does not match/);
     expect(putObject).not.toHaveBeenCalled();
+  });
+});
+
+describe("serveBrandingAsset()", () => {
+  beforeEach(() => {
+    vi.mocked(prisma.appSetting.findMany).mockResolvedValue([
+      { key: "branding.logoStorageKey", value: "branding/logo" },
+      { key: "branding.logoContentType", value: "image/png" },
+    ] as never);
+  });
+
+  it("streams the stored file with its content type", async () => {
+    getObject.mockResolvedValueOnce(Buffer.from("PNG"));
+    const res = await serveBrandingAsset("logo");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/png");
+  });
+
+  it("answers a logged, coded 502 when storage fails", async () => {
+    getObject.mockRejectedValueOnce(new Error("S3 down"));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await serveBrandingAsset("logo");
+    expect(res.status).toBe(502);
+    expect((await res.json()).code).toBe("storageUnavailable");
+    expect(errSpy).toHaveBeenCalledWith("[storage] Logo read failed", expect.any(Error));
+    errSpy.mockRestore();
   });
 });

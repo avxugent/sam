@@ -25,6 +25,15 @@ export const ATTACHMENT_EXTENSIONS = new Set([
 ]);
 
 /**
+ * An attachment's original name made safe to store and to put in a
+ * Content-Disposition header: CR, LF, quote and backslash become "_", and it
+ * is capped at 255 characters.
+ */
+export function safeFilename(name: string): string {
+  return name.replace(/[\r\n\\"]/g, "_").slice(0, 255);
+}
+
+/**
  * Whether the file content starts like its declared MIME type (magic bytes),
  * so a client cannot upload a dangerous file under a spoofed type. Text
  * types (including SVG) must not contain NUL bytes. Unknown types fail.
@@ -72,7 +81,8 @@ export function contentMatchesType(buffer: Buffer, mimeType: string): boolean {
         buffer[3] === 0x46
       );
     case "application/msword":
-      // Legacy .doc — Compound Document File (OLE2)
+    case "application/vnd.ms-excel":
+      // Legacy .doc / .xls — Compound Document File (OLE2)
       return (
         buffer[0] === 0xd0 &&
         buffer[1] === 0xcf &&
@@ -80,9 +90,8 @@ export function contentMatchesType(buffer: Buffer, mimeType: string): boolean {
         buffer[3] === 0xe0
       );
     case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-    case "application/vnd.ms-excel":
     case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-      // OOXML (.docx, .xlsx) and .xls (when misreported) are ZIP archives
+      // OOXML (.docx, .xlsx) are ZIP archives
       return (
         buffer[0] === 0x50 &&
         buffer[1] === 0x4b &&

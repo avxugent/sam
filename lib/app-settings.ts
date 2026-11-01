@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { parseBackgroundMode, type BackgroundMode } from "@/lib/branding/background-mode";
 
 /** The client to read with: the app's, or a transaction's. */
 type Db = PrismaClient | Prisma.TransactionClient;
@@ -113,13 +114,14 @@ export async function readGeneralSettings(): Promise<GeneralSettings> {
   };
 }
 
-/** Writes all three templates; an empty one clears it. */
-export function writeGeneralSettings(settings: GeneralSettings): Promise<Record<string, string>> {
-  return writeSettings({
-    [GENERAL_KEYS.hostnameUrlTemplate]: settings.hostnameUrlTemplate,
-    [GENERAL_KEYS.macAddressUrlTemplate]: settings.macAddressUrlTemplate,
-    [GENERAL_KEYS.locationUrlTemplate]: settings.locationUrlTemplate,
-  });
+/** Writes the templates present in `update` (null or "" clears one); returns what was written. */
+export function writeGeneralSettings(update: { [K in keyof GeneralSettings]?: string | null }): Promise<Record<string, string>> {
+  const entries: Record<string, string | undefined> = {};
+  for (const [field, key] of Object.entries(GENERAL_KEYS) as [keyof GeneralSettings, string][]) {
+    const value = update[field];
+    if (value !== undefined) entries[key] = value ?? "";
+  }
+  return writeSettings(entries);
 }
 
 /** Where each uploaded branding file is recorded: its storage key and content type. */
@@ -142,8 +144,8 @@ export type BrandingSettings = {
   appTitle: string;
   hasLogo: boolean;
   hasFavicon: boolean;
-  /** Raw stored mode; "" for the default. Narrow with parseBackgroundMode(). */
-  backgroundMode: string;
+  /** "" for the default; an unknown stored value reads as the default too. */
+  backgroundMode: BackgroundMode;
   hasCustomBackground: boolean;
 };
 
@@ -153,9 +155,26 @@ export async function readBrandingSettings(): Promise<BrandingSettings> {
     appTitle: map[BRANDING_KEYS.appTitle] || "SAM",
     hasLogo: !!map[BRANDING_KEYS.logo],
     hasFavicon: !!map[BRANDING_KEYS.favicon],
-    backgroundMode: map[BRANDING_KEYS.backgroundMode] ?? "",
+    backgroundMode: parseBackgroundMode(map[BRANDING_KEYS.backgroundMode]),
     hasCustomBackground: !!map[BRANDING_KEYS.background],
   };
+}
+
+/**
+ * Writes the fields present in `update`; a background mode of "" (the default)
+ * removes the stored setting. Returns what was written, ready for an audit
+ * `detail` (a removed mode is recorded as "(none)").
+ */
+export async function writeBrandingSettings(update: {
+  appTitle?: string;
+  backgroundMode?: BackgroundMode;
+}): Promise<Record<string, string>> {
+  const { appTitle, backgroundMode } = update;
+  const [written] = await Promise.all([
+    writeSettings({ [BRANDING_KEYS.appTitle]: appTitle, [BRANDING_KEYS.backgroundMode]: backgroundMode || undefined }),
+    backgroundMode === "" ? deleteSettings([BRANDING_KEYS.backgroundMode]) : null,
+  ]);
+  return backgroundMode === "" ? { ...written, [BRANDING_KEYS.backgroundMode]: "(none)" } : written;
 }
 
 const EXPORT_KEYS = {
@@ -166,16 +185,18 @@ const EXPORT_KEYS = {
 
 export type ExportSettings = { cronExpression: string; outputDir: string; enabled: boolean };
 
+// An empty stored schedule or directory (a cleared field) means the default.
+
 export async function readExportSettings(): Promise<ExportSettings> {
   const map = await readSettings(Object.values(EXPORT_KEYS));
   return {
-    cronExpression: map[EXPORT_KEYS.cronExpression] ?? "0 2 * * *",
-    outputDir: map[EXPORT_KEYS.outputDir] ?? "/backups",
+    cronExpression: map[EXPORT_KEYS.cronExpression] || "0 2 * * *",
+    outputDir: map[EXPORT_KEYS.outputDir] || "/backups",
     enabled: map[EXPORT_KEYS.enabled] === "true",
   };
 }
 
-/** Writes the fields present in `update` (null stores an empty value); returns what was written. */
+/** Writes the fields present in `update` (null stores an empty value, read back as the default); returns what was written. */
 export function writeExportSettings(update: { [K in keyof ExportSettings]?: ExportSettings[K] | null }): Promise<Record<string, string>> {
   const entries: Record<string, string | undefined> = {};
   for (const [field, key] of Object.entries(EXPORT_KEYS) as [keyof ExportSettings, string][]) {

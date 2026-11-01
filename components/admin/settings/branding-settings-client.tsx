@@ -14,6 +14,118 @@ import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 
+type BrandingAssetKind = "logo" | "favicon" | "background";
+
+/**
+ * Upload / remove state for one branding file: whether it exists, the busy
+ * flags, the file input, and a version that busts the preview's cache.
+ */
+function useBrandingAsset(
+  kind: BrandingAssetKind,
+  initialHas: boolean,
+  { onUploaded, onRemoved }: { onUploaded?: () => void; onRemoved?: () => void } = {}
+) {
+  const t = useTranslations("settings");
+  const { toast } = useToast();
+  const showApiError = useApiErrorToast();
+  const router = useRouter();
+  const [has, setHas] = useState(initialHas);
+  const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [version, setVersion] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const endpoint = `/api/settings/branding/${kind}`;
+
+  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await apiFetch(endpoint, { method: "POST", body: fd });
+    setUploading(false);
+    if (inputRef.current) inputRef.current.value = "";
+    if (!res.ok) {
+      showApiError(res.error);
+      return;
+    }
+    setHas(true);
+    setVersion((v) => v + 1);
+    onUploaded?.();
+    toast({ title: t(`${kind}Uploaded`) });
+    router.refresh();
+  }
+
+  async function remove() {
+    setRemoving(true);
+    const res = await apiFetch(endpoint, { method: "DELETE" });
+    setRemoving(false);
+    if (!res.ok) {
+      showApiError(res.error);
+      return;
+    }
+    setHas(false);
+    setVersion((v) => v + 1);
+    onRemoved?.();
+    toast({ title: t(`${kind}Removed`) });
+    router.refresh();
+  }
+
+  return { has, uploading, removing, version, inputRef, upload, remove, pick: () => inputRef.current?.click() };
+}
+
+/** The logo or favicon section: preview, upload and remove. */
+function BrandingImageSection({
+  kind,
+  initialHas,
+  accept,
+  alt,
+  labels,
+}: {
+  kind: "logo" | "favicon";
+  initialHas: boolean;
+  accept: string;
+  alt: string;
+  labels: { title: string; help: string; none: string; upload: string; remove: string };
+}) {
+  const { has, uploading, removing, version, inputRef, upload, remove, pick } = useBrandingAsset(kind, initialHas);
+
+  return (
+    <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
+      <div>
+        <h2 className="text-[15px] font-semibold text-foreground">{labels.title}</h2>
+        <p className="text-[13px] text-muted-foreground mt-1">{labels.help}</p>
+      </div>
+
+      {has ? (
+        <div className="p-3 bg-background border border-border rounded-[8px] inline-block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/branding/${kind}?v=${version}`} alt={alt} className="h-8 w-8 object-contain" />
+        </div>
+      ) : (
+        <div className="p-4 bg-background border border-dashed border-input rounded-[8px] flex items-center gap-3 text-subtle">
+          <ImageIcon className="h-6 w-6" />
+          <span className="text-[13px]">{labels.none}</span>
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={upload} />
+        <Button variant="outline" onClick={pick} disabled={uploading} className="gap-2">
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          {labels.upload}
+        </Button>
+        {has && (
+          <Button variant="outline" onClick={remove} disabled={removing} className="gap-2 text-destructive hover:text-destructive">
+            {removing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            {labels.remove}
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function BrandingSettingsClient({
   initialAppTitle,
   initialHasLogo,
@@ -34,27 +146,22 @@ export function BrandingSettingsClient({
   const router = useRouter();
 
   const [appTitle, setAppTitle] = useState(initialAppTitle);
-  const [hasLogo, setHasLogo] = useState(initialHasLogo);
-  const [hasFavicon, setHasFavicon] = useState(initialHasFavicon);
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(initialBackgroundMode);
-  const [hasCustomBackground, setHasCustomBackground] = useState(initialHasCustomBackground);
-
   const [savingTitle, setSavingTitle] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [removingLogo, setRemovingLogo] = useState(false);
-  const [uploadingFavicon, setUploadingFavicon] = useState(false);
-  const [removingFavicon, setRemovingFavicon] = useState(false);
-  const [uploadingBackground, setUploadingBackground] = useState(false);
-  const [removingBackground, setRemovingBackground] = useState(false);
   const [savingBackground, setSavingBackground] = useState(false);
-
-  const [logoVersion, setLogoVersion] = useState(0);
-  const [faviconVersion, setFaviconVersion] = useState(0);
-  const [backgroundVersion, setBackgroundVersion] = useState(0);
-
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const faviconInputRef = useRef<HTMLInputElement>(null);
-  const backgroundInputRef = useRef<HTMLInputElement>(null);
+  const {
+    has: hasCustomBackground,
+    uploading: uploadingBackground,
+    removing: removingBackground,
+    version: backgroundVersion,
+    inputRef: backgroundInputRef,
+    upload: handleUploadBackground,
+    remove: handleRemoveBackground,
+    pick: pickBackground,
+  } = useBrandingAsset("background", initialHasCustomBackground, {
+    onUploaded: () => setBackgroundMode("custom"),
+    onRemoved: () => setBackgroundMode(""),
+  });
 
   async function handleSaveTitle() {
     if (!appTitle.trim()) return;
@@ -69,75 +176,9 @@ export function BrandingSettingsClient({
     router.refresh();
   }
 
-  async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingLogo(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await apiFetch("/api/settings/branding/logo", { method: "POST", body: fd });
-    setUploadingLogo(false);
-    if (logoInputRef.current) logoInputRef.current.value = "";
-    if (!res.ok) {
-      showApiError(res.error);
-      return;
-    }
-    setHasLogo(true);
-    setLogoVersion((v) => v + 1);
-    toast({ title: t("logoUploaded") });
-    router.refresh();
-  }
-
-  async function handleRemoveLogo() {
-    setRemovingLogo(true);
-    const res = await apiFetch("/api/settings/branding/logo", { method: "DELETE" });
-    setRemovingLogo(false);
-    if (!res.ok) {
-      showApiError(res.error);
-      return;
-    }
-    setHasLogo(false);
-    setLogoVersion((v) => v + 1);
-    toast({ title: t("logoRemoved") });
-    router.refresh();
-  }
-
-  async function handleUploadFavicon(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingFavicon(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await apiFetch("/api/settings/branding/favicon", { method: "POST", body: fd });
-    setUploadingFavicon(false);
-    if (faviconInputRef.current) faviconInputRef.current.value = "";
-    if (!res.ok) {
-      showApiError(res.error);
-      return;
-    }
-    setHasFavicon(true);
-    setFaviconVersion((v) => v + 1);
-    toast({ title: t("faviconUploaded") });
-    router.refresh();
-  }
-
-  async function handleRemoveFavicon() {
-    setRemovingFavicon(true);
-    const res = await apiFetch("/api/settings/branding/favicon", { method: "DELETE" });
-    setRemovingFavicon(false);
-    if (!res.ok) {
-      showApiError(res.error);
-      return;
-    }
-    setHasFavicon(false);
-    setFaviconVersion((v) => v + 1);
-    toast({ title: t("faviconRemoved") });
-    router.refresh();
-  }
-
   async function handleSelectBackgroundMode(mode: BackgroundMode) {
     if (mode === "custom") {
-      backgroundInputRef.current?.click();
+      pickBackground();
       return;
     }
     setSavingBackground(true);
@@ -149,41 +190,6 @@ export function BrandingSettingsClient({
     }
     setBackgroundMode(mode);
     toast({ title: t("saved") });
-    router.refresh();
-  }
-
-  async function handleUploadBackground(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingBackground(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await apiFetch("/api/settings/branding/background", { method: "POST", body: fd });
-    setUploadingBackground(false);
-    if (backgroundInputRef.current) backgroundInputRef.current.value = "";
-    if (!res.ok) {
-      showApiError(res.error);
-      return;
-    }
-    setBackgroundMode("custom");
-    setHasCustomBackground(true);
-    setBackgroundVersion((v) => v + 1);
-    toast({ title: t("backgroundUploaded") });
-    router.refresh();
-  }
-
-  async function handleRemoveBackground() {
-    setRemovingBackground(true);
-    const res = await apiFetch("/api/settings/branding/background", { method: "DELETE" });
-    setRemovingBackground(false);
-    if (!res.ok) {
-      showApiError(res.error);
-      return;
-    }
-    setBackgroundMode("");
-    setHasCustomBackground(false);
-    setBackgroundVersion((v) => v + 1);
-    toast({ title: t("backgroundRemoved") });
     router.refresh();
   }
 
@@ -215,71 +221,21 @@ export function BrandingSettingsClient({
         </div>
       </section>
 
-      <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
-        <div>
-          <h2 className="text-[15px] font-semibold text-foreground">{t("logo")}</h2>
-          <p className="text-[13px] text-muted-foreground mt-1">{t("logoHelp")}</p>
-        </div>
+      <BrandingImageSection
+        kind="logo"
+        initialHas={initialHasLogo}
+        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+        alt="Logo"
+        labels={{ title: t("logo"), help: t("logoHelp"), none: t("noLogoUploaded"), upload: t("uploadLogo"), remove: t("removeLogo") }}
+      />
 
-        {hasLogo ? (
-          <div className="p-3 bg-background border border-border rounded-[8px] inline-block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/api/branding/logo?v=${logoVersion}`} alt="Logo" className="h-8 w-8 object-contain" />
-          </div>
-        ) : (
-          <div className="p-4 bg-background border border-dashed border-input rounded-[8px] flex items-center gap-3 text-subtle">
-            <ImageIcon className="h-6 w-6" />
-            <span className="text-[13px]">{t("noLogoUploaded")}</span>
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" onChange={handleUploadLogo} />
-          <Button variant="outline" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo} className="gap-2">
-            {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {t("uploadLogo")}
-          </Button>
-          {hasLogo && (
-            <Button variant="outline" onClick={handleRemoveLogo} disabled={removingLogo} className="gap-2 text-destructive hover:text-destructive">
-              {removingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              {t("removeLogo")}
-            </Button>
-          )}
-        </div>
-      </section>
-
-      <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
-        <div>
-          <h2 className="text-[15px] font-semibold text-foreground">{t("favicon")}</h2>
-          <p className="text-[13px] text-muted-foreground mt-1">{t("faviconHelp")}</p>
-        </div>
-
-        {hasFavicon ? (
-          <div className="p-3 bg-background border border-border rounded-[8px] inline-block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/api/branding/favicon?v=${faviconVersion}`} alt="Favicon" className="h-8 w-8 object-contain" />
-          </div>
-        ) : (
-          <div className="p-4 bg-background border border-dashed border-input rounded-[8px] flex items-center gap-3 text-subtle">
-            <ImageIcon className="h-6 w-6" />
-            <span className="text-[13px]">{t("noFaviconUploaded")}</span>
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <input ref={faviconInputRef} type="file" accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml,.ico" className="hidden" onChange={handleUploadFavicon} />
-          <Button variant="outline" onClick={() => faviconInputRef.current?.click()} disabled={uploadingFavicon} className="gap-2">
-            {uploadingFavicon ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {t("uploadFavicon")}
-          </Button>
-          {hasFavicon && (
-            <Button variant="outline" onClick={handleRemoveFavicon} disabled={removingFavicon} className="gap-2 text-destructive hover:text-destructive">
-              {removingFavicon ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              {t("removeFavicon")}
-            </Button>
-          )}
-        </div>
-      </section>
+      <BrandingImageSection
+        kind="favicon"
+        initialHas={initialHasFavicon}
+        accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml,.ico"
+        alt="Favicon"
+        labels={{ title: t("favicon"), help: t("faviconHelp"), none: t("noFaviconUploaded"), upload: t("uploadFavicon"), remove: t("removeFavicon") }}
+      />
 
       <section className="bg-card border border-border rounded-[10px] p-6 space-y-5">
         <div>
@@ -334,7 +290,7 @@ export function BrandingSettingsClient({
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => backgroundInputRef.current?.click()} disabled={uploadingBackground} className="gap-2">
+              <Button variant="outline" onClick={pickBackground} disabled={uploadingBackground} className="gap-2">
                 {uploadingBackground ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 {t("uploadBackground")}
               </Button>
@@ -353,7 +309,7 @@ export function BrandingSettingsClient({
               <ImageIcon className="h-6 w-6" />
               <span className="text-[13px]">{t("noBackgroundUploaded")}</span>
             </div>
-            <Button variant="outline" onClick={() => backgroundInputRef.current?.click()} disabled={uploadingBackground} className="gap-2">
+            <Button variant="outline" onClick={pickBackground} disabled={uploadingBackground} className="gap-2">
               {uploadingBackground ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               {t("uploadBackground")}
             </Button>

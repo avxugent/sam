@@ -5,12 +5,13 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { isAdmin } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
+import { MAX_ID_LENGTH } from "@/lib/schemas/ids";
 
 const schema = z.object({
   requireTwoFactor: z.boolean().optional(),
   auditRetentionDays: z.number().int().min(30).max(3650).optional(),
-  defaultOwnerId: z.string().max(64).optional().nullable(),
-  reviewWorkLogItemId: z.string().max(64).optional().nullable(),
+  defaultOwnerId: z.string().max(MAX_ID_LENGTH).optional().nullable(),
+  reviewWorkLogItemId: z.string().max(MAX_ID_LENGTH).optional().nullable(),
   reviewPeriodMonths: z.number().int().min(1).max(120).optional(),
 });
 

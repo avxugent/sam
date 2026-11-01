@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
-import { attemptStorage, getStorageDriver, StorageNotFoundError } from "@/lib/storage";
+import { attemptStorage, attemptStorageRead, getStorageDriver } from "@/lib/uploads/storage";
 import { logAudit } from "@/lib/audit";
 import { BRANDING_FILE_KEYS, BRANDING_KEYS, deleteSettings, readSettings, writeSettings } from "@/lib/app-settings";
 import { formFile, readFormData } from "@/lib/route-helpers";
-import { contentMatchesType } from "@/lib/uploads";
+import { contentMatchesType } from "@/lib/uploads/policy";
 
 /**
  * Logo, favicon and background image share one lifecycle: an admin uploads a file,
@@ -63,21 +63,18 @@ export async function serveBrandingAsset(asset: BrandingAsset) {
     return new NextResponse(null, { status: 404 });
   }
 
-  try {
-    const data = await getStorageDriver().getObject(storageKey);
-    const contentType = settings[keys.contentType] || BRANDING_ASSETS[asset].defaultContentType;
-    return new NextResponse(new Uint8Array(data), {
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "public, max-age=3600",
-      },
-    });
-  } catch (err) {
-    if (err instanceof StorageNotFoundError) {
-      return new NextResponse(null, { status: 404 });
-    }
-    throw err;
-  }
+  const read = await attemptStorageRead(`${BRANDING_ASSETS[asset].label} read`, "Could not read the stored file. Please try again.", () =>
+    getStorageDriver().getObject(storageKey)
+  );
+  if ("error" in read) return read.error;
+  if (!read.value) return new NextResponse(null, { status: 404 });
+  const contentType = settings[keys.contentType] || BRANDING_ASSETS[asset].defaultContentType;
+  return new NextResponse(new Uint8Array(read.value), {
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
 }
 
 /** Admin POST: validate and store the uploaded file. Caller must have checked the role. */
@@ -88,7 +85,7 @@ export async function uploadBrandingAsset(req: Request, session: Session, asset:
   const file = formFile(body.form, "file");
 
   if (!file) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    return NextResponse.json({ error: "No file provided." }, { status: 400 });
   }
 
   if (!config.allowedMimeTypes.includes(file.type)) {

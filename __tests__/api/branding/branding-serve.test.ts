@@ -8,16 +8,13 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 const getObject = vi.fn();
-vi.mock("@/lib/storage", () => {
-  class StorageNotFoundError extends Error {}
-  return {
-    getStorageDriver: () => ({ getObject, putObject: vi.fn(), deleteObject: vi.fn() }),
-    StorageNotFoundError,
-  };
-});
+vi.mock("@/lib/uploads/storage", async () => ({
+  ...(await vi.importActual<typeof import("@/lib/uploads/storage")>("@/lib/uploads/storage")),
+  getStorageDriver: () => ({ getObject, putObject: vi.fn(), deleteObject: vi.fn() }),
+}));
 
 import { prisma } from "@/lib/prisma";
-import { StorageNotFoundError } from "@/lib/storage";
+import { StorageNotFoundError } from "@/lib/uploads/storage";
 import { GET as getLogo } from "@/app/api/branding/logo/route";
 import { GET as getFavicon } from "@/app/api/branding/favicon/route";
 import { GET as getBackground } from "@/app/api/branding/background/route";

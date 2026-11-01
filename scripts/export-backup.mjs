@@ -26,11 +26,11 @@ import { getArg } from "./_args.mjs";
 import { prisma } from "@/lib/prisma";
 import { readExportSettings } from "@/lib/app-settings";
 import { generateActiveAssetsCsv } from "@/lib/csv/export";
-import { buildInventorySnapshot } from "@/lib/export/snapshot";
+import { buildInventorySnapshot } from "@/lib/inventory-snapshot";
 import { writeFile, mkdir } from "fs/promises";
 import { resolve, join } from "path";
 import { createHash } from "crypto";
-import { getStorageDriver } from "@/lib/storage";
+import { getStorageDriver } from "@/lib/uploads/storage";
 
 const dryRun = process.argv.includes("--dry-run");
 const outputOverride = getArg("--output");

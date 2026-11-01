@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
-import { attemptStorage, getStorageDriver, StorageNotFoundError } from "@/lib/storage";
+import { attemptStorage, attemptStorageRead, getStorageDriver } from "@/lib/uploads/storage";
+import { safeFilename } from "@/lib/uploads/policy";
 import { z } from "zod";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
@@ -13,11 +14,6 @@ const updateSchema = z.object({
   description: z.string().max(2000).nullable().optional(),
   url: z.url().max(2048).nullable().optional(),
 });
-
-/** Strip characters that could break HTTP headers or cause path traversal */
-function safeFilename(name: string): string {
-  return name.replace(/[\r\n\\"]/g, "_").slice(0, 255);
-}
 
 /**
  * Build a RFC 6266-compliant Content-Disposition header value.
@@ -137,16 +133,13 @@ export async function GET(
     return NextResponse.json({ error: "Attachment has no stored content." }, { status: 404 });
   }
 
-  let buffer: Buffer;
-  try {
-    buffer = await getStorageDriver().getObject(attachment.path);
-  } catch (err) {
-    if (err instanceof StorageNotFoundError) {
-      return notFoundResponse("File");
-    }
-    console.error("[attachments] storage read failed", err);
-    return NextResponse.json({ error: "Could not read the stored file. Please try again." }, { status: 502 });
-  }
+  const path = attachment.path;
+  const read = await attemptStorageRead("attachment read", "Could not read the stored file. Please try again.", () =>
+    getStorageDriver().getObject(path)
+  );
+  if ("error" in read) return read.error;
+  const buffer = read.value;
+  if (!buffer) return notFoundResponse("File");
 
   const safeName = safeFilename(attachment.originalName);
   // SVG files can execute scripts when rendered inline — always force download

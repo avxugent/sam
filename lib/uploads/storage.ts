@@ -232,3 +232,23 @@ export async function attemptStorage<T>(
     return { error: Response.json({ error: userMessage, code: "storageUnavailable" }, { status: 502 }) };
   }
 }
+
+/**
+ * Runs a storage read for a route handler, like attemptStorage(): a missing
+ * object is `{ value: null }` (the caller's 404), any other failure is logged
+ * and becomes the coded 502.
+ */
+export function attemptStorageRead(
+  label: string,
+  userMessage: string,
+  read: () => Promise<Buffer>
+): Promise<{ value: Buffer | null } | { error: Response }> {
+  return attemptStorage(label, userMessage, async () => {
+    try {
+      return await read();
+    } catch (err) {
+      if (err instanceof StorageNotFoundError) return null;
+      throw err;
+    }
+  });
+}

@@ -108,20 +108,6 @@ describe("admin/settings page", () => {
       });
     });
 
-    it("falls back to no background for an unknown stored background mode", async () => {
-      vi.mocked(readBrandingSettings).mockResolvedValue({
-        appTitle: "SAM",
-        hasLogo: false,
-        hasFavicon: false,
-        backgroundMode: "bogus",
-        hasCustomBackground: false,
-      } as never);
-
-      await renderPage(SettingsPage());
-
-      expect(propsOf(BrandingSettingsClient).initialBackgroundMode).toBe("");
-    });
-
     it("passes compliance settings with user names and work-log item id/name pairs", async () => {
       await renderPage(SettingsPage());
 

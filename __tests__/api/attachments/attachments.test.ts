@@ -19,8 +19,8 @@ vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
 }));
 
-vi.mock("@/lib/storage", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/storage")>("@/lib/storage");
+vi.mock("@/lib/uploads/storage", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/uploads/storage")>("@/lib/uploads/storage");
   return {
     ...actual,
     getStorageDriver: vi.fn(),
@@ -29,7 +29,7 @@ vi.mock("@/lib/storage", async () => {
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getStorageDriver, StorageNotFoundError } from "@/lib/storage";
+import { getStorageDriver, StorageNotFoundError } from "@/lib/uploads/storage";
 import { POST } from "@/app/api/attachments/route";
 import { GET, DELETE, PATCH } from "@/app/api/attachments/[id]/route";
 
@@ -149,6 +149,16 @@ describe("POST /api/attachments (file upload)", () => {
     mockCreate.mockRejectedValueOnce(new Error("db down"));
     await expect(POST(makeMultipartReq(new File([TEXT_BODY], "x.txt", { type: "text/plain" }), { locationId: "loc-1" }))).rejects.toThrow("db down");
     expect(deleteObject).toHaveBeenCalledWith(putObject.mock.calls[0][0]);
+  });
+
+  it("logs a failed cleanup of the stored file with its key", async () => {
+    mockAuth.mockResolvedValue(editorSession() as never);
+    mockCreate.mockRejectedValueOnce(new Error("db down"));
+    deleteObject.mockRejectedValueOnce(new Error("storage went away"));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(POST(makeMultipartReq(new File([TEXT_BODY], "x.txt", { type: "text/plain" }), { locationId: "loc-1" }))).rejects.toThrow("db down");
+    expect(errSpy).toHaveBeenCalledWith("[storage] orphan cleanup failed", putObject.mock.calls[0][0], expect.any(Error));
+    errSpy.mockRestore();
   });
 
   it("answers 400 unknownReference and removes the file when the parent no longer exists", async () => {
@@ -329,7 +339,8 @@ describe("GET /api/attachments/[id]", () => {
       params: Promise.resolve({ id: "a" }),
     });
     expect(res.status).toBe(502);
-    expect(errSpy).toHaveBeenCalledWith("[attachments] storage read failed", expect.any(Error));
+    expect((await res.json()).code).toBe("storageUnavailable");
+    expect(errSpy).toHaveBeenCalledWith("[storage] attachment read failed", expect.any(Error));
     errSpy.mockRestore();
   });
 

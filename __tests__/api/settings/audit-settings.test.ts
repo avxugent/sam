@@ -18,8 +18,8 @@ vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 
 const putObject = vi.fn();
 const deleteObject = vi.fn();
-vi.mock("@/lib/storage", async () => ({
-  ...(await vi.importActual<typeof import("@/lib/storage")>("@/lib/storage")),
+vi.mock("@/lib/uploads/storage", async () => ({
+  ...(await vi.importActual<typeof import("@/lib/uploads/storage")>("@/lib/uploads/storage")),
   getStorageDriver: () => ({ putObject, deleteObject, getObject: vi.fn() }),
 }));
 
@@ -71,6 +71,12 @@ describe("audit — general settings", () => {
     );
   });
 
+  it("leaves omitted templates unchanged", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    await putGeneral(jsonReq("http://localhost/api/settings/general", { hostnameUrlTemplate: "https://x/{hostname}" }));
+    expect(vi.mocked(prisma.appSetting.upsert).mock.calls.map(([arg]) => arg.where.key)).toEqual(["hostname.urlTemplate"]);
+  });
+
   it("does not log for non-admin (403)", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     const res = await putGeneral(jsonReq("http://localhost/api/settings/general", {}));
@@ -103,6 +109,14 @@ describe("audit — branding settings", () => {
         detail: expect.objectContaining({ "app.title": "MyApp" }),
       })
     );
+  });
+
+  it("removes the background mode setting when set to the default", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    const res = await putBranding(jsonReq("http://localhost/api/settings/branding", { backgroundMode: "" }));
+    expect(res.status).toBe(200);
+    expect(prisma.appSetting.deleteMany).toHaveBeenCalledWith({ where: { key: { in: ["branding.backgroundMode"] } } });
+    expect(mockLogAudit).toHaveBeenCalledWith(expect.objectContaining({ detail: { "branding.backgroundMode": "(none)" } }));
   });
 });
 

@@ -30,8 +30,9 @@
 import "./_env.mjs";
 import { getArg } from "./_args.mjs";
 import { prisma } from "@/lib/prisma";
-import { getStorageDriver } from "@/lib/storage";
-import { JSDOM } from "jsdom";
+import { getStorageDriver } from "@/lib/uploads/storage";
+import { safeFilename } from "@/lib/uploads/policy";
+import { parse } from "node-html-parser";
 import { basename } from "path";
 import { randomUUID } from "crypto";
 
@@ -251,7 +252,8 @@ async function main() {
       continue;
     }
 
-    const { document } = new JSDOM(html, { url: pageUrl }).window;
+    // Script and style bodies stay text; everything else (noscript, pre) is parsed as markup, as a browser DOM would.
+    const document = parse(html, { blockTextElements: { script: true, style: true } });
 
     if (debug) {
       console.log("\n    ── RAW HTML (first 3000 chars) ──────────────────────────────────");
@@ -432,7 +434,7 @@ async function main() {
             const uuid         = randomUUID();
             const filename     = `${uuid}${ext}`;
             const relativePath = `locations/${location.id}/${filename}`;
-            const originalName = basename(new URL(imgUrl).pathname).replace(/[\r\n"\\]/g, "") || filename;
+            const originalName = safeFilename(basename(new URL(imgUrl).pathname)) || filename;
 
             await storage.putObject(relativePath, imgBuffer, imgContentType);
 

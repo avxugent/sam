@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ATTACHMENT_EXTENSIONS, ATTACHMENT_MIME_TYPES, contentMatchesType } from "@/lib/uploads";
+import { ATTACHMENT_EXTENSIONS, ATTACHMENT_MIME_TYPES, contentMatchesType, safeFilename } from "@/lib/uploads/policy";
 
 describe("contentMatchesType()", () => {
   it("accepts content that starts like its type", () => {
@@ -19,5 +19,27 @@ describe("contentMatchesType()", () => {
   it("keeps the attachment allowlists aligned on PDF and images", () => {
     expect(ATTACHMENT_MIME_TYPES.has("application/pdf") && ATTACHMENT_EXTENSIONS.has(".pdf")).toBe(true);
     expect(ATTACHMENT_EXTENSIONS.has(".php")).toBe(false);
+  });
+});
+
+describe("contentMatchesType() — legacy Office", () => {
+  const ole2 = Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1]);
+  const zip = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0, 0]);
+
+  it("accepts an OLE2 compound file declared as .xls and rejects a ZIP", () => {
+    expect(contentMatchesType(ole2, "application/vnd.ms-excel")).toBe(true);
+    expect(contentMatchesType(zip, "application/vnd.ms-excel")).toBe(false);
+  });
+
+  it("still checks .xlsx as a ZIP archive", () => {
+    expect(contentMatchesType(zip, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).toBe(true);
+    expect(contentMatchesType(ole2, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).toBe(false);
+  });
+});
+
+describe("safeFilename()", () => {
+  it("replaces header-breaking characters and caps the length", () => {
+    expect(safeFilename('a"b\\c\r\nd.pdf')).toBe("a_b_c__d.pdf");
+    expect(safeFilename("x".repeat(300))).toHaveLength(255);
   });
 });

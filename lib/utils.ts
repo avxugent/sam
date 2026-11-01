@@ -20,17 +20,3 @@ export function getInitials(name?: string | null, email?: string | null): string
   }
   return (email?.[0] ?? "U").toUpperCase();
 }
-
-/**
- * User-facing text for an API error body. Every route answers
- * `{ error: string, code?: string, details? }`: `error` is readable English,
- * `code` a stable identifier for clients that localize a specific case (e.g.
- * "supplierWindowOverlap"), and `details` is either `string[]` (template and
- * pattern problems, conflicting names), appended here, or Zod's structured
- * object from invalidInput, which is not meant for display and is ignored.
- */
-export function apiErrorMessage(body: { error?: string; details?: unknown }, fallback = ""): string {
-  const details = Array.isArray(body.details) ? body.details.filter((d): d is string => typeof d === "string") : [];
-  const message = body.error ?? fallback;
-  return details.length > 0 ? `${message}: ${details.join("; ")}` : message;
-}

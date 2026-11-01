@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DISPOSAL_METHODS } from "@/components/assets/remove-asset-dialog";
 import { BulkActionDialog } from "@/components/inventory/bulk-action-dialog";
-import type { BulkResult } from "@/lib/bulk";
+import type { BulkResult } from "@/lib/assets/bulk";
 
 type Props = {
   open: boolean;
@@ -36,7 +36,6 @@ export function BulkDecommissionDialog({ open, onOpenChange, assetIds, onComplet
       description={t("decommissionOptionDescription")}
       resultTitle={t("bulkDecommissionResultsTitle")}
       resultSummary={(count) => t("bulkSkippedSummary", { count })}
-      reasonLabel={(reason) => t(`bulkSkipReason.${reason}`)}
       confirmLabel={(submitting) => (submitting ? t("decommissioning") : t("decommissionAsset"))}
       confirmDisabled={!disposalMethod}
       confirmClassName="bg-[#ca8a04] hover:bg-[#a16207] text-white"

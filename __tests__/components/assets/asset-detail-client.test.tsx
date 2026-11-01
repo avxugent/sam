@@ -48,6 +48,11 @@ function renderAsset(overrides: Partial<typeof ASSET> & Record<string, unknown> 
       asset={{ ...ASSET, ...overrides } as never}
       breadcrumbs={[{ id: "l1", name: "Room 1" }]}
       userRole={userRole as never}
+      hostnameUrlTemplate=""
+      macAddressUrlTemplate=""
+      ownerName={null}
+      decommissionedByName={null}
+      sentForRepairByName={null}
       {...extra}
     />
   );
@@ -63,6 +68,11 @@ describe("AssetDetailClient", () => {
     expect(screen.getByRole("heading", { name: "Pearl-2" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /edit/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /removeAsset/ })).not.toBeInTheDocument();
+  });
+
+  it("names an asset without a model after its hostname", () => {
+    renderAsset({ model: null } as never, "VIEWER");
+    expect(screen.getByRole("heading", { name: "rec01.example.org" })).toBeInTheDocument();
   });
 
   it("offers edit, move and remove on an installed asset", () => {

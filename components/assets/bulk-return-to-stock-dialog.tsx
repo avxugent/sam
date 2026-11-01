@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Label } from "@/components/ui/label";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
 import { BulkActionDialog } from "@/components/inventory/bulk-action-dialog";
-import type { BulkResult } from "@/lib/bulk";
+import type { BulkResult } from "@/lib/assets/bulk";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
 
 type Props = {
@@ -34,7 +34,6 @@ export function BulkReturnToStockDialog({ open, onOpenChange, assetIds, onComple
       description={t("bulkReturnToStockConfirmDescription")}
       resultTitle={t("bulkReturnToStockResultsTitle")}
       resultSummary={(count) => tDecom("bulkSkippedSummary", { count })}
-      reasonLabel={(reason) => tDecom(`bulkSkipReason.${reason}`)}
       confirmLabel={(submitting) => (submitting ? t("returningToStock") : t("returnToStock"))}
       confirmDisabled={!selectedLocationId}
       confirmClassName="bg-primary hover:bg-primary-hover text-white"

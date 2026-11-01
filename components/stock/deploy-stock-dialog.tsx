@@ -12,8 +12,7 @@ import { Loader2 } from "lucide-react";
 import { type FlatLocation } from "@/lib/locations/tree";
 import { LocationSearchList } from "@/components/inventory/location-search-list";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
-import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch, jsonBody } from "@/lib/api-client";
+import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
 
 type Props = {
   open: boolean;

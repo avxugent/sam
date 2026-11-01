@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Package, ArchiveX, Trash2, ChevronRight, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
-import { DisposalMethod } from "@/generated/prisma/enums";
+import { DisposalMethod, type AssetStatus } from "@/generated/prisma/enums";
 import { useLocationOptions } from "@/components/inventory/use-location-options";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
@@ -26,7 +26,7 @@ type Props = {
   assetName: string;
   /** Gates which options are offered: INSTALLED assets can be sent for
    * repair; IN_REPAIR assets can only exit to stock, decommission, or delete. */
-  assetStatus: string;
+  assetStatus: AssetStatus;
   children: React.ReactNode;
   /** Called after a successful move-to-stock, decommission, send-for-repair, or delete. */
   onRemoved?: (action: RemoveAction) => void;

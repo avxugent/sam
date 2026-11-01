@@ -15,7 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { formatFileSize, apiErrorMessage } from "@/lib/utils";
+import { formatFileSize } from "@/lib/utils";
 import { formatDate } from "@/lib/dates";
 import {
   FileText,
@@ -31,7 +31,7 @@ import {
   Pencil,
   ZoomIn,
 } from "lucide-react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, apiErrorMessage } from "@/lib/api-client";
 import { attachmentLabel, isPreviewableImage, type Attachment } from "@/components/attachments/attachment";
 import { AddLinkDialog } from "@/components/attachments/add-link-dialog";
 import { EditAttachmentDialog } from "@/components/attachments/edit-attachment-dialog";
@@ -97,7 +97,6 @@ export function AttachmentGallery({
 
   return (
     <div className="space-y-4">
-      {/* Drop zone */}
       {canEdit && (
         <div
           className={`border-2 border-dashed rounded-[10px] px-5 py-7 text-center transition-colors cursor-pointer bg-card ${
@@ -125,10 +124,9 @@ export function AttachmentGallery({
             <div className="space-y-1.5">
               <Upload className="h-7 w-7 mx-auto text-subtle" />
               <p className="text-[13px] text-muted-foreground">
-                Drag &amp; drop files here, or{" "}
-                <span className="text-primary hover:underline">browse</span>
+                {t.rich("dropFiles", { browse: (chunks) => <span className="text-primary hover:underline">{chunks}</span> })}
               </p>
-              <p className="text-[11.5px] text-subtle">Images, PDF, Word, Excel, CSV — max 50 MB</p>
+              <p className="text-[11.5px] text-subtle">{t("allowedFilesHint")}</p>
             </div>
           )}
         </div>
@@ -177,7 +175,6 @@ export function AttachmentGallery({
 
             return (
               <div key={attachment.id} className="flex items-start gap-3 p-3 hover:bg-background transition-colors">
-                {/* Thumbnail / icon */}
                 {isImage ? (
                   <button
                     type="button"
@@ -209,7 +206,6 @@ export function AttachmentGallery({
                   </div>
                 )}
 
-                {/* Name + meta + description */}
                 <div className="flex-1 min-w-0">
                   {isLink && attachment.url ? (
                     <a
@@ -238,13 +234,12 @@ export function AttachmentGallery({
                   )}
                 </div>
 
-                {/* Actions */}
                 <div className="flex gap-1 flex-shrink-0 pt-0.5">
                   {!isLink && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={`Download ${displayName}`}
+                      aria-label={t("downloadNamed", { name: displayName })}
                       className="h-[30px] w-[30px] text-muted-foreground hover:text-secondary-foreground"
                       onClick={() => window.open(`/api/attachments/${attachment.id}`, "_blank")}
                     >
@@ -255,7 +250,7 @@ export function AttachmentGallery({
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={`${t("editAttachment")} ${displayName}`}
+                      aria-label={t("editNamed", { name: displayName })}
                       className="h-[30px] w-[30px] text-muted-foreground hover:text-secondary-foreground"
                       onClick={() => setEditing(attachment)}
                     >
@@ -268,7 +263,7 @@ export function AttachmentGallery({
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label={`${t(isLink ? "deleteLinkTitle" : "deleteConfirmTitle").replace("?", "")} ${displayName}`}
+                          aria-label={t(isLink ? "deleteLinkNamed" : "deleteAttachmentNamed", { name: displayName })}
                           className="h-[30px] w-[30px] text-destructive hover:text-destructive hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -278,7 +273,7 @@ export function AttachmentGallery({
                         <AlertDialogHeader>
                           <AlertDialogTitle>{isLink ? t("deleteLinkTitle") : t("deleteConfirmTitle")}</AlertDialogTitle>
                           <AlertDialogDescription>
-                            &quot;{displayName}&quot; will be permanently deleted.
+                            {t("deleteConfirmDescription", { name: displayName })}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 import { MoveLocationDialog } from "@/components/locations/move-location-dialog";
-import { AssetTable, type AssetRow } from "@/components/assets/asset-table";
+import { AssetTable } from "@/components/assets/asset-table";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
 import type { Attachment } from "@/components/attachments/attachment";
@@ -46,10 +46,10 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { renderLocationUrl } from "@/lib/url-templates";
-import * as permissions from "@/lib/permissions";
-import type { Role } from "@/lib/permissions";
-import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch, jsonBody } from "@/lib/api-client";
+import { canEdit, type Role } from "@/lib/permissions";
+import type { AssetListRow } from "@/lib/assets/include";
+import { assetLabel } from "@/lib/assets/label";
+import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
 import type { LocationPageData } from "@/lib/locations/include";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
@@ -72,7 +72,7 @@ export function LocationDetailClient({
   jiraBaseUrl,
 }: {
   location: LocationPageData;
-  assets: AssetRow[];
+  assets: AssetListRow[];
   subtreeAssetCount: number;
   breadcrumbs: Breadcrumb[];
   userRole: Role;
@@ -92,7 +92,7 @@ export function LocationDetailClient({
   const t = useTranslations("location");
   const tCommon = useTranslations("common");
   const tNav = useTranslations("nav");
-  const canEdit = permissions.canEdit(userRole);
+  const editable = canEdit(userRole);
 
   const [moveOpen, setMoveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -255,7 +255,7 @@ export function LocationDetailClient({
         </div>
 
         {/* Buttons top-right */}
-        {canEdit && (
+        {editable && (
           <div className="absolute top-4 right-4 flex gap-2">
             {!hasSubLocations && (
               <Button
@@ -326,7 +326,7 @@ export function LocationDetailClient({
           <Paperclip className="h-4 w-4" />
           <span>{t("attachmentsCount", { count: attachments.length })}</span>
         </div>
-        {canEdit && (
+        {editable && (
           <div className="ml-auto flex gap-2">
             <Button
               variant="outline"
@@ -435,7 +435,7 @@ export function LocationDetailClient({
               <Badge variant="secondary" className="ml-2 text-xs">{workLogs.length}</Badge>
             )}
           </TabsTrigger>
-          {canEdit && (
+          {editable && (
             <TabsTrigger
               value="cover"
               className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
@@ -458,7 +458,7 @@ export function LocationDetailClient({
         <TabsContent value="sublocations" className="mt-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-[18px] font-semibold text-foreground">{t("subLocationsHeading")}</h2>
-            {canEdit && (
+            {editable && (
               <LocationFormDialog mode="create" parentId={location.id}>
                 <Button size="sm" className="h-[34px] rounded-[7px] bg-brand-yellow text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
                   <Plus className="h-4 w-4 mr-1" />
@@ -500,7 +500,7 @@ export function LocationDetailClient({
                         <span>{t("subLocations", { count: child._count.children })}</span>
                       </div>
                     </Link>
-                    {canEdit && isRoom && (
+                    {editable && isRoom && (
                       <div className="mt-2 pt-2 border-t border-muted">
                         <button
                           type="button"
@@ -520,7 +520,7 @@ export function LocationDetailClient({
                   </div>
                 );
               })}
-              {canEdit && (
+              {editable && (
                 <LocationFormDialog mode="create" parentId={location.id}>
                   <div className="border-2 border-dashed border-border rounded-[10px] flex items-center justify-center gap-2 p-[18px_20px] cursor-pointer hover:border-subtle transition-colors min-h-[80px]">
                     <Plus className="h-4 w-4 text-subtle" />
@@ -540,7 +540,7 @@ export function LocationDetailClient({
             country={mapData.country}
             latitude={mapData.latitude}
             longitude={mapData.longitude}
-            canEdit={canEdit}
+            canEdit={editable}
             onUpdate={(data) => setMapData({ ...mapData, ...data })}
           />
         </TabsContent>
@@ -549,7 +549,7 @@ export function LocationDetailClient({
           <AttachmentGallery
             attachments={attachments}
             locationId={location.id}
-            canEdit={canEdit}
+            canEdit={editable}
             onUpdate={setAttachments}
           />
         </TabsContent>
@@ -566,7 +566,7 @@ export function LocationDetailClient({
             entries={workLogs}
             assets={assets.map<WorkLogAssetOption>((a) => ({
               id: a.id,
-              label: [a.type?.name, a.model?.name || a.hostname || a.serialNumber, a.location?.name]
+              label: [a.type?.name, assetLabel(a), a.location?.name]
                 .filter(Boolean)
                 .join(" · "),
               typeId: a.type?.id ?? null,
@@ -579,7 +579,7 @@ export function LocationDetailClient({
           />
         </TabsContent>
 
-        {canEdit && (
+        {editable && (
           <TabsContent value="cover" className="mt-4">
             <div className="mb-4">
               <h2 className="text-[18px] font-semibold text-foreground">{t("coverImageHeading")}</h2>
@@ -597,7 +597,7 @@ export function LocationDetailClient({
         )}
       </Tabs>
 
-      {canEdit && (
+      {editable && (
         <MoveLocationDialog
           open={moveOpen}
           onOpenChange={setMoveOpen}

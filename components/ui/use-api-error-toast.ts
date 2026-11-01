@@ -3,8 +3,8 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useToast } from "@/components/ui/use-toast";
-import { apiErrorMessage } from "@/lib/utils";
 import type { ApiErrorBody } from "@/lib/api-client";
+import { apiErrorMessage } from "@/lib/api-client";
 
 /**
  * The standard toast for a failed API call: "Error" with the server's message

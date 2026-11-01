@@ -242,10 +242,12 @@ describe("<AssetFormDialog /> create", () => {
     expect(body.macAddresses).toEqual([]);
   });
 
-  it("clears type back to the 'select' placeholder via the none option", async () => {
+  it("offers only real types (no 'none' option) and requires one", async () => {
     const user = await openCreate();
-    await pickSelect(user, /^Type/, "Projector");
-    await pickSelect(user, /^Type/, "— Select a type —");
+    await user.click(screen.getByRole("combobox", { name: /^Type/ }));
+    const options = await screen.findAllByRole("option");
+    expect(options.map((o) => o.textContent)).not.toContain("— Select a type —");
+    await user.keyboard("{Escape}");
     await user.click(screen.getByRole("button", { name: "Create asset" }));
     expect(await screen.findByText("Type is required")).toBeInTheDocument();
   });
@@ -475,9 +477,14 @@ describe("<AssetFormDialog /> Vault test", () => {
     expect(screen.queryByText("Keys:")).not.toBeInTheDocument();
   });
 
-  it("shows the API error for a 404", async () => {
-    await testPath(json({ error: "No secret at this path" }, 404));
-    expect(await screen.findByText("No secret at this path")).toBeInTheDocument();
+  it("shows the API error when it has no known code", async () => {
+    await testPath(json({ error: "Invalid input" }, 400));
+    expect(await screen.findByText("Invalid input")).toBeInTheDocument();
+  });
+
+  it("localizes a known failure code instead of the server's English text", async () => {
+    await testPath(json({ error: 'No secret found at "secret/av/a b".', code: "vaultSecretMissing" }, 400));
+    expect(await screen.findByText("No secret found at this path.")).toBeInTheDocument();
   });
 
   it("shows 'Unknown result' for a body-less 502", async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { apiFetch, downloadFile, jsonBody } from "@/lib/api-client";
+import { apiErrorMessage, apiFetch, downloadFile, jsonBody, saveBlob } from "@/lib/api-client";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -51,5 +51,38 @@ describe("downloadFile()", () => {
     expect(await downloadFile("/x", "x.csv")).toBe(false);
     vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("offline"); }));
     expect(await downloadFile("/x", "x.csv")).toBe(false);
+  });
+});
+
+describe("saveBlob()", () => {
+  it("clicks a download link named after the file and releases the object URL", () => {
+    const createObjectURL = vi.fn(() => "blob:2");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL, revokeObjectURL }));
+    let downloaded = "";
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      downloaded = this.download;
+    });
+
+    saveBlob(new Blob(["x"]), "assets.csv");
+    expect(downloaded).toBe("assets.csv");
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:2");
+    click.mockRestore();
+  });
+});
+
+describe("apiErrorMessage()", () => {
+  it("appends string details to the error", () => {
+    expect(apiErrorMessage({ error: "Template syntax error", details: ["Line 2: Missing \"=\"", "Line 4: Duplicate key"] })).toBe(
+      'Template syntax error: Line 2: Missing "="; Line 4: Duplicate key'
+    );
+  });
+
+  it("ignores Zod's structured details object", () => {
+    expect(apiErrorMessage({ error: "Invalid input", details: { fieldErrors: { name: ["Required"] } } })).toBe("Invalid input");
+  });
+
+  it("falls back when the body has no error", () => {
+    expect(apiErrorMessage({}, "Something went wrong")).toBe("Something went wrong");
   });
 });

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { BulkResultSummary } from "@/components/inventory/bulk-result-summary";
-import type { BulkResult, BulkSkipReason } from "@/lib/bulk";
+import type { BulkResult } from "@/lib/assets/bulk";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
@@ -24,7 +24,6 @@ type Props = {
   contentClassName?: string;
   resultTitle: string;
   resultSummary: (skipped: number) => string;
-  reasonLabel: (reason: BulkSkipReason) => string;
   confirmLabel: (submitting: boolean) => React.ReactNode;
   confirmDisabled?: boolean;
   confirmClassName: string;
@@ -50,7 +49,6 @@ export function BulkActionDialog({
   contentClassName,
   resultTitle,
   resultSummary,
-  reasonLabel,
   confirmLabel,
   confirmDisabled,
   confirmClassName,
@@ -93,7 +91,6 @@ export function BulkActionDialog({
             title={resultTitle}
             summary={resultSummary(result.failed.length)}
             failed={result.failed}
-            reasonLabel={reasonLabel}
             onClose={handleClose}
           />
         ) : (

@@ -67,7 +67,7 @@ describe("locations/[id]/assets/[assetId] page", () => {
     expect(AssetDetailClient).not.toHaveBeenCalled();
   });
 
-  it("passes the asset, breadcrumbs, role and templates (empty → null) to the client", async () => {
+  it("passes the asset, breadcrumbs, role and templates (\"\" when unset) to the client", async () => {
     await renderPage(call());
 
     expect(locationBreadcrumbs).toHaveBeenCalledWith("loc-1");
@@ -75,7 +75,7 @@ describe("locations/[id]/assets/[assetId] page", () => {
       asset: baseAsset,
       breadcrumbs: [{ id: "loc-1", name: "Room 1" }],
       userRole: "MAINTAINER",
-      hostnameUrlTemplate: null,
+      hostnameUrlTemplate: "",
       macAddressUrlTemplate: "https://m/{mac}",
       ownerName: null,
       decommissionedByName: null,
@@ -108,13 +108,14 @@ describe("locations/[id]/assets/[assetId] page", () => {
     });
   });
 
-  it("generateMetadata prefers model name, then serial number, then a fallback", async () => {
+  it("generateMetadata names the asset by model, hostname, then serial number, else a fallback", async () => {
     const meta = (asset: unknown) => {
       vi.mocked(prisma.asset.findUnique).mockResolvedValueOnce(asset as never);
       return generateMetadata({ params: Promise.resolve({ id: "loc-1", assetId: "asset-1" }) });
     };
     await expect(meta({ model: { name: "R740" }, serialNumber: "SN1" })).resolves.toEqual({ title: "R740" });
-    await expect(meta({ model: null, serialNumber: "SN1" })).resolves.toEqual({ title: "SN1" });
+    await expect(meta({ model: null, hostname: "cam-1", serialNumber: "SN1" })).resolves.toEqual({ title: "cam-1" });
+    await expect(meta({ model: null, hostname: null, serialNumber: "SN1" })).resolves.toEqual({ title: "SN1" });
     await expect(meta(null)).resolves.toEqual({ title: "title" });
   });
 });

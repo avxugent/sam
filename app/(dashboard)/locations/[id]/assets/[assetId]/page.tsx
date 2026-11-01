@@ -3,10 +3,12 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
+import { Role } from "@/lib/permissions";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
 import { locationBreadcrumbs } from "@/lib/locations/path";
 import { ASSET_DETAIL_INCLUDE } from "@/lib/assets/include";
 import { userNamesById } from "@/lib/users/names";
+import { assetLabel } from "@/lib/assets/label";
 
 
 export default async function AssetPage({
@@ -18,8 +20,6 @@ export default async function AssetPage({
   const { id: locationId, assetId } = await params;
 
   const templates = await readGeneralSettings();
-  const hostnameUrlTemplate = templates.hostnameUrlTemplate || null;
-  const macAddressUrlTemplate = templates.macAddressUrlTemplate || null;
 
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },
@@ -38,9 +38,9 @@ export default async function AssetPage({
     <AssetDetailClient
       asset={asset}
       breadcrumbs={breadcrumbs}
-      userRole={session?.user?.role || "VIEWER"}
-      hostnameUrlTemplate={hostnameUrlTemplate}
-      macAddressUrlTemplate={macAddressUrlTemplate}
+      userRole={session?.user?.role ?? Role.VIEWER}
+      hostnameUrlTemplate={templates.hostnameUrlTemplate}
+      macAddressUrlTemplate={templates.macAddressUrlTemplate}
       ownerName={asset.ownerId ? nameById.get(asset.ownerId) ?? null : null}
       decommissionedByName={asset.decommissionedById ? nameById.get(asset.decommissionedById) ?? null : null}
       sentForRepairByName={asset.sentForRepairById ? nameById.get(asset.sentForRepairById) ?? null : null}
@@ -52,9 +52,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { assetId } = await params;
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },
-    select: { model: { select: { name: true } }, serialNumber: true },
+    select: { model: { select: { name: true } }, hostname: true, serialNumber: true },
   });
-  const title = asset?.model?.name || asset?.serialNumber;
+  const title = asset && assetLabel(asset);
   if (title) return { title: title };
   const t = await getTranslations("asset");
   return { title: t("title") };

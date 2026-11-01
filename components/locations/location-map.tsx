@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, MapPin, Search, Save, ExternalLink } from "lucide-react";
-import { apiErrorMessage } from "@/lib/utils";
-import { apiFetch, jsonBody } from "@/lib/api-client";
+import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Props = {
@@ -80,7 +79,12 @@ export function LocationMap({
     const res = await apiFetch<NominatimResult[]>(`/api/geocode?q=${encodeURIComponent(query)}`);
     setSearching(false);
     if (!res.ok || !Array.isArray(res.data)) {
-      toast({ title: tCommon("error"), description: apiErrorMessage(res.ok ? {} : res.error, t("geocodeFailed")), variant: "destructive" });
+      const unavailable = !res.ok && res.error.code === "geocodeUnavailable";
+      toast({
+        title: tCommon("error"),
+        description: unavailable ? t("geocodeFailed") : apiErrorMessage(res.ok ? {} : res.error, t("geocodeFailed")),
+        variant: "destructive",
+      });
       return;
     }
     setSearchResults(res.data);

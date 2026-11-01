@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cn, formatFileSize, getInitials, apiErrorMessage } from "@/lib/utils";
+import { cn, formatFileSize, getInitials } from "@/lib/utils";
 
 describe("cn()", () => {
   it("merges class names", () => {
@@ -56,21 +56,5 @@ describe("getInitials()", () => {
     [undefined, undefined, "U"],
   ])("%s / %s → %s", (name, email, expected) => {
     expect(getInitials(name, email)).toBe(expected);
-  });
-});
-
-describe("apiErrorMessage()", () => {
-  it("appends string details to the error", () => {
-    expect(apiErrorMessage({ error: "Template syntax error", details: ["Line 2: Missing \"=\"", "Line 4: Duplicate key"] })).toBe(
-      'Template syntax error: Line 2: Missing "="; Line 4: Duplicate key'
-    );
-  });
-
-  it("ignores Zod's structured details object", () => {
-    expect(apiErrorMessage({ error: "Invalid input", details: { fieldErrors: { name: ["Required"] } } })).toBe("Invalid input");
-  });
-
-  it("falls back when the body has no error", () => {
-    expect(apiErrorMessage({}, "Something went wrong")).toBe("Something went wrong");
   });
 });

@@ -67,4 +67,13 @@ describe("SearchResults", () => {
     expect(await screen.findByText("searchFailed")).toBeInTheDocument();
     expect(screen.queryByText("resultCount:3")).not.toBeInTheDocument();
   });
+
+  it("names an asset with no model, hostname or serial with the translated fallback", async () => {
+    const asset = { id: "a1", model: null, hostname: null, serialNumber: null, type: null, location: { id: "l1", name: "Room 1" } };
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      new Response(JSON.stringify({ ...response(1), assets: [asset], totalAssets: 1, assetPages: 1, locationPages: 0 }))
+    ));
+    render(<SearchResults />);
+    expect(await screen.findByText("unnamedAsset")).toBeInTheDocument();
+  });
 });

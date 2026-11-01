@@ -23,6 +23,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SELECT_NONE,
 } from "@/components/ui/select";
 import { ModelAutocomplete } from "@/components/inventory/model-autocomplete";
 import { cn } from "@/lib/utils";
@@ -72,6 +73,9 @@ type Supplier = {
   defaultUntil: string | null;
 };
 type UserLite = { id: string; name: string };
+
+/** /api/vault/test failure codes, each with its own assetForm message. */
+const VAULT_TEST_ERROR_CODES = ["vaultNotConfigured", "vaultSecretMissing", "vaultDenied", "vaultUnavailable"] as const;
 
 type VaultTestResult = {
   ok: boolean;
@@ -210,7 +214,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
    * ignore it rather than silently wiping the field. Item values are the
    * field's own option values, hence the cast.
    */
-  function pickSelect<K extends "typeId" | "ownerId" | "supplierId" | "criticality">(field: K, sentinel: string) {
+  function pickSelect<K extends "ownerId" | "supplierId" | "criticality">(field: K, sentinel: string) {
     return (v: string) => {
       if (v === "") return;
       setValue(field, (v === sentinel ? "" : v) as PathValue<AssetFormValues, K>, { shouldValidate: true });
@@ -335,10 +339,11 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     if (res.ok) {
       setVaultTestResult({ ok: true, message: res.data.message || t("vaultUnknown"), keys: res.data.keys });
     } else {
+      const code = VAULT_TEST_ERROR_CODES.find((c) => c === res.error.code);
       setVaultTestResult({
         ok: false,
         // status 0: the request never reached the server
-        message: res.status === 0 ? t("vaultNetworkError") : res.error.error || t("vaultUnknown"),
+        message: res.status === 0 ? t("vaultNetworkError") : code ? t(code) : res.error.error || t("vaultUnknown"),
       });
     }
   }
@@ -346,8 +351,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   async function onSubmit(data: AssetFormValues) {
     const payload = {
       ...data,
-      typeId: data.typeId || null,
-      manufacturerId: data.manufacturerId || null,
       hostname: data.hostname?.trim() || null,
       vaultPath: data.vaultPath?.trim() || null,
       // Empty on create = "use default" (owner setting / supplier window) —
@@ -386,7 +389,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
   // Derived state for contextual hints
   const hostnameSet = !!hostnameValue?.trim();
-  const selectedTypePattern = assetTypes.find((at) => at.id === typeIdValue)?.hostnamePattern;
+  const selectedType = assetTypes.find((at) => at.id === typeIdValue);
+  const selectedTypePattern = selectedType?.hostnamePattern;
 
   // Cross-field error for mac addresses (from superRefine)
   const macCrossError = errors.macAddresses?.root?.message
@@ -409,7 +413,8 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               </Label>
               <Select
                 value={typeIdValue || ""}
-                onValueChange={pickSelect("typeId", "_none")}
+                // Ignores the "" Radix can fire on its own (see pickSelect).
+                onValueChange={(v) => v && setValue("typeId", v, { shouldValidate: true })}
               >
                 <SelectTrigger
                   id="asset-type"
@@ -421,7 +426,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                   <SelectValue placeholder={t("selectType")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">{t("noneType")}</SelectItem>
                   {assetTypes.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name}
@@ -570,14 +574,14 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             <div className="space-y-1.5">
               <Label htmlFor="asset-owner">{tField("owner")}</Label>
               <Select
-                value={ownerIdValue || "_none"}
-                onValueChange={pickSelect("ownerId", "_none")}
+                value={ownerIdValue || SELECT_NONE}
+                onValueChange={pickSelect("ownerId", SELECT_NONE)}
               >
                 <SelectTrigger id="asset-owner">
                   <SelectValue placeholder={t("ownerDefault")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">{t("ownerDefault")}</SelectItem>
+                  <SelectItem value={SELECT_NONE}>{t("ownerDefault")}</SelectItem>
                   {usersLite.map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                   ))}
@@ -588,14 +592,14 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             <div className="space-y-1.5">
               <Label htmlFor="asset-supplier">{tField("supplier")}</Label>
               <Select
-                value={supplierIdValue || "_none"}
-                onValueChange={pickSelect("supplierId", "_none")}
+                value={supplierIdValue || SELECT_NONE}
+                onValueChange={pickSelect("supplierId", SELECT_NONE)}
               >
                 <SelectTrigger id="asset-supplier">
                   <SelectValue placeholder={t("noneSupplier")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">{t("noneSupplier")}</SelectItem>
+                  <SelectItem value={SELECT_NONE}>{t("noneSupplier")}</SelectItem>
                   {suppliers.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
@@ -614,12 +618,9 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_inherit">
-                    {(() => {
-                      const typeDefault = assetTypes.find((at) => at.id === typeIdValue)?.defaultCriticality;
-                      return typeDefault
-                        ? t("criticalityInheritWith", { level: tCommon(`criticality.${typeDefault}`) })
-                        : t("criticalityInherit");
-                    })()}
+                    {selectedType?.defaultCriticality
+                      ? t("criticalityInheritWith", { level: tCommon(`criticality.${selectedType.defaultCriticality}`) })
+                      : t("criticalityInherit")}
                   </SelectItem>
                   {CRITICALITY_VALUES.map((level) => (
                     <SelectItem key={level} value={level}>{tCommon(`criticality.${level}`)}</SelectItem>

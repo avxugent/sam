@@ -3,7 +3,10 @@ import { useState } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const tFn = (key: string) => key;
+const tFn = Object.assign(
+  (key: string, values?: { name?: string }) => (values?.name ? `${key}:${values.name}` : key),
+  { rich: (key: string) => key },
+);
 vi.mock("next-intl", () => ({ useTranslations: () => tFn }));
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 
@@ -48,5 +51,13 @@ describe("AttachmentGallery", () => {
     for (const name of ["existing.pdf", "one.pdf", "two.pdf"]) {
       expect(await screen.findByText(name)).toBeInTheDocument();
     }
+  });
+
+  it("names each row action after the attachment through the translations", () => {
+    render(<Parent />);
+    expect(screen.getByRole("button", { name: "downloadNamed:existing.pdf" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "editNamed:existing.pdf" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "deleteAttachmentNamed:existing.pdf" })).toBeInTheDocument();
+    expect(screen.getByText("allowedFilesHint")).toBeInTheDocument();
   });
 });

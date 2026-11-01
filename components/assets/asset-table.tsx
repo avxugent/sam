@@ -12,7 +12,7 @@ import { BulkDecommissionDialog } from "@/components/assets/bulk-decommission-di
 import { BulkReturnToStockDialog } from "@/components/assets/bulk-return-to-stock-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
-import { formatDate } from "@/lib/dates";
+import { formatDate, toIsoDay } from "@/lib/dates";
 import { Search, Package, Pencil, Trash2, ExternalLink, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { renderHostnameUrl } from "@/lib/url-templates";
 import {
@@ -22,21 +22,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import * as permissions from "@/lib/permissions";
-import type { Role } from "@/lib/permissions";
+import { canEdit, type Role } from "@/lib/permissions";
 import type { AssetListRow } from "@/lib/assets/include";
+import { assetLabel } from "@/lib/assets/label";
+import { saveBlob } from "@/lib/api-client";
 import { escapeCsvCell } from "@/lib/csv/core";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
-/** A row as the location and asset-type pages pass it in. */
-export type AssetRow = AssetListRow;
-
 type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "hostname" | "installationDate" | "location";
 
-function exportToCsv(assets: AssetRow[], filename: string, headers: string[]) {
+function exportToCsv(assets: AssetListRow[], filename: string, headers: string[]) {
   const rows = assets.map((a) => [
     a.type?.name,
     a.manufacturer?.name,
@@ -46,17 +44,11 @@ function exportToCsv(assets: AssetRow[], filename: string, headers: string[]) {
     a.macAddresses.map((m) => m.address).join("; "),
     String(a.quantity),
     a.location.name,
-    a.installationDate ? new Date(a.installationDate).toLocaleDateString("sv-SE") : null,
+    toIsoDay(a.installationDate),
   ].map((cell) => escapeCsvCell(cell)).join(";"));
   // Same ';' delimiter and line endings as the server-side CSV exports.
   const csv = [headers.map((h) => escapeCsvCell(h)).join(";"), ...rows].join("\r\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  saveBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), filename);
 }
 
 export function AssetTable({
@@ -66,7 +58,7 @@ export function AssetTable({
   showLocation = false,
   hostnameUrlTemplate,
 }: {
-  assets: AssetRow[];
+  assets: AssetListRow[];
   locationId: string;
   userRole: Role;
   showLocation?: boolean;
@@ -87,7 +79,7 @@ export function AssetTable({
   const [pageSize, setPageSize] = useState<number>(25);
   const [bulkDecommissionOpen, setBulkDecommissionOpen] = useState(false);
   const [bulkReturnToStockOpen, setBulkReturnToStockOpen] = useState(false);
-  const canEdit = permissions.canEdit(userRole);
+  const editable = canEdit(userRole);
 
   // Sync local state when the parent re-fetches (e.g. after router.refresh()
   // from AssetFormDialog). Without this, useState's initializer runs only
@@ -173,7 +165,7 @@ export function AssetTable({
     );
   }
 
-  const colSpan = (showLocation ? 8 : 7) + (canEdit ? 1 : 0);
+  const colSpan = (showLocation ? 8 : 7) + (editable ? 1 : 0);
 
   return (
     <div className="space-y-3">
@@ -201,7 +193,7 @@ export function AssetTable({
         </Button>
       </div>
 
-      {canEdit && selected.size > 0 && (
+      {editable && selected.size > 0 && (
         <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-primary-tint text-[12.5px] text-primary">
           <span className="font-medium">{t("itemsSelected", { count: selected.size })}</span>
           <Button
@@ -234,7 +226,7 @@ export function AssetTable({
           <caption className="sr-only">{t("assetCount", { count: sorted.length })}</caption>
           <thead>
             <tr className="border-b border-border bg-background">
-              {canEdit && (
+              {editable && (
                 <th scope="col" className="w-[36px] px-4 py-[10px]">
                   <Checkbox
                     checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
@@ -264,24 +256,25 @@ export function AssetTable({
               paginated.map((asset) => {
                 const assetLocationId = asset.location.id;
                 const assetHref = `/locations/${assetLocationId}/assets/${asset.id}`;
+                const name = assetLabel(asset) ?? asset.id;
                 return (
                 <tr
                   key={asset.id}
                   role="link"
                   tabIndex={0}
-                  aria-label={`Open asset ${asset.model?.name || asset.hostname || asset.serialNumber || "details"}`}
+                  aria-label={t("openAssetNamed", { name })}
                   className="border-b border-border last:border-0 hover:bg-background transition-colors duration-75 cursor-pointer focus-visible:outline-none focus-visible:bg-primary-tint"
                   onClick={() => router.push(assetHref)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") { e.preventDefault(); router.push(assetHref); }
                   }}
                 >
-                  {canEdit && (
+                  {editable && (
                     <td className="px-4 py-[11px]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selected.has(asset.id)}
                         onCheckedChange={() => toggleSelectRow(asset.id)}
-                        aria-label={t("selectRow", { name: asset.model?.name || asset.hostname || asset.serialNumber || asset.id })}
+                        aria-label={t("selectRow", { name })}
                       />
                     </td>
                   )}
@@ -336,7 +329,7 @@ export function AssetTable({
                   </td>
                   <td className="px-4 py-[11px]" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
-                      {canEdit && (
+                      {editable && (
                         <>
                           <AssetFormDialog
                             mode="edit"
@@ -347,7 +340,7 @@ export function AssetTable({
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label={`Edit asset ${asset.model?.name || asset.hostname || asset.serialNumber || asset.id}`}
+                              aria-label={t("editAssetNamed", { name })}
                               className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card"
                             >
                               <Pencil className="h-3.5 w-3.5 text-primary" />
@@ -356,14 +349,14 @@ export function AssetTable({
 
                           <RemoveAssetDialog
                             assetId={asset.id}
-                            assetName={asset.model?.name || asset.hostname || asset.serialNumber || asset.id}
+                            assetName={name}
                             assetStatus={asset.status}
                             onRemoved={() => handleRemoved(asset.id)}
                           >
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label={`Remove asset ${asset.model?.name || asset.hostname || asset.serialNumber || asset.id}`}
+                              aria-label={t("removeAssetNamed", { name })}
                               className="h-[30px] w-[30px] text-destructive hover:text-destructive hover:bg-red-50"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -411,11 +404,11 @@ export function AssetTable({
             </Select>
           </div>
 
-          <nav className="flex items-center gap-1" aria-label="Pagination">
+          <nav className="flex items-center gap-1" aria-label={tCommon("pagination")}>
             <Button
               variant="outline"
               size="icon"
-              aria-label="Previous page"
+              aria-label={tCommon("previousPage")}
               className="h-[30px] w-[30px]"
               disabled={safePage <= 1}
               onClick={() => setPage((p) => p - 1)}
@@ -438,7 +431,7 @@ export function AssetTable({
                     key={p}
                     variant={p === safePage ? "default" : "outline"}
                     size="icon"
-                    aria-label={`Go to page ${p}`}
+                    aria-label={tCommon("goToPage", { page: p })}
                     aria-current={p === safePage ? "page" : undefined}
                     className="h-[30px] w-[30px] text-[12px]"
                     onClick={() => setPage(p as number)}
@@ -451,7 +444,7 @@ export function AssetTable({
             <Button
               variant="outline"
               size="icon"
-              aria-label="Next page"
+              aria-label={tCommon("nextPage")}
               className="h-[30px] w-[30px]"
               disabled={safePage >= totalPages}
               onClick={() => setPage((p) => p + 1)}

@@ -29,7 +29,6 @@ function renderDialog() {
       description="To every selected row"
       resultTitle="Results"
       resultSummary={(n) => `${n} skipped`}
-      reasonLabel={(r) => r}
       confirmLabel={(submitting) => (submitting ? "Working" : "Confirm")}
       confirmClassName=""
     >

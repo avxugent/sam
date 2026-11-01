@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api-client";
-import type { AuditEntityType } from "@/lib/audit";
-import { HISTORY_SNAPSHOT_KEYS } from "@/lib/assets/history-keys";
+import type { AuditAction, AuditEntityType } from "@/lib/audit";
+import { AssetStatus } from "@/generated/prisma/enums";
+import { HISTORY_CHANGE_LABELS, HISTORY_SNAPSHOT_KEYS } from "@/lib/assets/history-keys";
 
 export type AuditLogEntry = {
   id: string;
   timestamp: string;
   userEmail: string | null;
-  action: string;
+  action: AuditAction;
   entityType: AuditEntityType;
   detail: string | null;
 };
@@ -28,7 +29,7 @@ function parseDetail(raw: string | null): Record<string, unknown> | null {
  * Maps an AuditLog row to a `history.*` translation key. Asset/StockItem
  * writes share the generic CREATE/UPDATE/DELETE actions, so the specific
  * event (e.g. deploy vs. manual create) is disambiguated by sniffing the
- * snapshot keys lib/assets/transitions.ts writes (HISTORY_SNAPSHOT_KEYS).
+ * snapshot keys and change labels declared in lib/assets/history-keys.ts.
  */
 export function historyLabelKey(entry: AuditLogEntry): string {
   const detail = parseDetail(entry.detail);
@@ -40,9 +41,9 @@ export function historyLabelKey(entry: AuditLogEntry): string {
       return HISTORY_SNAPSHOT_KEYS.deployedFromStock in snapshot ? "deployedFromStock" : "created";
     }
     if (entry.action === "UPDATE") {
-      if (status === "DECOMMISSIONED") return "decommissioned";
-      if (status === "IN_REPAIR") return "sentForRepair";
-      if (status === "INSTALLED") return "reinstated";
+      if (status === AssetStatus.DECOMMISSIONED) return "decommissioned";
+      if (status === AssetStatus.IN_REPAIR) return "sentForRepair";
+      if (status === AssetStatus.INSTALLED) return "reinstated";
       return "edited";
     }
     if (entry.action === "DELETE") {
@@ -57,7 +58,7 @@ export function historyLabelKey(entry: AuditLogEntry): string {
     if (entry.action === "UPDATE") {
       if (HISTORY_SNAPSHOT_KEYS.deployedQuantity in snapshot) return "partiallyDeployed";
       const changes = detail?.changes as Record<string, unknown> | undefined;
-      if (changes && "Location" in changes) return "relocated";
+      if (changes && HISTORY_CHANGE_LABELS.location in changes) return "relocated";
       return "edited";
     }
     if (entry.action === "DELETE") {

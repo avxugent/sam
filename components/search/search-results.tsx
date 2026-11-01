@@ -13,6 +13,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
+import { assetLabel } from "@/lib/assets/label";
 
 type AssetResult = {
   id: string;
@@ -104,6 +105,7 @@ function Pagination({
 
 export function SearchResults() {
   const t = useTranslations("search");
+  const tAsset = useTranslations("asset");
   const searchParams = useSearchParams();
   const router = useRouter();
   const q = searchParams.get("q") ?? "";
@@ -206,7 +208,7 @@ export function SearchResults() {
               </h2>
               <div className="bg-card border border-border rounded-[10px] overflow-hidden mb-[4px]">
                 {results.assets.map((asset) => {
-                  const displayName = asset.model?.name || asset.hostname || asset.serialNumber || "Unnamed asset";
+                  const displayName = assetLabel(asset) ?? tAsset("unnamedAsset");
                   return (
                     <Link
                       key={asset.id}

@@ -3,9 +3,23 @@
  * a network failure comes back as `{ ok: false, status: 0 }` and a missing or
  * non-JSON body as `{}`, so callers handle every outcome in one `if (!r.ok)`
  * and a loading flag can never get stuck on a rejected promise. Show
- * `r.error` with apiErrorMessage() from lib/utils.ts.
+ * `r.error` with apiErrorMessage() below.
  */
 export type ApiErrorBody = { error?: string; code?: string; details?: unknown } & Record<string, unknown>;
+
+/**
+ * User-facing text for an API error body. Every route answers
+ * `{ error: string, code?: string, details? }`: `error` is readable English,
+ * `code` a stable identifier for clients that localize a specific case (e.g.
+ * "supplierWindowOverlap"), and `details` is either `string[]` (template and
+ * pattern problems, conflicting names), appended here, or Zod's structured
+ * object from invalidInput, which is not meant for display and is ignored.
+ */
+export function apiErrorMessage(body: Pick<ApiErrorBody, "error" | "details">, fallback = ""): string {
+  const details = Array.isArray(body.details) ? body.details.filter((d): d is string => typeof d === "string") : [];
+  const message = body.error ?? fallback;
+  return details.length > 0 ? `${message}: ${details.join("; ")}` : message;
+}
 
 export type ApiResult<T> =
   | { ok: true; status: number; data: T }
@@ -43,14 +57,19 @@ export async function downloadFile(url: string, filename: string): Promise<boole
   try {
     res = await fetch(url);
     if (!res.ok) return false;
-    const objectUrl = URL.createObjectURL(await res.blob());
-    const a = document.createElement("a");
-    a.href = objectUrl;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(objectUrl);
+    saveBlob(await res.blob(), filename);
     return true;
   } catch {
     return false;
   }
+}
+
+/** Hands `blob` to the browser as a download named `filename`. */
+export function saveBlob(blob: Blob, filename: string): void {
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(objectUrl);
 }

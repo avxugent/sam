@@ -57,9 +57,10 @@ vi.mock("@/components/assets/bulk-return-to-stock-dialog", () => ({
     ) : null,
 }));
 
-import { AssetTable, type AssetRow } from "@/components/assets/asset-table";
+import { AssetTable } from "@/components/assets/asset-table";
+import type { AssetListRow } from "@/lib/assets/include";
 
-function row(id: string, over: Partial<Record<string, unknown>> = {}): AssetRow {
+function row(id: string, over: Partial<Record<string, unknown>> = {}): AssetListRow {
   return {
     id,
     status: "INSTALLED",
@@ -74,11 +75,11 @@ function row(id: string, over: Partial<Record<string, unknown>> = {}): AssetRow 
     _count: { attachments: 0 },
     location: { id: "loc-1", name: "Room 1" },
     ...over,
-  } as unknown as AssetRow;
+  } as unknown as AssetListRow;
 }
 
 // Each column orders these three differently, so every sort is observable.
-const ASSETS: AssetRow[] = [
+const ASSETS: AssetListRow[] = [
   row("a", {
     type: { id: "t2", name: "Screen" },
     manufacturer: { id: "m1", name: "Sony" },
@@ -113,8 +114,8 @@ const ASSETS: AssetRow[] = [
 /** Row order by model name, read from each row's accessible name. */
 function order() {
   return screen
-    .getAllByRole("link", { name: /^Open asset/ })
-    .map((r) => r.getAttribute("aria-label")!.replace("Open asset ", ""));
+    .getAllByRole("link", { name: /^openAssetNamed/ })
+    .map((r) => JSON.parse(r.getAttribute("aria-label")!.replace("openAssetNamed ", "")).name);
 }
 
 beforeEach(() => vi.clearAllMocks());
@@ -135,16 +136,16 @@ describe("<AssetTable /> rendering", () => {
         showLocation
       />
     );
-    const noType = screen.getByRole("link", { name: "Open asset Alpha" });
+    const noType = screen.getByRole("link", { name: 'openAssetNamed {"name":"Alpha"}' });
     expect(within(noType).getAllByText("—").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText("×3")).toBeInTheDocument();
     expect(screen.getByText("noModel")).toBeInTheDocument();
     // Falls back to the hostname for the row's name when there is no model.
-    expect(screen.getByRole("link", { name: "Open asset h.ugent.be" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: 'openAssetNamed {"name":"h.ugent.be"}' })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Hall B" })).toHaveAttribute("href", "/locations/loc-2");
     expect(screen.getByRole("button", { name: /location/ })).toBeInTheDocument();
     // Viewers get no edit/remove buttons.
-    expect(screen.queryByRole("button", { name: /^Edit asset/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^editAssetNamed/ })).not.toBeInTheDocument();
   });
 
   it("links hostnames through the URL template, without navigating the row", async () => {
@@ -174,9 +175,9 @@ describe("<AssetTable /> rendering", () => {
   it("navigates to the asset on row click and on Enter", async () => {
     const user = userEvent.setup();
     render(<AssetTable assets={ASSETS} locationId="loc-1" userRole="VIEWER" />);
-    await user.click(screen.getByRole("link", { name: "Open asset Bravo" }));
+    await user.click(screen.getByRole("link", { name: 'openAssetNamed {"name":"Bravo"}' }));
     expect(mockPush).toHaveBeenCalledWith("/locations/loc-2/assets/a");
-    const alpha = screen.getByRole("link", { name: "Open asset Alpha" });
+    const alpha = screen.getByRole("link", { name: 'openAssetNamed {"name":"Alpha"}' });
     fireEvent.keyDown(alpha, { key: "Space" });
     expect(mockPush).toHaveBeenCalledTimes(1);
     fireEvent.keyDown(alpha, { key: "Enter" });
@@ -239,7 +240,7 @@ describe("<AssetTable /> filtering", () => {
     const user = userEvent.setup();
     render(<AssetTable assets={ASSETS} locationId="loc-1" userRole="ADMIN" />);
     await user.type(screen.getByLabelText("searchAssets"), "nothing-matches");
-    expect(screen.queryAllByRole("link", { name: /^Open asset/ })).toHaveLength(0);
+    expect(screen.queryAllByRole("link", { name: /^openAssetNamed/ })).toHaveLength(0);
     expect(screen.getByRole("cell", { name: "noAssetsInLocation" })).toHaveAttribute("colspan", "8");
     expect(screen.getByText(/^0 of/)).toBeInTheDocument();
   });
@@ -253,40 +254,40 @@ describe("<AssetTable /> pagination", () => {
     render(<AssetTable assets={MANY} locationId="loc-1" userRole="VIEWER" />);
     expect(order()).toHaveLength(25);
     expect(screen.getByText(/pagination \{"from":1,"to":25,"total":60\}/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "previousPage" })).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: "Next page" }));
+    await user.click(screen.getByRole("button", { name: "nextPage" }));
     expect(screen.getByText(/pagination \{"from":26,"to":50,"total":60\}/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Go to page 2" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: 'goToPage {"page":2}' })).toHaveAttribute("aria-current", "page");
 
-    await user.click(screen.getByRole("button", { name: "Go to page 3" }));
+    await user.click(screen.getByRole("button", { name: 'goToPage {"page":3}' }));
     expect(order()).toHaveLength(10);
-    expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "nextPage" })).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: "Previous page" }));
+    await user.click(screen.getByRole("button", { name: "previousPage" }));
     expect(screen.getByText(/pagination \{"from":26,"to":50,"total":60\}/)).toBeInTheDocument();
   });
 
   it("changes the page size and collapses distant pages into an ellipsis", async () => {
     const user = userEvent.setup();
     render(<AssetTable assets={MANY} locationId="loc-1" userRole="VIEWER" />);
-    await user.click(screen.getByRole("button", { name: "Go to page 2" }));
+    await user.click(screen.getByRole("button", { name: 'goToPage {"page":2}' }));
     await user.click(screen.getByRole("combobox"));
     await user.click(screen.getByRole("option", { name: "10" }));
     expect(order()).toHaveLength(10);
     // Back on page 1 of 6: 1, 2, …, 6.
-    expect(screen.getByRole("button", { name: "Go to page 1" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: "Go to page 6" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Go to page 4" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: 'goToPage {"page":1}' })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: 'goToPage {"page":6}' })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: 'goToPage {"page":4}' })).not.toBeInTheDocument();
     expect(screen.getByText("…")).toBeInTheDocument();
   });
 
   it("returns to page 1 when the sort changes", async () => {
     const user = userEvent.setup();
     render(<AssetTable assets={MANY} locationId="loc-1" userRole="VIEWER" />);
-    await user.click(screen.getByRole("button", { name: "Go to page 3" }));
+    await user.click(screen.getByRole("button", { name: 'goToPage {"page":3}' }));
     await user.click(screen.getByRole("button", { name: "model" }));
-    expect(screen.getByRole("button", { name: "Go to page 1" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: 'goToPage {"page":1}' })).toHaveAttribute("aria-current", "page");
   });
 });
 
@@ -331,10 +332,10 @@ describe("<AssetTable /> selection and bulk actions", () => {
 
   it("drops a removed asset and refreshes; an edit refreshes too", async () => {
     render(<AssetTable assets={ASSETS} locationId="loc-1" userRole="EDITOR" />);
-    fireEvent.doubleClick(screen.getByRole("button", { name: "Remove asset Alpha" }));
+    fireEvent.doubleClick(screen.getByRole("button", { name: 'removeAssetNamed {"name":"Alpha"}' }));
     expect(order()).toEqual(["Charlie", "Bravo"]);
     expect(mockRefresh).toHaveBeenCalledTimes(1);
-    fireEvent.doubleClick(screen.getByRole("button", { name: "Edit asset Bravo" }));
+    fireEvent.doubleClick(screen.getByRole("button", { name: 'editAssetNamed {"name":"Bravo"}' }));
     expect(mockRefresh).toHaveBeenCalledTimes(2);
   });
 });
@@ -374,5 +375,19 @@ describe("<AssetTable /> CSV export", () => {
       "Camera;Epson;Charlie;S1;alpha.ugent.be;;3;Room 1;2023-01-01",
       "Screen;Sony;Bravo;S2;zeta.ugent.be;AA:BB:CC:DD:EE:01;1;Hall B;2024-03-01",
     ]);
+  });
+
+  it("writes installation dates as the UTC day, like the server exports", async () => {
+    const tz = process.env.TZ;
+    process.env.TZ = "America/New_York";
+    try {
+      const user = userEvent.setup();
+      render(<AssetTable assets={[row("x", { installationDate: "2024-03-01T00:00:00.000Z" })]} locationId="loc-1" userRole="VIEWER" />);
+      await user.click(screen.getByRole("button", { name: /exportCsv/ }));
+      const lines = (await blobs[0].text()).split("\r\n");
+      expect(lines[1].endsWith(";2024-03-01")).toBe(true);
+    } finally {
+      process.env.TZ = tz;
+    }
   });
 });

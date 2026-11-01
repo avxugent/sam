@@ -20,16 +20,16 @@ global.fetch = mockFetch as never;
 beforeEach(() => vi.clearAllMocks());
 
 describe("BulkResultSummary", () => {
-  it("lists skipped ids with their reason labels", async () => {
+  it("lists skipped ids with their translated skip reasons", async () => {
     const onClose = vi.fn();
     render(
       <Dialog open>
         <DialogContent>
-          <BulkResultSummary title="Done" summary="1 skipped" failed={[{ id: "a1", reason: "NOT_FOUND" }]} reasonLabel={(r) => `reason:${r}`} onClose={onClose} />
+          <BulkResultSummary title="Done" summary="1 skipped" failed={[{ id: "a1", reason: "NOT_FOUND" }]} onClose={onClose} />
         </DialogContent>
       </Dialog>
     );
-    expect(screen.getByText("reason:NOT_FOUND")).toBeInTheDocument();
+    expect(screen.getByText("bulkSkipReason.NOT_FOUND")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "close" }));
     expect(onClose).toHaveBeenCalled();
   });

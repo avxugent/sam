@@ -15,3 +15,13 @@ export const HISTORY_SNAPSHOT_KEYS = {
   /** StockItem UPDATE / DELETE: units deployed (value: the count). */
   deployedQuantity: "Deployed quantity",
 } as const;
+
+/**
+ * Change labels (keys of an audit entry's `detail.changes`) the timeline
+ * reads, under the same never-rename rule. Asset status transitions are
+ * read from `detail.status`, an AssetStatus value.
+ */
+export const HISTORY_CHANGE_LABELS = {
+  /** StockItem UPDATE: moved to another location (app/api/stock/bulk-relocate). */
+  location: "Location",
+} as const;

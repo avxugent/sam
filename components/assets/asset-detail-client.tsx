@@ -45,14 +45,11 @@ import { getAssetTypeIcon } from "@/lib/assets/type-icon";
 import type { AssetDetail } from "@/lib/assets/include";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
 import { AssetHistoryTimeline } from "@/components/assets/asset-history-timeline";
-import * as permissions from "@/lib/permissions";
-import type { Role } from "@/lib/permissions";
+import { canEdit, isAdmin, type Role } from "@/lib/permissions";
+import { assetLabel } from "@/lib/assets/label";
 import { effectiveCriticality } from "@/lib/criticality";
 import { apiFetch } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
-
-type Asset = AssetDetail;
-
 
 type Breadcrumb = { id: string; name: string };
 
@@ -102,14 +99,16 @@ export function AssetDetailClient({
   decommissionedByName,
   sentForRepairByName,
 }: {
-  asset: Asset;
+  asset: AssetDetail;
   breadcrumbs: Breadcrumb[];
   userRole: Role;
-  hostnameUrlTemplate?: string | null;
-  macAddressUrlTemplate?: string | null;
-  ownerName?: string | null;
-  decommissionedByName?: string | null;
-  sentForRepairByName?: string | null;
+  /** "" when not configured. */
+  hostnameUrlTemplate: string;
+  /** "" when not configured. */
+  macAddressUrlTemplate: string;
+  ownerName: string | null;
+  decommissionedByName: string | null;
+  sentForRepairByName: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -120,7 +119,7 @@ export function AssetDetailClient({
   const tDecom = useTranslations("decommissioned");
   const tRepair = useTranslations("repair");
   const tHistory = useTranslations("history");
-  const canEdit = permissions.canEdit(userRole);
+  const editable = canEdit(userRole);
   const isDecommissioned = asset.status === "DECOMMISSIONED";
   const isInRepair = asset.status === "IN_REPAIR";
   const [attachments, setAttachments] = useState<Attachment[]>(asset.attachments);
@@ -139,7 +138,7 @@ export function AssetDetailClient({
     router.refresh();
   }
 
-  const displayName = asset.model?.name || asset.serialNumber || t("unnamedAsset");
+  const displayName = assetLabel(asset) ?? t("unnamedAsset");
 
   return (
     <div className="space-y-6">
@@ -182,7 +181,7 @@ export function AssetDetailClient({
               <p className="text-[12px] text-[#92400e] mt-0.5">{asset.decommissionNote}</p>
             )}
           </div>
-          {permissions.isAdmin(userRole) && (
+          {isAdmin(userRole) && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-[30px] text-[12px] gap-1.5 border-[#fde047] text-[#713f12] hover:bg-[#fef9c3] flex-shrink-0">
@@ -256,7 +255,7 @@ export function AssetDetailClient({
           </div>
         </div>
 
-        {canEdit && !isDecommissioned && (
+        {editable && !isDecommissioned && (
           <div className="flex gap-2 flex-wrap justify-end">
             {!isInRepair && (
               <>
@@ -525,7 +524,7 @@ export function AssetDetailClient({
             <AttachmentGallery
               attachments={attachments}
               assetId={asset.id}
-              canEdit={canEdit}
+              canEdit={editable}
               onUpdate={setAttachments}
             />
           </InfoCard>

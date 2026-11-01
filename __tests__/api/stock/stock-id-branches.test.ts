@@ -54,6 +54,23 @@ describe("PUT /api/stock/[id]", () => {
     vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1" } as never);
     expect((await PUT(put({ serialNumber: "SN", quantity: 5 }), { params: params() })).status).toBe(400);
   });
+  it("400 when a quantity-only update would give a stored serial or MACs more than one unit", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1", serialNumber: "SN", quantity: 1, metadata: null } as never);
+    expect((await PUT(put({ quantity: 3 }), { params: params() })).status).toBe(400);
+
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({
+      id: "s1", serialNumber: null, quantity: 1, metadata: JSON.stringify({ macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] }),
+    } as never);
+    expect((await PUT(put({ quantity: 3 }), { params: params() })).status).toBe(400);
+    expect(prisma.stockItem.update).not.toHaveBeenCalled();
+  });
+  it("lets a quantity > 1 through once the serial is cleared in the same update", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1", serialNumber: "SN", quantity: 1, metadata: null, model: { name: "M" } } as never);
+    vi.mocked(prisma.stockItem.update).mockResolvedValue({ id: "s1", model: { name: "M" } } as never);
+    expect((await PUT(put({ serialNumber: null, quantity: 3 }), { params: params() })).status).toBe(200);
+  });
   it("updates fields, parses invoiceDate, and audits the changes", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1", modelId: "mo-old", model: { name: "Old" }, serialNumber: null, quantity: 1, notes: null, invoiceNumber: null } as never);

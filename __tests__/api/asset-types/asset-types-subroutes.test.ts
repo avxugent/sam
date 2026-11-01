@@ -64,6 +64,12 @@ describe("GET /api/asset-types/[id]/assets", () => {
       expect.objectContaining({ where: { typeId: "t1" } })
     );
   });
+  it("400 for an unknown ?status= value", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER") as never);
+    const res = await listAssets(new Request("http://x?status=installed"), { params: params("t1") });
+    expect(res.status).toBe(400);
+    expect(prisma.asset.findMany).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/asset-types/[id]/merge", () => {

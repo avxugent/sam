@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_ID_LENGTH } from "@/lib/schemas/ids";
 
 /** FI number: CC.BB.FFF.RR(R), e.g. 14.10.100.13 or 14.10.100.013 — the room segment may be 2 or 3 digits. */
 export const FI_NUMBER_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{2,3}$/;
@@ -6,7 +7,7 @@ export const FI_NUMBER_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{2,3}$/;
 const locationFields = z.object({
   name: z.string().min(1).max(255),
   description: z.string().max(2000).optional().nullable(),
-  parentId: z.string().nullable().optional(),
+  parentId: z.string().max(MAX_ID_LENGTH).nullable().optional(),
   fiNumber: z
     .string()
     .max(20)
@@ -23,6 +24,6 @@ export const createLocationSchema = locationFields;
 export const updateLocationSchema = locationFields.partial().extend({
   latitude: z.number().min(-90).max(90).optional().nullable(),
   longitude: z.number().min(-180).max(180).optional().nullable(),
-  coverImageId: z.string().optional().nullable(),
+  coverImageId: z.string().max(MAX_ID_LENGTH).optional().nullable(),
   inMaintenance: z.boolean().optional(),
 });

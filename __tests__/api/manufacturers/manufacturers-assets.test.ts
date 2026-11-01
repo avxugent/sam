@@ -31,4 +31,10 @@ describe("GET /api/manufacturers/[id]/assets", () => {
     expect(await res.json()).toEqual([{ id: "as1" }]);
     expect(vi.mocked(prisma.asset.findMany).mock.calls[0][0]?.where).toEqual({ manufacturerId: "x1", status: "INSTALLED" });
   });
+
+  it("400 for an unknown ?status= value", async () => {
+    const res = await manufacturerAssets(new NextRequest("http://localhost/api/x?status=gone"), params);
+    expect(res.status).toBe(400);
+    expect(prisma.asset.findMany).not.toHaveBeenCalled();
+  });
 });

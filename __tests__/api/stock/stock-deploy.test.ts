@@ -117,6 +117,18 @@ describe("POST /api/stock/[id]/deploy", () => {
     expect(res.status).toBe(400);
   });
 
+  it("returns 400 if an item with MAC addresses is deployed with quantity > 1", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockLocationFindUnique.mockResolvedValue({ id: "loc-1" } as never);
+    mockStockFindUnique.mockResolvedValue({
+      ...BULK_ITEM,
+      metadata: JSON.stringify({ macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] }),
+    } as never);
+    const res = await POST(req({ locationId: "loc-1", quantity: 2 }), { params: PARAMS });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/one at a time/);
+  });
+
   it("returns 400 if serialNumbers length != quantity", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     const res = await POST(req({ locationId: "loc-1", quantity: 3, serialNumbers: ["SN1", "SN2"] }), { params: PARAMS });

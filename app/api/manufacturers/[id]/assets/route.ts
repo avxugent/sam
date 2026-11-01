@@ -15,9 +15,10 @@ export async function GET(
 
   // Installed assets by default (what the page's badge counts), like the asset-type drilldown.
   const statusFilter = assetListStatusFilter(new URL(req.url).searchParams.get("status"));
+  if ("error" in statusFilter) return statusFilter.error;
 
   const assets = await prisma.asset.findMany({
-    where: { manufacturerId: id, ...statusFilter },
+    where: { manufacturerId: id, ...statusFilter.where },
     select: CATALOG_DRILLDOWN_SELECT,
     orderBy: [{ location: { name: "asc" } }, { createdAt: "desc" }],
   });

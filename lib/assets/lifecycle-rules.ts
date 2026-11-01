@@ -1,11 +1,13 @@
 import type { AssetStatus, DisposalMethod, Prisma } from "@/generated/prisma/client";
-import { parseStockMetadata, serializeStockMetadata } from "@/lib/stock-metadata";
+import { parseStockMetadata, serializeStockMetadata, stockMetadataMacs } from "@/lib/stock-metadata";
+import { hasDeviceIdentity } from "@/lib/schemas/asset";
 
 /**
  * Pure lifecycle rules: the checks and update-data builders shared by the
- * single-asset and bulk decommission / repair / return-to-stock routes, so
- * both enforce identical validation. lib/assets/transitions.ts performs the
- * writes and audit entries on top of these.
+ * single-asset and bulk decommission / repair / return-to-stock routes and
+ * the stock deploy route, so all enforce identical validation.
+ * lib/assets/transitions.ts performs the writes and audit entries on top of
+ * these.
  */
 export type LifecycleViolationCode =
   | "ALREADY_DECOMMISSIONED"
@@ -14,10 +16,13 @@ export type LifecycleViolationCode =
   | "MISSING_TYPE"
   | "MISSING_MODEL";
 
-/** Why a transition is not allowed: `code` for bulk results, `message` for a 400. */
-export type LifecycleViolation = { code: LifecycleViolationCode; message: string };
+/** Why a stock deploy is not allowed (single-item only, so not a bulk skip reason). */
+export type DeployViolationCode = "INSUFFICIENT_QUANTITY" | "SINGLE_UNIT_DEVICE";
 
-const violation = (code: LifecycleViolationCode, message: string): LifecycleViolation => ({ code, message });
+/** Why a transition is not allowed: `code` for bulk results, `message` for a 400. */
+export type LifecycleViolation<C extends string = LifecycleViolationCode> = { code: C; message: string };
+
+const violation = <C extends string>(code: C, message: string): LifecycleViolation<C> => ({ code, message });
 
 export function decommissionViolation(asset: { status: AssetStatus }): LifecycleViolation | null {
   if (asset.status === "DECOMMISSIONED") return violation("ALREADY_DECOMMISSIONED", "Asset is already decommissioned.");
@@ -146,6 +151,29 @@ export function buildSendForRepairUpdateData(params: {
     repairNote: params.note,
     sentForRepairById: params.actorId,
   };
+}
+
+/**
+ * Deploying `quantity` units of a stock item: no more than it holds, and an
+ * item with a device identity (serial, or the hostname / MACs kept in its
+ * metadata; the asset rule, hasDeviceIdentity) is one device, deployed alone.
+ */
+export function deployViolation(
+  stockItem: { quantity: number; serialNumber: string | null; metadata: string | null },
+  quantity: number
+): LifecycleViolation<DeployViolationCode> | null {
+  if (quantity > stockItem.quantity) {
+    return violation("INSUFFICIENT_QUANTITY", `Only ${stockItem.quantity} unit(s) available.`);
+  }
+  const identified = hasDeviceIdentity({
+    serialNumber: stockItem.serialNumber,
+    hostname: parseStockMetadata(stockItem.metadata).hostname,
+    macCount: stockMetadataMacs(stockItem.metadata).length,
+  });
+  if (identified && quantity !== 1) {
+    return violation("SINGLE_UNIT_DEVICE", "Stock items with a serial number or MAC address can only be deployed one at a time.");
+  }
+  return null;
 }
 
 type DeployableStockItem = {

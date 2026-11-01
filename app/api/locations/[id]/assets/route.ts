@@ -10,6 +10,7 @@ import { invalidInput, isUniqueConstraintError, readJsonBody, unknownReferenceRe
 import { assetListStatusFilter } from "@/lib/assets/list-status";
 import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/input";
 import { ASSET_LIST_INCLUDE, ASSET_ROW_INCLUDE } from "@/lib/assets/include";
+import { toDateUpdate } from "@/lib/dates";
 
 export async function GET(
   req: NextRequest,
@@ -22,10 +23,11 @@ export async function GET(
   const { searchParams } = new URL(req.url);
   const recursive = searchParams.get("recursive") === "true";
   const statusFilter = assetListStatusFilter(searchParams.get("status"));
+  if ("error" in statusFilter) return statusFilter.error;
 
   const locationIds = recursive ? [id, ...(await getAllDescendantLocationIds(id))] : [id];
   const assets = await prisma.asset.findMany({
-    where: { locationId: { in: locationIds }, ...statusFilter },
+    where: { locationId: { in: locationIds }, ...statusFilter.where },
     include: ASSET_LIST_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
@@ -66,9 +68,9 @@ export async function POST(
         locationId: id,
         ownerId: defaults.ownerId,
         supplierId: defaults.supplierId,
-        installationDate: installationDate ? new Date(installationDate) : null,
-        invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
-        endOfSupportDate: endOfSupportDate ? new Date(endOfSupportDate) : null,
+        installationDate: toDateUpdate(installationDate),
+        invoiceDate: toDateUpdate(invoiceDate),
+        endOfSupportDate: toDateUpdate(endOfSupportDate),
         macAddresses: macAddresses?.length ? { create: macAddressRows(macAddresses) } : undefined,
         customFields: customFields?.length ? { create: customFieldRows(customFields) } : undefined,
       },

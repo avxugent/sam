@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Criticality } from "@/generated/prisma/enums";
 import { MAX_MAC_ADDRESSES, macAddressField } from "@/lib/mac-address";
 import { optionalIsoDay } from "@/lib/schemas/dates";
+import { MAX_ID_LENGTH } from "@/lib/schemas/ids";
 
 /**
  * Asset API validation, shared by the create route (POST /api/locations/[id]/assets)
@@ -17,9 +18,9 @@ const customFieldSchema = z.object({
 });
 
 const assetFields = z.object({
-  typeId: z.string().min(1, "Type is required"),
-  manufacturerId: z.string().min(1, "Manufacturer is required"),
-  modelId: z.string().min(1, "Model is required"),
+  typeId: z.string().min(1, "Type is required").max(MAX_ID_LENGTH),
+  manufacturerId: z.string().min(1, "Manufacturer is required").max(MAX_ID_LENGTH),
+  modelId: z.string().min(1, "Model is required").max(MAX_ID_LENGTH),
   serialNumber: z.string().max(100).optional().nullable(),
   // Stored trimmed; a blank hostname is no hostname.
   hostname: z.string().trim().max(255).transform((v) => v || null).optional().nullable(),
@@ -29,10 +30,10 @@ const assetFields = z.object({
   invoiceDate: optionalIsoDay,
   notes: z.string().max(5000).optional().nullable(),
   vaultPath: z.string().max(500).optional().nullable(),
-  ownerId: z.string().max(64).optional().nullable(),
+  ownerId: z.string().max(MAX_ID_LENGTH).optional().nullable(),
   criticality: z.enum(Criticality).optional().nullable(),
   endOfSupportDate: optionalIsoDay,
-  supplierId: z.string().max(64).optional().nullable(),
+  supplierId: z.string().max(MAX_ID_LENGTH).optional().nullable(),
   macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
   customFields: z.array(customFieldSchema).max(MAX_CUSTOM_FIELDS).optional(),
 });
@@ -81,5 +82,5 @@ export const createAssetSchema = assetFields
 
 export const updateAssetSchema = assetFields
   .partial()
-  .extend({ locationId: z.string().optional() })
+  .extend({ locationId: z.string().max(MAX_ID_LENGTH).optional() })
   .superRefine(requireMacForHostname);

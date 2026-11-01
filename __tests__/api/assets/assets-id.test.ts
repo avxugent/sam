@@ -158,6 +158,23 @@ describe("DELETE /api/assets/[id]", () => {
       detail: { snapshot: { Model: "Pearl-2", "Serial number": "SN1", Type: "Recorder", Location: "Room 1" } },
     });
   });
+
+  it("names a model-less asset in the audit entry by its hostname, as the UI does", async () => {
+    findAsset.mockResolvedValue({ ...BEFORE, model: null, hostname: "rec-001.example.org" } as never);
+    await DELETE(req("DELETE"), params);
+    expect(vi.mocked(logAudit).mock.calls[0][0]).toMatchObject({ entityName: "rec-001.example.org" });
+  });
+
+  it("404 without an audit entry when the asset vanished between read and delete", async () => {
+    vi.mocked(prisma.asset.delete).mockRejectedValueOnce(Object.assign(new Error("gone"), { code: "P2025" }));
+    expect((await DELETE(req("DELETE"), params)).status).toBe(404);
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("rethrows other delete errors", async () => {
+    vi.mocked(prisma.asset.delete).mockRejectedValueOnce(new Error("boom"));
+    await expect(DELETE(req("DELETE"), params)).rejects.toThrow("boom");
+  });
 });
 
 describe("PUT /api/assets/[id] — hostname format & uniqueness", () => {

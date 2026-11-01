@@ -6,15 +6,23 @@ import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody, unknownReferenceResponse, isForeignKeyError } from "@/lib/route-helpers";
 import { serializeStockMetadata } from "@/lib/stock-metadata";
 import { createStockItemSchema } from "@/lib/schemas/stock";
+import { z } from "zod";
+import { MAX_ID_LENGTH } from "@/lib/schemas/ids";
+
+const querySchema = z.object({
+  typeId: z.string().max(MAX_ID_LENGTH).optional(),
+  locationId: z.string().max(MAX_ID_LENGTH).optional(),
+  q: z.string().max(200).optional(),
+});
 
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const typeId = searchParams.get("typeId");
-  const locationId = searchParams.get("locationId");
-  const q = searchParams.get("q");
+  const parsedQuery = querySchema.safeParse(Object.fromEntries(searchParams));
+  if (!parsedQuery.success) return invalidInput(parsedQuery.error);
+  const { typeId, locationId, q } = parsedQuery.data;
 
   const items = await prisma.stockItem.findMany({
     where: {

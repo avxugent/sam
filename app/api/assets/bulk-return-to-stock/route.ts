@@ -6,11 +6,12 @@ import { checkReturnToStock } from "@/lib/assets/lifecycle-rules";
 import { RETURN_TO_STOCK_INCLUDE, STATUS_CHANGED, returnAssetToStock } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
-import type { BulkFailure, BulkResult } from "@/lib/bulk";
+import type { BulkFailure, BulkResult } from "@/lib/assets/bulk";
+import { idSchema } from "@/lib/schemas/ids";
 
 const schema = z.object({
-  ids: z.array(z.string().min(1)).min(1).max(200),
-  locationId: z.string().min(1),
+  ids: z.array(idSchema).min(1).max(200),
+  locationId: idSchema,
 });
 
 export async function POST(req: NextRequest) {

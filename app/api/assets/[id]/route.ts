@@ -7,9 +7,10 @@ import { hasDeviceIdentity, IDENTITY_QUANTITY_MESSAGE, updateAssetSchema } from 
 import { logAudit } from "@/lib/audit";
 import { auditChanges, type FieldChange } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, isForeignKeyError, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { invalidInput, isForeignKeyError, isRecordNotFoundError, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { toDateUpdate, toIsoDay } from "@/lib/dates";
 import { ASSET_ROW_INCLUDE } from "@/lib/assets/include";
+import { assetLabel } from "@/lib/assets/label";
 
 export async function GET(
   _req: NextRequest,
@@ -40,7 +41,6 @@ export async function GET(
   return NextResponse.json(asset);
 }
 
-/** Prisma value for an optional date field: undefined leaves it, "" or null clears it. */
 /** One diff entry per custom field key that was added, removed or changed. */
 function customFieldChanges(before: { key: string; value: string }[], after: { key: string; value: string }[]): FieldChange[] {
   const fromMap = new Map(before.map((f) => [f.key, f.value]));
@@ -179,7 +179,7 @@ export async function PUT(
     action: "UPDATE",
     entityType: "Asset",
     entityId: id,
-    entityName: asset.model?.name ?? asset.serialNumber ?? undefined,
+    entityName: assetLabel(asset) ?? undefined,
     detail: Object.keys(changes).length > 0 ? { changes } : undefined,
     lineageId: asset.lineageId,
   });
@@ -206,7 +206,13 @@ export async function DELETE(
     },
   });
   if (!asset) return notFoundResponse();
-  await prisma.asset.delete({ where: { id } });
+  try {
+    await prisma.asset.delete({ where: { id } });
+  } catch (err) {
+    // Deleted (or returned to stock) by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse();
+    throw err;
+  }
 
   const snapshot: Record<string, string> = {};
   if (asset.model?.name) snapshot["Model"] = asset.model.name;
@@ -222,7 +228,7 @@ export async function DELETE(
     action: "DELETE",
     entityType: "Asset",
     entityId: id,
-    entityName: asset.model?.name ?? asset.serialNumber ?? undefined,
+    entityName: assetLabel(asset) ?? undefined,
     detail: Object.keys(snapshot).length > 0 ? { snapshot } : undefined,
     lineageId: asset.lineageId,
   });

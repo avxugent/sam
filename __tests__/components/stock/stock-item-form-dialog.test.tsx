@@ -183,8 +183,20 @@ describe("<StockItemFormDialog /> edit", () => {
     expect(screen.getAllByText("Room A").length).toBeGreaterThan(0);
   });
 
+  it("limits an item with MAC addresses to quantity 1", async () => {
+    const user = await openEdit();
+    await user.click(screen.getByRole("button", { name: "add" }));
+    await user.type(screen.getByLabelText("macAddress 1"), "AA:BB:CC:DD:EE:FF");
+    await user.click(screen.getByRole("button", { name: "updateSubmit" }));
+    expect(await screen.findByText("errQuantityIdentity")).toBeInTheDocument();
+    expect(mockFetch).not.toHaveBeenCalledWith("/api/stock/s1", expect.anything());
+  });
+
   it("submits every MAC address in the list", async () => {
     const user = await openEdit();
+    // A device with MACs is one unit.
+    await user.clear(screen.getByDisplayValue("5"));
+    await user.type(screen.getByLabelText(/quantity/), "1");
     await user.click(screen.getByRole("button", { name: "add" }));
     await user.type(screen.getByLabelText("macAddress 1"), "AA:BB:CC:DD:EE:FF");
     await user.click(screen.getByRole("button", { name: "add" }));

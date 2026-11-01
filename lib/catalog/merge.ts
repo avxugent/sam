@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { invalidInput, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { idSchema } from "@/lib/schemas/ids";
 
 /**
  * The catalog merge and rename-conflict protocol shared by the merge routes
@@ -10,7 +11,7 @@ import { invalidInput, readJsonBody, unknownReferenceResponse } from "@/lib/rout
  * themselves live with their domain (lib/models/reassign.ts, the routes).
  */
 
-const mergeRequestSchema = z.object({ targetId: z.string().min(1) });
+const mergeRequestSchema = z.object({ targetId: idSchema });
 
 /**
  * Shared prelude of the "merge X into Y" routes: reads `{ targetId }`, refuses

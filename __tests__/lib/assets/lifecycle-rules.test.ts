@@ -10,6 +10,7 @@ import {
   buildStockItemFromReturn,
   buildDecommissionUpdateData,
   buildSendForRepairUpdateData,
+  deployViolation,
 } from "@/lib/assets/lifecycle-rules";
 
 describe("decommissionViolation", () => {
@@ -188,6 +189,27 @@ describe("buildSendForRepairUpdateData", () => {
   it("allows a null note", () => {
     const data = buildSendForRepairUpdateData({ note: null, actorId: "u1" });
     expect(data.repairNote).toBeNull();
+  });
+});
+
+describe("deployViolation", () => {
+  const item = { quantity: 5, serialNumber: null, metadata: null };
+
+  it("allows deploying up to the available units of a fungible item", () => {
+    expect(deployViolation(item, 5)).toBeNull();
+  });
+
+  it("rejects more units than the item holds", () => {
+    expect(deployViolation(item, 6)?.code).toBe("INSUFFICIENT_QUANTITY");
+  });
+
+  it("deploys an item with a device identity one unit at a time", () => {
+    const macs = JSON.stringify({ macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] });
+    const hostname = JSON.stringify({ hostname: "srv-01" });
+    expect(deployViolation({ ...item, serialNumber: "SN" }, 2)?.code).toBe("SINGLE_UNIT_DEVICE");
+    expect(deployViolation({ ...item, metadata: macs }, 2)?.code).toBe("SINGLE_UNIT_DEVICE");
+    expect(deployViolation({ ...item, metadata: hostname }, 2)?.code).toBe("SINGLE_UNIT_DEVICE");
+    expect(deployViolation({ ...item, metadata: macs }, 1)).toBeNull();
   });
 });
 

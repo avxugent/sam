@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import { ModelAutocomplete } from "@/components/inventory/model-autocomplete";
 import { cn } from "@/lib/utils";
 import { normalizeMacAddress } from "@/lib/mac-address";
+import { hasDeviceIdentity } from "@/lib/schemas/asset";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { MacAddressFields } from "@/components/inventory/mac-address-fields";
@@ -63,6 +64,37 @@ type Props = {
   onSuccess?: () => void;
 };
 
+type StockFormTranslator = ReturnType<typeof useTranslations<"stock">>;
+
+/** Client mirror of lib/schemas/stock.ts, with translated messages. */
+function buildStockFormSchema(t: StockFormTranslator) {
+  return z.object({
+    typeId: z.string().min(1, t("errTypeRequired")),
+    manufacturerId: z.string().optional(),
+    modelId: z.string().min(1, t("errModelRequired")),
+    serialNumber: z.string().max(100).optional(),
+    quantity: z.number().int().min(1, t("errQuantityMin")),
+    notes: z.string().max(5000).optional(),
+    locationId: z.string().optional(),
+    invoiceNumber: z.string().max(100).optional(),
+    invoiceDate: z.string().optional(),
+    macAddresses: z.array(z.object({
+      address: z.string().min(1, t("errMacRequired")).refine(
+        (v) => normalizeMacAddress(v) !== null,
+        t("errMacInvalid")
+      ),
+    })),
+  }).superRefine((data, ctx) => {
+    if (hasDeviceIdentity({ serialNumber: data.serialNumber, macCount: data.macAddresses.length }) && data.quantity > 1) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["quantity"],
+        message: t("errQuantityIdentity"),
+      });
+    }
+  });
+}
+
 /** The form's starting values: the item being edited, or an empty new item. */
 function formDefaults(initialData: StockItemInitialData | undefined): StockItemFormValues {
   return {
@@ -87,33 +119,8 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
 
-  const validationSchema = useMemo(() => z.object({
-    typeId: z.string().min(1, t("errTypeRequired")),
-    manufacturerId: z.string().optional(),
-    modelId: z.string().min(1, t("errModelRequired")),
-    serialNumber: z.string().max(100).optional(),
-    quantity: z.number().int().min(1, t("errQuantityMin")),
-    notes: z.string().max(5000).optional(),
-    locationId: z.string().optional(),
-    invoiceNumber: z.string().max(100).optional(),
-    invoiceDate: z.string().optional(),
-    macAddresses: z.array(z.object({
-      address: z.string().min(1, t("errMacRequired")).refine(
-        (v) => normalizeMacAddress(v) !== null,
-        t("errMacInvalid")
-      ),
-    })),
-  }).superRefine((data, ctx) => {
-    if (data.serialNumber?.trim() && data.quantity > 1) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["quantity"],
-        message: t("errQuantitySerial"),
-      });
-    }
-  }), [t]);
+  const validationSchema = useMemo(() => buildStockFormSchema(t), [t]);
 
-  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const { locations } = useLocationOptions(open);
@@ -143,8 +150,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const selectedMfgId = useWatch({ control, name: "manufacturerId" }) ?? "";
   const selectedLocationId = useWatch({ control, name: "locationId" }) ?? "";
   const modelIdValue = useWatch({ control, name: "modelId" });
-
-  useEffect(() => { setMounted(true); }, []);
 
   // Lock quantity to 1 when serial is set
   useEffect(() => {
@@ -215,8 +220,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const locationLabel = selectedLocationId
     ? locations.find((l) => l.id === selectedLocationId)?.breadcrumb ?? initialData?.locationBreadcrumb ?? t("selectLocation")
     : t("unassigned");
-
-  if (!mounted) return <>{children}</>;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>

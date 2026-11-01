@@ -4,12 +4,14 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
-import { DEPLOY_INCLUDE, deployStockItem, stockChangedResponse } from "@/lib/assets/transitions";
+import { DEPLOY_INCLUDE, deployStockItem, lifecycleViolationResponse, stockChangedResponse } from "@/lib/assets/transitions";
+import { deployViolation } from "@/lib/assets/lifecycle-rules";
 import { hostnameTakenResponse } from "@/lib/assets/input";
+import { MAX_ID_LENGTH } from "@/lib/schemas/ids";
 
 const deploySchema = z
   .object({
-    locationId: z.string().min(1, "Location is required"),
+    locationId: z.string().min(1, "Location is required").max(MAX_ID_LENGTH),
     quantity: z.number().int().min(1),
     serialNumbers: z.array(z.string().max(100)).optional(),
   })
@@ -46,20 +48,8 @@ export async function POST(
   const stockItem = await prisma.stockItem.findUnique({ where: { id }, include: DEPLOY_INCLUDE });
   if (!stockItem) return notFoundResponse("Stock item");
 
-  if (quantity > stockItem.quantity) {
-    return NextResponse.json(
-      { error: `Only ${stockItem.quantity} unit(s) available.` },
-      { status: 400 }
-    );
-  }
-
-  // Serialized item: the stockItem itself has a serial — quantity must be 1
-  if (stockItem.serialNumber && quantity !== 1) {
-    return NextResponse.json(
-      { error: "Serialized stock items can only be deployed one at a time." },
-      { status: 400 }
-    );
-  }
+  const violation = lifecycleViolationResponse(deployViolation(stockItem, quantity));
+  if (violation) return violation;
 
   let createdAssets;
   try {

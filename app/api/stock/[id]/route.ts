@@ -5,8 +5,9 @@ import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isForeignKeyError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
-import { parseStockMetadata, serializeStockMetadata } from "@/lib/stock-metadata";
-import { updateStockItemSchema } from "@/lib/schemas/stock";
+import { parseStockMetadata, serializeStockMetadata, stockMetadataMacs } from "@/lib/stock-metadata";
+import { STOCK_IDENTITY_QUANTITY_MESSAGE, updateStockItemSchema } from "@/lib/schemas/stock";
+import { hasDeviceIdentity } from "@/lib/schemas/asset";
 import { toDateUpdate } from "@/lib/dates";
 
 export async function GET(
@@ -58,6 +59,17 @@ export async function PUT(
   }
 
   const { invoiceDate, macAddresses, ...rest } = parsed.data;
+
+  // The schema only sees the fields in the body; check the single-device rule
+  // against the values the item will have, as the asset PUT does.
+  const identified = hasDeviceIdentity({
+    serialNumber: rest.serialNumber !== undefined ? rest.serialNumber : existing.serialNumber,
+    hostname: parseStockMetadata(existing.metadata).hostname,
+    macCount: macAddresses !== undefined ? macAddresses.length : stockMetadataMacs(existing.metadata).length,
+  });
+  if (identified && (rest.quantity ?? existing.quantity) > 1) {
+    return NextResponse.json({ error: STOCK_IDENTITY_QUANTITY_MESSAGE }, { status: 400 });
+  }
 
   // Replace the MAC list in the metadata blob, preserving any other keys (hostname,
   // customFields, …) that may have been stored when the item came from an asset.

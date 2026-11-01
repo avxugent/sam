@@ -6,10 +6,11 @@ import { decommissionViolation } from "@/lib/assets/lifecycle-rules";
 import { DECOMMISSION_SELECT, STATUS_CHANGED, decommissionAsset, decommissionFields } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, readJsonBody } from "@/lib/route-helpers";
-import type { BulkFailure, BulkResult } from "@/lib/bulk";
+import type { BulkFailure, BulkResult } from "@/lib/assets/bulk";
+import { idSchema } from "@/lib/schemas/ids";
 
 const schema = z.object({
-  ids: z.array(z.string().min(1)).min(1).max(200),
+  ids: z.array(idSchema).min(1).max(200),
   ...decommissionFields,
 });
 

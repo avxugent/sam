@@ -4,8 +4,8 @@ import { NextRequest } from "next/server";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     stockItem: {
-      findMany: vi.fn(),
-      updateMany: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
     },
     location: {
       findUnique: vi.fn(),
@@ -22,8 +22,8 @@ import { logAudit } from "@/lib/audit";
 import { POST } from "@/app/api/stock/bulk-relocate/route";
 
 const mockAuth = vi.mocked(auth);
-const mockFindMany = vi.mocked(prisma.stockItem.findMany);
-const mockUpdateMany = vi.mocked(prisma.stockItem.updateMany);
+const mockFindUnique = vi.mocked(prisma.stockItem.findUnique);
+const mockUpdate = vi.mocked(prisma.stockItem.update);
 const mockLocationFindUnique = vi.mocked(prisma.location.findUnique);
 const mockLogAudit = vi.mocked(logAudit);
 
@@ -41,7 +41,7 @@ function req(body?: object) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockUpdateMany.mockResolvedValue({ count: 0 } as never);
+  mockUpdate.mockResolvedValue({} as never);
 });
 
 describe("POST /api/stock/bulk-relocate", () => {
@@ -74,16 +74,17 @@ describe("POST /api/stock/bulk-relocate", () => {
     mockLocationFindUnique.mockResolvedValue(null);
     const res = await POST(req({ ids: ["a"], locationId: "loc-missing" }));
     expect(res.status).toBe(400);
-    expect(mockUpdateMany).not.toHaveBeenCalled();
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it("relocates found items and reports missing ones as failed", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockLocationFindUnique.mockResolvedValue({ name: "Store B" } as never);
-    mockFindMany.mockResolvedValue([
-      { id: "item-1", lineageId: "lin-1", model: { name: "Dell U2722D" }, locationId: "loc-old", location: { name: "Store A" } },
-      { id: "item-2", lineageId: "lin-2", model: { name: "HP Monitor" }, locationId: null, location: null },
-    ] as never);
+    const items: Record<string, unknown> = {
+      "item-1": { lineageId: "lin-1", model: { name: "Dell U2722D" }, locationId: "loc-old", location: { name: "Store A" } },
+      "item-2": { lineageId: "lin-2", model: { name: "HP Monitor" }, locationId: null, location: null },
+    };
+    mockFindUnique.mockImplementation((({ where }: { where: { id: string } }) => Promise.resolve(items[where.id] ?? null)) as never);
 
     const res = await POST(req({ ids: ["item-1", "item-2", "item-missing"], locationId: "loc-1" }));
     expect(res.status).toBe(200);
@@ -91,10 +92,9 @@ describe("POST /api/stock/bulk-relocate", () => {
     expect(body.succeeded).toEqual(["item-1", "item-2"]);
     expect(body.failed).toEqual([{ id: "item-missing", reason: "NOT_FOUND" }]);
 
-    expect(mockUpdateMany).toHaveBeenCalledWith({
-      where: { id: { in: ["item-1", "item-2"] } },
-      data: { locationId: "loc-1" },
-    });
+    // Each write is guarded by the location that was read.
+    expect(mockUpdate).toHaveBeenCalledWith({ where: { id: "item-1", locationId: "loc-old" }, data: { locationId: "loc-1" } });
+    expect(mockUpdate).toHaveBeenCalledWith({ where: { id: "item-2", locationId: null }, data: { locationId: "loc-1" } });
     expect(mockLogAudit).toHaveBeenCalledTimes(2);
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -110,16 +110,30 @@ describe("POST /api/stock/bulk-relocate", () => {
     );
   });
 
+  it("reports an item changed or removed after it was read as STATUS_CHANGED, without auditing it", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockFindUnique.mockResolvedValue({ lineageId: "lin-1", model: null, locationId: "loc-old", location: null } as never);
+    mockUpdate.mockRejectedValue(Object.assign(new Error("not found"), { code: "P2025" }));
+
+    const res = await POST(req({ ids: ["item-1"], locationId: null }));
+    expect(await res.json()).toEqual({ succeeded: [], failed: [{ id: "item-1", reason: "STATUS_CHANGED" }] });
+    expect(mockLogAudit).not.toHaveBeenCalled();
+  });
+
+  it("rethrows unexpected write errors", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    mockFindUnique.mockResolvedValue({ lineageId: "lin-1", model: null, locationId: null, location: null } as never);
+    mockUpdate.mockRejectedValue(new Error("boom"));
+    await expect(POST(req({ ids: ["item-1"], locationId: null }))).rejects.toThrow("boom");
+  });
+
   it("supports unassigning (locationId: null) without validating a location", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
-    mockFindMany.mockResolvedValue([{ id: "item-1", model: "Dell U2722D", locationId: "loc-old" }] as never);
+    mockFindUnique.mockResolvedValue({ lineageId: "lin-1", model: { name: "Dell U2722D" }, locationId: "loc-old", location: null } as never);
 
     const res = await POST(req({ ids: ["item-1"], locationId: null }));
     expect(res.status).toBe(200);
     expect(mockLocationFindUnique).not.toHaveBeenCalled();
-    expect(mockUpdateMany).toHaveBeenCalledWith({
-      where: { id: { in: ["item-1"] } },
-      data: { locationId: null },
-    });
+    expect(mockUpdate).toHaveBeenCalledWith({ where: { id: "item-1", locationId: "loc-old" }, data: { locationId: null } });
   });
 });

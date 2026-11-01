@@ -6,9 +6,10 @@ import { checkReturnToStock } from "@/lib/assets/lifecycle-rules";
 import { RETURN_TO_STOCK_INCLUDE, lifecycleViolationResponse, returnAssetToStock, statusChangedResponse } from "@/lib/assets/transitions";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { idSchema } from "@/lib/schemas/ids";
 
 const schema = z.object({
-  locationId: z.string().min(1),
+  locationId: idSchema,
 });
 
 export async function POST(

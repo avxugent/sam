@@ -34,4 +34,10 @@ describe("stock item schemas", () => {
     expect(updateStockItemSchema.safeParse({ serialNumber: "SN", quantity: 2 }).success).toBe(false);
     expect(updateStockItemSchema.safeParse({ serialNumber: "SN" }).success).toBe(true);
   });
+
+  it("limits an item with MAC addresses to quantity 1, like an asset", () => {
+    expect(createStockItemSchema.safeParse({ ...base, macAddresses: ["aabbccddeeff"], quantity: 2 }).success).toBe(false);
+    expect(updateStockItemSchema.safeParse({ macAddresses: ["aabbccddeeff"], quantity: 2 }).success).toBe(false);
+    expect(createStockItemSchema.safeParse({ ...base, macAddresses: [], quantity: 2 }).success).toBe(true);
+  });
 });

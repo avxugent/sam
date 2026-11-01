@@ -59,6 +59,8 @@ const SAMPLE_ITEM = {
   type: { id: "type-1", name: "Monitor" },
   manufacturer: { id: "mfr-1", name: "Dell" },
 };
+/** A MAC identifies one device, so an item that gets one must hold a single unit. */
+const SINGLE_UNIT_ITEM = { ...SAMPLE_ITEM, quantity: 1 };
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -97,6 +99,13 @@ describe("GET /api/stock", () => {
     expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ locationId: "loc-1" }),
     }));
+  });
+
+  it("returns 400 for an oversized search term", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER") as never);
+    const res = await GET(req("GET", `http://localhost/api/stock?q=${"x".repeat(201)}`));
+    expect(res.status).toBe(400);
+    expect(mockFindMany).not.toHaveBeenCalled();
   });
 });
 
@@ -268,7 +277,7 @@ describe("PUT /api/stock/[id]", () => {
 
   it("writes a MAC address into metadata", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
-    mockFindUnique.mockResolvedValue(SAMPLE_ITEM as never);
+    mockFindUnique.mockResolvedValue(SINGLE_UNIT_ITEM as never);
     mockUpdate.mockResolvedValue(SAMPLE_ITEM as never);
     await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddresses: ["AA:BB:CC:DD:EE:FF"] }), { params: PARAMS });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
@@ -280,7 +289,7 @@ describe("PUT /api/stock/[id]", () => {
 
   it("normalizes a Cisco dot-grouped MAC to colon form on update", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
-    mockFindUnique.mockResolvedValue(SAMPLE_ITEM as never);
+    mockFindUnique.mockResolvedValue(SINGLE_UNIT_ITEM as never);
     mockUpdate.mockResolvedValue(SAMPLE_ITEM as never);
     await PUT(req("PUT", "http://localhost/api/stock/item-1", { macAddresses: ["aabb.ccdd.eeff"] }), { params: PARAMS });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
@@ -293,7 +302,7 @@ describe("PUT /api/stock/[id]", () => {
   it("preserves other metadata keys when updating the MAC", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockFindUnique.mockResolvedValue({
-      ...SAMPLE_ITEM,
+      ...SINGLE_UNIT_ITEM,
       metadata: JSON.stringify({ hostname: "host1", macAddresses: [{ address: "00:00:00:00:00:00" }] }),
     } as never);
     mockUpdate.mockResolvedValue(SAMPLE_ITEM as never);

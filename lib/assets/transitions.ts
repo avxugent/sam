@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 import { z } from "zod";
-import { DisposalMethod } from "@/generated/prisma/enums";
-import type { AssetStatus, Prisma } from "@/generated/prisma/client";
+import { AssetStatus, DisposalMethod } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { isRecordNotFoundError } from "@/lib/route-helpers";
@@ -16,7 +16,7 @@ import {
   type LifecycleViolation,
   type Returnable,
 } from "@/lib/assets/lifecycle-rules";
-import type { BulkSkipReason } from "@/lib/bulk";
+import type { BulkSkipReason } from "@/lib/assets/bulk";
 import { HISTORY_SNAPSHOT_KEYS } from "@/lib/assets/history-keys";
 
 /**
@@ -27,19 +27,20 @@ import { HISTORY_SNAPSHOT_KEYS } from "@/lib/assets/history-keys";
  * checks and decide how a rule violation is reported (400 vs. a per-id
  * failure entry).
  *
- * Each write only applies while the asset still has the status the route
- * checked, so two concurrent requests cannot both pass the check. A write that
- * lost that race returns null; routes report it with statusChangedResponse().
+ * Each write is guarded by the state the route checked (the asset's status,
+ * or for deploy the stock item's quantity), so two concurrent requests cannot
+ * both pass the check. A write that lost that race returns null; routes report
+ * it with statusChangedResponse(), or stockChangedResponse() for deploy.
  */
 
 /** A lifecycle violation as the 400 a single-asset route sends back. */
-export function lifecycleViolationResponse(violation: LifecycleViolation): NextResponse;
-export function lifecycleViolationResponse(violation: LifecycleViolation | null): NextResponse | null;
-export function lifecycleViolationResponse(violation: LifecycleViolation | null): NextResponse | null {
+export function lifecycleViolationResponse(violation: LifecycleViolation<string>): NextResponse;
+export function lifecycleViolationResponse(violation: LifecycleViolation<string> | null): NextResponse | null;
+export function lifecycleViolationResponse(violation: LifecycleViolation<string> | null): NextResponse | null {
   return violation && NextResponse.json({ error: violation.message }, { status: 400 });
 }
 
-/** Bulk failure reason when another request changed the asset first. */
+/** Bulk failure reason when another request changed the asset (or stock item) first. */
 export const STATUS_CHANGED: BulkSkipReason = "STATUS_CHANGED";
 
 /** The 409 for a stock deploy that lost the race to a concurrent change of the stock item. */
@@ -58,8 +59,8 @@ export function statusChangedResponse(): NextResponse {
   );
 }
 
-/** Runs a status-guarded write; null when the guard no longer matched. */
-async function unlessStatusChanged<T>(write: () => Promise<T>): Promise<T | null> {
+/** Runs a guarded write; null when the guard no longer matched. */
+async function unlessChanged<T>(write: () => Promise<T>): Promise<T | null> {
   try {
     return await write();
   } catch (err) {
@@ -94,7 +95,7 @@ export async function decommissionAsset(
   existing: DecommissionCandidate,
   input: { note?: string | null; disposalMethod: DisposalMethod }
 ) {
-  const asset = await unlessStatusChanged(() =>
+  const asset = await unlessChanged(() =>
     prisma.asset.update({
       where: { id, status: existing.status },
       data: buildDecommissionUpdateData({
@@ -114,7 +115,7 @@ export async function decommissionAsset(
     entityId: id,
     entityName: existing.model?.name ?? undefined,
     detail: {
-      status: "DECOMMISSIONED",
+      status: AssetStatus.DECOMMISSIONED,
       note: input.note,
       disposalMethod: input.disposalMethod,
       lastLocation: existing.location.name,
@@ -140,7 +141,7 @@ export async function sendAssetForRepair(
   input: { note?: string | null }
 ) {
   const note = input.note ?? null;
-  const asset = await unlessStatusChanged(() =>
+  const asset = await unlessChanged(() =>
     prisma.asset.update({
       where: { id, status: existing.status },
       data: buildSendForRepairUpdateData({ note, actorId: session.user.id }),
@@ -154,14 +155,14 @@ export async function sendAssetForRepair(
     entityType: "Asset",
     entityId: id,
     entityName: existing.model?.name ?? undefined,
-    detail: { status: "IN_REPAIR", note },
+    detail: { status: AssetStatus.IN_REPAIR, note },
     lineageId: existing.lineageId,
   });
   return asset;
 }
 
 export async function reinstateAsset(req: Request, session: Session, id: string, existing: AuditedAsset) {
-  const asset = await unlessStatusChanged(() =>
+  const asset = await unlessChanged(() =>
     prisma.asset.update({ where: { id, status: existing.status }, data: buildReinstateUpdateData() })
   );
   if (!asset) return null;
@@ -172,7 +173,7 @@ export async function reinstateAsset(req: Request, session: Session, id: string,
     entityType: "Asset",
     entityId: id,
     entityName: existing.model?.name ?? undefined,
-    detail: { status: "INSTALLED" },
+    detail: { status: AssetStatus.INSTALLED },
     lineageId: existing.lineageId,
   });
   return asset;
@@ -191,7 +192,7 @@ type ReturnCandidate = Prisma.AssetGetPayload<{ include: typeof RETURN_TO_STOCK_
 
 /** Replaces the asset by a stock item at `locationId` and audits both sides of the move. */
 export async function returnAssetToStock(req: Request, session: Session, asset: Returnable<ReturnCandidate>, locationId: string) {
-  const stockItem = await unlessStatusChanged(() =>
+  const stockItem = await unlessChanged(() =>
     prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const item = await tx.stockItem.create({ data: buildStockItemFromReturn(asset, locationId) });
       await tx.asset.delete({ where: { id: asset.id, status: asset.status } });
@@ -248,7 +249,7 @@ export async function deployStockItem(
 ) {
   const { quantity, serialNumbers } = input;
   const remainingQuantity = stockItem.quantity - quantity;
-  const createdAssets = await unlessStatusChanged(() =>
+  const createdAssets = await unlessChanged(() =>
     prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Owner/supplier defaults apply to every copy (deploy = creation).
       const defaults = await resolveAssetCreationDefaults(tx, {});
@@ -258,9 +259,11 @@ export async function deployStockItem(
       } else {
         await tx.stockItem.update({ where: guard, data: { quantity: remainingQuantity } });
       }
-      return Promise.all(
-        Array.from({ length: quantity }, (_, i) =>
-          tx.asset.create({
+      // One connection per transaction: create the copies one after another.
+      const created: { id: string; lineageId: string }[] = [];
+      for (let i = 0; i < quantity; i++) {
+        created.push(
+          await tx.asset.create({
             data: buildDeployedAssetData(stockItem, {
               locationId: location.id,
               serialNumber: stockItem.serialNumber ?? serialNumbers?.[i] ?? null,
@@ -270,8 +273,9 @@ export async function deployStockItem(
             }),
             select: { id: true, lineageId: true },
           })
-        )
-      );
+        );
+      }
+      return created;
     })
   );
   if (!createdAssets) return null;

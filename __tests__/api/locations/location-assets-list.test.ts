@@ -44,4 +44,16 @@ describe("GET /api/locations/[id]/assets", () => {
       expect.objectContaining({ where: { locationId: { in: ["room1", "sub1", "sub2"] } }, include: ASSET_LIST_INCLUDE })
     );
   });
+
+  it("lists assets in repair with ?status=IN_REPAIR", async () => {
+    await get("?status=IN_REPAIR");
+    expect(prisma.asset.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { locationId: { in: ["room1"] }, status: "IN_REPAIR" } })
+    );
+  });
+
+  it("400 for an unknown ?status= value", async () => {
+    expect((await get("?status=bogus")).status).toBe(400);
+    expect(prisma.asset.findMany).not.toHaveBeenCalled();
+  });
 });

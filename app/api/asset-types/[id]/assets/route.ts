@@ -14,9 +14,10 @@ export async function GET(
   const { id } = await params;
 
   const statusFilter = assetListStatusFilter(new URL(req.url).searchParams.get("status"));
+  if ("error" in statusFilter) return statusFilter.error;
 
   const assets = await prisma.asset.findMany({
-    where: { typeId: id, ...statusFilter },
+    where: { typeId: id, ...statusFilter.where },
     select: CATALOG_DRILLDOWN_SELECT,
     orderBy: [{ location: { name: "asc" } }, { createdAt: "desc" }],
   });

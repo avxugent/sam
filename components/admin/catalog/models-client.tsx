@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -13,13 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,37 +24,28 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Pencil, Trash2, Plus, Merge, TriangleAlert } from "lucide-react";
-import type { AssetStatus } from "@/generated/prisma/enums";
-import { readMergeConflict, type MergeConflict } from "@/components/admin/catalog/merge-conflict";
+import { Pencil, Trash2, Plus, Merge, TriangleAlert } from "lucide-react";
+import type { MergeConflict } from "@/components/admin/catalog/merge-conflict";
 import { MergeConfirmDialog } from "@/components/admin/catalog/merge-confirm-dialog";
 import { useCatalogMerge } from "@/components/admin/catalog/use-catalog-merge";
-import { apiFetch, jsonBody } from "@/lib/api-client";
+import { ModelFormDialog, type ModelFields } from "@/components/admin/catalog/model-form-dialog";
+import { ModelUsageDialog } from "@/components/admin/catalog/model-usage-dialog";
+import { useServerList } from "@/components/admin/use-server-list";
+import { apiFetch } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type NameOption = { id: string; name: string };
 
-type Model = {
+type Model = ModelFields & {
   id: string;
-  name: string;
-  typeId: string;
-  manufacturerId: string | null;
-  documentationUrl: string | null;
   type: NameOption;
   manufacturer: NameOption | null;
   _count: { assets: number; stockItems: number };
 };
 
-type ClusterItem = { id: string; model: string; count: number; typeName: string; manufacturerName: string | null };
-
-type DrilldownAsset = { id: string; serialNumber: string | null; hostname: string | null; status: AssetStatus; location: { id: string; name: string } | null };
-type DrilldownStockItem = { id: string; serialNumber: string | null; quantity: number; location: { id: string; name: string } | null };
-
-/** A model rename can also move it to another type/manufacturer. */
-type ModelMergeConflict = MergeConflict & { newTypeId: string; newManufacturerId: string | null };
+type ClusterItem = { id: string; name: string; count: number; typeName: string; manufacturerName: string | null };
 
 const ALL = "__all__";
-const NONE = "__none__";
 
 export function ModelsClient({
   initialModels,
@@ -83,13 +66,7 @@ export function ModelsClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [models, setModels] = useState(initialModels);
-  useEffect(() => { setModels(initialModels); }, [initialModels]);
-  /** Shows a successful change at once, then reloads the server data (counts and other derived values) behind it. */
-  function applyChange(update: (current: typeof models) => typeof models) {
-    setModels(update);
-    router.refresh();
-  }
+  const [models, applyChange] = useServerList(initialModels);
   const [clusters, setClusters] = useState(initialClusters);
   useEffect(() => { setClusters(initialClusters); }, [initialClusters]);
 
@@ -103,88 +80,49 @@ export function ModelsClient({
     router.push(`${pathname}?${params.toString()}`);
   }
 
-  // Create/edit dialog
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formTypeId, setFormTypeId] = useState("");
-  const [formManufacturerId, setFormManufacturerId] = useState("");
-  const [formName, setFormName] = useState("");
-  const [formDocumentationUrl, setFormDocumentationUrl] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  // Usage drilldown
-  const [drilldownItem, setDrilldownItem] = useState<Model | null>(null);
-  const [drilldownAssets, setDrilldownAssets] = useState<DrilldownAsset[]>([]);
-  const [drilldownStock, setDrilldownStock] = useState<DrilldownStockItem[]>([]);
-  const [drilldownLoading, setDrilldownLoading] = useState(false);
+  // The model in the create/edit dialog (id null for a new one); null when closed.
+  const [form, setForm] = useState<(ModelFields & { id: string | null }) | null>(null);
+  const [usageModel, setUsageModel] = useState<Model | null>(null);
 
   // Merge-on-409 dialog
-  const [mergeConflict, setMergeConflict] = useState<ModelMergeConflict | null>(null);
+  const [mergeConflict, setMergeConflict] = useState<MergeConflict | null>(null);
   const catalogMerge = useCatalogMerge("models");
 
   // Possible-duplicates merge dialog
   const [dupMerge, setDupMerge] = useState<{ sourceId: string; sourceName: string; targetId: string } | null>(null);
 
   function openCreate() {
-    setEditingId(null);
-    setFormTypeId(currentTypeId || "");
-    setFormManufacturerId(currentManufacturerId || "");
-    setFormName("");
-    setFormDocumentationUrl("");
-    setDialogOpen(true);
+    setForm({ id: null, typeId: currentTypeId, manufacturerId: currentManufacturerId || null, name: "", documentationUrl: null });
   }
 
-  function openEdit(item: Model) {
-    setEditingId(item.id);
-    setFormTypeId(item.typeId);
-    setFormManufacturerId(item.manufacturerId ?? "");
-    setFormName(item.name);
-    setFormDocumentationUrl(item.documentationUrl ?? "");
-    setDialogOpen(true);
+  /** Removes a merged-away model from the list and from the duplicate clusters. */
+  function dropMerged(sourceId: string) {
+    applyChange((prev) => prev.filter((m) => m.id !== sourceId));
+    setClusters((prev) => prev.map((c) => c.filter((i) => i.id !== sourceId)).filter((c) => c.length >= 2));
   }
 
-  async function openDrilldown(item: Model) {
-    setDrilldownItem(item);
-    setDrilldownAssets([]);
-    setDrilldownStock([]);
-    setDrilldownLoading(true);
-    const res = await apiFetch<{ assets: DrilldownAsset[]; stockItems: DrilldownStockItem[] }>(`/api/models/${item.id}/usage`);
-    setDrilldownLoading(false);
-    if (!res.ok) {
-      showApiError(res.error); // an outage must not look like "unused"
-      return;
-    }
-    setDrilldownAssets(res.data.assets);
-    setDrilldownStock(res.data.stockItems);
-  }
-
-  async function handleSave() {
-    if (!formTypeId || !formName.trim()) return;
-    setSaving(true);
-    const payload = {
-      typeId: formTypeId,
-      manufacturerId: formManufacturerId || null,
-      name: formName.trim(),
-      documentationUrl: formDocumentationUrl.trim() || null,
-    };
-    const res = editingId
-      ? await apiFetch(`/api/models/${editingId}`, jsonBody("PUT", payload))
-      : await apiFetch("/api/models", jsonBody("POST", payload));
-    setSaving(false);
-
-    if (!res.ok) {
-      const conflict = editingId ? readMergeConflict(res.error, editingId, formName.trim()) : null;
-      if (conflict) {
-        setMergeConflict({ ...conflict, newTypeId: formTypeId, newManufacturerId: formManufacturerId || null });
-        return;
-      }
-      showApiError(res.error);
-      return;
-    }
-
-    router.refresh();
-    setDialogOpen(false);
-    toast({ title: editingId ? t("modelUpdated") : t("modelCreated") });
+  function handleSaved(saved: ModelFields & { id: string }) {
+    const editing = form?.id ?? null;
+    const visible =
+      (!currentTypeId || saved.typeId === currentTypeId) &&
+      (!currentManufacturerId || saved.manufacturerId === currentManufacturerId);
+    applyChange((prev) => {
+      if (!visible) return prev.filter((m) => m.id !== saved.id);
+      const previous = prev.find((m) => m.id === saved.id);
+      const row: Model = {
+        id: saved.id,
+        typeId: saved.typeId,
+        manufacturerId: saved.manufacturerId,
+        name: saved.name,
+        documentationUrl: saved.documentationUrl,
+        type: assetTypes.find((at) => at.id === saved.typeId) ?? { id: saved.typeId, name: "" },
+        manufacturer: manufacturers.find((m) => m.id === saved.manufacturerId) ?? null,
+        _count: previous?._count ?? { assets: 0, stockItems: 0 },
+      };
+      return previous ? prev.map((m) => (m.id === saved.id ? row : m)) : [...prev, row];
+    });
+    setForm(null);
+    toast({ title: editing ? t("modelUpdated") : t("modelCreated") });
   }
 
   async function handleMergeConflict() {
@@ -192,8 +130,8 @@ export function ModelsClient({
     const result = await catalogMerge.merge(mergeConflict.editingId, mergeConflict.existingId);
     setMergeConflict(null);
     if (!result) return;
-    setDialogOpen(false);
-    router.refresh();
+    dropMerged(mergeConflict.editingId);
+    setForm(null);
     toast({ title: t("modelMerged"), description: catalogMerge.summary(result) });
   }
 
@@ -212,7 +150,7 @@ export function ModelsClient({
     const result = await catalogMerge.merge(dupMerge.sourceId, dupMerge.targetId);
     setDupMerge(null);
     if (!result) return;
-    router.refresh();
+    dropMerged(dupMerge.sourceId);
     toast({ title: t("modelMerged"), description: catalogMerge.summary(result) });
   }
 
@@ -247,7 +185,6 @@ export function ModelsClient({
         </Button>
       </div>
 
-      {/* List */}
       <div className="border rounded-lg divide-y">
         {models.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">{t("noModelsYet")}</div>
@@ -260,7 +197,7 @@ export function ModelsClient({
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => usageCount > 0 && openDrilldown(item)}
+                      onClick={() => usageCount > 0 && setUsageModel(item)}
                       className="text-left text-sm font-medium truncate hover:text-primary transition-colors disabled:cursor-default"
                       disabled={usageCount === 0}
                     >
@@ -284,12 +221,12 @@ export function ModelsClient({
                   <Badge
                     variant="secondary"
                     className="text-xs cursor-pointer hover:bg-secondary/80 flex-shrink-0"
-                    onClick={() => openDrilldown(item)}
+                    onClick={() => setUsageModel(item)}
                   >
                     {item._count.assets} / {item._count.stockItems}
                   </Badge>
                 )}
-                <Button size="icon" variant="ghost" className="h-8 w-8 flex-shrink-0" onClick={() => openEdit(item)}>
+                <Button size="icon" variant="ghost" className="h-8 w-8 flex-shrink-0" onClick={() => setForm(item)}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
                 <AlertDialog>
@@ -338,7 +275,7 @@ export function ModelsClient({
                   <div key={item.id} className="flex items-center gap-2">
                     {i > 0 && <Merge className="h-3.5 w-3.5 text-muted-foreground" />}
                     <span className="text-sm">
-                      {item.model}
+                      {item.name}
                       <span className="text-xs text-muted-foreground ml-1">
                         ({item.typeName}{item.manufacturerName ? ` / ${item.manufacturerName}` : ""})
                       </span>
@@ -349,7 +286,7 @@ export function ModelsClient({
                   size="sm"
                   variant="outline"
                   className="ml-auto"
-                  onClick={() => setDupMerge({ sourceId: cluster[1].id, sourceName: cluster[1].model, targetId: cluster[0].id })}
+                  onClick={() => setDupMerge({ sourceId: cluster[1].id, sourceName: cluster[1].name, targetId: cluster[0].id })}
                 >
                   {t("mergeButton")}
                 </Button>
@@ -359,103 +296,18 @@ export function ModelsClient({
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingId ? t("editModel") : t("newModel")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Select value={formTypeId} onValueChange={setFormTypeId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("selectType")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {assetTypes.map((at) => (
-                    <SelectItem key={at.id} value={at.id}>{at.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Select value={formManufacturerId || NONE} onValueChange={(v) => setFormManufacturerId(v === NONE ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("selectManufacturer")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>{t("noManufacturer")}</SelectItem>
-                  {manufacturers.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Input
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder={t("namePlaceholder")}
-            />
-            <div className="space-y-1">
-              <Input
-                type="url"
-                value={formDocumentationUrl}
-                onChange={(e) => setFormDocumentationUrl(e.target.value)}
-                placeholder={t("documentationUrlPlaceholder")}
-              />
-              <p className="text-xs text-muted-foreground">{t("documentationRequiredHint")}</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>{tCommon("cancel")}</Button>
-            <Button onClick={handleSave} disabled={saving || !formTypeId || !formName.trim()}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {tCommon("save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {form && (
+        <ModelFormDialog
+          initial={form}
+          assetTypes={assetTypes}
+          manufacturers={manufacturers}
+          onClose={() => setForm(null)}
+          onSaved={handleSaved}
+          onMergeConflict={setMergeConflict}
+        />
+      )}
 
-      <Dialog open={!!drilldownItem} onOpenChange={(open) => { if (!open) setDrilldownItem(null); }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{drilldownItem?.name}</DialogTitle>
-          </DialogHeader>
-          {drilldownLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="space-y-4 overflow-auto max-h-[60vh]">
-              {drilldownAssets.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Assets ({drilldownAssets.length})</h3>
-                  <ul className="text-sm divide-y border rounded">
-                    {drilldownAssets.map((a) => (
-                      <li key={a.id} className="px-3 py-1.5 flex justify-between">
-                        <span>{a.serialNumber || a.hostname || a.id}</span>
-                        <span className="text-muted-foreground">{a.location?.name ?? "—"}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {drilldownStock.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Stock ({drilldownStock.length})</h3>
-                  <ul className="text-sm divide-y border rounded">
-                    {drilldownStock.map((s) => (
-                      <li key={s.id} className="px-3 py-1.5 flex justify-between">
-                        <span>{s.serialNumber || `×${s.quantity}`}</span>
-                        <span className="text-muted-foreground">{s.location?.name ?? "—"}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ModelUsageDialog model={usageModel} onClose={() => setUsageModel(null)} />
 
       {/* Merge-on-409 (rename collided with an existing model) */}
       <MergeConfirmDialog

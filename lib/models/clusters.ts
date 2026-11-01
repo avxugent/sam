@@ -13,7 +13,7 @@ export type ModelClusterItem = ModelCountRow & {
  * type/manufacturer names — feeds the admin "possible duplicates" panel on
  * /admin/models.
  */
-export async function getModelItems(): Promise<ModelClusterItem[]> {
+export async function listModelsWithUsage(): Promise<ModelClusterItem[]> {
   const models = await prisma.model.findMany({
     select: {
       id: true,
@@ -30,7 +30,7 @@ export async function getModelItems(): Promise<ModelClusterItem[]> {
 
   return models.map((m) => ({
     id: m.id,
-    model: m.name,
+    name: m.name,
     count: m._count.assets + m._count.stockItems,
     typeId: m.typeId,
     typeName: m.type.name,
@@ -40,13 +40,13 @@ export async function getModelItems(): Promise<ModelClusterItem[]> {
 
 /**
  * Fuzzy-similarity clusters of Model names, for the admin page's "possible
- * duplicates" panel. See getModelItems() for the flat, unclustered list.
+ * duplicates" panel. See listModelsWithUsage() for the flat, unclustered list.
  * Clustered per asset type — a Model is scoped to exactly one type, so the
  * same (or similar) name under a different type is a legitimate distinct
  * catalog entry, never a duplicate to merge.
  */
 export async function getModelClusters(): Promise<ModelClusterItem[][]> {
-  const items = await getModelItems();
+  const items = await listModelsWithUsage();
   const byType = new Map<string, ModelClusterItem[]>();
   for (const item of items) {
     const bucket = byType.get(item.typeId);

@@ -7,7 +7,7 @@ import { StockItemFormDialog } from "@/components/stock/stock-item-form-dialog";
 import { StockLocationFilter } from "@/components/stock/stock-location-filter";
 import { Button } from "@/components/ui/button";
 import { buildLocationPathsFromRows } from "@/lib/locations/path";
-import * as permissions from "@/lib/permissions";
+import { canEdit, Role } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +25,8 @@ export default async function StockPage({
   const { typeId, locationId } = await searchParams;
 
   const session = await auth();
-  const userRole = session?.user?.role ?? "VIEWER";
-  const canEdit = permissions.canEdit(userRole);
+  const userRole = session?.user?.role ?? Role.VIEWER;
+  const editable = canEdit(userRole);
 
   const t = await getTranslations("stock");
 
@@ -53,7 +53,7 @@ export default async function StockPage({
   ]);
 
   const stockLocationIds = new Set(stockLocationRows.map((r) => r.locationId!));
-  const locationBreadcrumbMap = buildLocationPathsFromRows(allLocations, " › ");
+  const locationBreadcrumbMap = buildLocationPathsFromRows(allLocations);
   const locationBreadcrumbs = Object.fromEntries(locationBreadcrumbMap);
   const locationOptions = allLocations
     .filter((l) => stockLocationIds.has(l.id))
@@ -75,7 +75,7 @@ export default async function StockPage({
         />
         <div className="flex items-center gap-2">
           <StockLocationFilter locations={locationOptions} />
-          {canEdit && (
+          {editable && (
             <StockItemFormDialog mode="create">
               <Button size="sm" className="bg-primary hover:bg-primary-hover text-white flex items-center gap-1.5">
                 <Plus className="h-3.5 w-3.5" />
@@ -88,7 +88,7 @@ export default async function StockPage({
 
       <StockItemTable
         key={`${typeId ?? "all"}-${locationId ?? "all"}`}
-        items={allItems}
+        items={allItems.map((i) => ({ ...i, invoiceDate: i.invoiceDate?.toISOString() ?? null }))}
         userRole={userRole}
         locationBreadcrumbs={locationBreadcrumbs}
       />

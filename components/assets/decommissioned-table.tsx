@@ -18,9 +18,9 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { RotateCcw } from "lucide-react";
 import { AssetStateTable, type AssetStateRow } from "@/components/assets/asset-state-table";
-import * as permissions from "@/lib/permissions";
-import type { Role } from "@/lib/permissions";
+import { isAdmin, type Role } from "@/lib/permissions";
 import { apiFetch } from "@/lib/api-client";
+import { assetLabel } from "@/lib/assets/label";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export type DecommissionedAsset = {
@@ -28,7 +28,7 @@ export type DecommissionedAsset = {
   locationId: string;
   model: { name: string } | null;
   serialNumber: string | null;
-  decommissionedAt: Date | string | null;
+  decommissionedAt: string | null;
   decommissionNote: string | null;
   lastLocationName: string | null;
   lastLocationFiNumber: string | null;
@@ -72,7 +72,7 @@ export function DecommissionedTable({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {t("reinstateConfirmTitle", { name: asset.model?.name || asset.serialNumber || tStock("item") })}
+            {t("reinstateConfirmTitle", { name: assetLabel(asset) ?? tStock("item") })}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {t("reinstateConfirmDescription", { location: asset.locationName ?? t("itsLocation") })}
@@ -107,7 +107,7 @@ export function DecommissionedTable({
         note: t("note"),
         empty: t("noDecommissioned"),
       }}
-      renderActions={permissions.isAdmin(userRole) ? renderReinstate : undefined}
+      renderActions={isAdmin(userRole) ? renderReinstate : undefined}
     />
   );
 }

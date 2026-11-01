@@ -5,24 +5,30 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { canManageCatalog } from "@/lib/permissions";
 import { invalidInput, isUniqueConstraintError, nameTakenResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { idSchema, MAX_ID_LENGTH } from "@/lib/schemas/ids";
 
 const createSchema = z.object({
-  typeId: z.string().min(1),
-  manufacturerId: z.string().min(1).optional().nullable(),
+  typeId: idSchema,
+  manufacturerId: idSchema.optional().nullable(),
   name: z.string().min(1).max(255),
   // Required for compliance, but intentionally not enforced here — see the
   // comment on Model.documentationUrl in schema.prisma.
   documentationUrl: z.url().max(2048).nullable().optional(),
 });
 
+const listQuerySchema = z.object({
+  q: z.string().max(255).optional(),
+  typeId: z.string().max(MAX_ID_LENGTH).optional(),
+  manufacturerId: z.string().max(MAX_ID_LENGTH).optional(),
+});
+
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q") || undefined;
-  const typeId = searchParams.get("typeId") || undefined;
-  const manufacturerId = searchParams.get("manufacturerId") || undefined;
+  const parsed = listQuerySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams));
+  if (!parsed.success) return invalidInput(parsed.error);
+  const { q, typeId, manufacturerId } = parsed.data;
 
   const models = await prisma.model.findMany({
     where: {

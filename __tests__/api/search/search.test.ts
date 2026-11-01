@@ -223,6 +223,16 @@ describe("GET /api/search — invalid page param", () => {
   });
 });
 
+describe("GET /api/search — query length cap", () => {
+  it("400 for a query over 200 characters, without touching the database", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    const res = await GET(makeReq("x".repeat(201)));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Invalid input");
+    expect(mockAssetFindMany).not.toHaveBeenCalled();
+  });
+});
+
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
 describe("GET /api/search — asset scoring", () => {

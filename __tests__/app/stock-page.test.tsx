@@ -60,6 +60,21 @@ describe("stock page", () => {
     expect(propsOf(StockItemTable).userRole).toBe("VIEWER");
   });
 
+  it("hands the table dates as ISO strings", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER") as never);
+    mockStock(
+      [
+        { id: "s1", quantity: 1, locationId: null, invoiceDate: new Date("2026-03-02T00:00:00.000Z") },
+        { id: "s2", quantity: 1, locationId: null, invoiceDate: null },
+      ],
+      []
+    );
+
+    await renderPage(call());
+
+    expect(propsOf(StockItemTable).items.map((i: { invoiceDate: unknown }) => i.invoiceDate)).toEqual(["2026-03-02T00:00:00.000Z", null]);
+  });
+
   it("hides the create dialog for a viewer", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
     mockStock([], []);
@@ -90,7 +105,7 @@ describe("stock page", () => {
     await renderPage(call());
 
     const table = propsOf(StockItemTable);
-    expect(table.items).toBe(items);
+    expect(table.items).toEqual(items.map((i) => ({ ...i, invoiceDate: null })));
     expect(table.locationBreadcrumbs).toEqual({
       campus: "Campus",
       b: "Campus › Building B",

@@ -7,10 +7,11 @@ import { auditChanges } from "@/lib/audit/diff";
 import { canManageCatalog } from "@/lib/permissions";
 import { invalidInput, isForeignKeyError, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { nameConflictResponse } from "@/lib/catalog/merge";
+import { idSchema } from "@/lib/schemas/ids";
 
 const updateSchema = z.object({
-  typeId: z.string().min(1),
-  manufacturerId: z.string().min(1).optional().nullable(),
+  typeId: idSchema,
+  manufacturerId: idSchema.optional().nullable(),
   name: z.string().min(1).max(255),
   documentationUrl: z.url().max(2048).nullable().optional(),
 });

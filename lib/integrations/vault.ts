@@ -36,6 +36,13 @@ type CachedToken = {
 
 let _tokenCache: CachedToken | null = null;
 
+export function _clearVaultTokenCacheForTest(): void {
+  _tokenCache = null;
+}
+
+/** A hung Vault must not hang the request: give up and report "unavailable". */
+const REQUEST_TIMEOUT_MS = 10_000;
+
 /** How many seconds before the Vault TTL expires we proactively re-authenticate */
 const EXPIRY_BUFFER_S = 60;
 
@@ -89,6 +96,7 @@ async function loginWithApprole(): Promise<string | null> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role_id: roleId, secret_id: secretId }),
       cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -210,6 +218,7 @@ export async function readVaultSecret(path: string): Promise<VaultRead<VaultSecr
       },
       // Prevent Next.js from caching Vault responses — secrets can change
       cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (res.status === 404) {

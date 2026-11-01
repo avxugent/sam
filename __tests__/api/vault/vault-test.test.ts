@@ -24,13 +24,19 @@ describe("GET /api/vault/test", () => {
     expect((await get()).status).toBe(403);
   });
 
-  it("503 when Vault is not configured", async () => {
+  it("503 with a code when Vault is not configured", async () => {
     vi.mocked(isVaultConfigured).mockReturnValue(false);
-    expect((await get()).status).toBe(503);
+    const res = await get();
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: expect.any(String), code: "vaultNotConfigured" });
   });
 
-  it("400 without a path", async () => {
+  it("400 without a path, or with an over-long one", async () => {
     expect((await get("?path=%20")).status).toBe(400);
+    expect((await get("")).status).toBe(400);
+    const res = await get(`?path=${"a".repeat(501)}`);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Invalid input");
     expect(listVaultSecretKeys).not.toHaveBeenCalled();
   });
 
@@ -44,11 +50,13 @@ describe("GET /api/vault/test", () => {
     expect((await res.json()).code).toBe(code);
   });
 
-  it("404 when no secret exists at the path", async () => {
+  it("400 with a code when no secret exists at the path", async () => {
     vi.mocked(listVaultSecretKeys).mockResolvedValue({ status: "missing" });
     const res = await get();
-    expect(res.status).toBe(404);
-    expect((await res.json()).ok).toBe(false);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.code).toBe("vaultSecretMissing");
+    expect(body).not.toHaveProperty("ok");
   });
 
   it("returns the key names only, never values", async () => {

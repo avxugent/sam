@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ReportsListClient } from "@/components/reports/reports-list-client";
 import { BarChart2 } from "lucide-react";
-import { canEdit, isAdmin } from "@/lib/permissions";
+import { Role } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
 
 export async function generateMetadata() {
@@ -29,7 +29,10 @@ export default async function ReportsPage() {
         subtitle={t("savedCount", { count: reports.length })}
       />
 
-      <ReportsListClient reports={reports} canEdit={canEdit(session?.user?.role)} isAdmin={isAdmin(session?.user?.role)} />
+      <ReportsListClient
+        reports={reports.map((r) => ({ ...r, createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString() }))}
+        userRole={session?.user?.role ?? Role.VIEWER}
+      />
     </div>
   );
 }

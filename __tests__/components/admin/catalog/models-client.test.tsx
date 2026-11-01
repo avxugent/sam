@@ -42,8 +42,8 @@ const OPTIPLEX = {
   _count: { assets: 0, stockItems: 0 },
 };
 const CLUSTER = [
-  { id: "m1", model: "Latitude 5440", count: 2, typeName: "Laptop", manufacturerName: "Dell" },
-  { id: "m3", model: "Latitude-5440", count: 1, typeName: "Laptop", manufacturerName: null },
+  { id: "m1", name: "Latitude 5440", count: 2, typeName: "Laptop", manufacturerName: "Dell" },
+  { id: "m3", name: "Latitude-5440", count: 1, typeName: "Laptop", manufacturerName: null },
 ];
 
 function renderModels(props: Partial<Parameters<typeof ModelsClient>[0]> = {}) {
@@ -115,7 +115,9 @@ describe("ModelsClient filters", () => {
 describe("ModelsClient create/edit", () => {
   it("creates a model with the current filters preselected", async () => {
     nav.search = "typeId=t2&manufacturerId=mf2";
-    mockFetch.mockResolvedValueOnce(json({ id: "m9" }));
+    mockFetch.mockResolvedValueOnce(
+      json({ id: "m9", typeId: "t2", manufacturerId: "mf2", name: "EliteBook", documentationUrl: "https://hp.example.com" })
+    );
     renderModels();
     await userEvent.click(screen.getByRole("button", { name: /addModel/ }));
     const dialog = screen.getByRole("dialog");
@@ -139,10 +141,27 @@ describe("ModelsClient create/edit", () => {
     });
     expect(nav.refresh).toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    // Shown at once, before the refreshed server list arrives.
+    expect(screen.getByRole("button", { name: "EliteBook" })).toBeInTheDocument();
+    expect(screen.getByText("Desktop · HP")).toBeInTheDocument();
+  });
+
+  it("does not show a created model that the active filters exclude", async () => {
+    nav.search = "typeId=t1";
+    mockFetch.mockResolvedValueOnce(json({ id: "m9", typeId: "t2", manufacturerId: null, name: "Tower", documentationUrl: null }));
+    renderModels();
+    await userEvent.click(screen.getByRole("button", { name: /addModel/ }));
+    const dialog = screen.getByRole("dialog");
+    await pick(within(dialog).getAllByRole("combobox")[0], "Desktop");
+    await userEvent.type(within(dialog).getByPlaceholderText("namePlaceholder"), "Tower");
+    await userEvent.click(within(dialog).getByRole("button", { name: "save" }));
+    await waitFor(() => expect(mockToast).toHaveBeenCalledWith({ title: "modelCreated" }));
+    expect(screen.queryByRole("button", { name: "Tower" })).not.toBeInTheDocument();
+    expect(nav.refresh).toHaveBeenCalled();
   });
 
   it("requires a type before saving and sends null for no manufacturer and blank docs", async () => {
-    mockFetch.mockResolvedValueOnce(json({ id: "m9" }));
+    mockFetch.mockResolvedValueOnce(json({ id: "m9", typeId: "t1", manufacturerId: null, name: "ThinkPad", documentationUrl: null }));
     renderModels();
     await userEvent.click(screen.getByRole("button", { name: /addModel/ }));
     const dialog = screen.getByRole("dialog");
@@ -166,7 +185,9 @@ describe("ModelsClient create/edit", () => {
   });
 
   it("edits a model with a PUT", async () => {
-    mockFetch.mockResolvedValueOnce(json({ id: "m1" }));
+    mockFetch.mockResolvedValueOnce(
+      json({ id: "m1", typeId: "t1", manufacturerId: "mf1", name: "Latitude 5440 G2", documentationUrl: null })
+    );
     renderModels();
     await userEvent.click(rowButtons("Latitude 5440")[1]);
     const dialog = screen.getByRole("dialog");
@@ -182,6 +203,9 @@ describe("ModelsClient create/edit", () => {
     expect(url).toBe("/api/models/m1");
     expect(init.method).toBe("PUT");
     expect(JSON.parse(init.body)).toEqual({ typeId: "t1", manufacturerId: "mf1", name: "Latitude 5440 G2", documentationUrl: null });
+    // The renamed row keeps its usage counts until the server data arrives.
+    expect(within(row("Latitude 5440 G2")).getByText("2 / 1")).toBeInTheDocument();
+    expect(nav.refresh).toHaveBeenCalled();
   });
 
   it("prefills an edit without manufacturer and cancels without saving", async () => {
@@ -248,6 +272,7 @@ describe("ModelsClient rename conflict merge", () => {
     expect(JSON.parse(init.body)).toEqual({ targetId: "m1" });
     expect(nav.refresh).toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "OptiPlex" })).not.toBeInTheDocument();
   });
 
   it("keeps the edit dialog open when the merge fails", async () => {
@@ -336,12 +361,12 @@ describe("ModelsClient usage drilldown", () => {
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("Latitude 5440")).toBeInTheDocument();
 
-    expect(await within(dialog).findByText("Assets (3)")).toBeInTheDocument();
+    expect(await within(dialog).findByText('usageAssets:{"count":3}')).toBeInTheDocument();
     expect(within(dialog).getByText("SN-1")).toBeInTheDocument();
     expect(within(dialog).getByText("Room 1")).toBeInTheDocument();
     expect(within(dialog).getByText("pc-02")).toBeInTheDocument();
     expect(within(dialog).getByText("a3")).toBeInTheDocument();
-    expect(within(dialog).getByText("Stock (2)")).toBeInTheDocument();
+    expect(within(dialog).getByText('usageStock:{"count":2}')).toBeInTheDocument();
     expect(within(dialog).getByText("×4")).toBeInTheDocument();
     expect(within(dialog).getByText("Store")).toBeInTheDocument();
     expect(within(dialog).getByText("SN-S")).toBeInTheDocument();
@@ -358,8 +383,8 @@ describe("ModelsClient usage drilldown", () => {
     await userEvent.click(screen.getByText("2 / 1"));
     const dialog = await screen.findByRole("dialog");
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith("/api/models/m1/usage", undefined));
-    await waitFor(() => expect(within(dialog).queryByText(/Assets \(/)).not.toBeInTheDocument());
-    expect(within(dialog).queryByText(/Stock \(/)).not.toBeInTheDocument();
+    await waitFor(() => expect(within(dialog).queryByText(/usageAssets/)).not.toBeInTheDocument());
+    expect(within(dialog).queryByText(/usageStock/)).not.toBeInTheDocument();
   });
 });
 
@@ -383,6 +408,7 @@ describe("ModelsClient possible duplicates", () => {
     expect(url).toBe("/api/models/m3/merge");
     expect(JSON.parse(init.body)).toEqual({ targetId: "m1" });
     expect(nav.refresh).toHaveBeenCalled();
+    expect(screen.queryByText("possibleDuplicates")).not.toBeInTheDocument();
   });
 
   it("does not refresh when the duplicate merge fails", async () => {

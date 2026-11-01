@@ -10,12 +10,12 @@ export async function GET(
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!isJiraConfigured()) {
-    return NextResponse.json({ error: "JIRA integration is not configured" }, { status: 503 });
+    return NextResponse.json({ error: "JIRA integration is not configured." }, { status: 503 });
   }
 
   const { key } = await params;
   if (!isValidJiraKey(key)) {
-    return NextResponse.json({ error: "Invalid JIRA key format" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JIRA key format." }, { status: 400 });
   }
 
   const lookup = await fetchJiraIssue(key);

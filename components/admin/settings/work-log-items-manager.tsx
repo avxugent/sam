@@ -21,6 +21,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Pencil, Trash2, Check, X, Plus } from "lucide-react";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
+import { useServerList } from "@/components/admin/use-server-list";
 
 export type WorkLogItem = {
   id: string;
@@ -36,7 +37,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
   const showApiError = useApiErrorToast();
   const t = useTranslations("workLogItems");
   const tCommon = useTranslations("common");
-  const [items, setItems] = useState(initialItems);
+  const [items, applyChange] = useServerList(initialItems);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [adding, setAdding] = useState(false);
@@ -54,7 +55,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
       return;
     }
     const item = res.data;
-    setItems((prev) =>
+    applyChange((prev) =>
       [...prev, item].sort((a, b) => a.name.localeCompare(b.name))
     );
     setNewName("");
@@ -76,7 +77,7 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
       return;
     }
     const updated = res.data;
-    setItems((prev) =>
+    applyChange((prev) =>
       prev
         .map((i) => (i.id === id ? { ...i, name: updated.name, description: updated.description } : i))
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -91,13 +92,12 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
       showApiError(res.error);
       return;
     }
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    applyChange((prev) => prev.filter((i) => i.id !== id));
     toast({ title: t("deleted") });
   }
 
   return (
     <div className="space-y-4">
-      {/* Add form */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
         <div className="flex-1 space-y-2">
           <Input
@@ -120,7 +120,6 @@ export function WorkLogItemsManager({ initialItems }: { initialItems: WorkLogIte
         </Button>
       </div>
 
-      {/* List */}
       <div className="border rounded-lg divide-y">
         {items.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">{t("empty")}</div>

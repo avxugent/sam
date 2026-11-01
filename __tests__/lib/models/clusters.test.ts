@@ -7,13 +7,13 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { getModelItems, getModelClusters } from "@/lib/models/clusters";
+import { listModelsWithUsage, getModelClusters } from "@/lib/models/clusters";
 
 const mockFindMany = vi.mocked(prisma.model.findMany);
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("getModelItems()", () => {
+describe("listModelsWithUsage()", () => {
   it("attaches type/manufacturer names and the combined usage count to each Model row", async () => {
     mockFindMany.mockResolvedValue([
       {
@@ -34,10 +34,10 @@ describe("getModelItems()", () => {
       },
     ] as never);
 
-    const items = await getModelItems();
+    const items = await listModelsWithUsage();
     expect(items).toEqual([
-      { id: "mo1", model: "PowerEdge R740", count: 5, typeId: "type-server", typeName: "Server", manufacturerName: "Dell" },
-      { id: "mo2", model: "HPE ProLiant DL380", count: 3, typeId: "type-server", typeName: "Server", manufacturerName: "HPE" },
+      { id: "mo1", name: "PowerEdge R740", count: 5, typeId: "type-server", typeName: "Server", manufacturerName: "Dell" },
+      { id: "mo2", name: "HPE ProLiant DL380", count: 3, typeId: "type-server", typeName: "Server", manufacturerName: "HPE" },
     ]);
   });
 
@@ -53,13 +53,13 @@ describe("getModelItems()", () => {
       },
     ] as never);
 
-    const items = await getModelItems();
-    expect(items).toEqual([{ id: "mo1", model: "PowerEdge R740", count: 5, typeId: "type-server", typeName: "Server", manufacturerName: null }]);
+    const items = await listModelsWithUsage();
+    expect(items).toEqual([{ id: "mo1", name: "PowerEdge R740", count: 5, typeId: "type-server", typeName: "Server", manufacturerName: null }]);
   });
 });
 
 describe("getModelClusters()", () => {
-  it("groups similar spellings computed from getModelItems()", async () => {
+  it("groups similar spellings computed from listModelsWithUsage()", async () => {
     mockFindMany.mockResolvedValue([
       { id: "mo1", name: "PowerEdge R740", typeId: "type-server", type: { name: "Server" }, manufacturer: { name: "Dell" }, _count: { assets: 5, stockItems: 0 } },
       { id: "mo2", name: "poweredge r740", typeId: "type-server", type: { name: "Server" }, manufacturer: { name: "Dell" }, _count: { assets: 2, stockItems: 0 } },
@@ -69,8 +69,8 @@ describe("getModelClusters()", () => {
     const clusters = await getModelClusters();
     expect(clusters).toEqual([
       [
-        { id: "mo1", model: "PowerEdge R740", count: 5, typeId: "type-server", typeName: "Server", manufacturerName: "Dell" },
-        { id: "mo2", model: "poweredge r740", count: 2, typeId: "type-server", typeName: "Server", manufacturerName: "Dell" },
+        { id: "mo1", name: "PowerEdge R740", count: 5, typeId: "type-server", typeName: "Server", manufacturerName: "Dell" },
+        { id: "mo2", name: "poweredge r740", count: 2, typeId: "type-server", typeName: "Server", manufacturerName: "Dell" },
       ],
     ]);
   });

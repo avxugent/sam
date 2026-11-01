@@ -24,6 +24,9 @@ export type JiraIssue = {
 
 const JIRA_KEY_REGEX = /^[A-Z][A-Z0-9_]+-\d+$/;
 
+/** A hung JIRA must not hang the request: give up and report "unavailable". */
+const REQUEST_TIMEOUT_MS = 10_000;
+
 export function isJiraConfigured(): boolean {
   return !!(
     process.env.JIRA_BASE_URL &&
@@ -118,6 +121,7 @@ export async function fetchJiraIssue(key: string): Promise<JiraLookup> {
         Accept: "application/json",
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (res.status === 404) {

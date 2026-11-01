@@ -6,7 +6,7 @@ import { auditChanges } from "@/lib/audit/diff";
 import { supplierSchema } from "@/lib/schemas/supplier";
 import { findConflictingWindows } from "@/lib/suppliers/conflicts";
 import { canManageCatalog } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 import { toIsoDay } from "@/lib/dates";
 
 function dateCell(d: Date | null): string {
@@ -76,6 +76,10 @@ export async function PUT(
     });
     return NextResponse.json(supplier);
   } catch (err) {
+    // Races with a concurrent delete.
+    if (isRecordNotFoundError(err)) {
+      return notFoundResponse("Supplier");
+    }
     if (isUniqueConstraintError(err)) {
       return nameTakenResponse();
     }

@@ -142,6 +142,13 @@ describe("PUT /api/suppliers/[id]", () => {
     expect((await PUT(jsonReq("PUT", { name: "X" }), params("nope"))).status).toBe(404);
   });
 
+  it("404 when the supplier is deleted before the update", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN"));
+    mockFindUnique.mockResolvedValue({ id: "s1", name: "Old" } as never);
+    mockUpdate.mockRejectedValueOnce(Object.assign(new Error("missing"), { code: "P2025" }));
+    expect((await PUT(jsonReq("PUT", { name: "X" }), params("s1"))).status).toBe(404);
+  });
+
   it("updates and logs a change diff", async () => {
     mockAuth.mockResolvedValue(session("ADMIN"));
     mockFindUnique.mockResolvedValue({

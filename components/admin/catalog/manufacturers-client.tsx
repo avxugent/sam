@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +14,7 @@ import { MergeConfirmDialog } from "@/components/admin/catalog/merge-confirm-dia
 import { useCatalogMerge } from "@/components/admin/catalog/use-catalog-merge";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
+import { useServerList } from "@/components/admin/use-server-list";
 
 type Manufacturer = {
   id: string;
@@ -31,14 +31,7 @@ export function ManufacturersClient({
   const tCommon = useTranslations("common");
   const { toast } = useToast();
   const showApiError = useApiErrorToast();
-  const router = useRouter();
-  const [items, setItems] = useState(initialManufacturers);
-  useEffect(() => { setItems(initialManufacturers); }, [initialManufacturers]);
-  /** Shows a successful change at once, then reloads the server data (counts and other derived values) behind it. */
-  function applyChange(update: (current: typeof items) => typeof items) {
-    setItems(update);
-    router.refresh();
-  }
+  const [items, applyChange] = useServerList(initialManufacturers);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -120,7 +113,6 @@ export function ManufacturersClient({
 
   return (
     <div className="space-y-4">
-      {/* Add form */}
       <div className="flex gap-2">
         <Input
           placeholder={t("addNewManufacturer")}

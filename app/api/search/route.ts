@@ -20,14 +20,22 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getRecursiveAssetCounts } from "@/lib/locations/path";
+import { invalidInput } from "@/lib/route-helpers";
 
 const ASSET_PAGE_SIZE = 50;
 const LOCATION_PAGE_SIZE = 20;
 const MIN_QUERY_LENGTH = 2;
+
+const querySchema = z.object({
+  q: z.string().trim().max(200).default(""),
+  // A missing or malformed page reads as the first page rather than an error.
+  page: z.coerce.number().int().positive().catch(1),
+});
 
 const ASSET_SELECT = {
   id: true,
@@ -114,10 +122,9 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q")?.trim() ?? "";
-  const pageParam = parseInt(searchParams.get("page") ?? "1", 10);
-  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+  const parsed = querySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams));
+  if (!parsed.success) return invalidInput(parsed.error);
+  const { q, page } = parsed.data;
 
   if (q.length < MIN_QUERY_LENGTH) {
     return NextResponse.json({ assets: [], locations: [], query: q, total: 0, totalAssets: 0, totalLocations: 0, page: 1, assetPages: 0, locationPages: 0 });

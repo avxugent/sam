@@ -30,7 +30,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   }
 
   const result = await runReport(definition);
-  const userCanEdit = canEdit(session?.user?.role);
+  const editable = canEdit(session?.user?.role);
   const grafanaUrl = grafanaExploreUrl();
 
   return (
@@ -48,7 +48,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             reportId={report.id}
             reportName={report.name}
             result={result}
-            canEdit={userCanEdit}
+            canEdit={editable}
           />
         )
       ) : (
@@ -58,7 +58,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             reportName={report.name}
             columns={definition.columns}
             result={result}
-            canEdit={userCanEdit}
+            canEdit={editable}
             grafanaUrl={grafanaUrl}
           />
         )

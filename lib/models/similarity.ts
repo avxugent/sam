@@ -73,10 +73,11 @@ export function findSimilarModel(
   return best;
 }
 
-export type ModelCountRow = { model: string; count: number };
+/** A model name with its usage count. */
+export type ModelCountRow = { name: string; count: number };
 
 /**
- * Groups {model, count} rows into clusters of 2+ mutually-similar spellings
+ * Groups {name, count} rows into clusters of 2+ mutually-similar spellings
  * (union-find over pairwise similarityDistance()). Used by the admin
  * "Model Cleanup" page/API to surface fuzzy-but-not-exact duplicates for
  * manual review. Generic so callers can pass richer rows (e.g. with type/
@@ -89,7 +90,7 @@ export function computeModelClusters<T extends ModelCountRow>(items: T[]): T[][]
     return parent[i];
   }
 
-  const normalized = items.map((it) => normalizeModelName(it.model));
+  const normalized = items.map((it) => normalizeModelName(it.name));
   for (let i = 0; i < items.length; i++) {
     for (let j = i + 1; j < items.length; j++) {
       if (similarityDistance(normalized[i], normalized[j]) !== null) {
@@ -109,5 +110,5 @@ export function computeModelClusters<T extends ModelCountRow>(items: T[]): T[][]
 
   return [...groups.values()]
     .filter((g) => g.length >= 2)
-    .map((g) => [...g].sort((a, b) => b.count - a.count || a.model.localeCompare(b.model)));
+    .map((g) => [...g].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)));
 }

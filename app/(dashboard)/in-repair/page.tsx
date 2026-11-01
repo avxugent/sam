@@ -34,7 +34,7 @@ export default async function InRepairPage() {
     <div className="space-y-6">
       <PageHeader icon={Wrench} tone="info" title={t("title")} subtitle={t("subtitle", { count: assets.length })} />
 
-      <InRepairTable assets={assets} />
+      <InRepairTable assets={assets.map((a) => ({ ...a, repairStartedAt: a.repairStartedAt?.toISOString() ?? null }))} />
     </div>
   );
 }

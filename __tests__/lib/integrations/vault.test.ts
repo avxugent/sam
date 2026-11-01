@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { isVaultConfigured, readVaultSecret, listVaultSecretKeys, tokenExpiresAt } from "@/lib/integrations/vault";
+import { isVaultConfigured, readVaultSecret, listVaultSecretKeys, tokenExpiresAt, _clearVaultTokenCacheForTest } from "@/lib/integrations/vault";
 
 // Store original env values
 const ORIGINAL_ADDR = process.env.VAULT_ADDR;
@@ -179,6 +179,28 @@ describe("readVaultSecret() — AppRole auth", () => {
       secretId: "test-secret-id",
       version: "v2",
     });
+    _clearVaultTokenCacheForTest();
+  });
+
+  it("reuses the cached token for the next read", async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => LOGIN_RESPONSE } as Response)
+      .mockResolvedValue({ ok: true, json: async () => SECRET_RESPONSE } as Response);
+    await readVaultSecret("secret/av/device1");
+    await readVaultSecret("secret/av/device2");
+    const urls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0]);
+    expect(urls.filter((u: string) => u.includes("/auth/approle/login"))).toHaveLength(1);
+    expect(urls).toHaveLength(3);
+  });
+
+  it("bounds the login and the read with a timeout", async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => LOGIN_RESPONSE } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => SECRET_RESPONSE } as Response);
+    await readVaultSecret("secret/av/device1");
+    for (const [, init] of (global.fetch as ReturnType<typeof vi.fn>).mock.calls) {
+      expect(init.signal).toBeInstanceOf(AbortSignal);
+    }
   });
 
   it("logs in via AppRole and uses the returned token to read a secret", async () => {

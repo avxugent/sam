@@ -20,28 +20,30 @@ import {
 import { formatDate } from "@/lib/dates";
 import { apiFetch } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
+import { canEdit, isAdmin, type Role } from "@/lib/permissions";
 
 type ReportSummary = {
   id: string;
   name: string;
   description: string | null;
-  createdAt: Date | string;
-  updatedAt: Date | string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type Props = {
   reports: ReportSummary[];
-  canEdit: boolean;
-  isAdmin: boolean;
+  userRole: Role;
 };
 
-export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props) {
+export function ReportsListClient({ reports: initial, userRole }: Props) {
   const router = useRouter();
   const { toast } = useToast();
   const showApiError = useApiErrorToast();
   const t = useTranslations("report");
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
+  const editable = canEdit(userRole);
+  const admin = isAdmin(userRole);
   const [reports, setReports] = useState(initial);
   useEffect(() => { setReports(initial); }, [initial]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -59,7 +61,7 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
 
   return (
     <div className="space-y-4">
-      {canEdit && (
+      {editable && (
         <div className="flex justify-end">
           <Button asChild className="h-[36px] text-[13px] gap-1.5">
             <Link href="/reports/new">
@@ -73,7 +75,7 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
       {reports.length === 0 ? (
         <div className="text-center py-16 border border-border rounded-[10px] bg-card">
           <p className="text-muted-foreground text-[14px] mb-3">{t("noReports")}</p>
-          {canEdit && (
+          {editable && (
             <Button asChild variant="outline" className="h-[36px] text-[13px] gap-1.5">
               <Link href="/reports/new">
                 <Plus className="h-4 w-4" />
@@ -115,14 +117,14 @@ export function ReportsListClient({ reports: initial, canEdit, isAdmin }: Props)
                           <Play className="h-3.5 w-3.5 text-primary" />
                         </Link>
                       </Button>
-                      {canEdit && (
+                      {editable && (
                         <Button variant="ghost" size="sm" className="h-[28px] px-2 text-[12px]" asChild>
                           <Link href={`/reports/${r.id}/edit`} aria-label={`${t("editReport")} ${r.name}`}>
                             <Pencil className="h-3 w-3" />
                           </Link>
                         </Button>
                       )}
-                      {isAdmin && (
+                      {admin && (
                         <Button
                           variant="ghost"
                           size="sm"

@@ -118,6 +118,8 @@ describe("fetchJiraIssue()", () => {
       statusCategory: "in-progress",
       url: "https://example.atlassian.net/browse/AVT-123",
     });
+    // A hung JIRA times out instead of hanging the request.
+    expect(vi.mocked(global.fetch).mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("maps known status categories", async () => {

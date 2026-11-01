@@ -12,7 +12,7 @@ import type { AuditChanges } from "@/lib/audit/diff";
 
 type AuditLog = {
   id: string;
-  timestamp: string | Date;
+  timestamp: string;
   userId: string | null;
   userEmail: string | null;
   action: AuditAction;
@@ -120,7 +120,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
       let av = "", bv = "";
-      if (sortCol === "timestamp") { av = String(a.timestamp); bv = String(b.timestamp); }
+      if (sortCol === "timestamp") { av = a.timestamp; bv = b.timestamp; }
       else if (sortCol === "user") { av = a.userEmail ?? ""; bv = b.userEmail ?? ""; }
       else if (sortCol === "action") { av = a.action; bv = b.action; }
       else if (sortCol === "entity") { av = `${a.entityType} ${a.entityName ?? ""}`.trim(); bv = `${b.entityType} ${b.entityName ?? ""}`.trim(); }

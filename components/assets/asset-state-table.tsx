@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { formatDate } from "@/lib/dates";
+import { assetLabel } from "@/lib/assets/label";
 
 /** One asset in a lifecycle-state list (decommissioned, in repair). */
 export type AssetStateRow = {
@@ -19,7 +20,7 @@ export type AssetStateRow = {
   locationName: string | null;
   locationFiNumber?: string | null;
   /** When the asset entered this state. */
-  since: Date | string | null;
+  since: string | null;
   note: string | null;
 };
 
@@ -67,7 +68,7 @@ export function AssetStateTable({
       : sortCol === "model" ? a.model?.name
       : sortCol === "serialNumber" ? a.serialNumber
       : sortCol === "location" ? a.locationName
-      : String(a.since ?? "");
+      : a.since;
     return [...filtered].sort((a, b) => {
       const cmp = (key(a) ?? "").localeCompare(key(b) ?? "");
       return sortDir === "asc" ? cmp : -cmp;
@@ -126,7 +127,7 @@ export function AssetStateTable({
                       href={`/locations/${asset.locationId}/assets/${asset.id}`}
                       className="font-medium text-foreground hover:text-primary hover:underline"
                     >
-                      {asset.model?.name || asset.serialNumber || tAsset("unnamedAsset")}
+                      {assetLabel(asset) ?? tAsset("unnamedAsset")}
                     </Link>
                     {asset.manufacturer && (
                       <span className="text-[11.5px] text-subtle ml-1.5">{asset.manufacturer.name}</span>

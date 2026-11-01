@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,6 +44,7 @@ import { SortableTh } from "@/components/ui/sortable-th";
 import { createUserSchema, editUserFormSchema } from "@/lib/schemas/user";
 import { apiFetch, jsonBody, downloadFile } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
+import { useServerList } from "@/components/admin/use-server-list";
 
 type User = {
   id: string;
@@ -55,8 +55,8 @@ type User = {
   totpEnabled: boolean;
   mustChangePassword: boolean;
   twoFactorRequired: boolean;
-  lastLoginAt: Date | string | null;
-  createdAt: Date | string;
+  lastLoginAt: string | null;
+  createdAt: string;
 };
 
 type SortCol = "name" | "email" | "role" | "twoFactor" | "lastLoginAt" | "createdAt";
@@ -103,14 +103,7 @@ export function UsersClient({
   const tAuth = useTranslations("auth");
   const { toast } = useToast();
   const showApiError = useApiErrorToast();
-  const router = useRouter();
-  const [users, setUsers] = useState(initialUsers);
-  useEffect(() => { setUsers(initialUsers); }, [initialUsers]);
-  /** Shows a successful change at once, then reloads the server data (counts and other derived values) behind it. */
-  function applyChange(update: (current: typeof users) => typeof users) {
-    setUsers(update);
-    router.refresh();
-  }
+  const [users, applyChange] = useServerList(initialUsers);
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [sortCol, setSortCol] = useState<SortCol>("name");
@@ -128,8 +121,8 @@ export function UsersClient({
       else if (sortCol === "email") { av = a.email; bv = b.email; }
       else if (sortCol === "role") { av = a.role; bv = b.role; }
       else if (sortCol === "twoFactor") { av = String(a.totpEnabled ?? false); bv = String(b.totpEnabled ?? false); }
-      else if (sortCol === "lastLoginAt") { av = String(a.lastLoginAt ?? ""); bv = String(b.lastLoginAt ?? ""); }
-      else if (sortCol === "createdAt") { av = String(a.createdAt ?? ""); bv = String(b.createdAt ?? ""); }
+      else if (sortCol === "lastLoginAt") { av = a.lastLoginAt ?? ""; bv = b.lastLoginAt ?? ""; }
+      else if (sortCol === "createdAt") { av = a.createdAt; bv = b.createdAt; }
       return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
     });
   }, [users, sortCol, sortDir]);
@@ -495,7 +488,6 @@ export function UsersClient({
                       </AlertDialog>
                     )}
 
-                    {/* Delete */}
                     {user.id !== currentUserId && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>

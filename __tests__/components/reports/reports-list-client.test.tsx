@@ -21,7 +21,7 @@ const REPORTS = [
 ];
 
 const renderList = (props = {}) =>
-  render(<ReportsListClient reports={REPORTS} canEdit isAdmin {...props} />);
+  render(<ReportsListClient reports={REPORTS} userRole="ADMIN" {...props} />);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -40,9 +40,15 @@ describe("<ReportsListClient />", () => {
     expect(screen.getByText("noReports")).toBeInTheDocument();
   });
 
-  it("hides edit/delete actions when not permitted", () => {
-    renderList({ canEdit: false, isAdmin: false });
+  it("hides edit/delete actions from a viewer", () => {
+    renderList({ userRole: "VIEWER" });
     expect(screen.queryByLabelText(/editReport/)).toBeNull();
+    expect(screen.queryByLabelText(/deleteReport/)).toBeNull();
+  });
+
+  it("lets an editor edit but not delete", () => {
+    renderList({ userRole: "EDITOR" });
+    expect(screen.getByLabelText("editReport Q1 Inventory")).toBeInTheDocument();
     expect(screen.queryByLabelText(/deleteReport/)).toBeNull();
   });
 

@@ -90,22 +90,22 @@ describe("findSimilarModel()", () => {
 describe("computeModelClusters()", () => {
   it("groups normalized-equal spellings into a cluster, sorted by count desc", () => {
     const clusters = computeModelClusters([
-      { model: "PowerEdge R740", count: 5 },
-      { model: "poweredge r740", count: 2 },
-      { model: "HPE ProLiant DL380", count: 3 },
+      { name: "PowerEdge R740", count: 5 },
+      { name: "poweredge r740", count: 2 },
+      { name: "HPE ProLiant DL380", count: 3 },
     ]);
     expect(clusters).toEqual([
       [
-        { model: "PowerEdge R740", count: 5 },
-        { model: "poweredge r740", count: 2 },
+        { name: "PowerEdge R740", count: 5 },
+        { name: "poweredge r740", count: 2 },
       ],
     ]);
   });
 
   it("excludes singleton models with no similar match", () => {
     const clusters = computeModelClusters([
-      { model: "PowerEdge R740", count: 5 },
-      { model: "HPE ProLiant DL380", count: 3 },
+      { name: "PowerEdge R740", count: 5 },
+      { name: "HPE ProLiant DL380", count: 3 },
     ]);
     expect(clusters).toEqual([]);
   });

@@ -29,6 +29,7 @@ export async function PUT(
     }),
     prisma.manufacturer.findUnique({ where: { id }, select: { name: true } }),
   ]);
+  if (!current) return notFoundResponse("Manufacturer");
   if (existing) {
     return nameConflictResponse("Name already exists.", existing);
   }
@@ -42,12 +43,13 @@ export async function PUT(
       entityType: "Manufacturer",
       entityId: id,
       entityName: manufacturer.name,
-      detail: current && current.name !== manufacturer.name
+      detail: current.name !== manufacturer.name
         ? { changes: { "Name": { from: current.name, to: manufacturer.name } } }
         : undefined,
     });
     return NextResponse.json(manufacturer);
   } catch (err) {
+    // Races with a concurrent delete or rename.
     if (isRecordNotFoundError(err)) {
       return notFoundResponse("Manufacturer");
     }

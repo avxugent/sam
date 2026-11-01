@@ -36,8 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import * as permissions from "@/lib/permissions";
-import type { Role } from "@/lib/permissions";
+import { canEdit, type Role } from "@/lib/permissions";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { toIsoDay } from "@/lib/dates";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
@@ -56,7 +55,7 @@ export type StockItem = {
   serialNumber: string | null;
   quantity: number;
   invoiceNumber: string | null;
-  invoiceDate: Date | string | null;
+  invoiceDate: string | null;
   notes: string | null;
   locationId: string | null;
   reservedForLocationId: string | null;
@@ -92,7 +91,7 @@ export function StockItemTable({
   const [deployItem, setDeployItem] = useState<StockItem | null>(null);
   const [bulkRelocateOpen, setBulkRelocateOpen] = useState(false);
 
-  const canEdit = permissions.canEdit(userRole);
+  const editable = canEdit(userRole);
 
   useEffect(() => {
     setItems(initialItems);
@@ -162,7 +161,7 @@ export function StockItemTable({
       </div>
 
       {/* Bulk actions toolbar */}
-      {canEdit && selected.size > 0 && (
+      {editable && selected.size > 0 && (
         <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-primary-tint text-[12.5px] text-primary">
           <span className="font-medium">{t("itemsSelected", { count: selected.size })}</span>
           <Button
@@ -187,7 +186,7 @@ export function StockItemTable({
         <table className="w-full text-[13px]">
           <thead className="bg-background border-b border-border">
             <tr>
-              {canEdit && (
+              {editable && (
                 <th className="px-3 py-2.5 w-[36px]">
                   <Checkbox
                     checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
@@ -204,20 +203,20 @@ export function StockItemTable({
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                 {t("location")}
               </th>
-              {canEdit && <th className="px-3 py-2.5 w-[100px]" />}
+              {editable && <th className="px-3 py-2.5 w-[100px]" />}
             </tr>
           </thead>
           <tbody className="divide-y divide-muted">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={canEdit ? 8 : 6} className="px-3 py-8 text-center text-[13px] text-subtle">
+                <td colSpan={editable ? 8 : 6} className="px-3 py-8 text-center text-[13px] text-subtle">
                   {t("noStockItems")}
                 </td>
               </tr>
             ) : (
               paginated.map((item) => (
                 <tr key={item.id} className="hover:bg-background transition-colors">
-                  {canEdit && (
+                  {editable && (
                     <td className="px-3 py-2.5">
                       <Checkbox
                         checked={selected.has(item.id)}
@@ -246,7 +245,7 @@ export function StockItemTable({
                       ? locationBreadcrumbs[item.locationId] ?? item.location?.name ?? "—"
                       : <span className="text-subtle">{t("unassigned")}</span>}
                   </td>
-                  {canEdit && (
+                  {editable && (
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1 justify-end">
                         <Button

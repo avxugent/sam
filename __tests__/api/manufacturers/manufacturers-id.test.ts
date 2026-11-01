@@ -81,13 +81,22 @@ describe("PUT /api/manufacturers/[id]", () => {
   });
 
   it("409 with merge hints when another manufacturer has the name", async () => {
+    m.findUnique.mockResolvedValue({ name: "Del" } as never);
     m.findFirst.mockResolvedValue({ id: "m2", name: "Dell", _count: { assets: 4 } } as never);
     const res = await PUT(req("PUT", { name: "Dell" }), params);
     expect(res.status).toBe(409);
     expect(await res.json()).toMatchObject({ existingId: "m2", existingAssetCount: 4 });
   });
 
-  it("404 when the manufacturer does not exist", async () => {
+  it("404 when the manufacturer does not exist, even when the name is taken", async () => {
+    m.findUnique.mockResolvedValue(null as never);
+    m.findFirst.mockResolvedValue({ id: "m2", name: "Dell", _count: { assets: 4 } } as never);
+    expect((await PUT(req("PUT", { name: "Dell" }), params)).status).toBe(404);
+    expect(m.update).not.toHaveBeenCalled();
+  });
+
+  it("404 when the manufacturer is deleted before the update", async () => {
+    m.findUnique.mockResolvedValue({ name: "Del" } as never);
     m.findFirst.mockResolvedValue(null as never);
     m.update.mockRejectedValue(Object.assign(new Error("missing"), { code: "P2025" }));
     expect((await PUT(req("PUT", { name: "Dell" }), params)).status).toBe(404);

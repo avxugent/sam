@@ -8,7 +8,7 @@ export type InRepairAsset = {
   locationId: string;
   model: { name: string } | null;
   serialNumber: string | null;
-  repairStartedAt: Date | string | null;
+  repairStartedAt: string | null;
   repairNote: string | null;
   type: { id: string; name: string } | null;
   manufacturer: { id: string; name: string } | null;

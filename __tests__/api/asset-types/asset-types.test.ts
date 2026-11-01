@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
@@ -115,6 +115,28 @@ describe("POST /api/asset-types", () => {
 
 describe("PUT /api/asset-types/[id]", () => {
   const params = Promise.resolve({ id: "type-1" });
+
+  beforeEach(() => {
+    vi.mocked(prisma.assetType.findUnique).mockResolvedValue({ name: "Recorder", scrapeTargetTemplate: null, prometheusExposed: true, hostnamePattern: null, defaultCriticality: null } as never);
+  });
+
+  it("returns 404 for a missing type, even when the name is taken", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    vi.mocked(prisma.assetType.findUnique).mockResolvedValue(null as never);
+    vi.mocked(prisma.assetType.findFirst).mockResolvedValue({ id: "type-2", name: "Existing", _count: { assets: 2 } } as never);
+    mockUpdate.mockClear();
+    const res = await PUT(makeIdReq("PUT", { name: "Existing" }), { params });
+    expect(res.status).toBe(404);
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the type is deleted before the update", async () => {
+    mockAuth.mockResolvedValue(adminSession() as never);
+    vi.mocked(prisma.assetType.findFirst).mockResolvedValue(null as never);
+    mockUpdate.mockRejectedValueOnce(Object.assign(new Error("missing"), { code: "P2025" }));
+    const res = await PUT(makeIdReq("PUT", { name: "Renamed" }), { params });
+    expect(res.status).toBe(404);
+  });
 
   it("returns 403 for non-admin", async () => {
     mockAuth.mockResolvedValue(viewerSession() as never);

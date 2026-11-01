@@ -135,7 +135,17 @@ const SelectSeparator = React.forwardRef<
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
+/**
+ * The value of a "none" SelectItem, mapped back to an empty field by the form.
+ * "" itself is not usable: Radix reserves it for "no selection", and inside a
+ * <form> it fires onValueChange("") on its own when the value is set before its
+ * option is mounted (e.g. a reset() while the option list still loads). So an
+ * onValueChange ignores "" and treats SELECT_NONE as the user's "none" pick.
+ */
+const SELECT_NONE = "__none__";
+
 export {
+  SELECT_NONE,
   Select,
   SelectGroup,
   SelectValue,

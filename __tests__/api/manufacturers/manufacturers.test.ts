@@ -48,4 +48,10 @@ describe("GET /api/manufacturers", () => {
       expect.objectContaining({ where: { models: { some: { typeId: "t1" } } } })
     );
   });
+
+  it("400 for an over-long typeId, without querying", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    expect((await GET(req({ typeId: "x".repeat(192) }))).status).toBe(400);
+    expect(mockFindMany).not.toHaveBeenCalled();
+  });
 });

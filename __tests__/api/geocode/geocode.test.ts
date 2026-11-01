@@ -10,7 +10,10 @@ import { GET as geocode } from "@/app/api/geocode/route";
 const mockAuth = vi.mocked(auth);
 const session = (role = "ADMIN") => ({ user: { id: "u1", role, email: "a@b.com" } });
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+});
 
 describe("GET /api/geocode", () => {
   function req(q?: string) {
@@ -34,9 +37,25 @@ describe("GET /api/geocode", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(data);
   });
-  it("502 when the upstream geocoder fails", async () => {
+  it("400 for a blank or over-long query, without calling the geocoder", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
-    global.fetch = vi.fn().mockResolvedValue({ ok: false } as never);
+    global.fetch = vi.fn();
+    expect((await geocode(req("   "))).status).toBe(400);
+    const res = await geocode(req("x".repeat(201)));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Invalid input");
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+  it("502 with a code when the upstream geocoder fails", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER") as never);
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 } as never);
+    const res = await geocode(req("ghent"));
+    expect(res.status).toBe(502);
+    expect((await res.json()).code).toBe("geocodeUnavailable");
+  });
+  it("502 (not a 500) when the geocoder times out", async () => {
+    mockAuth.mockResolvedValue(session("VIEWER") as never);
+    global.fetch = vi.fn().mockRejectedValue(new DOMException("timed out", "TimeoutError"));
     expect((await geocode(req("ghent"))).status).toBe(502);
   });
 });

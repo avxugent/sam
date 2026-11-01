@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +24,7 @@ import { CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import type { ManufacturerOption } from "@/components/inventory/use-type-scoped-manufacturers";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
+import { useServerList } from "@/components/admin/use-server-list";
 
 type AssetType = {
   id: string;
@@ -49,14 +49,7 @@ export function AssetTypesClient({
   const tCommon = useTranslations("common");
   const { toast } = useToast();
   const showApiError = useApiErrorToast();
-  const router = useRouter();
-  const [types, setTypes] = useState(initialTypes);
-  useEffect(() => { setTypes(initialTypes); }, [initialTypes]);
-  /** Shows a successful change at once, then reloads the server data (counts and other derived values) behind it. */
-  function applyChange(update: (current: typeof types) => typeof types) {
-    setTypes(update);
-    router.refresh();
-  }
+  const [types, applyChange] = useServerList(initialTypes);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -213,7 +206,6 @@ export function AssetTypesClient({
 
   return (
     <div className="space-y-4">
-      {/* Add form */}
       <div className="flex gap-2">
         <Input
           placeholder={t("namePlaceholder")}
@@ -240,7 +232,6 @@ export function AssetTypesClient({
 
             return (
               <div key={item.id}>
-                {/* Main row */}
                 <div className="flex items-center gap-3 px-4 py-3">
                   {editingId === item.id ? (
                     <>

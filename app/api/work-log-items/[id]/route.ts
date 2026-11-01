@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { updateWorkLogItemSchema } from "@/lib/schemas/work-log-item";
 import { isAdmin } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 export async function PUT(
   req: NextRequest,
@@ -45,6 +45,10 @@ export async function PUT(
     });
     return NextResponse.json(item);
   } catch (err) {
+    // Races with a concurrent delete.
+    if (isRecordNotFoundError(err)) {
+      return notFoundResponse("Work log item");
+    }
     if (isUniqueConstraintError(err)) {
       return nameTakenResponse();
     }

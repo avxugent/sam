@@ -6,7 +6,8 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     values ? `${key}(${Object.values(values).join(",")})` : key,
 }));
-const { mockToast } = vi.hoisted(() => ({ mockToast: vi.fn() }));
+const { mockToast, mockRefresh } = vi.hoisted(() => ({ mockToast: vi.fn(), mockRefresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
 vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 
 import { WorkLogItemsManager, type WorkLogItem } from "@/components/admin/settings/work-log-items-manager";
@@ -29,6 +30,7 @@ function renderManager(items = [CLEAN, PATCH]) {
 beforeEach(() => {
   mockFetch.mockReset();
   mockToast.mockReset();
+  mockRefresh.mockReset();
 });
 
 describe("WorkLogItemsManager", () => {
@@ -70,6 +72,7 @@ describe("WorkLogItemsManager", () => {
     expect(name).toHaveValue("");
     expect(description).toHaveValue("");
     expect(mockToast).toHaveBeenCalledWith({ title: "added" });
+    expect(mockRefresh).toHaveBeenCalled(); // usage counts come back from the server
   });
 
   it("sends a blank description as null and toasts an API error", async () => {
@@ -169,6 +172,7 @@ describe("WorkLogItemsManager", () => {
     await waitFor(() => expect(names()).toEqual(["Cleaning"]));
     expect(mockFetch).toHaveBeenCalledWith("/api/work-log-items/w2", { method: "DELETE" });
     expect(mockToast).toHaveBeenCalledWith({ title: "deleted" });
+    expect(mockRefresh).toHaveBeenCalled();
   });
 
   it("warns about usage before deleting a used item and toasts a delete error", async () => {
@@ -182,5 +186,6 @@ describe("WorkLogItemsManager", () => {
       expect(mockToast).toHaveBeenCalledWith({ title: "error", description: "Delete failed", variant: "destructive" }),
     );
     expect(names()).toEqual(["Cleaning", "Patching"]);
+    expect(mockRefresh).not.toHaveBeenCalled();
   });
 });

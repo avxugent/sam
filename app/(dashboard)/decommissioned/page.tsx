@@ -38,7 +38,10 @@ export default async function DecommissionedPage() {
     <div className="space-y-6">
       <PageHeader icon={ArchiveX} tone="neutral" title={t("title")} subtitle={t("subtitle", { count: assets.length })} />
 
-      <DecommissionedTable assets={assets} userRole={userRole} />
+      <DecommissionedTable
+        assets={assets.map((a) => ({ ...a, decommissionedAt: a.decommissionedAt?.toISOString() ?? null }))}
+        userRole={userRole}
+      />
     </div>
   );
 }

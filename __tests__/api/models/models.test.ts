@@ -79,6 +79,20 @@ describe("GET /api/models", () => {
       expect.objectContaining({ where: expect.objectContaining({ name: { contains: "Dell" } }) })
     );
   });
+
+  it("treats empty parameters as absent", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    await GET(getReq({ q: "", typeId: "" }));
+    expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
+  });
+
+  it("400 for an over-long search term, without querying", async () => {
+    mockAuth.mockResolvedValue(session() as never);
+    const res = await GET(getReq({ q: "x".repeat(256) }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Invalid input");
+    expect(mockFindMany).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/models", () => {

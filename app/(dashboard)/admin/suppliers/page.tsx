@@ -24,7 +24,13 @@ export default async function SuppliersPage() {
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p className="text-muted-foreground mt-1">{t("subtitle")}</p>
       </div>
-      <SuppliersClient initialSuppliers={suppliers} />
+      <SuppliersClient
+        initialSuppliers={suppliers.map((s) => ({
+          ...s,
+          defaultFrom: s.defaultFrom?.toISOString() ?? null,
+          defaultUntil: s.defaultUntil?.toISOString() ?? null,
+        }))}
+      />
     </div>
   );
 }

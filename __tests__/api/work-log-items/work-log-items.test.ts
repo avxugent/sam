@@ -105,6 +105,13 @@ describe("PUT /api/work-log-items/[id]", () => {
     expect((await PUT(req("PUT", { name: "X" }), params())).status).toBe(404);
   });
 
+  it("404 when the item is deleted before the update", async () => {
+    mockAuth.mockResolvedValue(admin() as never);
+    mockFindUnique.mockResolvedValue({ name: "old" } as never);
+    mockUpdate.mockRejectedValueOnce(Object.assign(new Error("missing"), { code: "P2025" }));
+    expect((await PUT(req("PUT", { name: "X" }), params())).status).toBe(404);
+  });
+
   it("updates name", async () => {
     mockAuth.mockResolvedValue(admin() as never);
     mockFindUnique.mockResolvedValue({ name: "old" } as never);

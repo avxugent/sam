@@ -46,6 +46,18 @@ describe("UsersClient", () => {
     expect(within(screen.getByText("Vic Viewer").closest("tr")!).getByTitle("deleteUser")).toBeInTheDocument();
   });
 
+  it("sorts by last login chronologically", async () => {
+    const users = [
+      { ...ADA, lastLoginAt: "2026-03-02T08:00:00.000Z" },
+      { ...VIC, lastLoginAt: "2025-12-31T23:00:00.000Z" },
+      { ...VIC, id: "u3", name: "Nel Never", email: "nel@example.com", lastLoginAt: null },
+    ];
+    render(<UsersClient initialUsers={users} currentUserId="u1" />);
+    await userEvent.click(screen.getByText("lastLogin"));
+    const emails = screen.getAllByRole("row").slice(1).map((r) => within(r).getByText(/@example\.com$/).textContent);
+    expect(emails).toEqual(["nel@example.com", "vic@example.com", "ada@example.com"]);
+  });
+
   it("rejects a short password on create without calling the API", async () => {
     renderUsers();
     await userEvent.click(screen.getByRole("button", { name: /addUser/ }));

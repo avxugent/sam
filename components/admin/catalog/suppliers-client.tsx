@@ -1,7 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Fragment, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,39 +19,27 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Plus, Loader2, Trash2, ChevronDown, ChevronUp, Save } from "lucide-react";
-import { apiErrorMessage } from "@/lib/utils";
 import { formatDate, toIsoDay } from "@/lib/dates";
-import { apiFetch, jsonBody } from "@/lib/api-client";
+import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
+import { useServerList } from "@/components/admin/use-server-list";
 
 export type SupplierRow = {
   id: string;
   name: string;
   contractReference: string | null;
   contactInfo: string | null;
-  defaultFrom: Date | string | null;
-  defaultUntil: Date | string | null;
+  defaultFrom: string | null;
+  defaultUntil: string | null;
   _count: { assets: number };
 };
-
-function toDateInput(d: Date | string | null): string {
-  if (!d) return "";
-  return toIsoDay(d);
-}
 
 export function SuppliersClient({ initialSuppliers }: { initialSuppliers: SupplierRow[] }) {
   const t = useTranslations("suppliers");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
   const showApiError = useApiErrorToast();
-  const router = useRouter();
-  const [suppliers, setSuppliers] = useState(initialSuppliers);
-  useEffect(() => { setSuppliers(initialSuppliers); }, [initialSuppliers]);
-  /** Shows a successful change at once, then reloads the server data (counts and other derived values) behind it. */
-  function applyChange(update: (current: typeof suppliers) => typeof suppliers) {
-    setSuppliers(update);
-    router.refresh();
-  }
+  const [suppliers, applyChange] = useServerList(initialSuppliers);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -101,8 +88,8 @@ export function SuppliersClient({ initialSuppliers }: { initialSuppliers: Suppli
       name: supplier.name,
       contractReference: supplier.contractReference ?? "",
       contactInfo: supplier.contactInfo ?? "",
-      defaultFrom: toDateInput(supplier.defaultFrom),
-      defaultUntil: toDateInput(supplier.defaultUntil),
+      defaultFrom: toIsoDay(supplier.defaultFrom) ?? "",
+      defaultUntil: toIsoDay(supplier.defaultUntil) ?? "",
     });
   }
 

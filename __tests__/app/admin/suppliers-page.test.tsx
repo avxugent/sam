@@ -40,12 +40,15 @@ describe("admin/suppliers page", () => {
 
   it.each(["MAINTAINER", "ADMIN"] as const)("passes the rows with installed-asset counts to the client for a %s", async (role) => {
     mockAuth.mockResolvedValue(session(role) as never);
-    const rows = [{ id: "r1", name: "Acme", _count: { assets: 2 } }];
+    const rows = [{ id: "r1", name: "Acme", defaultFrom: new Date("2026-01-01T00:00:00.000Z"), defaultUntil: null, _count: { assets: 2 } }];
     vi.mocked(prisma.supplier.findMany).mockResolvedValue(rows as never);
 
     await renderPage(SuppliersPage());
 
-    expect(propsOf(SuppliersClient)).toEqual({ initialSuppliers: rows });
+    // Dates cross to the client as ISO strings, the same shape the API returns.
+    expect(propsOf(SuppliersClient)).toEqual({
+      initialSuppliers: [{ ...rows[0], defaultFrom: "2026-01-01T00:00:00.000Z", defaultUntil: null }],
+    });
     expect(prisma.supplier.findMany).toHaveBeenCalledWith({
       orderBy: { name: "asc" },
       include: { _count: { select: { assets: { where: { status: "INSTALLED" } } } } },

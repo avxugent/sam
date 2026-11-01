@@ -56,6 +56,7 @@ export async function PUT(
     where: { id },
     select: { name: true, scrapeTargetTemplate: true, prometheusExposed: true, hostnamePattern: true, defaultCriticality: true },
   });
+  if (!before) return notFoundResponse("Asset type");
 
   if (parsed.data.name !== undefined) {
     const conflict = await prisma.assetType.findFirst({
@@ -80,15 +81,13 @@ export async function PUT(
     });
 
     const d = parsed.data;
-    const changes = before
-      ? auditChanges([
-          d.name !== undefined && { label: "Name", before: before.name, after: d.name },
-          d.scrapeTargetTemplate !== undefined && { label: "Scrape template", before: before.scrapeTargetTemplate, after: d.scrapeTargetTemplate ?? null },
-          d.prometheusExposed !== undefined && { label: "Prometheus exposed", before: before.prometheusExposed, after: d.prometheusExposed },
-          d.hostnamePattern !== undefined && { label: "Hostname pattern", before: before.hostnamePattern, after: d.hostnamePattern ?? null },
-          d.defaultCriticality !== undefined && { label: "Default criticality", before: before.defaultCriticality, after: d.defaultCriticality ?? null },
-        ])
-      : {};
+    const changes = auditChanges([
+      d.name !== undefined && { label: "Name", before: before.name, after: d.name },
+      d.scrapeTargetTemplate !== undefined && { label: "Scrape template", before: before.scrapeTargetTemplate, after: d.scrapeTargetTemplate ?? null },
+      d.prometheusExposed !== undefined && { label: "Prometheus exposed", before: before.prometheusExposed, after: d.prometheusExposed },
+      d.hostnamePattern !== undefined && { label: "Hostname pattern", before: before.hostnamePattern, after: d.hostnamePattern ?? null },
+      d.defaultCriticality !== undefined && { label: "Default criticality", before: before.defaultCriticality, after: d.defaultCriticality ?? null },
+    ]);
 
     await logAudit({
       session,
@@ -101,6 +100,7 @@ export async function PUT(
     });
     return NextResponse.json(type);
   } catch (err) {
+    // Races with a concurrent delete or rename.
     if (isRecordNotFoundError(err)) {
       return notFoundResponse("Asset type");
     }

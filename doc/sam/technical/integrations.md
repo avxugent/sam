@@ -102,9 +102,9 @@ scrape_configs:
 
 | Metric | Type | Description |
 |---|---|---|
-| `sam_assets_total` | gauge | Total assets |
+| `sam_assets_total` | gauge | Installed assets (in-repair and decommissioned assets are not counted) |
 | `sam_locations_total` | gauge | Total locations |
-| `sam_assets_without_hostname_total` | gauge | Assets with no hostname (monitoring gap) |
+| `sam_assets_without_hostname_total` | gauge | Installed assets with no hostname (monitoring gap) |
 | `sam_assets_without_fi_number_total` | gauge | Assets with no FI number on their location or any ancestor |
 | `sam_assets_by_type{type="…"}` | gauge | Assets per asset type |
 | `sam_assets_by_manufacturer{manufacturer="…"}` | gauge | Assets per manufacturer |
@@ -115,7 +115,7 @@ scrape_configs:
 | `sam_assets_past_end_of_support` | gauge | Installed assets past their end-of-support date (NIS2) |
 | `sam_assets_no_end_of_support_date` | gauge | Installed assets without an end-of-support date |
 | `sam_locations_missing_review` | gauge | Leaf locations missing the configured inventory-review work-log entry within the review period (omitted when not configured) |
-| `sam_users_credentials_without_2fa` | gauge | Local accounts without TOTP 2FA |
+| `sam_users_credentials_without_2fa` | gauge | Local accounts with neither TOTP nor a passkey |
 | `sam_audit_forward_backlog` | gauge | Audit rows not yet forwarded to syslog |
 | `sam_asset_info{sam_hostname="…", …}` | gauge | Always `1`. One series per asset expected to report, carrying its SAM metadata |
 | `sam_asset_maintenance{sam_hostname="…"}` | gauge | Always `1`. Asset's room is in maintenance, so missing metrics are expected |
@@ -312,16 +312,22 @@ token or an unreachable Vault (502), so the asset form shows which one it is.
 
 ## Grafana
 
-SAM provides a Grafana Infinity datasource-compatible API at `/api/grafana/*`. This allows Grafana to query SAM data for custom dashboard panels.
+SAM talks to Grafana in two ways, both authenticated with `Authorization: Bearer <PROMETHEUS_SD_TOKEN>`.
 
-### Setup
+### SimpleJSON datasource (`/api/grafana/*`)
 
-1. Install Infinity plugin: `grafana-cli plugins install yesoreyeram-infinity-datasource`
+`/api/grafana/*` implements the Grafana SimpleJSON datasource protocol: `GET /api/grafana` (health check) and `POST` to `search`, `query`, `tag-keys` and `tag-values`. It accepts the Bearer token only, no session. Targets: `assets_table`, `assets_by_type`, `assets_by_manufacturer`, `assets_by_location`, `assets_by_install_year`; ad-hoc filters on `type`, `manufacturer`, `location` and `hostname`. Only active (INSTALLED) assets are returned. Details: [API Reference → Grafana](api-reference.md#grafana).
+
+Setup: add a SimpleJSON-compatible datasource with URL `https://sam.example.com/api/grafana` and a custom HTTP header `Authorization: Bearer <PROMETHEUS_SD_TOKEN>`.
+
+### Hostname lookup panel (Infinity datasource)
+
+`/api/assets/by-hostname` is meant for the Infinity datasource (it also accepts a session):
+
+1. Install the Infinity plugin: `grafana-cli plugins install yesoreyeram-infinity-datasource`
 2. Add datasource → type **Infinity**
 3. Set Authentication: Custom HTTP Headers → `Authorization: Bearer <PROMETHEUS_SD_TOKEN>`
-4. Use SAM endpoints as data sources in panels
-
-### Hostname lookup panel
+4. Use the URL below in a panel
 
 ```
 URL: https://sam.example.com/api/assets/by-hostname?hostname=${hostname_var}

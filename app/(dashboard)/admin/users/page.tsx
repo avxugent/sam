@@ -22,7 +22,14 @@ export default async function UsersPage() {
         <h1 className="text-2xl font-bold">{t("users.title")}</h1>
         <p className="text-muted-foreground mt-1">{t("users.subtitle")}</p>
       </div>
-      <UsersClient initialUsers={users} currentUserId={session.user.id} />
+      <UsersClient
+        initialUsers={users.map((u) => ({
+          ...u,
+          lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
+          createdAt: u.createdAt.toISOString(),
+        }))}
+        currentUserId={session.user.id}
+      />
     </div>
   );
 }

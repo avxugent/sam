@@ -54,6 +54,9 @@ Configuration lives in `app/globals.css` using `@theme inline { … }` and CSS v
 ### `serverExternalPackages` replaces `experimental.serverComponentsExternalPackages`
 Currently used for `bcryptjs`. If you add native Node modules used in server components, add them here.
 
+### `overrides.postcss` in package.json is deliberate
+Next pins postcss exactly (8.5.23) while Tailwind and Vite accept newer; the `>=8.5.10` override makes npm install one shared copy (and keeps out versions with the pre-8.5.10 advisory). Remove it only if `npm ls postcss` still shows a single version afterwards.
+
 ### `output: "standalone"` is enabled
 The production build produces `.next/standalone/server.js`. The Dockerfile relies on this. Never set `output` to anything else.
 
@@ -81,6 +84,7 @@ i18n/              — next-intl: locales.ts (supported locales en/nl, default, 
 messages/          — en.json / nl.json, nested keys per area; add every key to both files
 proxy.ts           — NextAuth session guard (replaces middleware.ts)
 lib/               — shared code; modules importing next/server are route-handler helpers (server only)
+                     (root files such as criticality.ts, mac-address.ts, hostname.ts and stock-metadata.ts are cross-domain value rules shared by assets, stock, import and compliance; lib/assets/ holds only asset lifecycle code)
   auth.ts          — NextAuth config + ssoEnabled flag
   permissions.ts   — role predicates (isAdmin, canManageCatalog, canEdit); client-safe
   route-helpers.ts — readJsonBody, invalidInput, Prisma error checks, notFoundResponse / nameTakenResponse / unknownReferenceResponse, csvDownload

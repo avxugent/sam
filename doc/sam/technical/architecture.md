@@ -63,8 +63,9 @@ This project uses Next.js 16, where `middleware.ts` is replaced by `proxy.ts` at
 - Redirecting unauthenticated requests to `/login`
 - Forcing password change, 2FA setup, and 2FA challenge flows
 - Exempting public routes (`/login`, `/setup`, `/api/auth`, `/api/setup`)
-- Exempting Prometheus endpoints (they use Bearer token auth)
+- Exempting Prometheus and Grafana endpoints (`/api/prometheus/*`, `/api/grafana/*`) and `/api/assets/by-hostname` (Bearer token auth; by-hostname also accepts a session)
 - Exempting export endpoints (`/api/export/*` — session or Bearer `EXPORT_TOKEN`, checked in the handlers)
+- Exempting the public branding assets (`/api/branding/*` — logo, favicon and background shown on the login page)
 
 > The proxy is a **redirect guard only** — not an authorization boundary. Every API route performs its own auth and role check.
 
@@ -94,7 +95,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 ### Validation Strategy
 
-Zod schemas are **mirrored** in both the form component and the API route handler. This prevents bypass via direct API calls. When a schema changes, both copies must be updated together.
+Shared Zod schemas live in `lib/schemas/` and are imported by both the API route handlers and the forms, so the server check can never be bypassed by a direct API call. The asset form keeps a translated mirror of `lib/schemas/asset.ts`; when that schema changes, update both.
 
 Cross-field validation uses `.superRefine()`. Example: hostname → MAC address required.
 
@@ -127,7 +128,7 @@ MySQL returns `COUNT(*)` as `BigInt` — always wrap with `Number(row.count)`.
 Uploads are handled via the native `formData()` API — no `multer`. The upload pipeline:
 1. Validates MIME type against an allowlist
 2. Validates file extension (separately, to block `.jpg.php` double-extension attacks)
-3. Sanitizes `originalName` (strips `\r`, `\n`, `"`, `\`)
+3. `safeFilename()` replaces `\r`, `\n`, `"` and `\` in `originalName` with `_` and caps it at 255 characters
 4. Resolves storage path with `path.resolve()` + `assertSafePath()` (path traversal protection)
 5. Stores on local disk or S3 depending on `STORAGE_DRIVER`
 

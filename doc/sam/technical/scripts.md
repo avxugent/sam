@@ -264,6 +264,24 @@ node --import tsx/esm scripts/purge-audit.mjs --dry-run      # report what would
 
 ---
 
+### `reset-password.mjs`
+
+**npm alias:** `npm run user:reset-password`
+
+Account recovery: sets a new password for a local user. Prompts for the email (unless `--email` is given), the new password (at least 8 characters) and a confirmation. Refuses SSO accounts (no local password) and unknown emails; the password is hashed with `hashPassword()` from `lib/passwords.ts` (bcrypt cost 13).
+
+```bash
+npm run user:reset-password
+npm run user:reset-password -- --email user@example.com
+node --import tsx/esm scripts/reset-password.mjs   # in the production image
+```
+
+| Flag | Description |
+|---|---|
+| `--email <address>` | The account to reset (otherwise prompted) |
+
+---
+
 ## Common patterns
 
 **Process all locations, preview first:**

@@ -72,6 +72,14 @@ describe("DELETE /api/auth/passkey/[id]", () => {
     expect(mockDelete).not.toHaveBeenCalled();
   });
 
+  it("returns 404 when the passkey is deleted concurrently before the write", async () => {
+    vi.mocked(verifyTotpCode).mockReturnValue(true);
+    mockDelete.mockRejectedValueOnce(Object.assign(new Error("gone"), { code: "P2025" }));
+    const res = await DELETE(req({ code: "123456" }), { params: PARAMS });
+    expect(res.status).toBe(404);
+    expect(mockLogAudit).not.toHaveBeenCalled();
+  });
+
   it("returns 400 without a confirmation", async () => {
     const res = await DELETE(req(), { params: PARAMS });
     expect(res.status).toBe(400);

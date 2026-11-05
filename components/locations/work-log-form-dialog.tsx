@@ -138,7 +138,6 @@ export function WorkLogFormDialog({
   const itemIdValue = watch("itemId");
   const descriptionValue = watch("description");
 
-  // Fetch presets when an asset (with a type) is selected
   useEffect(() => {
     if (!assetIdValue) {
       setPresets([]);

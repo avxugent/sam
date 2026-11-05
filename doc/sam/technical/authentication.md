@@ -96,8 +96,12 @@ API routes, all under `app/api/auth/passkey/`:
 | `POST registration-verify` | Verify the registration response, persist the `Passkey`; re-signs in via `credentials-2fa-verified` if this was a forced-setup session |
 | `POST authentication-options` | Login-time: generate authentication options scoped to the pending user's registered passkeys |
 | `POST authentication-verify` | Login-time: verify the assertion, bump the credential's counter, sign in via `credentials-2fa-verified` (same mechanism as TOTP) |
-| `GET list` | List the current user's passkeys (label, device type, timestamps — never the credential ID, public key, or counter) |
-| `DELETE [id]` | Remove one of the current user's passkeys |
+| `POST confirmation-options` | Signed-in: generate authentication options to confirm a sensitive change (removing a passkey) with an existing passkey |
+| `DELETE [id]` | Remove one of the current user's passkeys; needs a fresh second-factor confirmation (see below) |
+
+**Step-up rule:** removing a passkey and disabling TOTP both require proof of a second factor held right now — the current TOTP code in `{ code }`, or a WebAuthn assertion in `{ response }` for the options from `confirmation-options` (`lib/two-factor/step-up.ts`). A session alone is not enough.
+
+The settings page reads the user's passkeys directly with Prisma (label, device type, timestamps — never the credential ID, public key, or counter); there is no list route.
 
 ---
 
@@ -107,7 +111,7 @@ API routes, all under `app/api/auth/passkey/`:
 |---|---|
 | **ADMIN** | Everything: manage users, settings, asset types, manufacturers, suppliers, models, audit log, import, CSV export |
 | **MAINTAINER** | Everything EDITOR can do, plus manage manufacturers, suppliers, and models (catalog upkeep without full admin rights) |
-| **EDITOR** | Create/edit/delete locations, assets, attachments; manage work logs |
+| **EDITOR** | Create/edit/delete locations (deleting one with sub-locations is Admin-only), assets, attachments; manage work logs |
 | **VIEWER** | Read-only access to all data |
 
 Role hierarchy for permission checks: `ADMIN > MAINTAINER > EDITOR > VIEWER`. Code checks roles only through the predicates in `lib/permissions.ts`: `canEdit` (EDITOR and up), `canManageCatalog` (MAINTAINER and up) and `isAdmin`.

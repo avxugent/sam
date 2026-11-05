@@ -70,7 +70,7 @@ Key validated fields:
 | `GET` | `/api/locations/[id]` | VIEWER | Get location with ancestor path |
 | `PUT` | `/api/locations/[id]` | EDITOR | Update location (returns `409` with `code: "locationNameExists"`, `existingId` and `existingName` when the new name collides with a sibling, so the client can offer a merge). Accepts `inMaintenance` (boolean) — allowed only on rooms (leaf locations); setting it `true` on a location with sub-locations returns `400` |
 | `POST` | `/api/locations/[id]/merge` | EDITOR | Merge this location into a sibling (`targetId`): moves its assets, stock items, sub-locations, attachments and work logs to the target, then deletes it |
-| `DELETE` | `/api/locations/[id]` | EDITOR | Delete location and its assets. Blocked with `400` `code: "hasSublocations"` if children exist, unless `?cascade=true` is passed — then the whole sub-tree is deleted. Also blocked with `400` `code: "hasStock"` if the location (or, when cascading, any descendant) still holds stock |
+| `DELETE` | `/api/locations/[id]` | EDITOR | Delete location and its assets. A location with sub-locations is **ADMIN** only (`403` for others): blocked with `400` `code: "hasSublocations"` unless `?cascade=true` is passed — then the whole sub-tree is deleted (the audit entry records how many locations and assets). Also blocked with `400` `code: "hasStock"` if the location (or, when cascading, any descendant) still holds stock |
 | `GET` | `/api/locations/[id]/assets` | VIEWER | Assets in location. `?recursive=true` includes sub-locations; `?status=` as for the asset-type and manufacturer lists |
 | `POST` | `/api/locations/[id]/assets` | EDITOR | Create asset in this location — see [Asset body](#asset-body-createupdate) |
 | `GET` | `/api/locations/[id]/work-logs` | VIEWER | Work logs of this location, newest first |
@@ -152,7 +152,7 @@ The **default window** (`defaultFrom` → `defaultUntil`, `defaultUntil` empty =
 |---|---|---|---|
 | `POST` | `/api/attachments` | EDITOR | Upload file or create link |
 | `GET` | `/api/attachments/[id]` | VIEWER | Download file |
-| `PATCH` | `/api/attachments/[id]` | EDITOR | Edit display name, description, or URL |
+| `PUT` | `/api/attachments/[id]` | EDITOR | Edit display name, description, or URL |
 | `DELETE` | `/api/attachments/[id]` | EDITOR | Delete attachment |
 
 Upload request: `multipart/form-data` with `file` field. Max size: 50 MB.
@@ -186,7 +186,7 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | `PUT` | `/api/users/[id]` | ADMIN | Update user. Rejects a password change for SSO accounts and demoting the last admin (`400`); `409` if the new email is taken |
 | `DELETE` | `/api/users/[id]` | ADMIN | Delete user. `404` if unknown; `400` for your own account or the last admin |
 | `GET` | `/api/users/me` | VIEWER | Current user's profile (also reachable while a forced password change is pending) |
-| `PATCH` | `/api/users/me` | VIEWER | Update own name, password (`currentPassword` required; not for SSO accounts), theme or default location tab |
+| `PUT` | `/api/users/me` | VIEWER | Update own name, password (`currentPassword` required; not for SSO accounts), theme or default location tab |
 | `GET` | `/api/users/lite` | EDITOR | Minimal `{id, name}` list (asset form owner dropdown) |
 | `GET` | `/api/users/export` | ADMIN | Access-review CSV (name, email, role, provider, 2FA status, last login). Session only — no token access |
 
@@ -335,5 +335,5 @@ A Grafana SimpleJSON-protocol datasource. Same Bearer token as Prometheus (`PROM
 | `GET` | `/api/setup` | public | Check if setup is needed (returns `userCount`) |
 | `POST` | `/api/setup` | public | Create first admin (only when `userCount === 0`) |
 | `GET` | `/api/jira/issue/[key]` | VIEWER | Fetch JIRA issue summary and status (`{ found: false }` for an unknown key; 502 `jiraUnavailable` when JIRA cannot be reached) |
-| `GET` | `/api/geocode?q=…` | VIEWER | Address search for the location map (OpenStreetMap Nominatim, up to 5 results). `400` `Invalid input` for a blank `q` or one over 200 characters; `502` with `code: "geocodeUnavailable"` when the geocoding service fails or times out (10 s) |
+| `GET` | `/api/geocode?q=…` | EDITOR | Address search for the location map (OpenStreetMap Nominatim, up to 5 results). `400` `Invalid input` for a blank `q` or one over 200 characters; `502` with `code: "geocodeUnavailable"` when the geocoding service fails or times out (10 s) |
 | `GET` | `/api/vault/test` | EDITOR | Test Vault connection for an asset's vault path (`?path=`, 1–500 chars). Returns the key names, never values. `400` `Invalid input` for a missing or over-long path, `400` `vaultSecretMissing` when nothing is stored there, `503` `vaultNotConfigured`, `502` `vaultDenied` / `vaultUnavailable` |

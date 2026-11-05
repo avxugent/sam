@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { clientIp, tooManyAttemptsResponse } from "@/lib/rate-limit/http";
 import { confirmSecondFactor, stepUpSchema } from "@/lib/two-factor/step-up";
@@ -51,7 +51,12 @@ export async function DELETE(
     return response;
   }
 
-  await prisma.passkey.delete({ where: { id } });
+  try {
+    await prisma.passkey.delete({ where: { id } });
+  } catch (err) {
+    if (isRecordNotFoundError(err)) return notFoundResponse("Passkey");
+    throw err;
+  }
 
   await logAudit({
     session,

@@ -61,7 +61,7 @@
     "fastest-levenshtein": "^1.0.16",
     "lucide-react": "^1.52.0",
     "next": "^16.4.2",
-    "next-auth": "^5.0.0-beta.32",
+    "next-auth": "5.0.0-beta.32",
     "next-intl": "^4.14.9",
     "qrcode": "^1.5.4",
     "react": "19.3.0",

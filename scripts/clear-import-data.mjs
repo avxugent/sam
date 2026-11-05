@@ -25,25 +25,14 @@
 import "./_env.mjs";
 import { prisma } from "@/lib/prisma";
 import { createInterface } from "readline";
-import { unlink } from "fs/promises";
-import { resolve } from "path";
+import { deleteStoredFiles } from "@/lib/uploads/storage";
+import { getSubtreeIdsDeepestFirst } from "@/lib/locations/path";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function ask(question) {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((res) => rl.question(question, (a) => { rl.close(); res(a); }));
-}
-
-async function tryDeleteFile(relativePath) {
-  if (!relativePath) return;
-  const uploadDir = process.env.UPLOAD_DIR ?? "./uploads";
-  const fullPath = resolve(process.cwd(), uploadDir, relativePath);
-  try {
-    await unlink(fullPath);
-  } catch {
-    // File may already be gone — not fatal
-  }
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────
@@ -96,55 +85,28 @@ async function main() {
   await prisma.attachment.deleteMany({});
   console.log(`  ✓ Removed ${attachments.length} attachment record(s) from DB`);
 
-  // Remove files from disk (best-effort)
-  let filesDeleted = 0;
-  for (const { path } of attachments) {
-    await tryDeleteFile(path);
-    filesDeleted++;
-  }
-  if (filesDeleted > 0) {
-    console.log(`  ✓ Removed ${filesDeleted} file(s) from disk`);
+  // Remove the stored files (best-effort)
+  const paths = attachments.flatMap((a) => (a.path ? [a.path] : []));
+  await deleteStoredFiles(paths);
+  if (paths.length > 0) {
+    console.log(`  ✓ Removed ${paths.length} stored file(s)`);
   }
 
   // 3. Delete assets (cascades mac_addresses, custom_fields)
   const { count: deletedAssets } = await prisma.asset.deleteMany({});
   console.log(`  ✓ Deleted ${deletedAssets} asset(s)`);
 
-  // 4. Delete all locations — MySQL foreign key self-reference (parentId)
-  //    means children must be deleted before parents.
-  //    MySQL also disallows referencing the target table in a subquery of the
-  //    same DELETE statement (error 1093), so we collect leaf IDs in JS first.
-  let locationRound = 0;
+  // 4. Delete all locations — parent is onDelete: Restrict, so each tree goes
+  //    deepest first.
+  const roots = await prisma.location.findMany({ where: { parentId: null }, select: { id: true } });
   let totalDeletedLocations = 0;
-  while (true) {
-    locationRound++;
-
-    // Find IDs of locations that are NOT referenced as a parent by any other
-    // location — i.e., the current leaves of the tree.
-    /** @type {{ id: string }[]} */
-    const leaves = await prisma.$queryRaw`
-      SELECT l.id FROM locations l
-      WHERE l.id NOT IN (
-        SELECT DISTINCT p.parentId FROM locations p WHERE p.parentId IS NOT NULL
-      )
-    `;
-
-    if (leaves.length === 0) break;
-
-    // Delete this batch of leaves
-    const ids = leaves.map((r) => r.id);
-    const result = await prisma.location.deleteMany({
-      where: { id: { in: ids } },
-    });
-    totalDeletedLocations += result.count;
-
-    if (locationRound > 50) {
-      // Safety valve — should never be needed in practice
-      console.warn("  ⚠ Could not delete all locations after 50 passes");
-      break;
+  for (const { id } of roots) {
+    const ids = await getSubtreeIdsDeepestFirst(id);
+    for (const locationId of ids) {
+      totalDeletedLocations += (await prisma.location.deleteMany({ where: { id: locationId } })).count;
     }
   }
-  console.log(`  ✓ Deleted ${totalDeletedLocations} location(s) (${locationRound - 1} pass${locationRound - 1 !== 1 ? "es" : ""})`);
+  console.log(`  ✓ Deleted ${totalDeletedLocations} location(s)`);
 
   // Sanity check
   const remaining = await prisma.location.count();

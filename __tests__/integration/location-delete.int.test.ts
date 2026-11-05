@@ -3,8 +3,8 @@
  * Opt-in integration test for DELETE /api/locations/[id] against a real MySQL
  * (see locations-path.int.test.ts for how to run it): the cascade deletes the
  * subtree deepest-first in one transaction (the parent FK is RESTRICT), and
- * the guards leave the tree untouched. Calls the route handler as an editor
- * (mocked auth()). Every row is named with a unique prefix and removed
+ * the guards leave the tree untouched. Calls the route handler as an admin
+ * (mocked auth(); only admins delete a location with sub-locations). Every row is named with a unique prefix and removed
  * afterwards.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
@@ -25,7 +25,7 @@ describe.runIf(enabled)("location subtree delete (integration)", () => {
   beforeAll(async () => {
     ({ prisma } = await import("@/lib/prisma"));
     const { auth } = await import("@/lib/auth");
-    vi.mocked(auth).mockResolvedValue(testSession(tag, "EDITOR") as never);
+    vi.mocked(auth).mockResolvedValue(testSession(tag, "ADMIN") as never);
     ({ DELETE } = await import("@/app/api/locations/[id]/route"));
     typeId = (await prisma.assetType.create({ data: { name: `${tag} type` } })).id;
     modelId = (await prisma.model.create({ data: { name: `${tag} model`, typeId } })).id;

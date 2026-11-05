@@ -82,6 +82,13 @@ export function collectSubtreeIds(nodes: LocationTreeNode[], rootId: string): Se
   return ids;
 }
 
+type IdTree = { id: string; children: IdTree[] };
+
+/** Whether `id` is `node` itself or one of its descendants. */
+export function subtreeContains(node: IdTree, id: string): boolean {
+  return node.id === id || node.children.some((c) => subtreeContains(c, id));
+}
+
 type NamedTree = { name: string; children: NamedTree[] };
 
 /** Whether `node` or any descendant has `query` (lower-cased) in its name. */

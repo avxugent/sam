@@ -22,7 +22,7 @@ import {
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 import { StockNavItems } from "@/components/layout/stock-nav-items";
 import { canEdit, type Role } from "@/lib/permissions";
-import { subtreeMatchesFilter, treeFilterState, type Nested } from "@/lib/locations/tree";
+import { subtreeContains, subtreeMatchesFilter, treeFilterState, type Nested } from "@/lib/locations/tree";
 
 type LocationNode = Nested<{ id: string; name: string; inMaintenance: boolean }>;
 
@@ -56,11 +56,11 @@ function LocationTreeItem({
   const pathname = usePathname();
   const t = useTranslations("nav");
   const tLocation = useTranslations("location");
-  const isActive = pathname === `/locations/${location.id}` || pathname.startsWith(`/locations/${location.id}/`);
+  const currentId = pathname.match(/^\/locations\/([^/]+)/)?.[1];
+  const isActive = currentId === location.id;
   const hasChildren = location.children.length > 0;
-  const [open, setOpen] = useState(
-    pathname.startsWith(`/locations/${location.id}`)
-  );
+  // Starts open on the path to the current location, so the active item is visible.
+  const [open, setOpen] = useState(currentId !== undefined && subtreeContains(location, currentId));
 
   const filter = treeFilterState(location, filterQuery, showAll);
   if (!filter.visible) return null;
@@ -163,7 +163,7 @@ function AllLocationsEntry({ totalAssets }: { totalAssets: number }) {
 export function Sidebar({ locationTree, userRole, assetCountMap, stockItemCount, stockTypes, decommissionedCount, inRepairCount, appTitle, logoUrl }: SidebarProps) {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const isStockPath = pathname === "/stock" || pathname.startsWith("/stock") || pathname === "/decommissioned" || pathname === "/in-repair";
+  const isStockPath = pathname === "/stock" || pathname.startsWith("/stock/") || pathname === "/decommissioned" || pathname === "/in-repair";
 
   const editable = canEdit(userRole);
   const totalAssets = locationTree.reduce((sum, loc) => sum + (assetCountMap[loc.id] ?? 0), 0);

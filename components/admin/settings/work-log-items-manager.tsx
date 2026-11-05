@@ -22,7 +22,7 @@ import { Pencil, Trash2, Check, X } from "lucide-react";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 import { useServerList } from "@/components/admin/use-server-list";
-import { AddButton } from "@/components/admin/catalog/add-name-row";
+import { AddButton } from "@/components/admin/add-name-row";
 
 export type WorkLogItem = {
   id: string;

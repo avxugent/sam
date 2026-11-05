@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authIncludingPendingSteps } from "@/lib/auth";
 import { signInIncompleteResponse, sessionMismatchResponse } from "@/lib/two-factor/sign-in-steps";
-import { upgradeSession } from "@/lib/two-factor/session-upgrade";
+import { upgradeSession } from "@/lib/auth-session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { verifyRegistration, readChallengeCookie, clearChallengeCookie } from "@/lib/two-factor/webauthn";

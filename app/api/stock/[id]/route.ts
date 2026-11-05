@@ -9,7 +9,7 @@ import { parseStockMetadata, serializeStockMetadata, stockMetadataMacs } from "@
 import { STOCK_IDENTITY_QUANTITY_MESSAGE, updateStockItemSchema } from "@/lib/schemas/stock";
 import { hasDeviceIdentity } from "@/lib/schemas/asset";
 import { toDateUpdate, toIsoDay } from "@/lib/dates";
-import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/assets/include";
+import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/stock/include";
 import { HISTORY_CHANGE_LABELS } from "@/lib/assets/history-keys";
 
 export async function GET(

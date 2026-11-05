@@ -74,8 +74,7 @@ app/
     decommissioned/ — decommissioned assets
     in-repair/     — assets sent for repair
     reports/       — saved report builder + viewer
-    settings/      — per-user profile (password, 2FA, passkeys); asset-types/, manufacturers/, users/ are legacy redirects to /admin/*
-    import/        — legacy redirect to /admin/import
+    settings/      — per-user profile (password, 2FA, passkeys)
     search/        — full-text search results
   api/             — all API route handlers
   setup/           — first-run wizard (no auth required)
@@ -85,7 +84,7 @@ messages/          — en.json / nl.json, nested keys per area; add every key to
 proxy.ts           — NextAuth session guard (replaces middleware.ts)
 lib/               — shared code; modules importing next/server are route-handler helpers (server only)
                      (root files such as criticality.ts, mac-address.ts, hostname.ts and stock-metadata.ts are cross-domain value rules shared by assets, stock, import and compliance; lib/assets/ holds only asset lifecycle code)
-  auth.ts          — NextAuth config + ssoEnabled flag
+  auth.ts          — NextAuth config + ssoEnabled flag; auth-session-upgrade.ts: upgradeSession(), how the 2FA routes re-issue the session after a second factor (lib/two-factor holds only primitives and never imports lib/auth)
   permissions.ts   — role predicates (isAdmin, canManageCatalog, canEdit); client-safe
   route-helpers.ts — readJsonBody, invalidInput, Prisma error checks, notFoundResponse / nameTakenResponse / unknownReferenceResponse, csvDownload
   prisma.ts        — PrismaClient singleton
@@ -118,6 +117,7 @@ lib/               — shared code; modules importing next/server are route-hand
   suppliers/       — default-window rules and conflict lookup
   tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), session-or-token, session-or-export token
   two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy, sign-in steps, signing key (NEXTAUTH_SECRET, fails closed)
+  stock/           — include.ts: the relations a stock item row is returned with
   work-logs/       — relations returned with every work-log entry
 components/
   layout/          — Sidebar (locations only) + Header (search + admin + user), theme provider and sync
@@ -170,6 +170,7 @@ prisma/
 - A helper that either yields a value or the response to send back returns `{ <value> } | { error: Response }`; callers write `if ("error" in result) return result.error;` (readCsvUpload, readFormData, readMergeRequest, attemptStorage, adminSessionOrExportToken).
 - Read request bodies with `readJsonBody(req)` (malformed JSON becomes a Zod 400, not a 500) and return Zod failures with `invalidInput(parsed.error)` — `400` with `{ error: "Invalid input", details }`.
 - Error bodies are `{ error, code?, details? }`: `error` is readable English, `code` a stable id for a case the client localizes, `details` either `string[]` or the Zod flatten object. Client components call the API through `apiFetch()` from `lib/api-client.ts` (it never throws: a network failure is `{ ok: false, status: 0 }`, a body-less 500 gives `error: {}`), show `res.error` with `useApiErrorToast()` (or `apiErrorMessage()` from `lib/api-client.ts` for inline messages), and download CSV exports with `downloadFile()`. Client code never calls `fetch` directly (pass an `AbortSignal` in the init and check `signal.aborted` for superseded requests); build JSON requests with `jsonBody(method, body)`.
+- Server pages hand dates to client components as ISO strings (`toISOString()`, or `toIsoDay()` for day-only columns) — the shape the API returns, so a client list can be replaced by an `apiFetch` result without a second type.
 - Missing records: `404` only for the record named in the URL path (`notFoundResponse("Model")` → "Model not found."); an id inside the request body that names no record is invalid input — `400` with `code: "unknownReference"` (`unknownReferenceResponse()`; catch `isForeignKeyError(err)` on writes).
 - Conflict (unique constraint): `409` (`nameTakenResponse()`, or `nameConflictResponse()` for catalog renames that can offer a merge). Detect it with `isUniqueConstraintError(err)`; never map every caught error to one status — rethrow what you don't handle.
 - `DELETE` handlers return `200` with `{ ok: true }`.

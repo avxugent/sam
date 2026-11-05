@@ -8,7 +8,7 @@ import { serializeStockMetadata } from "@/lib/stock-metadata";
 import { createStockItemSchema } from "@/lib/schemas/stock";
 import { z } from "zod";
 import { MAX_ID_LENGTH } from "@/lib/schemas/ids";
-import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/assets/include";
+import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/stock/include";
 
 const querySchema = z.object({
   typeId: z.string().max(MAX_ID_LENGTH).optional(),

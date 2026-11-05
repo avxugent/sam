@@ -71,6 +71,7 @@ export function CoverImagePicker({
               type="button"
               onClick={() => handleSave(isSelected ? null : attachment.id)}
               disabled={saving}
+              aria-busy={saving && isSelected}
               className={cn(
                 "relative rounded-lg overflow-hidden border-2 transition-all group aspect-video bg-muted",
                 isSelected

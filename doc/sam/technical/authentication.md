@@ -68,7 +68,7 @@ Two second-factor methods are supported, either of which satisfies the same `nee
 
 Both paths converge on the same internal NextAuth `credentials-2fa-verified` provider (`lib/auth.ts`), which re-issues a clean session without the `needs2FA` claim — `proxy.ts` and the `jwt`/`session` callbacks don't need to know which method was used.
 
-The route handlers reach that provider only through `upgradeSession()` (`lib/two-factor/session-upgrade.ts`). Like every NextAuth credentials provider it is also reachable over HTTP at `/api/auth/callback/credentials-2fa-verified`, so it never trusts a bare `userId`: `authorize` requires a 60-second, server-signed upgrade proof (`lib/two-factor/upgrade-proof.ts`, HS256 with `NEXTAUTH_SECRET`, its own audience so a remember-device token cannot stand in) that `upgradeSession()` mints and that never leaves the server. If the provider refuses (e.g. the account was deleted or became SSO-only since login), the verify/enable routes answer `401` instead of reporting success.
+The route handlers reach that provider only through `upgradeSession()` (`lib/auth-session-upgrade.ts`). Like every NextAuth credentials provider it is also reachable over HTTP at `/api/auth/callback/credentials-2fa-verified`, so it never trusts a bare `userId`: `authorize` requires a 60-second, server-signed upgrade proof (`lib/two-factor/upgrade-proof.ts`, HS256 with `NEXTAUTH_SECRET`, its own audience so a remember-device token cannot stand in) that `upgradeSession()` mints and that never leaves the server. If the provider refuses (e.g. the account was deleted or became SSO-only since login), the verify/enable routes answer `401` instead of reporting success.
 
 ### Partly signed-in sessions
 

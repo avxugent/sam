@@ -103,7 +103,8 @@ describe("CoverImagePicker", () => {
     expect(imageButton("front.jpg")).toBeDisabled();
     expect(imageButton("rack.png")).toBeDisabled();
     expect(screen.getByRole("button", { name: /removeCover/ })).toBeDisabled();
-    expect(imageButton("front.jpg").querySelector(".animate-spin")).not.toBeNull();
+    expect(imageButton("front.jpg")).toHaveAttribute("aria-busy", "true");
+    expect(imageButton("rack.png")).toHaveAttribute("aria-busy", "false");
     resolve({ ok: true, status: 200, data: {} });
     await waitFor(() => expect(imageButton("rack.png")).toBeEnabled());
   });

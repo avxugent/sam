@@ -12,7 +12,6 @@ vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: st
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({ prisma: { report: { findUnique: vi.fn() } } }));
 vi.mock("@/lib/reports/builder-options", () => ({ loadReportBuilderOptions: vi.fn() }));
-vi.mock("@/lib/schemas/report", () => ({ parseReportDefinition: vi.fn() }));
 vi.mock("@/components/reports/report-builder", () => ({ ReportBuilder: vi.fn(() => null) }));
 vi.mock("@/components/layout/page-header", () => ({ PageHeader: vi.fn(() => null) }));
 
@@ -20,7 +19,6 @@ import EditReportPage from "@/app/(dashboard)/reports/[id]/edit/page";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { loadReportBuilderOptions } from "@/lib/reports/builder-options";
-import { parseReportDefinition } from "@/lib/schemas/report";
 import { ReportBuilder } from "@/components/reports/report-builder";
 import { PageHeader } from "@/components/layout/page-header";
 import { propsOf, renderPage, session } from "../helpers";
@@ -66,8 +64,8 @@ describe("edit report page", () => {
 
   it.each(["EDITOR", "MAINTAINER", "ADMIN"] as const)("prefills the builder for a %s", async (role) => {
     mockAuth.mockResolvedValue(session(role) as never);
-    const definition = { source: "asset", columns: [], filters: [] };
-    vi.mocked(parseReportDefinition).mockReturnValue(definition as never);
+    const definition = { source: "asset", columns: ["serialNumber"], filters: [], groupBy: "none" };
+    vi.mocked(prisma.report.findUnique).mockResolvedValue({ id: "r1", name: "Laptops", description: null, definition: JSON.stringify(definition) } as never);
 
     await renderPage(call());
 
@@ -83,7 +81,6 @@ describe("edit report page", () => {
 
   it("opens the builder without a definition when the stored one is invalid", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
-    vi.mocked(parseReportDefinition).mockReturnValue(null);
 
     await renderPage(call());
 

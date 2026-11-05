@@ -13,7 +13,6 @@ vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: st
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({ prisma: { report: { findUnique: vi.fn() } } }));
 vi.mock("@/lib/reports/engine", () => ({ runReport: vi.fn() }));
-vi.mock("@/lib/schemas/report", () => ({ parseReportDefinition: vi.fn() }));
 vi.mock("@/components/reports/report-viewer", () => ({ ReportViewer: vi.fn(() => null) }));
 vi.mock("@/components/reports/location-report-viewer", () => ({ LocationReportViewer: vi.fn(() => null) }));
 vi.mock("@/components/layout/page-header", () => ({ PageHeader: vi.fn(() => null) }));
@@ -22,15 +21,14 @@ import ReportPage from "@/app/(dashboard)/reports/[id]/page";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { runReport } from "@/lib/reports/engine";
-import { parseReportDefinition } from "@/lib/schemas/report";
 import { ReportViewer } from "@/components/reports/report-viewer";
 import { LocationReportViewer } from "@/components/reports/location-report-viewer";
 import { PageHeader } from "@/components/layout/page-header";
 import { propsOf, renderPage, session } from "../helpers";
 
 const mockAuth = vi.mocked(auth);
-const report = { id: "r1", name: "Laptops", description: "All laptops", definition: "{}" };
-const assetDefinition = { source: "asset", columns: ["serialNumber"], filters: [] };
+const assetDefinition = { source: "asset", columns: ["serialNumber"], filters: [], groupBy: "none" };
+const report = { id: "r1", name: "Laptops", description: "All laptops", definition: JSON.stringify(assetDefinition) };
 const assetResult = { source: "asset", rows: [], total: 0 };
 
 function call(id = "r1") {
@@ -41,7 +39,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockAuth.mockResolvedValue(session("VIEWER") as never);
   vi.mocked(prisma.report.findUnique).mockResolvedValue(report as never);
-  vi.mocked(parseReportDefinition).mockReturnValue(assetDefinition as never);
   vi.mocked(runReport).mockResolvedValue(assetResult as never);
 });
 
@@ -58,7 +55,7 @@ describe("report viewer page", () => {
   });
 
   it("shows an error instead of running a report whose stored definition is invalid", async () => {
-    vi.mocked(parseReportDefinition).mockReturnValue(null);
+    vi.mocked(prisma.report.findUnique).mockResolvedValue({ ...report, definition: '{"source":"asset"}' } as never);
     await renderPage(call());
     expect(screen.getByText("invalidDefinition")).toBeInTheDocument();
     expect(runReport).not.toHaveBeenCalled();
@@ -69,7 +66,6 @@ describe("report viewer page", () => {
     vi.stubEnv("GRAFANA_URL", "https://grafana.example/");
     await renderPage(call());
 
-    expect(parseReportDefinition).toHaveBeenCalledWith("{}");
     expect(runReport).toHaveBeenCalledWith(assetDefinition);
     expect(propsOf(ReportViewer)).toMatchObject({
       reportId: "r1",
@@ -103,7 +99,8 @@ describe("report viewer page", () => {
 
   it("renders a location report with the location viewer", async () => {
     const result = { source: "location", rows: [] };
-    vi.mocked(parseReportDefinition).mockReturnValue({ source: "location", status: "all" } as never);
+    const definition = { source: "location", itemIds: ["i1"], status: "all" };
+    vi.mocked(prisma.report.findUnique).mockResolvedValue({ ...report, definition: JSON.stringify(definition) } as never);
     vi.mocked(runReport).mockResolvedValue(result as never);
     mockAuth.mockResolvedValue(session("EDITOR") as never);
 

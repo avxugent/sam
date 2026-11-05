@@ -14,7 +14,7 @@ import { apiFetch, jsonBody } from "@/lib/api-client";
 import type { ManufacturerOption } from "@/components/inventory/use-type-scoped-manufacturers";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 import { useServerList } from "@/components/admin/use-server-list";
-import { AddNameRow } from "@/components/admin/catalog/add-name-row";
+import { AddNameRow } from "@/components/admin/add-name-row";
 import { CatalogNameRow } from "@/components/admin/catalog/catalog-name-row";
 import { AssetTypeConfigPanel, type AssetTypeConfig } from "@/components/admin/catalog/asset-type-config-panel";
 

@@ -12,13 +12,13 @@ vi.mock("@/lib/auth", () => {
   const read = vi.fn();
   return { auth: read, authIncludingPendingSteps: read };
 });
-vi.mock("@/lib/two-factor/session-upgrade", () => ({ upgradeSession: vi.fn() }));
+vi.mock("@/lib/auth-session-upgrade", () => ({ upgradeSession: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/two-factor/totp", () => ({ verifyTotpCode: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { upgradeSession } from "@/lib/two-factor/session-upgrade";
+import { upgradeSession } from "@/lib/auth-session-upgrade";
 import { logAudit } from "@/lib/audit";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { POST as enable2fa } from "@/app/api/auth/2fa/enable/route";

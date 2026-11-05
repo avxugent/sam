@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 
-import { AddButton, AddNameRow } from "@/components/admin/catalog/add-name-row";
+import { AddButton, AddNameRow } from "@/components/admin/add-name-row";
 
 function Row({ onAdd, adding = false }: { onAdd: () => void; adding?: boolean }) {
   const [name, setName] = useState("");

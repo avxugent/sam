@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { locationBreadcrumbsFromRows } from "@/lib/locations/path";
 import { canEdit, Role } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
-import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/assets/include";
+import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/stock/include";
 
 export const dynamic = "force-dynamic";
 

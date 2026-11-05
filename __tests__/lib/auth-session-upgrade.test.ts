@@ -7,7 +7,7 @@ vi.mock("@/lib/two-factor/upgrade-proof", () => ({ signUpgradeProof: vi.fn() }))
 import { AuthError } from "next-auth";
 import { signIn } from "@/lib/auth";
 import { signUpgradeProof } from "@/lib/two-factor/upgrade-proof";
-import { upgradeSession } from "@/lib/two-factor/session-upgrade";
+import { upgradeSession } from "@/lib/auth-session-upgrade";
 
 const mockSignIn = vi.mocked(signIn);
 

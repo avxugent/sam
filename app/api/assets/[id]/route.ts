@@ -11,7 +11,7 @@ import { invalidInput, isForeignKeyError, isRecordNotFoundError, isUniqueConstra
 import { toDateUpdate, toIsoDay } from "@/lib/dates";
 import { ASSET_DETAIL_INCLUDE, ASSET_ROW_INCLUDE } from "@/lib/assets/include";
 import { assetLabel } from "@/lib/assets/label";
-import { assetSnapshot } from "@/lib/assets/history-keys";
+import { assetSnapshot, HISTORY_CHANGE_LABELS, sortedMacs } from "@/lib/assets/history-keys";
 import { deleteStoredFiles } from "@/lib/uploads/storage";
 
 export async function GET(
@@ -146,25 +146,24 @@ export async function PUT(
   }
 
   const d = parsed.data;
-  const sortedMacs = (list: string[]) => [...list].sort().join(", ") || null;
   const changes = auditChanges([
-    d.modelId !== undefined && { label: "Model", before: before.modelId, after: d.modelId, display: [before.model?.name, asset.model?.name] },
-    d.quantity !== undefined && { label: "Quantity", before: before.quantity, after: d.quantity },
-    d.serialNumber !== undefined && { label: "Serial number", before: before.serialNumber, after: d.serialNumber },
+    d.modelId !== undefined && { label: HISTORY_CHANGE_LABELS.model, before: before.modelId, after: d.modelId, display: [before.model?.name, asset.model?.name] },
+    d.quantity !== undefined && { label: HISTORY_CHANGE_LABELS.quantity, before: before.quantity, after: d.quantity },
+    d.serialNumber !== undefined && { label: HISTORY_CHANGE_LABELS.serialNumber, before: before.serialNumber, after: d.serialNumber },
     d.hostname !== undefined && { label: "Hostname", before: before.hostname, after: d.hostname },
-    d.invoiceNumber !== undefined && { label: "Invoice number", before: before.invoiceNumber, after: d.invoiceNumber },
-    d.notes !== undefined && { label: "Notes", before: before.notes, after: d.notes },
+    d.invoiceNumber !== undefined && { label: HISTORY_CHANGE_LABELS.invoiceNumber, before: before.invoiceNumber, after: d.invoiceNumber },
+    d.notes !== undefined && { label: HISTORY_CHANGE_LABELS.notes, before: before.notes, after: d.notes },
     d.vaultPath !== undefined && { label: "Vault path", before: before.vaultPath, after: d.vaultPath },
-    d.typeId !== undefined && { label: "Type", before: before.typeId, after: d.typeId, display: [before.type?.name ?? before.typeId, asset.type?.name ?? d.typeId] },
-    d.manufacturerId !== undefined && { label: "Manufacturer", before: before.manufacturerId, after: d.manufacturerId, display: [before.manufacturer?.name ?? before.manufacturerId, asset.manufacturer?.name ?? d.manufacturerId] },
-    d.locationId !== undefined && { label: "Location", before: before.locationId, after: d.locationId, display: [before.location?.name, asset.location?.name] },
+    d.typeId !== undefined && { label: HISTORY_CHANGE_LABELS.type, before: before.typeId, after: d.typeId, display: [before.type?.name ?? before.typeId, asset.type?.name ?? d.typeId] },
+    d.manufacturerId !== undefined && { label: HISTORY_CHANGE_LABELS.manufacturer, before: before.manufacturerId, after: d.manufacturerId, display: [before.manufacturer?.name ?? before.manufacturerId, asset.manufacturer?.name ?? d.manufacturerId] },
+    d.locationId !== undefined && { label: HISTORY_CHANGE_LABELS.location, before: before.locationId, after: d.locationId, display: [before.location?.name, asset.location?.name] },
     d.ownerId !== undefined && { label: "Owner", before: before.ownerId, after: d.ownerId },
     d.criticality !== undefined && { label: "Criticality", before: before.criticality, after: d.criticality },
     d.supplierId !== undefined && { label: "Supplier", before: before.supplierId, after: d.supplierId, display: [before.supplier?.name ?? before.supplierId, asset.supplier?.name ?? d.supplierId] },
     endOfSupportDate !== undefined && { label: "End of support", before: toIsoDay(before.endOfSupportDate), after: endOfSupportDate || null },
     installationDate !== undefined && { label: "Installation date", before: toIsoDay(before.installationDate), after: installationDate || null },
-    invoiceDate !== undefined && { label: "Invoice date", before: toIsoDay(before.invoiceDate), after: invoiceDate || null },
-    macAddresses !== undefined && { label: "MAC addresses", before: sortedMacs(before.macAddresses.map((m) => m.address)), after: sortedMacs(macAddresses) },
+    invoiceDate !== undefined && { label: HISTORY_CHANGE_LABELS.invoiceDate, before: toIsoDay(before.invoiceDate), after: invoiceDate || null },
+    macAddresses !== undefined && { label: HISTORY_CHANGE_LABELS.macAddresses, before: sortedMacs(before.macAddresses.map((m) => m.address)), after: sortedMacs(macAddresses) },
     ...(customFields !== undefined ? customFieldChanges(before.customFields, customFields) : []),
   ]);
 

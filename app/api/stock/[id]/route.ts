@@ -10,7 +10,7 @@ import { STOCK_IDENTITY_QUANTITY_MESSAGE, updateStockItemSchema } from "@/lib/sc
 import { hasDeviceIdentity } from "@/lib/schemas/asset";
 import { toDateUpdate, toIsoDay } from "@/lib/dates";
 import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/stock/include";
-import { HISTORY_CHANGE_LABELS } from "@/lib/assets/history-keys";
+import { HISTORY_CHANGE_LABELS, sortedMacs } from "@/lib/assets/history-keys";
 
 export async function GET(
   _req: NextRequest,
@@ -107,19 +107,18 @@ export async function PUT(
   }
 
   const d = parsed.data;
-  const sortedMacs = (list: string[]) => [...list].sort().join(", ") || null;
   const changes = auditChanges([
-    d.typeId !== undefined && { label: "Type", before: existing.typeId, after: d.typeId, display: [existing.type.name, item.type.name] },
-    d.manufacturerId !== undefined && { label: "Manufacturer", before: existing.manufacturerId, after: d.manufacturerId, display: [existing.manufacturer?.name, item.manufacturer?.name] },
-    d.modelId !== undefined && { label: "Model", before: existing.modelId, after: d.modelId, display: [existing.model?.name, item.model?.name] },
-    d.serialNumber !== undefined && { label: "Serial number", before: existing.serialNumber, after: d.serialNumber },
-    d.quantity !== undefined && { label: "Quantity", before: existing.quantity, after: d.quantity },
-    d.notes !== undefined && { label: "Notes", before: existing.notes, after: d.notes },
+    d.typeId !== undefined && { label: HISTORY_CHANGE_LABELS.type, before: existing.typeId, after: d.typeId, display: [existing.type.name, item.type.name] },
+    d.manufacturerId !== undefined && { label: HISTORY_CHANGE_LABELS.manufacturer, before: existing.manufacturerId, after: d.manufacturerId, display: [existing.manufacturer?.name, item.manufacturer?.name] },
+    d.modelId !== undefined && { label: HISTORY_CHANGE_LABELS.model, before: existing.modelId, after: d.modelId, display: [existing.model?.name, item.model?.name] },
+    d.serialNumber !== undefined && { label: HISTORY_CHANGE_LABELS.serialNumber, before: existing.serialNumber, after: d.serialNumber },
+    d.quantity !== undefined && { label: HISTORY_CHANGE_LABELS.quantity, before: existing.quantity, after: d.quantity },
+    d.notes !== undefined && { label: HISTORY_CHANGE_LABELS.notes, before: existing.notes, after: d.notes },
     d.locationId !== undefined && { label: HISTORY_CHANGE_LABELS.location, before: existing.locationId, after: d.locationId, display: [existing.location?.name, item.location?.name] },
     d.reservedForLocationId !== undefined && { label: "Reserved for", before: existing.reservedForLocationId, after: d.reservedForLocationId },
-    d.invoiceNumber !== undefined && { label: "Invoice number", before: existing.invoiceNumber, after: d.invoiceNumber },
-    invoiceDate !== undefined && { label: "Invoice date", before: toIsoDay(existing.invoiceDate), after: invoiceDate || null },
-    macAddresses !== undefined && { label: "MAC addresses", before: sortedMacs(macsBefore), after: sortedMacs(macAddresses) },
+    d.invoiceNumber !== undefined && { label: HISTORY_CHANGE_LABELS.invoiceNumber, before: existing.invoiceNumber, after: d.invoiceNumber },
+    invoiceDate !== undefined && { label: HISTORY_CHANGE_LABELS.invoiceDate, before: toIsoDay(existing.invoiceDate), after: invoiceDate || null },
+    macAddresses !== undefined && { label: HISTORY_CHANGE_LABELS.macAddresses, before: sortedMacs(macsBefore), after: sortedMacs(macAddresses) },
   ]);
 
   await logAudit({

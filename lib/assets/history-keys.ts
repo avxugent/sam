@@ -17,14 +17,29 @@ export const HISTORY_SNAPSHOT_KEYS = {
 } as const;
 
 /**
- * Change labels (keys of an audit entry's `detail.changes`) the timeline
- * reads, under the same never-rename rule. Asset status transitions are
- * read from `detail.status`, an AssetStatus value.
+ * Change labels (keys of an audit entry's `detail.changes`) the asset and stock
+ * UPDATE routes write, under the same never-rename rule. The timeline reads
+ * `location` (and asset status transitions from `detail.status`, an
+ * AssetStatus value).
  */
 export const HISTORY_CHANGE_LABELS = {
   /** StockItem UPDATE: moved to another location (app/api/stock/bulk-relocate). */
   location: "Location",
+  type: "Type",
+  manufacturer: "Manufacturer",
+  model: "Model",
+  serialNumber: "Serial number",
+  quantity: "Quantity",
+  notes: "Notes",
+  invoiceNumber: "Invoice number",
+  invoiceDate: "Invoice date",
+  macAddresses: "MAC addresses",
 } as const;
+
+/** MAC addresses as one sorted, comma-joined audit value (null when there are none). */
+export function sortedMacs(list: string[]): string | null {
+  return [...list].sort().join(", ") || null;
+}
 
 type Named = { name: string } | null | undefined;
 

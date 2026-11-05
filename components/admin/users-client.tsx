@@ -70,31 +70,17 @@ const SORT_KEYS = {
   createdAt: (u: User) => u.createdAt,
 };
 
+const ROLE_PILL_COLORS: Record<Role, string> = {
+  ADMIN: "bg-warning-tint text-warning-foreground",
+  MAINTAINER: "bg-purple-surface text-purple-foreground",
+  EDITOR: "bg-primary-tint text-primary",
+  VIEWER: "bg-muted text-muted-foreground",
+};
+
 function RolePill({ role }: { role: Role }) {
-  if (role === "ADMIN") {
-    return (
-      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-warning-tint text-warning-foreground">
-        ADMIN
-      </span>
-    );
-  }
-  if (role === "MAINTAINER") {
-    return (
-      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-purple-surface text-purple-foreground">
-        MAINTAINER
-      </span>
-    );
-  }
-  if (role === "EDITOR") {
-    return (
-      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-primary-tint text-primary">
-        EDITOR
-      </span>
-    );
-  }
   return (
-    <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-muted text-muted-foreground">
-      VIEWER
+    <span className={cn("inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px]", ROLE_PILL_COLORS[role])}>
+      {role}
     </span>
   );
 }

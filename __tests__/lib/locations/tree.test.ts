@@ -7,6 +7,7 @@ import {
   flattenLocations,
   nestLocations,
   parseFiNumber,
+  subtreeContains,
   subtreeMatchesFilter,
   treeFilterState,
   type LocationTreeNode,
@@ -243,5 +244,19 @@ describe("ancestorChain()", () => {
       ["b", { id: "b", parentId: "a" }],
     ]);
     expect(ancestorChain("a", cyclic).map((r) => r.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("subtreeContains()", () => {
+  const tree = { id: "campus", children: [{ id: "building", children: [{ id: "room", children: [] }] }, { id: "other", children: [] }] };
+
+  it("finds the node itself and any descendant", () => {
+    expect(subtreeContains(tree, "campus")).toBe(true);
+    expect(subtreeContains(tree, "room")).toBe(true);
+  });
+
+  it("is false for ids outside the subtree", () => {
+    expect(subtreeContains(tree.children[0], "other")).toBe(false);
+    expect(subtreeContains(tree, "camp")).toBe(false);
   });
 });

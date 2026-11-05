@@ -32,27 +32,9 @@ export default defineConfig({
       exclude: [
         // Infrastructure / config — tested indirectly
         "lib/prisma.ts",
-        // UI-only components without meaningful logic (pass-through wrappers)
-        "components/ui/toast.tsx",
-        "components/ui/toaster.tsx",
-        "components/ui/dropdown-menu.tsx",
-        "components/ui/alert-dialog.tsx",
-        "components/ui/separator.tsx",
-        "components/ui/tabs.tsx",
-        "components/ui/select.tsx",
         // Stateful clients not yet covered by component tests (there is no UI
         // integration suite); remove an entry once the file has tests.
-        "components/locations/location-map.tsx",
-        "components/locations/cover-image-picker.tsx",
-        "components/layout/stock-nav-items.tsx",
-        "components/layout/sidebar.tsx",
-        "components/layout/app-footer.tsx",
-        "components/layout/app-background.tsx",
         "components/attachments/attachment-gallery.tsx",
-        // Tested only in part (specific flows) or only through a parent's
-        // tests; not yet held to the line/branch threshold.
-        "components/layout/language-switcher.tsx",
-        "components/admin/catalog/scrape-template-fields.tsx",
         "**/*.d.ts",
         "**/__tests__/**",
         "**/node_modules/**",

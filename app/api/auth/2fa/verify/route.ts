@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authIncludingPendingSteps } from "@/lib/auth";
 import { upgradeSession } from "@/lib/two-factor/session-upgrade";
-import { sessionMismatchResponse } from "@/lib/two-factor/sign-in-steps";
+import { signInIncompleteResponse, sessionMismatchResponse } from "@/lib/two-factor/sign-in-steps";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {
   const session = await authIncludingPendingSteps();
 
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const incomplete = await signInIncompleteResponse(session, ["2fa"]);
+  if (incomplete) return incomplete;
   if (!session.needs2FA) {
     // Already fully authenticated — nothing to do
     return NextResponse.json({ ok: true });

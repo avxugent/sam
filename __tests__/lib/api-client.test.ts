@@ -27,8 +27,8 @@ describe("apiFetch()", () => {
   it("passes the request init through", async () => {
     const fetchMock = vi.fn(async () => new Response("{}"));
     vi.stubGlobal("fetch", fetchMock);
-    await apiFetch("/api/x", jsonBody("PATCH", { a: 1 }));
-    expect(fetchMock).toHaveBeenCalledWith("/api/x", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: '{"a":1}' });
+    await apiFetch("/api/x", jsonBody("PUT", { a: 1 }));
+    expect(fetchMock).toHaveBeenCalledWith("/api/x", { method: "PUT", headers: { "Content-Type": "application/json" }, body: '{"a":1}' });
   });
 });
 

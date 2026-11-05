@@ -163,7 +163,7 @@ describe("POST /api/stock/[id]/deploy", () => {
     );
   });
 
-  it("409 stockChanged when a concurrent deploy drew the units first", async () => {
+  it("409 STATUS_CHANGED when a concurrent deploy drew the units first", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockLocationFindUnique.mockResolvedValue({ id: "loc-1" } as never);
     mockStockFindUnique.mockResolvedValue(BULK_ITEM as never);
@@ -179,7 +179,7 @@ describe("POST /api/stock/[id]/deploy", () => {
 
     const res = await POST(req({ locationId: "loc-1", quantity: 3 }), { params: PARAMS });
     expect(res.status).toBe(409);
-    expect((await res.json()).code).toBe("stockChanged");
+    expect((await res.json()).code).toBe("STATUS_CHANGED");
     // The write is conditional on the quantity the route checked.
     expect(update.mock.calls[0][0].where).toEqual({ id: BULK_ITEM.id, quantity: BULK_ITEM.quantity });
   });

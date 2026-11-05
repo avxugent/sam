@@ -10,6 +10,7 @@ vi.mock("@/lib/auth", () => {
   return { auth: read, authIncludingPendingSteps: read };
 });
 vi.mock("@/lib/rate-limit", () => ({ consumeRateLimit: vi.fn() }));
+vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
 vi.mock("@/lib/two-factor/webauthn", () => ({
   buildAuthenticationOptions: vi.fn(),
   setChallengeCookie: vi.fn(),
@@ -52,6 +53,13 @@ describe("POST /api/auth/passkey/authentication-options", () => {
     mockAuth.mockResolvedValue({ user: { id: "u1" } } as never);
     const res = await POST(req());
     expect(res.status).toBe(400);
+  });
+
+  it("returns 403 for a session that still owes a password change before its 2FA step", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1" }, needs2FA: true, needsPasswordChange: true } as never);
+    const res = await POST(req());
+    expect(res.status).toBe(403);
+    expect(mockBuildOptions).not.toHaveBeenCalled();
   });
 
   it("returns 429 when rate-limited", async () => {

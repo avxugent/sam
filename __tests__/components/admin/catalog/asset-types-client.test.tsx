@@ -188,7 +188,7 @@ describe("AssetTypesClient", () => {
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
-  it("toasts a failed merge and leaves the type in rename mode", async () => {
+  it("toasts a failed merge, closes the offer and leaves the type in rename mode", async () => {
     mockFetch
       .mockResolvedValueOnce(json({ code: "nameConflict", existingId: "t2", existingName: "Beta" }, false, 409))
       .mockResolvedValueOnce(json({ error: "Merge failed" }, false, 500));
@@ -201,6 +201,7 @@ describe("AssetTypesClient", () => {
       expect(mockToast).toHaveBeenCalledWith({ title: "error", description: "Merge failed", variant: "destructive" })
     );
     expect(mockToast).not.toHaveBeenCalledWith(expect.objectContaining({ title: "typeMerged" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(screen.getByDisplayValue("Alpha!")).toBeInTheDocument();
   });
 

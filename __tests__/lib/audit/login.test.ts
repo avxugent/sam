@@ -16,7 +16,7 @@ describe("auditLoginFailure()", () => {
       action: "LOGIN_FAILED",
       entityType: "Auth",
       entityId: "u1",
-      entityName: undefined,
+      entityName: null,
       detail: { reason: "invalid_code" },
     });
   });

@@ -57,8 +57,8 @@ describe("updateAssetSchema", () => {
     expect(updateAssetSchema.parse({ locationId: "l2" })).toEqual({ locationId: "l2" });
   });
 
-  it("still requires a MAC when a hostname is set", () => {
-    expect(issuePaths(updateAssetSchema.safeParse({ hostname: "pc1.example.com" }))).toEqual(["macAddresses"]);
+  it("leaves the hostname-requires-MAC rule to the route, which sees the stored MACs", () => {
+    expect(updateAssetSchema.safeParse({ hostname: "pc1.example.com" }).success).toBe(true);
   });
 
   it("does not enforce the quantity identity rule", () => {

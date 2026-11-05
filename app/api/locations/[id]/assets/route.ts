@@ -11,6 +11,8 @@ import { assetListStatusFilter } from "@/lib/assets/list-status";
 import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/input";
 import { ASSET_LIST_INCLUDE, ASSET_ROW_INCLUDE } from "@/lib/assets/include";
 import { toDateUpdate } from "@/lib/dates";
+import { assetLabel } from "@/lib/assets/label";
+import { assetSnapshot } from "@/lib/assets/history-keys";
 
 export async function GET(
   req: NextRequest,
@@ -88,16 +90,8 @@ export async function POST(
     action: "CREATE",
     entityType: "Asset",
     entityId: asset.id,
-    entityName: asset.model?.name ?? asset.serialNumber ?? undefined,
-    detail: {
-      snapshot: {
-        ...(asset.type ? { "Type": asset.type.name } : {}),
-        ...(asset.manufacturer ? { "Manufacturer": asset.manufacturer.name } : {}),
-        "Model": asset.model?.name ?? null,
-        ...(asset.serialNumber ? { "Serial number": asset.serialNumber } : {}),
-        ...(asset.quantity !== 1 ? { "Quantity": asset.quantity } : {}),
-      },
-    },
+    entityName: assetLabel(asset),
+    detail: { snapshot: assetSnapshot(asset) },
     lineageId: asset.lineageId,
   });
 

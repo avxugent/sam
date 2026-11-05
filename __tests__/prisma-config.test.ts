@@ -10,6 +10,8 @@ async function loadConfig(env: Partial<Record<(typeof DB_VARS)[number], string>>
   return (await import("@/prisma.config")).default;
 }
 
+const REQUIRED = { DB_HOST: "localhost", DB_NAME: "samdb", DB_USER: "sam" };
+
 // Keep the import side-effect free: never load the developer's .env into the test env.
 const loadEnvFile = vi.spyOn(process, "loadEnvFile").mockImplementation(() => {});
 
@@ -28,9 +30,14 @@ describe("prisma.config.ts", () => {
     expect(config.migrations?.path).toBe("prisma/migrations");
   });
 
-  it("falls back to local defaults when no DB_* vars are set", async () => {
+  it("loads without DB_* vars (prisma generate) but throws once the URL is read", async () => {
     const config = await loadConfig({});
-    expect(config.datasource?.url).toBe("mysql://sam:@localhost:3306/samdb");
+    expect(() => config.datasource?.url).toThrow("Missing required database environment variables: DB_HOST, DB_NAME, DB_USER");
+    for (const missing of ["DB_HOST", "DB_NAME", "DB_USER"] as const) {
+      const env = { ...REQUIRED, [missing]: "" };
+      const partial = await loadConfig(env);
+      expect(() => partial.datasource?.url, missing).toThrow("Missing required database environment variables");
+    }
   });
 
   it("builds the URL from the DB_* vars", async () => {
@@ -39,14 +46,14 @@ describe("prisma.config.ts", () => {
   });
 
   it("percent-encodes the user and password", async () => {
-    const config = await loadConfig({ DB_USER: "a@b", DB_PASSWORD: "p@ss:w/rd#?" });
+    const config = await loadConfig({ ...REQUIRED, DB_USER: "a@b", DB_PASSWORD: "p@ss:w/rd#?" });
     expect(config.datasource?.url).toBe("mysql://a%40b:p%40ss%3Aw%2Frd%23%3F@localhost:3306/samdb");
   });
 
   it("requires strict TLS only when DB_SSL is exactly 'true'", async () => {
-    expect((await loadConfig({ DB_SSL: "true" })).datasource?.url).toBe("mysql://sam:@localhost:3306/samdb?sslaccept=strict");
-    expect((await loadConfig({ DB_SSL: "false" })).datasource?.url).not.toContain("sslaccept");
-    expect((await loadConfig({ DB_SSL: "TRUE" })).datasource?.url).not.toContain("sslaccept");
+    expect((await loadConfig({ ...REQUIRED, DB_SSL: "true" })).datasource?.url).toBe("mysql://sam:@localhost:3306/samdb?sslaccept=strict");
+    expect((await loadConfig({ ...REQUIRED, DB_SSL: "false" })).datasource?.url).not.toContain("sslaccept");
+    expect((await loadConfig({ ...REQUIRED, DB_SSL: "TRUE" })).datasource?.url).not.toContain("sslaccept");
   });
 
   it("loads .env exactly when it exists in the working directory", async () => {

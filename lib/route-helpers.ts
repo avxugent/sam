@@ -64,8 +64,8 @@ export function formText(form: FormData, name: string): string | null {
 }
 
 /** 404 for the record named in the URL path, e.g. notFoundResponse("Model") -> "Model not found." */
-export function notFoundResponse(what?: string): NextResponse {
-  return NextResponse.json({ error: what ? `${what} not found.` : "Not found." }, { status: 404 });
+export function notFoundResponse(what: string): NextResponse {
+  return NextResponse.json({ error: `${what} not found.` }, { status: 404 });
 }
 
 /** 409 for a create or rename onto a name that is already taken (unique constraint). */
@@ -88,7 +88,7 @@ export function prismaErrorCode(err: unknown): string | null {
 }
 
 function hasPrismaCode(err: unknown, code: string): boolean {
-  return typeof err === "object" && err !== null && "code" in err && err.code === code;
+  return prismaErrorCode(err) === code;
 }
 
 /** CSV file download response; never cached, since exports reflect live data. */

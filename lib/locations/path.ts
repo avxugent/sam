@@ -52,7 +52,7 @@ export async function locationBreadcrumbs(locationId: string): Promise<{ id: str
  * Joined with " - ", the separator of report, compliance and CSV output.
  * Ids that name no location are left out of the map.
  */
-export async function getLocationPathsBatch(
+export async function locationExportPathsBatch(
   locationIds: string[]
 ): Promise<Map<string, string>> {
   if (locationIds.length === 0) return new Map();
@@ -71,13 +71,13 @@ export async function getLocationPathsBatch(
 }
 
 /**
- * Like getLocationPathsBatch, but takes rows the caller already fetched
- * (must include parentId) instead of issuing its own query — for callers
- * that need the full (id, name, parentId) row set for another purpose too,
- * so a second full-table scan isn't worth it just to get paths. Joined with
- * " › ", the breadcrumb separator of the UI pickers that use it.
+ * UI breadcrumb paths (root → leaf, joined with " › ", the separator of the
+ * pickers that use them) for every row. Same tree walk as
+ * locationExportPathsBatch, but over rows the caller already fetched (must
+ * include parentId) — for callers that need the full (id, name, parentId) row
+ * set for another purpose too, so a second full-table scan isn't worth it.
  */
-export function buildLocationPathsFromRows(
+export function locationBreadcrumbsFromRows(
   rows: { id: string; name: string; parentId: string | null }[]
 ): Map<string, string> {
   const byId = new Map(rows.map((l) => [l.id, l]));
@@ -89,10 +89,11 @@ export function buildLocationPathsFromRows(
   return result;
 }
 
-export type AncestorChain = { ids: string[]; names: string[] };
+/** A location's ancestor chain stored column-wise: ids and names, root → leaf. */
+export type AncestorIdsAndNames = { ids: string[]; names: string[] };
 
 /**
- * Like getLocationPathsBatch, but returns the ordered ancestor *ids* and
+ * Same tree walk as locationExportPathsBatch, but returns the ordered ancestor *ids* and
  * *names* (root → leaf, each including the location itself) for each
  * requested id in a single pass — one query, one tree walk. Lets callers
  * group by tree level (e.g. campus = [0], building = [1]) and test whether a
@@ -100,14 +101,14 @@ export type AncestorChain = { ids: string[]; names: string[] };
  */
 export async function getAncestorChainsBatch(
   locationIds: string[]
-): Promise<Map<string, AncestorChain>> {
+): Promise<Map<string, AncestorIdsAndNames>> {
   if (locationIds.length === 0) return new Map();
 
   type Row = { id: string; name: string; parentId: string | null };
   const allLocs: Row[] = await prisma.location.findMany({ select: { id: true, name: true, parentId: true } });
   const byId = new Map<string, Row>(allLocs.map((l) => [l.id, l]));
 
-  const result = new Map<string, AncestorChain>();
+  const result = new Map<string, AncestorIdsAndNames>();
   for (const id of locationIds) {
     const chain = ancestorChain(id, byId);
     if (chain.length > 0) result.set(id, { ids: chain.map((l) => l.id), names: chain.map((l) => l.name) });
@@ -134,14 +135,14 @@ export async function getAllDescendantLocationIds(locationId: string): Promise<s
 }
 
 /**
- * Installed-asset quantity per location, summed over the location and all of
+ * Installed units (summed quantity of INSTALLED assets) per location, summed over the location and all of
  * its descendants. Without `rootIds` every location is a root; with them only
  * those locations are counted (search results). One recursive CTE either way.
  */
-export async function getRecursiveAssetCounts(rootIds?: string[]): Promise<Record<string, number>> {
+export async function getInstalledUnitTotals(rootIds?: string[]): Promise<Record<string, number>> {
   if (rootIds?.length === 0) return {};
   const roots = rootIds ? Prisma.sql`WHERE id IN (${Prisma.join(rootIds)})` : Prisma.empty;
-  const rows = await prisma.$queryRaw<{ id: string; totalAssets: bigint }[]>`
+  const rows = await prisma.$queryRaw<{ id: string; installedUnits: bigint }[]>`
     WITH RECURSIVE loc_tree AS (
       SELECT id AS root_id, id AS loc_id FROM locations ${roots}
       UNION ALL
@@ -149,13 +150,13 @@ export async function getRecursiveAssetCounts(rootIds?: string[]): Promise<Recor
       FROM loc_tree lt
       INNER JOIN locations l ON l.parentId = lt.loc_id
     )
-    SELECT lt.root_id AS id, COALESCE(SUM(a.quantity), 0) AS totalAssets
+    SELECT lt.root_id AS id, COALESCE(SUM(a.quantity), 0) AS installedUnits
     FROM loc_tree lt
     LEFT JOIN assets a ON a.locationId = lt.loc_id AND a.status = 'INSTALLED'
     GROUP BY lt.root_id
   `;
   const map: Record<string, number> = {};
-  for (const row of rows) map[row.id] = Number(row.totalAssets);
+  for (const row of rows) map[row.id] = Number(row.installedUnits);
   return map;
 }
 

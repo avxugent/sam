@@ -21,13 +21,13 @@ const linkSchema = z.object({
 });
 
 /** The audit snapshot entry naming what the attachment was added to. */
-async function parentSnapshot(locationId: string | null | undefined, assetId: string | null | undefined) {
-  if (locationId) {
-    const location = await prisma.location.findUnique({ where: { id: locationId }, select: { name: true } });
-    return { Location: location?.name ?? locationId };
+async function parentSnapshot(parent: { locationId: string } | { assetId: string }) {
+  if ("locationId" in parent) {
+    const location = await prisma.location.findUnique({ where: { id: parent.locationId }, select: { name: true } });
+    return { Location: location?.name ?? parent.locationId };
   }
-  const asset = await prisma.asset.findUnique({ where: { id: assetId! }, select: { model: { select: { name: true } } } });
-  return { Asset: asset?.model?.name ?? assetId! };
+  const asset = await prisma.asset.findUnique({ where: { id: parent.assetId }, select: { model: { select: { name: true } } } });
+  return { Asset: asset?.model?.name ?? parent.assetId };
 }
 
 /** JSON body: an external link attached to a location or asset. */
@@ -36,7 +36,8 @@ async function createLinkAttachment(req: NextRequest, session: Session) {
   const parsed = linkSchema.safeParse(body);
   if (!parsed.success) return invalidInput(parsed.error);
   const { url, label, description, locationId, assetId } = parsed.data;
-  if (!locationId && !assetId) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
+  const parent = locationId ? { locationId } : assetId ? { assetId } : null;
+  if (!parent) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
 
   let attachment;
   try {
@@ -66,7 +67,7 @@ async function createLinkAttachment(req: NextRequest, session: Session) {
     detail: {
       snapshot: {
         "Type": "link",
-        ...(await parentSnapshot(locationId, assetId)),
+        ...(await parentSnapshot(parent)),
       },
     },
   });
@@ -85,13 +86,13 @@ async function createFileAttachment(req: NextRequest, session: Session) {
   const safeDescription = rawDescription?.replace(/[\r\n]{3,}/g, "\n\n").slice(0, 2000) || null;
 
   if (!file) return NextResponse.json({ error: "No file provided." }, { status: 400 });
-  if (!locationId && !assetId) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
+  const parent = locationId ? { locationId } : assetId ? { assetId } : null;
+  if (!parent) return NextResponse.json({ error: "locationId or assetId required." }, { status: 400 });
   if (file.size > MAX_ATTACHMENT_BYTES) return NextResponse.json({ error: "File too large (max 50 MB)." }, { status: 400 });
   if (!ATTACHMENT_MIME_TYPES.has(file.type)) {
     return NextResponse.json({ error: "File type not allowed." }, { status: 400 });
   }
 
-  // Validate and normalise the file extension
   const rawExt = extname(file.name).toLowerCase();
   const ext = ATTACHMENT_EXTENSIONS.has(rawExt) ? rawExt : "";
 
@@ -109,7 +110,8 @@ async function createFileAttachment(req: NextRequest, session: Session) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  // Validate actual file content against the declared MIME type
+  // The declared type comes from the client, so a script sent as image/jpeg
+  // must still fail on its bytes.
   if (!contentMatchesType(buffer, file.type)) {
     return NextResponse.json({ error: "File content does not match declared type." }, { status: 400 });
   }
@@ -157,7 +159,7 @@ async function createFileAttachment(req: NextRequest, session: Session) {
       snapshot: {
         "Type": "file",
         "MIME type": file.type,
-        ...(await parentSnapshot(locationId, assetId)),
+        ...(await parentSnapshot(parent)),
       },
     },
   });

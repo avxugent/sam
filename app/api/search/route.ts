@@ -24,7 +24,7 @@ import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getRecursiveAssetCounts } from "@/lib/locations/path";
+import { getInstalledUnitTotals } from "@/lib/locations/path";
 import { invalidInput } from "@/lib/route-helpers";
 
 const ASSET_PAGE_SIZE = 50;
@@ -194,7 +194,7 @@ export async function GET(req: NextRequest) {
   }));
 
   // Installed assets across each matched location's whole subtree
-  const installedAssetCounts = await getRecursiveAssetCounts(locations.map((l) => l.id));
+  const installedUnitTotals = await getInstalledUnitTotals(locations.map((l) => l.id));
 
   function buildLocationSnippet(l: typeof locations[number]): string {
     const parts: string[] = [];
@@ -209,7 +209,7 @@ export async function GET(req: NextRequest) {
     ...l,
     snippet: buildLocationSnippet(l),
     _count: {
-      assets: installedAssetCounts[l.id] ?? 0,
+      assets: installedUnitTotals[l.id] ?? 0,
       children: l._count.children,
     },
   }));

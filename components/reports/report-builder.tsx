@@ -15,12 +15,23 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Trash2, Save, Search, X } from "lucide-react";
-import type { ReportFilter, ReportFilterField, FilterOp, GroupByField, ColumnKey, ReportDefinition, ReportSource, LocationReportStatus, LocationReportPeriodUnit } from "@/lib/reports/types";
+import type { ReportSource, LocationReportStatus, LocationReportPeriodUnit } from "@/lib/reports/types";
 import { isLocationReport } from "@/lib/reports/types";
 import { useColumnLabels } from "@/components/reports/use-column-labels";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
-import { allowedFilterOps, filterValueInput, isOptionFilterField, type OptionFilterField } from "@/lib/schemas/report";
+import {
+  allowedFilterOps,
+  filterValueInput,
+  isOptionFilterField,
+  type OptionFilterField,
+  type ReportFilter,
+  type ReportFilterField,
+  type FilterOp,
+  type GroupByField,
+  type ColumnKey,
+  type ReportDefinition,
+} from "@/lib/schemas/report";
 
 
 type AssetOption = { id: string; name: string };

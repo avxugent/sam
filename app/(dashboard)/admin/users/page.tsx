@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { UsersClient } from "@/components/admin/users-client";
 import { isAdmin } from "@/lib/permissions";
+import { parseAuthProvider } from "@/lib/users/providers";
 
 export default async function UsersPage() {
   const session = await auth();
@@ -25,6 +26,7 @@ export default async function UsersPage() {
       <UsersClient
         initialUsers={users.map((u) => ({
           ...u,
+          provider: parseAuthProvider(u.provider),
           lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
           createdAt: u.createdAt.toISOString(),
         }))}

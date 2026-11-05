@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { SortableTh } from "@/components/ui/sortable-th";
+import { useTableSort } from "@/components/ui/use-row-selection";
 import { formatDate } from "@/lib/dates";
 import { assetLabel } from "@/lib/assets/label";
 
@@ -24,7 +25,14 @@ export type AssetStateRow = {
   note: string | null;
 };
 
-type SortCol = "type" | "model" | "serialNumber" | "location" | "since";
+const SORT_KEYS = {
+  type: (a: AssetStateRow) => a.type?.name ?? "",
+  model: (a: AssetStateRow) => a.model?.name ?? "",
+  serialNumber: (a: AssetStateRow) => a.serialNumber ?? "",
+  location: (a: AssetStateRow) => a.locationName ?? "",
+  since: (a: AssetStateRow) => a.since ?? "",
+};
+type SortCol = keyof typeof SORT_KEYS;
 
 /** Searchable, sortable table shared by the decommissioned and in-repair pages. */
 export function AssetStateTable({
@@ -40,14 +48,6 @@ export function AssetStateTable({
   const tStock = useTranslations("stock");
   const tAsset = useTranslations("asset");
   const [query, setQuery] = useState("");
-  const [sortCol, setSortCol] = useState<SortCol | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-
-  function handleSort(col: SortCol) {
-    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortCol(col); setSortDir("asc"); }
-  }
-
   const filtered = rows.filter((a) => {
     if (!query) return true;
     const q = query.toLowerCase();
@@ -61,19 +61,7 @@ export function AssetStateTable({
     );
   });
 
-  const sorted = useMemo(() => {
-    if (!sortCol) return filtered;
-    const key = (a: AssetStateRow) =>
-      sortCol === "type" ? a.type?.name
-      : sortCol === "model" ? a.model?.name
-      : sortCol === "serialNumber" ? a.serialNumber
-      : sortCol === "location" ? a.locationName
-      : a.since;
-    return [...filtered].sort((a, b) => {
-      const cmp = (key(a) ?? "").localeCompare(key(b) ?? "");
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-  }, [filtered, sortCol, sortDir]);
+  const { sortCol, sortDir, handleSort, sorted } = useTableSort(filtered, SORT_KEYS);
 
   const th = (col: SortCol, label: string) => (
     <SortableTh variant="compact" col={col} label={label} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />

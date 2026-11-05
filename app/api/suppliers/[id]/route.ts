@@ -107,7 +107,13 @@ export async function DELETE(
   const supplier = await prisma.supplier.findUnique({ where: { id }, select: { name: true } });
   if (!supplier) return notFoundResponse("Supplier");
 
-  await prisma.supplier.delete({ where: { id } });
+  try {
+    await prisma.supplier.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Supplier");
+    throw err;
+  }
   await logAudit({
     session,
     req,

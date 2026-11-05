@@ -24,7 +24,7 @@ export function auditLoginFailure({
     action: "LOGIN_FAILED",
     entityType: "Auth",
     entityId,
-    entityName: entityName ?? undefined,
+    entityName,
     detail,
   });
 }

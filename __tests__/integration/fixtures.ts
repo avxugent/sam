@@ -14,6 +14,17 @@ export function newTag(name: string) {
   return `it-${name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+const threeDigits = () => String(Math.floor(Math.random() * 1000)).padStart(3, "0");
+
+/**
+ * A FI number (CC.BB.FFF.RRR) under a test-only campus.building prefix, with a
+ * random floor and room: fiNumber is @unique, so a row leaked by an aborted
+ * run must not make a later run collide.
+ */
+export function testFiNumber(campusBuilding: string) {
+  return `${campusBuilding}.${threeDigits()}.${threeDigits()}`;
+}
+
 /** The session the code under test acts as; its user id marks the audit rows to clean up. */
 export function testSession(tag: string, role: Role): Session {
   return {

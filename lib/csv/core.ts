@@ -5,46 +5,34 @@
 
 export type CsvRow = Record<string, string>;
 
+/** UTC midnight of the given day, or null when that day does not exist (31/02 does not roll into March). */
+function utcDay(year: number, month: number, day: number): Date | null {
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day ? d : null;
+}
+
 /**
- * Parses a date string in multiple common formats:
+ * Parses a date string in one of these formats, as UTC midnight:
  *   YYYY-MM-DD (ISO)
  *   DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
  *   DD/MM/YY  (2-digit year, treated as 20xx)
- * Returns null if the value is empty or unparseable.
+ * Returns null if the value is empty, in another format, or names a day that
+ * does not exist.
  */
 export function parseCsvDate(val: string): Date | null {
-  if (!val || val.trim() === "") return null;
-
   const s = val.trim();
 
-  // ISO: YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return utcDay(Number(iso[1]), Number(iso[2]), Number(iso[3]));
+
+  // DD/MM/YYYY or DD/MM/YY (- or . separators too; a 2-digit year is 20xx)
+  const dmy = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4}|\d{2})$/);
+  if (dmy) {
+    const year = dmy[3].length === 2 ? Number(dmy[3]) + 2000 : Number(dmy[3]);
+    return utcDay(year, Number(dmy[2]), Number(dmy[1]));
   }
 
-  // DD/MM/YYYY (or - or . separators)
-  const dmyFull = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
-  if (dmyFull) {
-    const d = new Date(
-      `${dmyFull[3]}-${dmyFull[2].padStart(2, "0")}-${dmyFull[1].padStart(2, "0")}`
-    );
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  // DD/MM/YY (2-digit year → 20xx)
-  const dmyShort = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2})$/);
-  if (dmyShort) {
-    const year = parseInt(dmyShort[3]) + 2000;
-    const d = new Date(
-      `${year}-${dmyShort[2].padStart(2, "0")}-${dmyShort[1].padStart(2, "0")}`
-    );
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  // Fallback: let JS try (handles some other formats like "Jan 01 2024")
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
+  return null;
 }
 
 /**

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Monitor, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 // Microsoft logo as inline SVG to avoid external image dependency
@@ -23,7 +23,7 @@ function MicrosoftLogo() {
   );
 }
 
-export function LoginClient({ ssoEnabled, appTitle = "SAM", logoUrl = null }: { ssoEnabled: boolean; appTitle?: string; logoUrl?: string | null }) {
+export function LoginClient({ ssoEnabled }: { ssoEnabled: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -70,91 +70,77 @@ export function LoginClient({ ssoEnabled, appTitle = "SAM", logoUrl = null }: { 
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-sm">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt="" className="h-8 w-8 object-contain flex-shrink-0" />
-          ) : (
-            <Monitor className="h-8 w-8 text-primary flex-shrink-0" />
-          )}
-          <span className="text-2xl font-bold">{appTitle}</span>
-        </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("signIn")}</CardTitle>
+        <CardDescription>
+          {ssoEnabled
+            ? t("signInSubtitleSso")
+            : t("signInSubtitleCredentials")}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Microsoft SSO button — shown only when configured */}
+        {ssoEnabled && (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2"
+              onClick={handleSso}
+              disabled={ssoLoading}
+            >
+              {ssoLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MicrosoftLogo />
+              )}
+              {t("signInWithEntra")}
+            </Button>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("signIn")}</CardTitle>
-            <CardDescription>
-              {ssoEnabled
-                ? t("signInSubtitleSso")
-                : t("signInSubtitleCredentials")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Microsoft SSO button — shown only when configured */}
-            {ssoEnabled && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={handleSso}
-                  disabled={ssoLoading}
-                >
-                  {ssoLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <MicrosoftLogo />
-                  )}
-                  {t("signInWithEntra")}
-                </Button>
+            <div className="flex items-center gap-3">
+              <Separator className="flex-1" />
+              <span className="text-xs text-muted-foreground">{t("or")}</span>
+              <Separator className="flex-1" />
+            </div>
+          </>
+        )}
 
-                <div className="flex items-center gap-3">
-                  <Separator className="flex-1" />
-                  <span className="text-xs text-muted-foreground">{t("or")}</span>
-                  <Separator className="flex-1" />
-                </div>
-              </>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="email">{tField("email")}</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder={t("emailPlaceholder")}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  aria-required="true"
-                  autoComplete="email"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">{tField("password")}</Label>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  aria-required="true"
-                  autoComplete="current-password"
-                />
-              </div>
-              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t("signIn")}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="email">{tField("email")}</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder={t("emailPlaceholder")}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              aria-required="true"
+              autoComplete="email"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">{tField("password")}</Label>
+            </div>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              aria-required="true"
+              autoComplete="current-password"
+            />
+          </div>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t("signIn")}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

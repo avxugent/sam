@@ -18,7 +18,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 vi.mock("@/lib/app-settings", () => ({ readBrandingSettings: vi.fn() }));
-vi.mock("@/lib/locations/path", () => ({ getRecursiveAssetCounts: vi.fn() }));
+vi.mock("@/lib/locations/path", () => ({ getInstalledUnitTotals: vi.fn() }));
 vi.mock("@/components/layout/sidebar", () => ({ Sidebar: vi.fn(() => null) }));
 vi.mock("@/components/layout/header", () => ({ Header: vi.fn(() => null) }));
 vi.mock("@/components/layout/mobile-bottom-nav", () => ({ MobileBottomNav: vi.fn(() => null) }));
@@ -29,7 +29,7 @@ import DashboardLayout from "@/app/(dashboard)/layout";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { readBrandingSettings } from "@/lib/app-settings";
-import { getRecursiveAssetCounts } from "@/lib/locations/path";
+import { getInstalledUnitTotals } from "@/lib/locations/path";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
@@ -51,7 +51,7 @@ beforeEach(() => {
     { id: "root", name: "Root", parentId: null },
     { id: "child", name: "Child", parentId: "root" },
   ] as never);
-  vi.mocked(getRecursiveAssetCounts).mockResolvedValue({ root: 4 } as never);
+  vi.mocked(getInstalledUnitTotals).mockResolvedValue({ root: 4 } as never);
   vi.mocked(prisma.stockItem.count).mockResolvedValue(5 as never);
   vi.mocked(prisma.asset.count).mockImplementation((async (args: { where: { status: string } }) =>
     args.where.status === "DECOMMISSIONED" ? 2 : 3) as never);

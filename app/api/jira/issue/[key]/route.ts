@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { isJiraConfigured, isValidJiraKey, fetchJiraIssue } from "@/lib/integrations/jira";
+import { notFoundResponse } from "@/lib/route-helpers";
 
 export async function GET(
   _req: NextRequest,
@@ -10,7 +11,7 @@ export async function GET(
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!isJiraConfigured()) {
-    return NextResponse.json({ error: "JIRA integration is not configured." }, { status: 503 });
+    return NextResponse.json({ error: "JIRA integration is not configured.", code: "jiraNotConfigured" }, { status: 503 });
   }
 
   const { key } = await params;
@@ -22,8 +23,6 @@ export async function GET(
   if (lookup.status === "unavailable") {
     return NextResponse.json({ error: "JIRA could not be reached.", code: "jiraUnavailable" }, { status: 502 });
   }
-  if (lookup.status === "missing") {
-    return NextResponse.json({ found: false, key });
-  }
-  return NextResponse.json({ found: true, ...lookup.issue });
+  if (lookup.status === "missing") return notFoundResponse("JIRA issue");
+  return NextResponse.json(lookup.issue);
 }

@@ -2,12 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Pencil, Trash2, Check, X } from "lucide-react";
 import { AssetDrilldownDialog } from "@/components/admin/catalog/asset-drilldown-dialog";
 import { readMergeConflict, type MergeConflict } from "@/components/admin/catalog/merge-conflict";
 import { MergeConfirmDialog } from "@/components/admin/catalog/merge-confirm-dialog";
@@ -16,6 +11,7 @@ import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 import { useServerList } from "@/components/admin/use-server-list";
 import { AddNameRow } from "@/components/admin/catalog/add-name-row";
+import { CatalogNameRow } from "@/components/admin/catalog/catalog-name-row";
 
 type Manufacturer = {
   id: string;
@@ -36,7 +32,6 @@ export function ManufacturersClient({
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
 
   // Drilldown dialog — the catalog entry whose assets are listed
   const [drilldown, setDrilldown] = useState<{ name: string; url: string } | null>(null);
@@ -66,7 +61,7 @@ export function ManufacturersClient({
     toast({ title: t("manufacturerCreated") });
   }
 
-  async function handleEdit(id: string) {
+  async function handleEdit(id: string, editName: string) {
     if (!editName.trim()) return;
     const res = await apiFetch<Manufacturer>(`/api/manufacturers/${id}`, jsonBody("PUT", { name: editName.trim() }));
 
@@ -92,12 +87,9 @@ export function ManufacturersClient({
   async function handleMerge() {
     if (!mergeConflict) return;
     const result = await catalogMerge.merge(mergeConflict.editingId, mergeConflict.existingId);
-    if (!result) {
-      setMergeConflict(null);
-      return;
-    }
-    applyChange((prev) => prev.filter((i) => i.id !== mergeConflict.editingId));
     setMergeConflict(null);
+    if (!result) return;
+    applyChange((prev) => prev.filter((i) => i.id !== mergeConflict.editingId));
     setEditingId(null);
     toast({ title: t("manufacturerMerged"), description: catalogMerge.summary(result) });
   }
@@ -122,87 +114,20 @@ export function ManufacturersClient({
         ) : (
           items.map((item) => (
             <div key={item.id} className="flex items-center gap-3 px-4 py-3">
-              {editingId === item.id ? (
-                <>
-                  <Input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleEdit(item.id);
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                    className="max-w-xs h-8"
-                    autoFocus
-                  />
-                  <Button size="icon" variant="ghost" aria-label={tCommon("saveName")} className="h-8 w-8" onClick={() => handleEdit(item.id)}>
-                    <Check className="h-4 w-4 text-green-600" />
-                  </Button>
-                  <Button size="icon" variant="ghost" aria-label={tCommon("cancelRename")} className="h-8 w-8" onClick={() => setEditingId(null)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </>
-              ) : (
-                <>
-                  {item._count.assets > 0 ? (
-                    <button
-                      type="button"
-                      onClick={() => openDrilldown(item)}
-                      className="flex-1 text-left text-sm font-medium cursor-pointer hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-                      aria-label={t("viewAssetsFrom", { count: item._count.assets, name: item.name })}
-                    >
-                      {item.name}
-                    </button>
-                  ) : (
-                    <span className="flex-1 text-sm font-medium">{item.name}</span>
-                  )}
-                  {item._count.assets > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className="text-xs cursor-pointer hover:bg-secondary/80"
-                      onClick={() => openDrilldown(item)}
-                      aria-hidden="true"
-                    >
-                      {t("assetCount", { count: item._count.assets })}
-                    </Badge>
-                  )}
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label={tCommon("renameItem", { name: item.name })}
-                    className="h-8 w-8"
-                    onClick={() => { setEditingId(item.id); setEditName(item.name); }}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="icon" variant="ghost" aria-label={tCommon("deleteItem", { name: item.name })} className="h-8 w-8 text-destructive hover:text-destructive">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t("deleteNamedTitle", { name: item.name })}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {item._count.assets > 0
-                            ? t("inUseDescription", { count: item._count.assets })
-                            : t("deleteConfirmDescription")}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(item.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          disabled={item._count.assets > 0}
-                        >
-                          {tCommon("delete")}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </>
-              )}
+              <CatalogNameRow
+                name={item.name}
+                assetCount={item._count.assets}
+                drilldownLabel={t("viewAssetsFrom", { count: item._count.assets, name: item.name })}
+                countLabel={t("assetCount", { count: item._count.assets })}
+                onDrilldown={() => openDrilldown(item)}
+                editing={editingId === item.id}
+                onStartRename={() => setEditingId(item.id)}
+                onCancelRename={() => setEditingId(null)}
+                onSaveRename={(name) => handleEdit(item.id, name)}
+                deleteTitle={t("deleteNamedTitle", { name: item.name })}
+                deleteDescription={item._count.assets > 0 ? t("inUseDescription", { count: item._count.assets }) : t("deleteConfirmDescription")}
+                onDelete={() => handleDelete(item.id)}
+              />
             </div>
           ))
         )}

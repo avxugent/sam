@@ -149,7 +149,8 @@ const nextAuth = NextAuth({
           email: user.email,
           role: user.role,
           // No needs2FA — this is the verified session
-          method: typeof credentials?.method === "string" ? credentials.method : undefined,
+          // Only the two known values reach the audit detail, never arbitrary text.
+          method: credentials?.method === "passkey" ? "passkey" : "totp",
         };
       },
     }),
@@ -254,7 +255,7 @@ const nextAuth = NextAuth({
         action: "LOGIN_SUCCESS",
         entityType: "Auth",
         entityId: user.id,
-        entityName: user.email ?? undefined,
+        entityName: user.email,
         detail: {
           provider:
             account?.provider === "credentials-2fa-verified"
@@ -284,7 +285,7 @@ const nextAuth = NextAuth({
         action: "LOGOUT",
         entityType: "Auth",
         entityId: token.id,
-        entityName: token.email ?? undefined,
+        entityName: token.email,
       });
     },
   },

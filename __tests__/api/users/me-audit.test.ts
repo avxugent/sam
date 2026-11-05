@@ -23,7 +23,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import bcrypt from "bcryptjs";
-import { PATCH as patchMe } from "@/app/api/users/me/route";
+import { PUT as putMe } from "@/app/api/users/me/route";
 
 const mockAuth = vi.mocked(auth);
 const mockLogAudit = vi.mocked(logAudit);
@@ -52,8 +52,8 @@ describe("audit — users/me password change", () => {
     vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
     vi.mocked(bcrypt.hash).mockResolvedValue("newhash" as never);
 
-    const res = await patchMe(
-      req("http://localhost/api/users/me", { currentPassword: "old", newPassword: "newpass12", confirmPassword: "newpass12" }, "PATCH")
+    const res = await putMe(
+      req("http://localhost/api/users/me", { currentPassword: "old", newPassword: "newpass12", confirmPassword: "newpass12" }, "PUT")
     );
     expect(res.status).toBe(200);
     expect(mockLogAudit).toHaveBeenCalledWith(
@@ -65,7 +65,7 @@ describe("audit — users/me password change", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ passwordHash: "old", provider: "credentials" } as never);
 
-    const res = await patchMe(req("http://localhost/api/users/me", { theme: "dark" }, "PATCH"));
+    const res = await putMe(req("http://localhost/api/users/me", { theme: "dark" }, "PUT"));
     expect(res.status).toBe(200);
     expect(mockLogAudit).not.toHaveBeenCalled();
   });

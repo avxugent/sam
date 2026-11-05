@@ -15,7 +15,7 @@ global.fetch = mockFetch as never;
 import { AddLinkDialog } from "@/components/attachments/add-link-dialog";
 import { EditAttachmentDialog } from "@/components/attachments/edit-attachment-dialog";
 import { AttachmentLightbox } from "@/components/attachments/attachment-lightbox";
-import { attachmentLabel, isPreviewableImage, type Attachment } from "@/components/attachments/attachment";
+import { attachmentKind, attachmentLabel, isPreviewableImage, type Attachment } from "@/components/attachments/attachment";
 
 function jsonResp(data: unknown, ok = true, status = 200) {
   return { ok, status, json: async () => data };
@@ -23,6 +23,7 @@ function jsonResp(data: unknown, ok = true, status = 200) {
 
 const base: Attachment = {
   id: "att-1",
+  attachmentType: "file",
   originalName: "photo.jpg",
   createdAt: "2026-01-01T00:00:00.000Z",
   uploadedBy: { id: "u1", name: "Ann" },
@@ -42,6 +43,12 @@ describe("attachment helpers", () => {
     expect(isPreviewableImage("application/pdf")).toBe(false);
     expect(isPreviewableImage(null)).toBe(false);
   });
+
+  it("reads the attachmentType column as a kind, defaulting to file", () => {
+    expect(attachmentKind("link")).toBe("link");
+    expect(attachmentKind("file")).toBe("file");
+    expect(attachmentKind("other")).toBe("file");
+  });
 });
 
 describe("<AddLinkDialog />", () => {
@@ -53,7 +60,7 @@ describe("<AddLinkDialog />", () => {
 
   it("posts the link, hands back the new attachment and closes", async () => {
     const props = renderDialog();
-    const created = { ...base, attachmentType: "link", url: "https://x.test" };
+    const created: Attachment = { ...base, attachmentType: "link", url: "https://x.test" };
     mockFetch.mockResolvedValue(jsonResp(created));
     await userEvent.type(screen.getByLabelText(/linkUrl/), "https://x.test");
     await userEvent.type(screen.getByLabelText(/linkLabel/), "Portal");
@@ -98,7 +105,7 @@ describe("<EditAttachmentDialog />", () => {
     await userEvent.click(screen.getByRole("button", { name: "saveChanges" }));
 
     expect(mockFetch).toHaveBeenCalledWith("/api/attachments/att-1", expect.objectContaining({
-      method: "PATCH",
+      method: "PUT",
       body: JSON.stringify({ displayName: "New", description: null, url: "https://a.test" }),
     }));
     expect(onSaved).toHaveBeenCalledWith({ ...link, displayName: "New" });

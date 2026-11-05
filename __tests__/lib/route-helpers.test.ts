@@ -101,11 +101,10 @@ describe("nameConflictResponse()", () => {
 });
 
 describe("notFoundResponse()", () => {
-  it("names the missing record when given one", async () => {
+  it("names the missing record", async () => {
     const res = notFoundResponse("Model");
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "Model not found." });
-    expect(await notFoundResponse().json()).toEqual({ error: "Not found." });
   });
 });
 

@@ -6,7 +6,7 @@ import { StockItemTable } from "@/components/stock/stock-item-table";
 import { StockItemFormDialog } from "@/components/stock/stock-item-form-dialog";
 import { StockLocationFilter } from "@/components/stock/stock-location-filter";
 import { Button } from "@/components/ui/button";
-import { buildLocationPathsFromRows } from "@/lib/locations/path";
+import { locationBreadcrumbsFromRows } from "@/lib/locations/path";
 import { canEdit, Role } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
 import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/assets/include";
@@ -54,7 +54,7 @@ export default async function StockPage({
   ]);
 
   const stockLocationIds = new Set(stockLocationRows.map((r) => r.locationId!));
-  const locationBreadcrumbMap = buildLocationPathsFromRows(allLocations);
+  const locationBreadcrumbMap = locationBreadcrumbsFromRows(allLocations);
   const locationBreadcrumbs = Object.fromEntries(locationBreadcrumbMap);
   const locationOptions = allLocations
     .filter((l) => stockLocationIds.has(l.id))

@@ -24,9 +24,17 @@ describe("sessionOrIntegrationTokenResponse()", () => {
     expect(integrationTokenResponse).not.toHaveBeenCalled();
   });
 
-  it("falls back to the token check for a role that is not allowed", async () => {
+  it("answers 403 for a role that is not allowed when no Bearer token is sent", async () => {
     vi.mocked(auth).mockResolvedValue({ user: { id: "u1", role: "VIEWER" } } as never);
-    expect(await sessionOrIntegrationTokenResponse(req, isAdmin as never)).toBe(unauthorized);
+    const res = await sessionOrIntegrationTokenResponse(req, isAdmin as never);
+    expect(res?.status).toBe(403);
+    expect(integrationTokenResponse).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the token check for a role that is not allowed when a Bearer token is sent", async () => {
+    vi.mocked(auth).mockResolvedValue({ user: { id: "u1", role: "VIEWER" } } as never);
+    const withToken = new Request("http://x", { headers: { authorization: "Bearer t" } });
+    expect(await sessionOrIntegrationTokenResponse(withToken, isAdmin as never)).toBe(unauthorized);
   });
 
   it("returns null when there is no session but the token is valid", async () => {

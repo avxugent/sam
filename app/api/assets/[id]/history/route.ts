@@ -12,7 +12,7 @@ export async function GET(
 
   const { id } = await params;
   const asset = await prisma.asset.findUnique({ where: { id }, select: { lineageId: true } });
-  if (!asset) return notFoundResponse();
+  if (!asset) return notFoundResponse("Asset");
 
   const entries = await prisma.auditLog.findMany({
     where: { lineageId: asset.lineageId },

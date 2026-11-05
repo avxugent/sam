@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { ColumnKey } from "@/lib/reports/types";
+import type { ColumnKey } from "@/lib/schemas/report";
 
 /** Display label of every asset-report column, shared by the builder's column picker and the viewer's headers. */
 export function useColumnLabels(): Record<ColumnKey, string> {

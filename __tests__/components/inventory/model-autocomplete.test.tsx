@@ -2,6 +2,11 @@ import { useState } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+
+vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
+vi.mock("@/components/ui/use-toast", () => ({ useToast: vi.fn() }));
+
+import { useToast } from "@/components/ui/use-toast";
 import { ModelAutocomplete, type ModelOption } from "@/components/inventory/model-autocomplete";
 
 const mockFetch = vi.fn();
@@ -33,7 +38,11 @@ function Harness({ typeId, manufacturerId }: { typeId?: string; manufacturerId?:
   );
 }
 
+const toast = vi.fn();
+
 beforeEach(() => {
+  toast.mockReset();
+  vi.mocked(useToast).mockReturnValue({ toast } as never);
   mockFetch.mockReset();
   mockFetch.mockImplementation(() => jsonResp([]));
 });
@@ -98,5 +107,23 @@ describe("<ModelAutocomplete />", () => {
     await user.click(screen.getByPlaceholderText("model placeholder"));
 
     expect(await screen.findByText("No models for this scope")).toBeInTheDocument();
+  });
+
+  it("drops the previous scope's options and toasts when a refetch fails", async () => {
+    mockFetch.mockImplementationOnce(() =>
+      jsonResp([{ id: "mo1", name: "Dell PowerEdge R740", typeId: "t1", manufacturerId: "m1" }])
+    );
+    const user = userEvent.setup();
+    const { rerender } = render(<Harness typeId="t1" />);
+    await user.click(screen.getByPlaceholderText("model placeholder"));
+    expect(await screen.findByText("Dell PowerEdge R740")).toBeInTheDocument();
+
+    mockFetch.mockImplementationOnce(() => Promise.resolve({ ok: false, status: 500, json: async () => ({ error: "Boom" }) }));
+    rerender(<Harness typeId="t2" />);
+
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith({ title: "error", description: "Boom", variant: "destructive" })
+    );
+    expect(screen.queryByText("Dell PowerEdge R740")).not.toBeInTheDocument();
   });
 });

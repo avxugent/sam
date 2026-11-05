@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { validateTemplate } from "@/lib/prometheus/scrape-template";
-import { invalidInput, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import type { AuditEntityType } from "@/lib/audit";
 
 /**
@@ -182,7 +182,7 @@ export async function createTemplateOverride(req: Request, session: Session, sto
 
 export async function updateTemplateOverride(req: Request, session: Session, store: OverrideStore, id: string) {
   const existing = await store.find(id);
-  if (!existing) return notFoundResponse();
+  if (!existing) return notFoundResponse("Template override");
 
   const parsed = updateSchema.safeParse(await readJsonBody(req));
   if (!parsed.success) return invalidInput(parsed.error);
@@ -190,7 +190,14 @@ export async function updateTemplateOverride(req: Request, session: Session, sto
   if (syntaxError) return syntaxError;
 
   const { typeName, ...override } = existing;
-  const updated = await store.update(id, parsed.data.scrapeTargetTemplate, override);
+  let updated;
+  try {
+    updated = await store.update(id, parsed.data.scrapeTargetTemplate, override);
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Template override");
+    throw err;
+  }
   await logAudit({
     session,
     req,
@@ -204,9 +211,15 @@ export async function updateTemplateOverride(req: Request, session: Session, sto
 
 export async function deleteTemplateOverride(req: Request, session: Session, store: OverrideStore, id: string) {
   const existing = await store.find(id);
-  if (!existing) return notFoundResponse();
+  if (!existing) return notFoundResponse("Template override");
 
-  await store.remove(id);
+  try {
+    await store.remove(id);
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Template override");
+    throw err;
+  }
   await logAudit({
     session,
     req,

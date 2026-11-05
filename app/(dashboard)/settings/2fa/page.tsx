@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { TwoFactorSettings } from "@/components/auth/two-factor-settings";
 import { PasskeySettings } from "@/components/auth/passkey-settings";
+import { parseAuthProvider } from "@/lib/users/providers";
 import { getTranslations } from "next-intl/server";
 
 export default async function TwoFactorSettingsPage() {
@@ -14,6 +15,7 @@ export default async function TwoFactorSettingsPage() {
     select: { provider: true, totpEnabled: true },
   });
   if (!user) redirect("/login");
+  const provider = parseAuthProvider(user.provider);
   const t = await getTranslations("settings");
 
   const passkeys = await prisma.passkey.findMany({
@@ -29,11 +31,12 @@ export default async function TwoFactorSettingsPage() {
         <p className="text-muted-foreground mt-1">{t("twoFactorPageSubtitle")}</p>
       </div>
       <TwoFactorSettings
-        provider={user.provider}
+        provider={provider}
         totpEnabled={user.totpEnabled}
       />
       <PasskeySettings
-        provider={user.provider}
+        provider={provider}
+        totpEnabled={user.totpEnabled}
         passkeys={passkeys.map((p) => ({ ...p, createdAt: p.createdAt.toISOString(), lastUsedAt: p.lastUsedAt?.toISOString() ?? null }))}
       />
     </div>

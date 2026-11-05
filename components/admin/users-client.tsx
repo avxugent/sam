@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,13 +45,15 @@ import { createUserSchema, editUserFormSchema } from "@/lib/schemas/user";
 import { apiFetch, jsonBody, downloadFile } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 import { useServerList } from "@/components/admin/use-server-list";
+import { useTableSort } from "@/components/ui/use-row-selection";
+import type { AuthProvider } from "@/lib/users/providers";
 
 type User = {
   id: string;
   name: string;
   email: string;
   role: Role;
-  provider: string;
+  provider: AuthProvider;
   totpEnabled: boolean;
   mustChangePassword: boolean;
   twoFactorRequired: boolean;
@@ -59,19 +61,26 @@ type User = {
   createdAt: string;
 };
 
-type SortCol = "name" | "email" | "role" | "twoFactor" | "lastLoginAt" | "createdAt";
+const SORT_KEYS = {
+  name: (u: User) => u.name,
+  email: (u: User) => u.email,
+  role: (u: User) => u.role,
+  twoFactor: (u: User) => String(u.totpEnabled ?? false),
+  lastLoginAt: (u: User) => u.lastLoginAt ?? "",
+  createdAt: (u: User) => u.createdAt,
+};
 
 function RolePill({ role }: { role: Role }) {
   if (role === "ADMIN") {
     return (
-      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#fef3c7] text-[#92400e]">
+      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-warning-tint text-warning-foreground">
         ADMIN
       </span>
     );
   }
   if (role === "MAINTAINER") {
     return (
-      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#f3e8ff] text-[#7e22ce]">
+      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-purple-surface text-purple-foreground">
         MAINTAINER
       </span>
     );
@@ -106,26 +115,7 @@ export function UsersClient({
   const [users, applyChange] = useServerList(initialUsers);
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
-  const [sortCol, setSortCol] = useState<SortCol>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-
-  function handleSort(col: SortCol) {
-    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortCol(col); setSortDir("asc"); }
-  }
-
-  const sortedUsers = useMemo(() => {
-    return [...users].sort((a, b) => {
-      let av = "", bv = "";
-      if (sortCol === "name") { av = a.name; bv = b.name; }
-      else if (sortCol === "email") { av = a.email; bv = b.email; }
-      else if (sortCol === "role") { av = a.role; bv = b.role; }
-      else if (sortCol === "twoFactor") { av = String(a.totpEnabled ?? false); bv = String(b.totpEnabled ?? false); }
-      else if (sortCol === "lastLoginAt") { av = a.lastLoginAt ?? ""; bv = b.lastLoginAt ?? ""; }
-      else if (sortCol === "createdAt") { av = a.createdAt; bv = b.createdAt; }
-      return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
-    });
-  }, [users, sortCol, sortDir]);
+  const { sortCol, sortDir, handleSort, sorted: sortedUsers } = useTableSort(users, SORT_KEYS, "name");
 
   const createForm = useForm({
     resolver: zodResolver(createUserSchema),
@@ -201,7 +191,7 @@ export function UsersClient({
         </Button>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="h-[36px] px-4 rounded-[7px] bg-brand-yellow text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
+            <Button className="h-[36px] px-4 rounded-[7px] bg-brand-yellow text-brand-yellow-foreground font-bold hover:brightness-95 text-[13px]">
               <Plus className="h-4 w-4 mr-1" />
               {t("addUser")}
             </Button>
@@ -331,7 +321,7 @@ export function UsersClient({
                 <td className="px-4 py-[10px]">
                   {user.provider === "credentials" ? (
                     user.totpEnabled ? (
-                      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-[#dcfce7] text-[#16a34a]">
+                      <span className="inline-flex items-center text-[11px] font-semibold px-[9px] py-[2px] rounded-[5px] bg-success-surface text-success-foreground">
                         {t("active")}
                       </span>
                     ) : (
@@ -347,104 +337,24 @@ export function UsersClient({
                 <td className="px-4 py-[10px] text-muted-foreground text-[12px]">{formatDate(user.createdAt)}</td>
                 <td className="px-4 py-[10px]">
                   <div className="flex justify-end gap-1">
-                    <Dialog
-                      open={editUser?.id === user.id}
-                      onOpenChange={(open) => { if (!open) setEditUser(null); }}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card"
+                      title={t("editUser")}
+                      onClick={() => {
+                        setEditUser(user);
+                        editForm.reset({
+                          name: user.name,
+                          email: user.email,
+                          role: user.role,
+                          password: "",
+                          twoFactorRequired: user.twoFactorRequired,
+                        });
+                      }}
                     >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card"
-                          title={t("editUser")}
-                          onClick={() => {
-                            setEditUser(user);
-                            editForm.reset({
-                              name: user.name,
-                              email: user.email,
-                              role: user.role,
-                              password: "",
-                              twoFactorRequired: user.twoFactorRequired,
-                            });
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-primary" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>{t("editUser")}</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={editForm.handleSubmit(handleEdit)} className="space-y-4">
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`user-edit-name-${user.id}`}>{tField("name")}</Label>
-                            <Input id={`user-edit-name-${user.id}`} autoComplete="name" {...editForm.register("name")} />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`user-edit-email-${user.id}`}>{tField("email")}</Label>
-                            <Input id={`user-edit-email-${user.id}`} autoComplete="email" {...editForm.register("email")} type="email" />
-                          </div>
-                          {user.provider === "credentials" && (
-                            <div className="space-y-1.5">
-                              <Label htmlFor={`user-edit-password-${user.id}`}>{tField("password")}</Label>
-                              <Input
-                                id={`user-edit-password-${user.id}`}
-                                autoComplete="new-password"
-                                {...editForm.register("password")}
-                                type="password"
-                                placeholder={t("passwordPlaceholder")}
-                                className={cn(editForm.formState.errors.password && "border-destructive")}
-                              />
-                              {editForm.formState.errors.password && (
-                                <p className="text-xs text-destructive">{tAuth("passwordTooShort")}</p>
-                              )}
-                            </div>
-                          )}
-                          {user.provider !== "credentials" && (
-                            <p className="text-xs text-muted-foreground bg-muted/50 rounded px-3 py-2">
-                              {t("ssoPasswordNotice")}
-                            </p>
-                          )}
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`user-edit-role-${user.id}`}>{tField("role")}</Label>
-                            <Select
-                              value={editRole}
-                              onValueChange={(v) => editForm.setValue("role", v as Role)}
-                            >
-                              <SelectTrigger id={`user-edit-role-${user.id}`}><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="VIEWER">{t("rolesViewer")}</SelectItem>
-                                <SelectItem value="EDITOR">{t("rolesEditor")}</SelectItem>
-                                <SelectItem value="MAINTAINER">{t("rolesMaintainer")}</SelectItem>
-                                <SelectItem value="ADMIN">{t("rolesAdmin")}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          {user.provider === "credentials" && (
-                            <div className="space-y-2 rounded-lg border p-3">
-                              <p className="text-xs font-medium text-muted-foreground">{t("securityOptions")}</p>
-                              <div className="flex items-center gap-2">
-                                <Checkbox
-                                  id={`edit-2fa-required-${user.id}`}
-                                  checked={editTwoFactorRequired ?? false}
-                                  onCheckedChange={(v) => editForm.setValue("twoFactorRequired", !!v)}
-                                />
-                                <Label htmlFor={`edit-2fa-required-${user.id}`} className="text-sm font-normal cursor-pointer">
-                                  {t("twoFactorRequired")}
-                                </Label>
-                              </div>
-                            </div>
-                          )}
-                          <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setEditUser(null)}>{tCommon("cancel")}</Button>
-                            <Button type="submit" disabled={editForm.formState.isSubmitting}>
-                              {editForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                              {tCommon("save")}
-                            </Button>
-                          </DialogFooter>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
+                      <Pencil className="h-3.5 w-3.5 text-primary" />
+                    </Button>
 
                     {/* Disable 2FA (admin override — no code required) */}
                     {user.provider === "credentials" && user.totpEnabled && (
@@ -494,7 +404,7 @@ export function UsersClient({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-[30px] w-[30px] border border-[#fecaca] rounded-md text-destructive hover:bg-red-50"
+                          className="h-[30px] w-[30px] border border-danger-border rounded-md text-destructive hover:bg-red-50"
                           title={t("deleteUser")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -526,6 +436,84 @@ export function UsersClient({
           </tbody>
         </table>
       </div>
+
+      <Dialog open={editUser !== null} onOpenChange={(open) => { if (!open) setEditUser(null); }}>
+        {editUser && (
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t("editUser")}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={editForm.handleSubmit(handleEdit)} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="user-edit-name">{tField("name")}</Label>
+                <Input id="user-edit-name" autoComplete="name" {...editForm.register("name")} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="user-edit-email">{tField("email")}</Label>
+                <Input id="user-edit-email" autoComplete="email" {...editForm.register("email")} type="email" />
+              </div>
+              {editUser.provider === "credentials" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="user-edit-password">{tField("password")}</Label>
+                  <Input
+                    id="user-edit-password"
+                    autoComplete="new-password"
+                    {...editForm.register("password")}
+                    type="password"
+                    placeholder={t("passwordPlaceholder")}
+                    className={cn(editForm.formState.errors.password && "border-destructive")}
+                  />
+                  {editForm.formState.errors.password && (
+                    <p className="text-xs text-destructive">{tAuth("passwordTooShort")}</p>
+                  )}
+                </div>
+              )}
+              {editUser.provider !== "credentials" && (
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded px-3 py-2">
+                  {t("ssoPasswordNotice")}
+                </p>
+              )}
+              <div className="space-y-1.5">
+                <Label htmlFor="user-edit-role">{tField("role")}</Label>
+                <Select
+                  value={editRole}
+                  onValueChange={(v) => editForm.setValue("role", v as Role)}
+                >
+                  <SelectTrigger id="user-edit-role"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="VIEWER">{t("rolesViewer")}</SelectItem>
+                    <SelectItem value="EDITOR">{t("rolesEditor")}</SelectItem>
+                    <SelectItem value="MAINTAINER">{t("rolesMaintainer")}</SelectItem>
+                    <SelectItem value="ADMIN">{t("rolesAdmin")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {editUser.provider === "credentials" && (
+                <div className="space-y-2 rounded-lg border p-3">
+                  <p className="text-xs font-medium text-muted-foreground">{t("securityOptions")}</p>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="edit-2fa-required"
+                      checked={editTwoFactorRequired ?? false}
+                      onCheckedChange={(v) => editForm.setValue("twoFactorRequired", !!v)}
+                    />
+                    <Label htmlFor="edit-2fa-required" className="text-sm font-normal cursor-pointer">
+                      {t("twoFactorRequired")}
+                    </Label>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setEditUser(null)}>{tCommon("cancel")}</Button>
+                <Button type="submit" disabled={editForm.formState.isSubmitting}>
+                  {editForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {tCommon("save")}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

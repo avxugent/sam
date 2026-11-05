@@ -16,6 +16,13 @@ describe("contentMatchesType()", () => {
     expect(contentMatchesType(Buffer.from("abcd"), "application/x-sh")).toBe(false);
   });
 
+  it("accepts short text files; only the first 512 bytes are scanned for NUL", () => {
+    expect(contentMatchesType(Buffer.from("ok"), "text/plain")).toBe(true);
+    expect(contentMatchesType(Buffer.from("a;b"), "text/csv")).toBe(true);
+    expect(contentMatchesType(Buffer.from([0x00]), "text/plain")).toBe(false);
+    expect(contentMatchesType(Buffer.concat([Buffer.alloc(512, 0x61), Buffer.from([0x00])]), "text/plain")).toBe(true);
+  });
+
   it("keeps the attachment allowlists aligned on PDF and images", () => {
     expect(ATTACHMENT_MIME_TYPES.has("application/pdf") && ATTACHMENT_EXTENSIONS.has(".pdf")).toBe(true);
     expect(ATTACHMENT_EXTENSIONS.has(".php")).toBe(false);

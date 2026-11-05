@@ -10,7 +10,8 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch as never;
 
 import { ReportViewer } from "@/components/reports/report-viewer";
-import type { AssetReportResult, ColumnKey } from "@/lib/reports/types";
+import type { AssetReportResult } from "@/lib/reports/types";
+import type { ColumnKey } from "@/lib/schemas/report";
 
 function row(over: Record<string, unknown> = {}) {
   return { id: "a1", model: "XPS", serialNumber: "SN1", hostname: "h1", type: "Laptop", manufacturer: "Dell", location: "Room 1", locationId: "l1", installationDate: null, invoiceDate: null, invoiceNumber: null, notes: null, lastChanged: null, ...over };

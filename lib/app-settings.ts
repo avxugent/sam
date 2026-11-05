@@ -13,18 +13,22 @@ export async function readSettings(keys: readonly string[], db: Db = prisma): Pr
 
 /**
  * Upserts every entry whose value is defined (undefined = "not part of this
- * update") in one transaction, so a group is never half-written, and returns
- * what was written, ready for an audit `detail`.
+ * update") and removes `deleteKeys`, all in one transaction, so a group is
+ * never half-written, and returns what was written, ready for an audit `detail`.
  */
-export async function writeSettings(entries: Record<string, string | undefined>): Promise<Record<string, string>> {
+export async function writeSettings(
+  entries: Record<string, string | undefined>,
+  deleteKeys: readonly string[] = []
+): Promise<Record<string, string>> {
   const written = Object.fromEntries(
     Object.entries(entries).filter((e): e is [string, string] => e[1] !== undefined)
   );
-  await prisma.$transaction(
-    Object.entries(written).map(([key, value]) =>
+  await prisma.$transaction([
+    ...Object.entries(written).map(([key, value]) =>
       prisma.appSetting.upsert({ where: { key }, update: { value }, create: { key, value } })
-    )
-  );
+    ),
+    ...(deleteKeys.length > 0 ? [prisma.appSetting.deleteMany({ where: { key: { in: [...deleteKeys] } } })] : []),
+  ]);
   return written;
 }
 
@@ -38,6 +42,19 @@ export async function deleteSettings(keys: readonly string[]): Promise<void> {
 // page, settings API, layouts, auth, asset defaults, compliance report) sees
 // the same values, including the maintenance scripts (purge-audit,
 // export-backup).
+
+/** The writeSettings() entries for the group fields present in `update`; null stores "". */
+function encodeGroup<F extends string>(
+  keys: Record<F, string>,
+  update: Partial<Record<F, string | number | boolean | null>>
+): Record<string, string | undefined> {
+  const entries: Record<string, string | undefined> = {};
+  for (const [field, key] of Object.entries(keys) as [F, string][]) {
+    const value = update[field];
+    if (value !== undefined) entries[key] = value === null ? "" : String(value);
+  }
+  return entries;
+}
 
 function intSetting(value: string | undefined, fallback: number): number {
   const n = parseInt(value ?? "", 10);
@@ -88,12 +105,7 @@ export async function readComplianceSetting<K extends keyof ComplianceSettings>(
 
 /** Writes the fields present in `update` (null clears an id); returns what was written. */
 export function writeComplianceSettings(update: Partial<ComplianceSettings>): Promise<Record<string, string>> {
-  const entries: Record<string, string | undefined> = {};
-  for (const [field, key] of Object.entries(COMPLIANCE_KEYS) as [keyof ComplianceSettings, string][]) {
-    const value = update[field];
-    if (value !== undefined) entries[key] = value === null ? "" : String(value);
-  }
-  return writeSettings(entries);
+  return writeSettings(encodeGroup(COMPLIANCE_KEYS, update));
 }
 
 const GENERAL_KEYS = {
@@ -116,12 +128,7 @@ export async function readGeneralSettings(): Promise<GeneralSettings> {
 
 /** Writes the templates present in `update` (null or "" clears one); returns what was written. */
 export function writeGeneralSettings(update: { [K in keyof GeneralSettings]?: string | null }): Promise<Record<string, string>> {
-  const entries: Record<string, string | undefined> = {};
-  for (const [field, key] of Object.entries(GENERAL_KEYS) as [keyof GeneralSettings, string][]) {
-    const value = update[field];
-    if (value !== undefined) entries[key] = value ?? "";
-  }
-  return writeSettings(entries);
+  return writeSettings(encodeGroup(GENERAL_KEYS, update));
 }
 
 /** Where each uploaded branding file is recorded: its storage key and content type. */
@@ -161,19 +168,19 @@ export async function readBrandingSettings(): Promise<BrandingSettings> {
 }
 
 /**
- * Writes the fields present in `update`; a background mode of "" (the default)
- * removes the stored setting. Returns what was written, ready for an audit
- * `detail` (a removed mode is recorded as "(none)").
+ * Writes the fields present in `update` in one transaction; a background mode
+ * of "" (the default) removes the stored setting. Returns what was written,
+ * ready for an audit `detail` (a removed mode is recorded as "(none)").
  */
 export async function writeBrandingSettings(update: {
   appTitle?: string;
   backgroundMode?: BackgroundMode;
 }): Promise<Record<string, string>> {
   const { appTitle, backgroundMode } = update;
-  const [written] = await Promise.all([
-    writeSettings({ [BRANDING_KEYS.appTitle]: appTitle, [BRANDING_KEYS.backgroundMode]: backgroundMode || undefined }),
-    backgroundMode === "" ? deleteSettings([BRANDING_KEYS.backgroundMode]) : null,
-  ]);
+  const written = await writeSettings(
+    { [BRANDING_KEYS.appTitle]: appTitle, [BRANDING_KEYS.backgroundMode]: backgroundMode || undefined },
+    backgroundMode === "" ? [BRANDING_KEYS.backgroundMode] : []
+  );
   return backgroundMode === "" ? { ...written, [BRANDING_KEYS.backgroundMode]: "(none)" } : written;
 }
 
@@ -198,10 +205,5 @@ export async function readExportSettings(): Promise<ExportSettings> {
 
 /** Writes the fields present in `update` (null stores an empty value, read back as the default); returns what was written. */
 export function writeExportSettings(update: { [K in keyof ExportSettings]?: ExportSettings[K] | null }): Promise<Record<string, string>> {
-  const entries: Record<string, string | undefined> = {};
-  for (const [field, key] of Object.entries(EXPORT_KEYS) as [keyof ExportSettings, string][]) {
-    const value = update[field];
-    if (value !== undefined) entries[key] = value === null ? "" : String(value);
-  }
-  return writeSettings(entries);
+  return writeSettings(encodeGroup(EXPORT_KEYS, update));
 }

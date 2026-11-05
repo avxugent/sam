@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     action: "UPDATE",
     entityType: "User",
     entityId: targetId,
-    entityName: user.email ?? undefined,
+    entityName: user.email,
     detail: {
       event: "2FA disabled",
       ...(isSelf ? {} : { adminOverride: true }),

@@ -69,7 +69,13 @@ export async function DELETE(
   if (!item) return notFoundResponse("Work log item");
 
   // onDelete: SetNull clears itemId on any work logs that referenced this item.
-  await prisma.workLogItem.delete({ where: { id } });
+  try {
+    await prisma.workLogItem.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Work log item");
+    throw err;
+  }
   await logAudit({
     session,
     req,

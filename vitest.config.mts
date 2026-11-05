@@ -32,9 +32,6 @@ export default defineConfig({
       exclude: [
         // Infrastructure / config — tested indirectly
         "lib/prisma.ts",
-        // Stateful clients not yet covered by component tests (there is no UI
-        // integration suite); remove an entry once the file has tests.
-        "components/attachments/attachment-gallery.tsx",
         "**/*.d.ts",
         "**/__tests__/**",
         "**/node_modules/**",

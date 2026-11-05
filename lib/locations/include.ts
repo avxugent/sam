@@ -19,5 +19,14 @@ export const LOCATION_PAGE_INCLUDE = {
   },
 } satisfies Prisma.LocationInclude;
 
+/**
+ * A location and its children, each with the units of INSTALLED assets placed
+ * directly in it (summed quantity; `_count.assets` stays the asset-row count).
+ */
+export type WithInstalledUnits<L extends { children: object[] }> = Omit<L, "children"> & {
+  installedUnits: number;
+  children: (L["children"][number] & { installedUnits: number })[];
+};
+
 /** A location as the page passes it to LocationDetailClient. */
-export type LocationPageData = Prisma.LocationGetPayload<{ include: typeof LOCATION_PAGE_INCLUDE }>;
+export type LocationPageData = WithInstalledUnits<Prisma.LocationGetPayload<{ include: typeof LOCATION_PAGE_INCLUDE }>>;

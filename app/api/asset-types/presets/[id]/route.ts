@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { updatePresetSchema } from "@/lib/schemas/work-log";
 import { isAdmin } from "@/lib/permissions";
-import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 export async function PUT(
   req: NextRequest,
@@ -16,7 +16,7 @@ export async function PUT(
 
   const { id } = await params;
   const existing = await prisma.maintenancePreset.findUnique({ where: { id } });
-  if (!existing) return notFoundResponse();
+  if (!existing) return notFoundResponse("Preset");
 
   const body = await readJsonBody(req);
   const parsed = updatePresetSchema.safeParse(body);
@@ -24,13 +24,20 @@ export async function PUT(
     return invalidInput(parsed.error);
   }
 
-  const updated = await prisma.maintenancePreset.update({
-    where: { id },
-    data: {
-      name: parsed.data.name,
-      description: parsed.data.description,
-    },
-  });
+  let updated;
+  try {
+    updated = await prisma.maintenancePreset.update({
+      where: { id },
+      data: {
+        name: parsed.data.name,
+        description: parsed.data.description,
+      },
+    });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Preset");
+    throw err;
+  }
 
   await logAudit({
     session,
@@ -54,9 +61,15 @@ export async function DELETE(
 
   const { id } = await params;
   const existing = await prisma.maintenancePreset.findUnique({ where: { id } });
-  if (!existing) return notFoundResponse();
+  if (!existing) return notFoundResponse("Preset");
 
-  await prisma.maintenancePreset.delete({ where: { id } });
+  try {
+    await prisma.maintenancePreset.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Preset");
+    throw err;
+  }
   await logAudit({
     session,
     req,

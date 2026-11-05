@@ -16,7 +16,7 @@ type CardKey =
   | "auditBacklog";
 
 function countColor(count: number): string {
-  return count === 0 ? "text-[#16a34a]" : "text-destructive";
+  return count === 0 ? "text-success-foreground" : "text-destructive";
 }
 
 function StatCard({

@@ -9,7 +9,7 @@
  * prefix and removed afterwards.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { cleanup, leftovers, newTag, testSession } from "./fixtures";
+import { cleanup, leftovers, newTag, testFiNumber, testSession } from "./fixtures";
 
 const enabled = process.env.RUN_DB_TESTS === "1";
 
@@ -24,7 +24,7 @@ describe.runIf(enabled)("asset transitions (integration)", () => {
   beforeAll(async () => {
     ({ prisma } = await import("@/lib/prisma"));
     lib = await import("@/lib/assets/transitions");
-    const room = await prisma.location.create({ data: { name: `${tag} room`, fiNumber: `98.98.${String(Date.now()).slice(-3)}.002` } });
+    const room = await prisma.location.create({ data: { name: `${tag} room`, fiNumber: testFiNumber("98.98") } });
     const store = await prisma.location.create({ data: { name: `${tag} store` } });
     const type = await prisma.assetType.create({ data: { name: `${tag} type` } });
     const model = await prisma.model.create({ data: { name: `${tag} model`, typeId: type.id } });
@@ -45,7 +45,7 @@ describe.runIf(enabled)("asset transitions (integration)", () => {
     const asset = await newAsset();
     const existing = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id }, select: lib.DECOMMISSION_SELECT });
 
-    const done = await lib.decommissionAsset(req, session, asset.id, existing, { note: "broken", disposalMethod: "WIPED" });
+    const done = await lib.decommissionAsset(req, session, existing, { note: "broken", disposalMethod: "WIPED" });
     expect(done).not.toBeNull();
     const row = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } });
     expect(row).toMatchObject({
@@ -59,7 +59,7 @@ describe.runIf(enabled)("asset transitions (integration)", () => {
     expect(await auditFor(asset.id)).toMatchObject([{ action: "UPDATE", entityType: "Asset", lineageId: asset.lineageId }]);
 
     // Same request again: the guard still expects INSTALLED, the row is DECOMMISSIONED.
-    expect(await lib.decommissionAsset(req, session, asset.id, existing, { disposalMethod: "DESTROYED" })).toBeNull();
+    expect(await lib.decommissionAsset(req, session, existing, { disposalMethod: "DESTROYED" })).toBeNull();
     expect((await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })).disposalMethod).toBe("WIPED");
     expect(await auditFor(asset.id)).toHaveLength(1);
   });
@@ -68,26 +68,26 @@ describe.runIf(enabled)("asset transitions (integration)", () => {
     const asset = await newAsset({ status: "DECOMMISSIONED", disposalMethod: "RESOLD", decommissionedAt: new Date() });
     const existing = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id }, select: lib.REPAIR_SELECT });
 
-    expect(await lib.reinstateAsset(req, session, asset.id, existing)).not.toBeNull();
+    expect(await lib.reinstateAsset(req, session, existing)).not.toBeNull();
     expect(await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })).toMatchObject({
       status: "INSTALLED",
       disposalMethod: null,
       decommissionedAt: null,
     });
-    expect(await lib.reinstateAsset(req, session, asset.id, existing)).toBeNull();
+    expect(await lib.reinstateAsset(req, session, existing)).toBeNull();
   });
 
   it("sendAssetForRepair sets IN_REPAIR and audits; a stale status is a no-op", async () => {
     const asset = await newAsset();
     const existing = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id }, select: lib.REPAIR_SELECT });
 
-    expect(await lib.sendAssetForRepair(req, session, asset.id, existing, { note: "screen" })).not.toBeNull();
+    expect(await lib.sendAssetForRepair(req, session, existing, { note: "screen" })).not.toBeNull();
     expect(await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })).toMatchObject({
       status: "IN_REPAIR",
       repairNote: "screen",
       sentForRepairById: session.user.id,
     });
-    expect(await lib.sendAssetForRepair(req, session, asset.id, existing, { note: "again" })).toBeNull();
+    expect(await lib.sendAssetForRepair(req, session, existing, { note: "again" })).toBeNull();
     expect((await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })).repairNote).toBe("screen");
     expect(await auditFor(asset.id)).toHaveLength(1);
   });
@@ -101,7 +101,7 @@ describe.runIf(enabled)("asset transitions (integration)", () => {
     });
     const candidate = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id }, include: lib.RETURN_TO_STOCK_INCLUDE });
 
-    const item = await lib.returnAssetToStock(req, session, { ...candidate, typeId: ids.typeId, modelId: ids.modelId }, ids.store);
+    const item = await lib.returnAssetToStock(req, session, { ...candidate, typeId: ids.typeId, modelId: ids.modelId }, { locationId: ids.store });
     expect(item).not.toBeNull();
     expect(await prisma.asset.findUnique({ where: { id: asset.id } })).toBeNull();
     expect(await prisma.macAddress.count({ where: { assetId: asset.id } })).toBe(0);
@@ -121,7 +121,7 @@ describe.runIf(enabled)("asset transitions (integration)", () => {
     const candidate = await prisma.asset.findUniqueOrThrow({ where: { id: asset.id }, include: lib.RETURN_TO_STOCK_INCLUDE });
     await prisma.asset.update({ where: { id: asset.id }, data: { status: "IN_REPAIR" } });
 
-    const item = await lib.returnAssetToStock(req, session, { ...candidate, typeId: ids.typeId, modelId: ids.modelId }, ids.store);
+    const item = await lib.returnAssetToStock(req, session, { ...candidate, typeId: ids.typeId, modelId: ids.modelId }, { locationId: ids.store });
     expect(item).toBeNull();
     expect((await prisma.asset.findUniqueOrThrow({ where: { id: asset.id } })).status).toBe("IN_REPAIR");
     expect(await prisma.stockItem.count({ where: { lineageId: asset.lineageId } })).toBe(0);
@@ -132,7 +132,8 @@ describe.runIf(enabled)("asset transitions (integration)", () => {
     const stock = await prisma.stockItem.create({ data: { typeId: ids.typeId, modelId: ids.modelId, quantity: 3, locationId: ids.store } });
     const candidate = await prisma.stockItem.findUniqueOrThrow({ where: { id: stock.id }, include: lib.DEPLOY_INCLUDE });
 
-    const created = await lib.deployStockItem(req, session, candidate, { id: ids.room, name: `${tag} room` }, {
+    const created = await lib.deployStockItem(req, session, candidate, {
+      location: { id: ids.room, name: `${tag} room` },
       quantity: 2,
       serialNumbers: [`${tag}-s1`, `${tag}-s2`],
     });
@@ -155,7 +156,7 @@ describe.runIf(enabled)("asset transitions (integration)", () => {
     });
     const candidate = await prisma.stockItem.findUniqueOrThrow({ where: { id: stock.id }, include: lib.DEPLOY_INCLUDE });
 
-    const created = await lib.deployStockItem(req, session, candidate, { id: ids.room, name: `${tag} room` }, { quantity: 1 });
+    const created = await lib.deployStockItem(req, session, candidate, { location: { id: ids.room, name: `${tag} room` }, quantity: 1 });
     expect(created).toHaveLength(1);
     expect(await prisma.stockItem.findUnique({ where: { id: stock.id } })).toBeNull();
     const asset = await prisma.asset.findUniqueOrThrow({ where: { id: created![0].id }, include: { macAddresses: true } });
@@ -173,7 +174,7 @@ describe.runIf(enabled)("asset transitions (integration)", () => {
     for (const quantity of [1, 3]) {
       // 1 → guarded update, 3 → guarded delete; both lose the race.
       const assetsBefore = await prisma.asset.count({ where: { locationId: ids.room } });
-      expect(await lib.deployStockItem(req, session, candidate, { id: ids.room, name: `${tag} room` }, { quantity })).toBeNull();
+      expect(await lib.deployStockItem(req, session, candidate, { location: { id: ids.room, name: `${tag} room` }, quantity })).toBeNull();
       expect(await prisma.asset.count({ where: { locationId: ids.room } })).toBe(assetsBefore);
       expect((await prisma.stockItem.findUniqueOrThrow({ where: { id: stock.id } })).quantity).toBe(2);
     }

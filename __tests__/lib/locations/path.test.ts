@@ -9,12 +9,12 @@ vi.mock("@/lib/prisma", () => ({
 
 import {
   getAllDescendantLocationIds,
-  getRecursiveAssetCounts,
+  getInstalledUnitTotals,
   getSubtreeIdsDeepestFirst,
   locationBreadcrumbs,
   getLocationAncestors,
   getAncestorChainsBatch,
-  buildLocationPathsFromRows,
+  locationBreadcrumbsFromRows,
 } from "@/lib/locations/path";
 import { prisma } from "@/lib/prisma";
 
@@ -87,7 +87,7 @@ describe("getAncestorChainsBatch()", () => {
   });
 });
 
-describe("buildLocationPathsFromRows()", () => {
+describe("locationBreadcrumbsFromRows()", () => {
   const rows = [
     { id: "c14", name: "Campus 14", parentId: null },
     { id: "b10", name: "Building 10", parentId: "c14" },
@@ -95,38 +95,38 @@ describe("buildLocationPathsFromRows()", () => {
   ];
 
   it("builds a ' › ' breadcrumb for every row", () => {
-    const result = buildLocationPathsFromRows(rows);
+    const result = locationBreadcrumbsFromRows(rows);
     expect(result.get("room")).toBe("Campus 14 › Building 10 › Room");
     expect(result.get("c14")).toBe("Campus 14");
   });
 
   it("falls back to just the row's own name if its parent isn't in the row set", () => {
-    const result = buildLocationPathsFromRows([{ id: "orphan", name: "Orphan", parentId: "missing-parent" }]);
+    const result = locationBreadcrumbsFromRows([{ id: "orphan", name: "Orphan", parentId: "missing-parent" }]);
     expect(result.get("orphan")).toBe("Orphan");
   });
 });
 
-// ── getRecursiveAssetCounts ──────────────────────────────────────────────────
+// ── getInstalledUnitTotals ──────────────────────────────────────────────────
 
-describe("getRecursiveAssetCounts()", () => {
+describe("getInstalledUnitTotals()", () => {
   it("maps BigInt totals to numbers keyed by location id", async () => {
     mockQueryRaw.mockResolvedValueOnce([
-      { id: "root", totalAssets: BigInt(7) },
-      { id: "leaf", totalAssets: BigInt(0) },
+      { id: "root", installedUnits: BigInt(7) },
+      { id: "leaf", installedUnits: BigInt(0) },
     ] as never);
-    expect(await getRecursiveAssetCounts()).toEqual({ root: 7, leaf: 0 });
+    expect(await getInstalledUnitTotals()).toEqual({ root: 7, leaf: 0 });
   });
 
   it("skips the query for an empty root list", async () => {
     mockQueryRaw.mockClear();
-    expect(await getRecursiveAssetCounts([])).toEqual({});
+    expect(await getInstalledUnitTotals([])).toEqual({});
     expect(mockQueryRaw).not.toHaveBeenCalled();
   });
 
   it("scopes the roots when ids are given", async () => {
     mockQueryRaw.mockClear();
-    mockQueryRaw.mockResolvedValueOnce([{ id: "root", totalAssets: BigInt(2) }] as never);
-    expect(await getRecursiveAssetCounts(["root"])).toEqual({ root: 2 });
+    mockQueryRaw.mockResolvedValueOnce([{ id: "root", installedUnits: BigInt(2) }] as never);
+    expect(await getInstalledUnitTotals(["root"])).toEqual({ root: 2 });
     expect(JSON.stringify(mockQueryRaw.mock.calls[0])).toContain("root");
   });
 });

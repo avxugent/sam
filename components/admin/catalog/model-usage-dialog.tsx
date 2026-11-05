@@ -23,6 +23,7 @@ export function ModelUsageDialog({
   onClose: () => void;
 }) {
   const t = useTranslations("models");
+  const tCommon = useTranslations("common");
   const showApiError = useApiErrorToast();
   const [assets, setAssets] = useState<UsageAsset[]>([]);
   const [stockItems, setStockItems] = useState<UsageStockItem[]>([]);
@@ -56,8 +57,8 @@ export function ModelUsageDialog({
           <DialogTitle>{model?.name}</DialogTitle>
         </DialogHeader>
         {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <div role="status" aria-label={tCommon("loading")} className="flex justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
           </div>
         ) : (
           <div className="space-y-4 overflow-auto max-h-[60vh]">

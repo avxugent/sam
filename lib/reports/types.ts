@@ -1,18 +1,6 @@
 import type { LocationReportDefinition, ReportDefinition } from "@/lib/schemas/report";
 import type { Criticality } from "@/generated/prisma/enums";
 
-// Definition types are inferred from the Zod schemas in lib/schemas/report.ts.
-export type {
-  FilterOp,
-  ReportFilterField,
-  ReportFilter,
-  GroupByField,
-  ColumnKey,
-  AssetReportDefinition,
-  LocationReportDefinition,
-  ReportDefinition,
-} from "@/lib/schemas/report";
-
 export type ReportSource = ReportDefinition["source"];
 
 export type LocationReportStatus = LocationReportDefinition["status"];

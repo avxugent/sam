@@ -7,17 +7,16 @@
 
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getLocationPathsBatch } from "@/lib/locations/path";
+import { locationExportPathsBatch } from "@/lib/locations/path";
 import { ancestorChain } from "@/lib/locations/tree";
 import { escapeCsvCell } from "@/lib/csv/core";
 import { toIsoDay } from "@/lib/dates";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
 import { userNamesById } from "@/lib/users/names";
-import { isLocationReport, type ColumnKey, type ReportDefinition, type ReportResult } from "@/lib/reports/types";
+import { isLocationReport, type ReportResult } from "@/lib/reports/types";
+import type { ColumnKey, ReportDefinition } from "@/lib/schemas/report";
 import type { TypeCompliance } from "@/lib/compliance/hostname-report";
 import { ASSET_CSV_COLUMNS, CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
-
-const COLUMNS = ASSET_CSV_COLUMNS;
 
 /**
  * Owner is exported as email (unique + re-importable). Soft ref — deleted
@@ -68,7 +67,7 @@ function locationCells(loc: LocationRow, locationMap: Map<string, LocationRow>):
   return [hierarchy.campus, hierarchy.building, hierarchy.room || loc.name, loc.fiNumber ?? ""];
 }
 
-/** One cell per entry in COLUMNS. */
+/** One cell per entry in ASSET_CSV_COLUMNS. */
 function assetCells(
   asset: ExportAsset,
   locationMap: Map<string, LocationRow>,
@@ -100,6 +99,17 @@ function csvLine(cells: string[]): string {
   return cells.map((cell) => escapeCsvCell(cell)).join(";");
 }
 
+function toCsv(header: string[], rows: string[][]): string {
+  return [header, ...rows].map(csvLine).join("\r\n");
+}
+
+async function loadLocationMap(): Promise<Map<string, LocationRow>> {
+  const locations = await prisma.location.findMany({
+    select: { id: true, name: true, fiNumber: true, parentId: true },
+  });
+  return new Map(locations.map((l) => [l.id, l]));
+}
+
 /**
  * Import-compatible inventory export of installed assets only (in-repair and
  * decommissioned assets are not current inventory for re-import purposes and
@@ -107,11 +117,7 @@ function csvLine(cells: string[]): string {
  * empty asset fields per leaf location without installed assets.
  */
 export async function generateActiveAssetsCsv(): Promise<string> {
-  // Fetch all locations into a map for hierarchy lookup
-  const allLocations = await prisma.location.findMany({
-    select: { id: true, name: true, fiNumber: true, parentId: true },
-  });
-  const locationMap = new Map<string, LocationRow>(allLocations.map((l) => [l.id, l]));
+  const locationMap = await loadLocationMap();
 
   const assets = await prisma.asset.findMany({
     where: { status: "INSTALLED" },
@@ -121,30 +127,23 @@ export async function generateActiveAssetsCsv(): Promise<string> {
 
   const ownerEmailById = await buildOwnerEmailMap(assets.map((a) => a.ownerId));
 
-  const rows: string[] = [COLUMNS.join(";")];
-
-  // Track locations that have assets so we can add asset-less locations at the end
-  const locationsWithAssets = new Set<string>();
-
-  for (const asset of assets) {
-    locationsWithAssets.add(asset.location.id);
-    rows.push(csvLine(assetCells(asset, locationMap, ownerEmailById)));
-  }
+  const rows = assets.map((asset) => assetCells(asset, locationMap, ownerEmailById));
 
   // Leaf locations (rooms) without assets: export as rows with empty asset fields
-  const parentIds = new Set(allLocations.map((l) => l.parentId));
-  for (const loc of allLocations) {
+  const locationsWithAssets = new Set(assets.map((a) => a.location.id));
+  const parentIds = new Set([...locationMap.values()].map((l) => l.parentId));
+  for (const loc of locationMap.values()) {
     if (locationsWithAssets.has(loc.id) || parentIds.has(loc.id)) continue;
 
     const cells = locationCells(loc, locationMap);
-    rows.push(csvLine([...cells, ...Array(COLUMNS.length - cells.length).fill("")]));
+    rows.push([...cells, ...Array(ASSET_CSV_COLUMNS.length - cells.length).fill("")]);
   }
 
-  return rows.join("\r\n");
+  return toCsv(ASSET_CSV_COLUMNS, rows);
 }
 
 const DECOMMISSIONED_COLUMNS = [
-  ...COLUMNS,
+  ...ASSET_CSV_COLUMNS,
   "DECOMMISSIONED_AT", "DECOMMISSION_NOTE", "DISPOSAL_METHOD", "DECOMMISSIONED_BY", "LAST_LOCATION", "LAST_FI_NUMBER",
 ];
 
@@ -154,10 +153,7 @@ const DECOMMISSIONED_COLUMNS = [
  * location; the LAST_* columns are the snapshot captured at decommission time.
  */
 export async function generateDecommissionedCsv(): Promise<string> {
-  const allLocations = await prisma.location.findMany({
-    select: { id: true, name: true, fiNumber: true, parentId: true },
-  });
-  const locationMap = new Map<string, LocationRow>(allLocations.map((l) => [l.id, l]));
+  const locationMap = await loadLocationMap();
 
   const assets = await prisma.asset.findMany({
     where: { status: "DECOMMISSIONED" },
@@ -171,25 +167,19 @@ export async function generateDecommissionedCsv(): Promise<string> {
   // users fall back to the raw id so the evidence is never blank.
   const decommissionerNameById = await userNamesById(assets.map((a) => a.decommissionedById));
 
-  const rows: string[] = [DECOMMISSIONED_COLUMNS.join(";")];
+  const rows = assets.map((asset) => [
+    ...assetCells(asset, locationMap, ownerEmailById),
+    formatDateCell(asset.decommissionedAt),
+    asset.decommissionNote ?? "",
+    asset.disposalMethod ?? "",
+    asset.decommissionedById
+      ? decommissionerNameById.get(asset.decommissionedById) ?? asset.decommissionedById
+      : "",
+    asset.lastLocationName ?? "",
+    asset.lastLocationFiNumber ?? "",
+  ]);
 
-  for (const asset of assets) {
-    rows.push(
-      csvLine([
-        ...assetCells(asset, locationMap, ownerEmailById),
-        formatDateCell(asset.decommissionedAt),
-        asset.decommissionNote ?? "",
-        asset.disposalMethod ?? "",
-        asset.decommissionedById
-          ? decommissionerNameById.get(asset.decommissionedById) ?? asset.decommissionedById
-          : "",
-        asset.lastLocationName ?? "",
-        asset.lastLocationFiNumber ?? "",
-      ])
-    );
-  }
-
-  return rows.join("\r\n");
+  return toCsv(DECOMMISSIONED_COLUMNS, rows);
 }
 
 const STOCK_COLUMNS = [
@@ -216,7 +206,7 @@ export async function generateStockCsv(): Promise<string> {
   const storageIds = [
     ...new Set(items.map((i) => i.locationId).filter((id): id is string => !!id)),
   ];
-  const pathMap = await getLocationPathsBatch([...new Set([...reservedIds, ...storageIds])]);
+  const pathMap = await locationExportPathsBatch([...new Set([...reservedIds, ...storageIds])]);
   const reservedLocations = reservedIds.length
     ? await prisma.location.findMany({
         where: { id: { in: reservedIds } },
@@ -225,9 +215,7 @@ export async function generateStockCsv(): Promise<string> {
     : [];
   const fiById = new Map(reservedLocations.map((l) => [l.id, l.fiNumber]));
 
-  const rows: string[] = [STOCK_COLUMNS.join(";")];
-
-  for (const item of items) {
+  const rows = items.map((item) => {
     const storageLocation = item.locationId ? pathMap.get(item.locationId) ?? "" : "";
     const reservedFor = item.reservedForLocationId
       ? pathMap.get(item.reservedForLocationId) ?? ""
@@ -236,7 +224,7 @@ export async function generateStockCsv(): Promise<string> {
       ? fiById.get(item.reservedForLocationId) ?? ""
       : "";
 
-    const cells = [
+    return [
       item.type?.name ?? "",
       item.manufacturer?.name ?? "",
       item.model?.name ?? "",
@@ -250,11 +238,9 @@ export async function generateStockCsv(): Promise<string> {
       formatDateCell(item.invoiceDate),
       item.invoiceNumber ?? "",
     ];
+  });
 
-    rows.push(csvLine(cells));
-  }
-
-  return rows.join("\r\n");
+  return toCsv(STOCK_COLUMNS, rows);
 }
 
 const USER_COLUMNS = [
@@ -277,22 +263,17 @@ export function generateUsersCsv(
     lastLoginAt: Date | null;
   }>
 ): string {
-  const rows: string[] = [USER_COLUMNS.join(";")];
+  const rows = users.map((user) => [
+    user.name,
+    user.email,
+    user.role,
+    user.provider,
+    user.totpEnabled ? "yes" : "no",
+    user.twoFactorRequired ? "yes" : "no",
+    user.lastLoginAt ? user.lastLoginAt.toISOString() : "",
+  ]);
 
-  for (const user of users) {
-    const cells = [
-      user.name,
-      user.email,
-      user.role,
-      user.provider,
-      user.totpEnabled ? "yes" : "no",
-      user.twoFactorRequired ? "yes" : "no",
-      user.lastLoginAt ? user.lastLoginAt.toISOString() : "",
-    ];
-    rows.push(csvLine(cells));
-  }
-
-  return rows.join("\r\n");
+  return toCsv(USER_COLUMNS, rows);
 }
 
 const REPORT_COLUMN_LABELS: Record<ColumnKey, string> = {
@@ -331,12 +312,12 @@ export function generateReportCsv(definition: ReportDefinition, result: ReportRe
         return status?.date ? `Overdue (${status.date})` : "Not filled";
       }),
     ]);
-    return [header, ...rows].map(csvLine).join("\r\n");
+    return toCsv(header, rows);
   }
   if (isLocationReport(definition)) throw new Error("Report result does not match its definition");
   const header = definition.columns.map((c) => REPORT_COLUMN_LABELS[c]);
   const rows = result.rows.map((row) => definition.columns.map((c) => (row[c] as string | null) ?? ""));
-  return [header, ...rows].map(csvLine).join("\r\n");
+  return toCsv(header, rows);
 }
 
 const HOSTNAME_COMPLIANCE_COLUMNS = ["TYPE", "PATTERN", "HOSTNAME", "MODEL", "SERIAL", "LOCATION", "FI_NUMBER"];
@@ -354,5 +335,5 @@ export function generateHostnameComplianceCsv(types: TypeCompliance[]): string {
       a.fiNumber ?? "",
     ])
   );
-  return [HOSTNAME_COMPLIANCE_COLUMNS, ...rows].map(csvLine).join("\r\n");
+  return toCsv(HOSTNAME_COMPLIANCE_COLUMNS, rows);
 }

@@ -31,7 +31,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getStorageDriver, StorageNotFoundError } from "@/lib/uploads/storage";
 import { POST } from "@/app/api/attachments/route";
-import { GET, DELETE, PATCH } from "@/app/api/attachments/[id]/route";
+import { GET, DELETE, PUT } from "@/app/api/attachments/[id]/route";
 
 const mockAuth = vi.mocked(auth);
 const mockFindUnique = vi.mocked(prisma.attachment.findUnique);
@@ -373,13 +373,13 @@ describe("GET /api/attachments/[id]", () => {
   });
 });
 
-// ── PATCH /api/attachments/[id] ──────────────────────────────────────────────
+// ── PUT /api/attachments/[id] ──────────────────────────────────────────────
 
-describe("PATCH /api/attachments/[id]", () => {
+describe("PUT /api/attachments/[id]", () => {
   function patch(body: object) {
-    return PATCH(
+    return PUT(
       new NextRequest("http://x/api/attachments/a", {
-        method: "PATCH",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       }),

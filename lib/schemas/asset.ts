@@ -56,14 +56,16 @@ export function hasDeviceIdentity(asset: { serialNumber?: string | null; hostnam
 
 export const IDENTITY_QUANTITY_MESSAGE = "Quantity must be 1 when a serial number, hostname, or MAC address is set.";
 
-/** A hostname is only meaningful (DHCP, monitoring) with at least one MAC. */
+export const HOSTNAME_MAC_MESSAGE = "At least one MAC address is required when hostname is set.";
+
+/**
+ * A hostname is only meaningful (DHCP, monitoring) with at least one MAC.
+ * Checked by the create schema; the update route checks it against the merged
+ * before/after values, since a partial update may carry only one side.
+ */
 function requireMacForHostname(data: IdentityFields, ctx: z.RefinementCtx) {
   if (data.hostname && !data.macAddresses?.length) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["macAddresses"],
-      message: "At least one MAC address is required when hostname is set.",
-    });
+    ctx.addIssue({ code: "custom", path: ["macAddresses"], message: HOSTNAME_MAC_MESSAGE });
   }
 }
 
@@ -82,5 +84,4 @@ export const createAssetSchema = assetFields
 
 export const updateAssetSchema = assetFields
   .partial()
-  .extend({ locationId: z.string().max(MAX_ID_LENGTH).optional() })
-  .superRefine(requireMacForHostname);
+  .extend({ locationId: z.string().max(MAX_ID_LENGTH).optional() });

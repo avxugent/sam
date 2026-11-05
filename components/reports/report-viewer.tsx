@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
-import type { AssetReportResult, ColumnKey } from "@/lib/reports/types";
+import type { AssetReportResult, ReportRow } from "@/lib/reports/types";
+import type { ColumnKey } from "@/lib/schemas/report";
 import { ReportToolbar } from "@/components/reports/report-toolbar";
 import { useColumnLabels } from "@/components/reports/use-column-labels";
+import { useTableSort } from "@/components/ui/use-row-selection";
 
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
@@ -29,14 +31,6 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
   const t = useTranslations("report");
   const tCommon = useTranslations("common");
   const [search, setSearch] = useState("");
-  const [sortCol, setSortCol] = useState<ColumnKey | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-
-  function handleSort(col: ColumnKey) {
-    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortCol(col); setSortDir("asc"); }
-  }
-
   const columnLabels = useColumnLabels();
 
   const filtered = result.rows.filter((row) => {
@@ -45,14 +39,11 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
     return columns.some((col) => (row[col] as string | null)?.toLowerCase().includes(q));
   });
 
-  const sorted = useMemo(() => {
-    if (!sortCol) return filtered;
-    return [...filtered].sort((a, b) => {
-      const av = String(a[sortCol] ?? "");
-      const bv = String(b[sortCol] ?? "");
-      return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
-    });
-  }, [filtered, sortCol, sortDir]);
+  const sortKeys = useMemo(
+    () => Object.fromEntries(columns.map((col) => [col, (row: ReportRow) => String(row[col] ?? "")])) as Record<ColumnKey, (row: ReportRow) => string>,
+    [columns],
+  );
+  const { sortCol, sortDir, handleSort, sorted } = useTableSort(filtered, sortKeys);
 
   return (
     <div className="space-y-5">

@@ -47,7 +47,7 @@ function EditForm({ attachment, onClose, onSaved }: { attachment: Attachment; on
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const res = await apiFetch<Attachment>(`/api/attachments/${attachment.id}`, jsonBody("PATCH", {
+    const res = await apiFetch<Attachment>(`/api/attachments/${attachment.id}`, jsonBody("PUT", {
       displayName: displayName.trim() || null,
       description: description.trim() || null,
       ...(isLink && { url: url.trim() || null }),

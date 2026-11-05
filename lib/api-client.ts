@@ -1,10 +1,4 @@
-/**
- * fetch() for client components talking to our own JSON API. Never throws:
- * a network failure comes back as `{ ok: false, status: 0 }` and a missing or
- * non-JSON body as `{}`, so callers handle every outcome in one `if (!r.ok)`
- * and a loading flag can never get stuck on a rejected promise. Show
- * `r.error` with apiErrorMessage() below.
- */
+/** The JSON body of a failed API response (see apiErrorMessage()). */
 export type ApiErrorBody = { error?: string; code?: string; details?: unknown } & Record<string, unknown>;
 
 /**
@@ -25,6 +19,13 @@ export type ApiResult<T> =
   | { ok: true; status: number; data: T }
   | { ok: false; status: number; error: ApiErrorBody };
 
+/**
+ * fetch() for client components talking to our own JSON API. Never throws:
+ * a network failure comes back as `{ ok: false, status: 0 }` and a missing or
+ * non-JSON body as `{}`, so callers handle every outcome in one `if (!r.ok)`
+ * and a loading flag can never get stuck on a rejected promise. Show
+ * `r.error` with apiErrorMessage().
+ */
 export async function apiFetch<T = unknown>(url: string, init?: RequestInit): Promise<ApiResult<T>> {
   let res: Response;
   try {
@@ -44,7 +45,7 @@ export async function apiFetch<T = unknown>(url: string, init?: RequestInit): Pr
 }
 
 /** RequestInit for a JSON request body. */
-export function jsonBody(method: "POST" | "PUT" | "PATCH" | "DELETE", body: unknown): RequestInit {
+export function jsonBody(method: "POST" | "PUT" | "DELETE", body: unknown): RequestInit {
   return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
 }
 

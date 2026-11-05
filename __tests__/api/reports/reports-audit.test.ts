@@ -9,10 +9,6 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
-vi.mock("@/lib/schemas/report", () => ({
-  createReportSchema: { safeParse: (b: unknown) => ({ success: true, data: b }) },
-  updateReportSchema: { safeParse: (b: unknown) => ({ success: true, data: b }) },
-}));
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -22,6 +18,14 @@ import { PUT as updateReport, DELETE as deleteReport } from "@/app/api/reports/[
 
 const mockAuth = vi.mocked(auth);
 const mockLogAudit = vi.mocked(logAudit);
+
+// A definition the real createReportSchema accepts.
+const DEFINITION = {
+  source: "asset",
+  filters: [{ field: "installationDate", op: "olderThanYears", value: "5" }],
+  groupBy: "type",
+  columns: ["model", "hostname"],
+};
 
 function session(role: "ADMIN" | "EDITOR" | "VIEWER" = "ADMIN") {
   return { user: { id: "u1", role, name: "T", email: "t@test.com" } };
@@ -43,9 +47,13 @@ describe("audit — report CRUD", () => {
     vi.mocked(prisma.report.create).mockResolvedValue({ id: "r1", name: "Q1" } as never);
 
     const res = await createReport(
-      req("http://localhost/api/reports", { name: "Q1", description: "", definition: {} })
+      req("http://localhost/api/reports", { name: "Q1", description: "", definition: DEFINITION })
     );
     expect(res.status).toBe(201);
+    expect(vi.mocked(prisma.report.create).mock.calls[0][0].data).toMatchObject({
+      name: "Q1",
+      definition: JSON.stringify(DEFINITION),
+    });
     expect(mockLogAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "CREATE", entityType: "Report", entityId: "r1", entityName: "Q1" })
     );
@@ -69,6 +77,16 @@ describe("audit — report CRUD", () => {
         detail: { changes: { Name: { from: "Old", to: "New" } } },
       })
     );
+  });
+
+  it("rejects an invalid definition before writing or auditing", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    const res = await createReport(
+      req("http://localhost/api/reports", { name: "Q1", definition: { ...DEFINITION, columns: [] } })
+    );
+    expect(res.status).toBe(400);
+    expect(prisma.report.create).not.toHaveBeenCalled();
+    expect(mockLogAudit).not.toHaveBeenCalled();
   });
 
   it("logs DELETE on Report", async () => {

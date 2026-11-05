@@ -28,11 +28,12 @@ beforeEach(() => {
 describe("withInstalledQuantities()", () => {
   it("replaces row counts with installed units, directly per location and over the subtree", async () => {
     const result = await withInstalledQuantities(location, ["room", "c1", "c2", "c1-shelf"]);
-    expect(result.subtreeAssetCount).toBe(42);
-    expect(result.location._count).toEqual({ assets: 20, children: 2, attachments: 1 });
-    expect(result.location.children.map((c) => [c.id, c._count.assets, c._count.children])).toEqual([
-      ["c1", 2, 0],
-      ["c2", 0, 0], // no installed units placed directly in it
+    expect(result.subtreeInstalledUnits).toBe(42);
+    expect(result.location.installedUnits).toBe(20);
+    expect(result.location._count).toEqual({ assets: 3, children: 2, attachments: 1 });
+    expect(result.location.children.map((c) => [c.id, c.installedUnits])).toEqual([
+      ["c1", 2],
+      ["c2", 0], // no installed units placed directly in it
     ]);
     expect(result.location.name).toBe("Room");
   });
@@ -53,7 +54,7 @@ describe("withInstalledQuantities()", () => {
     vi.mocked(prisma.asset.aggregate).mockResolvedValue({ _sum: { quantity: null } } as never);
     vi.mocked(prisma.asset.groupBy).mockResolvedValue([] as never);
     const result = await withInstalledQuantities({ ...location, children: [] }, ["room"]);
-    expect(result.subtreeAssetCount).toBe(0);
-    expect(result.location._count.assets).toBe(0);
+    expect(result.subtreeInstalledUnits).toBe(0);
+    expect(result.location.installedUnits).toBe(0);
   });
 });

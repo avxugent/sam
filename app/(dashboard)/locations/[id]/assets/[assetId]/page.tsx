@@ -9,6 +9,7 @@ import { locationBreadcrumbs } from "@/lib/locations/path";
 import { ASSET_DETAIL_INCLUDE } from "@/lib/assets/include";
 import { userNamesById } from "@/lib/users/names";
 import { assetLabel } from "@/lib/assets/label";
+import { attachmentKind } from "@/components/attachments/attachment";
 
 
 export default async function AssetPage({
@@ -36,7 +37,21 @@ export default async function AssetPage({
 
   return (
     <AssetDetailClient
-      asset={asset}
+      asset={{
+        ...asset,
+        installationDate: asset.installationDate?.toISOString() ?? null,
+        invoiceDate: asset.invoiceDate?.toISOString() ?? null,
+        endOfSupportDate: asset.endOfSupportDate?.toISOString() ?? null,
+        decommissionedAt: asset.decommissionedAt?.toISOString() ?? null,
+        repairStartedAt: asset.repairStartedAt?.toISOString() ?? null,
+        createdAt: asset.createdAt.toISOString(),
+        updatedAt: asset.updatedAt.toISOString(),
+        attachments: asset.attachments.map((a) => ({
+          ...a,
+          attachmentType: attachmentKind(a.attachmentType),
+          createdAt: a.createdAt.toISOString(),
+        })),
+      }}
       breadcrumbs={breadcrumbs}
       userRole={session?.user?.role ?? Role.VIEWER}
       hostnameUrlTemplate={templates.hostnameUrlTemplate}

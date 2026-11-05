@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Monitor, Loader2, ShieldCheck, LogOut, Fingerprint } from "lucide-react";
+import { Loader2, ShieldCheck, LogOut, Fingerprint } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { startAuthentication } from "@simplewebauthn/browser";
@@ -88,103 +88,94 @@ export function TwoFactorChallenge({ hasPasskey = false }: { hasPasskey?: boolea
   }, [rememberMe, t]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-sm">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <Monitor className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold">SAM</span>
+    <Card>
+      <CardHeader className="text-center">
+        <div className="flex justify-center mb-2">
+          <ShieldCheck className="h-10 w-10 text-primary" />
         </div>
+        <CardTitle>{t("twoFactorTitle")}</CardTitle>
+        <CardDescription>
+          {t("twoFactorSubtitle")}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="code">{t("twoFactorCode")}</Label>
+            <Input
+              ref={inputRef}
+              id="code"
+              value={code}
+              onChange={(e) => {
+                // Only allow digits and spaces
+                const v = e.target.value.replace(/[^\d\s]/g, "");
+                if (normalizeTotpCode(v).length <= 6) setCode(v);
+              }}
+              placeholder="000000"
+              className="text-center text-2xl tracking-[0.4em] font-mono h-14"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              maxLength={7} // 6 digits + possible space
+            />
+          </div>
 
-        <Card>
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-2">
-              <ShieldCheck className="h-10 w-10 text-primary" />
-            </div>
-            <CardTitle>{t("twoFactorTitle")}</CardTitle>
-            <CardDescription>
-              {t("twoFactorSubtitle")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="code">{t("twoFactorCode")}</Label>
-                <Input
-                  ref={inputRef}
-                  id="code"
-                  value={code}
-                  onChange={(e) => {
-                    // Only allow digits and spaces
-                    const v = e.target.value.replace(/[^\d\s]/g, "");
-                    if (normalizeTotpCode(v).length <= 6) setCode(v);
-                  }}
-                  placeholder="000000"
-                  className="text-center text-2xl tracking-[0.4em] font-mono h-14"
-                  autoComplete="one-time-code"
-                  inputMode="numeric"
-                  maxLength={7} // 6 digits + possible space
-                />
-              </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="remember-me"
+              checked={rememberMe}
+              onCheckedChange={(v) => setRememberMe(!!v)}
+            />
+            <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
+              {t("twoFactorRememberDevice")}
+            </Label>
+          </div>
 
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="remember-me"
-                  checked={rememberMe}
-                  onCheckedChange={(v) => setRememberMe(!!v)}
-                />
-                <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
-                  {t("twoFactorRememberDevice")}
-                </Label>
-              </div>
+          {error && (
+            <p className="text-sm text-destructive text-center">{error}</p>
+          )}
 
-              {error && (
-                <p className="text-sm text-destructive text-center">{error}</p>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading || normalizeTotpCode(code).length !== 6}
+          >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t("twoFactorVerify")}
+          </Button>
+
+          {hasPasskey && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={passkeyLoading}
+              onClick={handlePasskey}
+            >
+              {passkeyLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Fingerprint className="mr-2 h-4 w-4" />
               )}
+              {t("passkeyUseInstead")}
+            </Button>
+          )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading || normalizeTotpCode(code).length !== 6}
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t("twoFactorVerify")}
-              </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full text-muted-foreground"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            {t("twoFactorBack")}
+          </Button>
+        </form>
 
-              {hasPasskey && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={passkeyLoading}
-                  onClick={handlePasskey}
-                >
-                  {passkeyLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Fingerprint className="mr-2 h-4 w-4" />
-                  )}
-                  {t("passkeyUseInstead")}
-                </Button>
-              )}
-
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full text-muted-foreground"
-                onClick={() => signOut({ callbackUrl: "/login" })}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                {t("twoFactorBack")}
-              </Button>
-            </form>
-
-            <p className="text-xs text-muted-foreground text-center mt-4">
-              Open your authenticator app (Google Authenticator, Aegis, 1Password, etc.)
-              and enter the current 6-digit code for SAM.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        <p className="text-xs text-muted-foreground text-center mt-4">
+          Open your authenticator app (Google Authenticator, Aegis, 1Password, etc.)
+          and enter the current 6-digit code for SAM.
+        </p>
+      </CardContent>
+    </Card>
   );
 }

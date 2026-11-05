@@ -138,7 +138,13 @@ export async function DELETE(
     );
   }
 
-  await prisma.assetType.delete({ where: { id } });
+  try {
+    await prisma.assetType.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Asset type");
+    throw err;
+  }
   await logAudit({
     session,
     req,

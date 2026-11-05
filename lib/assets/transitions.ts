@@ -18,6 +18,7 @@ import {
 } from "@/lib/assets/lifecycle-rules";
 import type { BulkSkipReason } from "@/lib/assets/bulk";
 import { HISTORY_SNAPSHOT_KEYS } from "@/lib/assets/history-keys";
+import { assetLabel } from "@/lib/assets/label";
 
 /**
  * Persisting half of the asset state transitions (decommission, repair,
@@ -31,13 +32,18 @@ import { HISTORY_SNAPSHOT_KEYS } from "@/lib/assets/history-keys";
  * or for deploy the stock item's quantity), so two concurrent requests cannot
  * both pass the check. A write that lost that race returns null; routes report
  * it with statusChangedResponse(), or stockChangedResponse() for deploy.
+ *
+ * Every transition takes (req, session, record, input): `record` is the row
+ * the route loaded (it carries the id) and `input` the request's choices,
+ * including any destination. Error codes are the bulk skip reasons
+ * (BulkSkipReason, LifecycleViolation codes), so clients handle one vocabulary.
  */
 
 /** A lifecycle violation as the 400 a single-asset route sends back. */
 export function lifecycleViolationResponse(violation: LifecycleViolation<string>): NextResponse;
 export function lifecycleViolationResponse(violation: LifecycleViolation<string> | null): NextResponse | null;
 export function lifecycleViolationResponse(violation: LifecycleViolation<string> | null): NextResponse | null {
-  return violation && NextResponse.json({ error: violation.message }, { status: 400 });
+  return violation && NextResponse.json({ error: violation.message, code: violation.code }, { status: 400 });
 }
 
 /** Bulk failure reason when another request changed the asset (or stock item) first. */
@@ -46,7 +52,7 @@ export const STATUS_CHANGED: BulkSkipReason = "STATUS_CHANGED";
 /** The 409 for a stock deploy that lost the race to a concurrent change of the stock item. */
 export function stockChangedResponse(): NextResponse {
   return NextResponse.json(
-    { error: "The stock item changed in the meantime. Reload and try again.", code: "stockChanged" },
+    { error: "The stock item changed in the meantime. Reload and try again.", code: STATUS_CHANGED },
     { status: 409 }
   );
 }
@@ -54,7 +60,7 @@ export function stockChangedResponse(): NextResponse {
 /** The 409 for a transition that lost the race to a concurrent change. */
 export function statusChangedResponse(): NextResponse {
   return NextResponse.json(
-    { error: "The asset's status changed in the meantime. Reload and try again.", code: "statusChanged" },
+    { error: "The asset's status changed in the meantime. Reload and try again.", code: STATUS_CHANGED },
     { status: 409 }
   );
 }
@@ -69,7 +75,14 @@ async function unlessChanged<T>(write: () => Promise<T>): Promise<T | null> {
   }
 }
 
-type AuditedAsset = { status: AssetStatus; model: { name: string } | null; lineageId: string };
+type AuditedAsset = {
+  id: string;
+  status: AssetStatus;
+  model: { name: string } | null;
+  hostname: string | null;
+  serialNumber: string | null;
+  lineageId: string;
+};
 
 // ── Decommission ─────────────────────────────────────────────────────────────
 
@@ -80,7 +93,10 @@ export const decommissionFields = {
 };
 
 export const DECOMMISSION_SELECT = {
+  id: true,
   model: { select: { name: true } },
+  hostname: true,
+  serialNumber: true,
   status: true,
   lineageId: true,
   location: { select: { name: true, fiNumber: true } },
@@ -91,13 +107,12 @@ type DecommissionCandidate = Prisma.AssetGetPayload<{ select: typeof DECOMMISSIO
 export async function decommissionAsset(
   req: Request,
   session: Session,
-  id: string,
   existing: DecommissionCandidate,
   input: { note?: string | null; disposalMethod: DisposalMethod }
 ) {
   const asset = await unlessChanged(() =>
     prisma.asset.update({
-      where: { id, status: existing.status },
+      where: { id: existing.id, status: existing.status },
       data: buildDecommissionUpdateData({
         note: input.note ?? null,
         disposalMethod: input.disposalMethod,
@@ -112,8 +127,8 @@ export async function decommissionAsset(
     req,
     action: "UPDATE",
     entityType: "Asset",
-    entityId: id,
-    entityName: existing.model?.name ?? undefined,
+    entityId: existing.id,
+    entityName: assetLabel(existing),
     detail: {
       status: AssetStatus.DECOMMISSIONED,
       note: input.note,
@@ -128,7 +143,10 @@ export async function decommissionAsset(
 // ── Repair and reinstate ─────────────────────────────────────────────────────
 
 export const REPAIR_SELECT = {
+  id: true,
   model: { select: { name: true } },
+  hostname: true,
+  serialNumber: true,
   status: true,
   lineageId: true,
 } satisfies Prisma.AssetSelect;
@@ -136,14 +154,13 @@ export const REPAIR_SELECT = {
 export async function sendAssetForRepair(
   req: Request,
   session: Session,
-  id: string,
   existing: AuditedAsset,
   input: { note?: string | null }
 ) {
   const note = input.note ?? null;
   const asset = await unlessChanged(() =>
     prisma.asset.update({
-      where: { id, status: existing.status },
+      where: { id: existing.id, status: existing.status },
       data: buildSendForRepairUpdateData({ note, actorId: session.user.id }),
     })
   );
@@ -153,17 +170,17 @@ export async function sendAssetForRepair(
     req,
     action: "UPDATE",
     entityType: "Asset",
-    entityId: id,
-    entityName: existing.model?.name ?? undefined,
+    entityId: existing.id,
+    entityName: assetLabel(existing),
     detail: { status: AssetStatus.IN_REPAIR, note },
     lineageId: existing.lineageId,
   });
   return asset;
 }
 
-export async function reinstateAsset(req: Request, session: Session, id: string, existing: AuditedAsset) {
+export async function reinstateAsset(req: Request, session: Session, existing: AuditedAsset) {
   const asset = await unlessChanged(() =>
-    prisma.asset.update({ where: { id, status: existing.status }, data: buildReinstateUpdateData() })
+    prisma.asset.update({ where: { id: existing.id, status: existing.status }, data: buildReinstateUpdateData() })
   );
   if (!asset) return null;
   await logAudit({
@@ -171,8 +188,8 @@ export async function reinstateAsset(req: Request, session: Session, id: string,
     req,
     action: "UPDATE",
     entityType: "Asset",
-    entityId: id,
-    entityName: existing.model?.name ?? undefined,
+    entityId: existing.id,
+    entityName: assetLabel(existing),
     detail: { status: AssetStatus.INSTALLED },
     lineageId: existing.lineageId,
   });
@@ -190,11 +207,16 @@ export const RETURN_TO_STOCK_INCLUDE = {
 
 type ReturnCandidate = Prisma.AssetGetPayload<{ include: typeof RETURN_TO_STOCK_INCLUDE }>;
 
-/** Replaces the asset by a stock item at `locationId` and audits both sides of the move. */
-export async function returnAssetToStock(req: Request, session: Session, asset: Returnable<ReturnCandidate>, locationId: string) {
+/** Replaces the asset by a stock item at `input.locationId` and audits both sides of the move. */
+export async function returnAssetToStock(
+  req: Request,
+  session: Session,
+  asset: Returnable<ReturnCandidate>,
+  input: { locationId: string }
+) {
   const stockItem = await unlessChanged(() =>
     prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const item = await tx.stockItem.create({ data: buildStockItemFromReturn(asset, locationId) });
+      const item = await tx.stockItem.create({ data: buildStockItemFromReturn(asset, input.locationId) });
       await tx.asset.delete({ where: { id: asset.id, status: asset.status } });
       return item;
     })
@@ -208,7 +230,7 @@ export async function returnAssetToStock(req: Request, session: Session, asset: 
       action: "DELETE",
       entityType: "Asset",
       entityId: asset.id,
-      entityName: asset.model?.name ?? undefined,
+      entityName: assetLabel(asset),
       detail: { snapshot: { [HISTORY_SNAPSHOT_KEYS.returnedToStock]: asset.model?.name ?? null, "From location": asset.location.name } },
       lineageId: asset.lineageId,
     }),
@@ -244,10 +266,9 @@ export async function deployStockItem(
   req: Request,
   session: Session,
   stockItem: DeployCandidate,
-  location: { id: string; name: string },
-  input: { quantity: number; serialNumbers?: string[] }
+  input: { location: { id: string; name: string }; quantity: number; serialNumbers?: string[] }
 ) {
-  const { quantity, serialNumbers } = input;
+  const { location, quantity, serialNumbers } = input;
   const remainingQuantity = stockItem.quantity - quantity;
   const createdAssets = await unlessChanged(() =>
     prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -260,7 +281,7 @@ export async function deployStockItem(
         await tx.stockItem.update({ where: guard, data: { quantity: remainingQuantity } });
       }
       // One connection per transaction: create the copies one after another.
-      const created: { id: string; lineageId: string }[] = [];
+      const created: { id: string; lineageId: string; hostname: string | null; serialNumber: string | null }[] = [];
       for (let i = 0; i < quantity; i++) {
         created.push(
           await tx.asset.create({
@@ -271,7 +292,7 @@ export async function deployStockItem(
               remainingQuantity,
               ...defaults,
             }),
-            select: { id: true, lineageId: true },
+            select: { id: true, lineageId: true, hostname: true, serialNumber: true },
           })
         );
       }
@@ -288,7 +309,7 @@ export async function deployStockItem(
         action: "CREATE",
         entityType: "Asset",
         entityId: created.id,
-        entityName: stockItem.model?.name,
+        entityName: assetLabel({ ...created, model: stockItem.model }),
         detail: { snapshot: { [HISTORY_SNAPSHOT_KEYS.deployedFromStock]: stockItem.model?.name ?? null, "Location": location.name } },
         lineageId: created.lineageId,
       })

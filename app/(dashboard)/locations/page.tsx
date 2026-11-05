@@ -3,14 +3,14 @@ import { getTranslations } from "next-intl/server";
 import { MapPin } from "lucide-react";
 import { LocationBrowserClient } from "@/components/locations/location-browser-client";
 import { nestLocations } from "@/lib/locations/tree";
-import { getRecursiveAssetCounts } from "@/lib/locations/path";
+import { getInstalledUnitTotals } from "@/lib/locations/path";
 import { PageHeader } from "@/components/layout/page-header";
 
 export default async function AllLocationsPage() {
   const [tNav, tLocation, assetCountMap, locations, totalAssetQuantity] = await Promise.all([
     getTranslations("nav"),
     getTranslations("location"),
-    getRecursiveAssetCounts(),
+    getInstalledUnitTotals(),
     prisma.location.findMany({
       select: { id: true, name: true, fiNumber: true, parentId: true },
       orderBy: [{ order: "asc" }, { name: "asc" }],

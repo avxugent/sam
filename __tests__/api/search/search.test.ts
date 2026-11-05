@@ -14,7 +14,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-vi.mock("@/lib/locations/path", () => ({ getRecursiveAssetCounts: vi.fn() }));
+vi.mock("@/lib/locations/path", () => ({ getInstalledUnitTotals: vi.fn() }));
 
 vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock("@/lib/auth", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getRecursiveAssetCounts } from "@/lib/locations/path";
+import { getInstalledUnitTotals } from "@/lib/locations/path";
 import { GET } from "@/app/api/search/route";
 
 const mockAuth = vi.mocked(auth);
@@ -30,7 +30,7 @@ const mockAssetCount = vi.mocked(prisma.asset.count);
 const mockAssetFindMany = vi.mocked(prisma.asset.findMany);
 const mockLocationCount = vi.mocked(prisma.location.count);
 const mockLocationFindMany = vi.mocked(prisma.location.findMany);
-const mockCounts = vi.mocked(getRecursiveAssetCounts);
+const mockCounts = vi.mocked(getInstalledUnitTotals);
 
 function session() {
   return { user: { id: "u1", role: "VIEWER", name: "User", email: "user@test.com" } };

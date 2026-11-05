@@ -7,6 +7,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { authIncludingPendingSteps } from "@/lib/auth";
+import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { prisma } from "@/lib/prisma";
 import { buildAuthenticationOptions, setChallengeCookie } from "@/lib/two-factor/webauthn";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -15,6 +16,8 @@ import { clientIp, tooManyAttemptsResponse } from "@/lib/rate-limit/http";
 export async function POST(req: NextRequest) {
   const session = await authIncludingPendingSteps();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const incomplete = await signInIncompleteResponse(session, ["2fa"]);
+  if (incomplete) return incomplete;
   if (!session.needs2FA) {
     return NextResponse.json({ error: "No pending 2FA challenge." }, { status: 400 });
   }

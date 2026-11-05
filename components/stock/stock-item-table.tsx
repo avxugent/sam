@@ -40,7 +40,7 @@ import { canEdit, type Role } from "@/lib/permissions";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { toIsoDay } from "@/lib/dates";
 import { stockMetadataMacs } from "@/lib/stock-metadata";
-import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
+import { paginate, useRowSelection, useTableSort } from "@/components/ui/use-row-selection";
 import { apiFetch } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
@@ -65,7 +65,14 @@ export type StockItem = {
   location: { id: string; name: string } | null;
 };
 
-type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "quantity";
+const SORT_KEYS = {
+  type: (i: StockItem) => i.type.name,
+  manufacturer: (i: StockItem) => i.manufacturer?.name ?? "",
+  model: (i: StockItem) => i.model?.name ?? "",
+  serialNumber: (i: StockItem) => i.serialNumber ?? "",
+  quantity: (i: StockItem) => i.quantity,
+};
+type SortCol = keyof typeof SORT_KEYS;
 
 export function StockItemTable({
   items: initialItems,
@@ -83,8 +90,6 @@ export function StockItemTable({
   const tCommon = useTranslations("common");
   const [items, setItems] = useState(initialItems);
   const [query, setQuery] = useState("");
-  const [sortCol, setSortCol] = useState<SortCol>("type");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
   const { selected, setSelected, toggleAll, toggleRow: toggleSelectRow, allSelectedIn, someSelectedIn } = useRowSelection();
   const [page, setPage] = useState(1);
@@ -98,12 +103,6 @@ export function StockItemTable({
     setSelected((prev) => new Set([...prev].filter((id) => initialItems.some((i) => i.id === id))));
   }, [initialItems, setSelected]);
 
-  function toggleSort(col: SortCol) {
-    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortCol(col); setSortDir("asc"); }
-    setPage(1);
-  }
-
   const filtered = useMemo(() => {
     const ql = query.toLowerCase();
     return items.filter((i) =>
@@ -115,17 +114,12 @@ export function StockItemTable({
     );
   }, [items, query]);
 
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      let va = "", vb = "";
-      if (sortCol === "type") { va = a.type.name; vb = b.type.name; }
-      else if (sortCol === "manufacturer") { va = a.manufacturer?.name ?? ""; vb = b.manufacturer?.name ?? ""; }
-      else if (sortCol === "model") { va = a.model?.name ?? ""; vb = b.model?.name ?? ""; }
-      else if (sortCol === "serialNumber") { va = a.serialNumber ?? ""; vb = b.serialNumber ?? ""; }
-      else if (sortCol === "quantity") return sortDir === "asc" ? a.quantity - b.quantity : b.quantity - a.quantity;
-      return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
-    });
-  }, [filtered, sortCol, sortDir]);
+  const { sortCol, sortDir, handleSort, sorted } = useTableSort(filtered, SORT_KEYS, "type");
+
+  function toggleSort(col: SortCol) {
+    handleSort(col);
+    setPage(1);
+  }
 
   const { totalPages, safePage, pageRows: paginated } = paginate(sorted, page, pageSize);
 
@@ -287,7 +281,7 @@ export function StockItemTable({
                         </StockItemFormDialog>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-[#fee2e2]">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-danger-surface">
                               <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>

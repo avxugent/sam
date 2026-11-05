@@ -133,10 +133,11 @@ export function parseFiNumber(
 }
 
 /**
- * Builds a human-readable path string from an ancestor array.
- * e.g. "Campus 14 / Building 10 / Floor 100 / Room 013"
+ * The " / "-joined path of an ancestor array, as the Prometheus
+ * sam_location_path label and the Grafana by-hostname lookup carry it,
+ * e.g. "Campus 14 / Building 10 / Floor 100 / Room 013".
  */
-export function buildLocationPathString(ancestors: { name: string }[]): string {
+export function locationLabelPath(ancestors: { name: string }[]): string {
   return ancestors.map((a) => a.name).join(" / ");
 }
 

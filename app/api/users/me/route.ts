@@ -39,7 +39,7 @@ export async function GET() {
   return NextResponse.json(user);
 }
 
-export async function PATCH(req: NextRequest) {
+export async function PUT(req: NextRequest) {
   const session = await authIncludingPendingSteps();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   // The forced password change is completed here; no other pending login step is.
@@ -114,7 +114,7 @@ export async function PATCH(req: NextRequest) {
       action: "UPDATE",
       entityType: "User",
       entityId: updated.id,
-      entityName: updated.email ?? undefined,
+      entityName: updated.email,
       detail: { event: auditEvents.join(", ") },
     });
   }

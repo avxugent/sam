@@ -1,6 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import type { LocationAncestor } from "@/lib/locations/path";
-import { buildLocationPathString, findFiNumber, parseFiNumber } from "@/lib/locations/tree";
+import { locationLabelPath, findFiNumber, parseFiNumber } from "@/lib/locations/tree";
 
 /**
  * Assets that should report to Prometheus: installed, with a hostname, and of
@@ -32,7 +32,7 @@ export function samLocationLabels(ancestors: Pick<LocationAncestor, "name" | "fi
     sam_building: parts?.building ?? "",
     sam_floor: parts?.floor ?? "",
     sam_room: parts?.room ?? "",
-    sam_location_path: buildLocationPathString(ancestors),
+    sam_location_path: locationLabelPath(ancestors),
     sam_location_name: ancestors.at(-1)?.name ?? "",
   };
 }

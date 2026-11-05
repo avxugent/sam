@@ -15,6 +15,7 @@ vi.mock("@/lib/prisma", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { POST as createAsset } from "@/app/api/locations/[id]/assets/route";
 
 const mockAuth = vi.mocked(auth);
@@ -269,5 +270,19 @@ describe("POST /api/locations/[id]/assets — quantity", () => {
     mockAuth.mockResolvedValue(session() as never);
     const res = await createAsset(req({ ...BASE, quantity: 0 }), PARAMS);
     expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/locations/[id]/assets — audit entry", () => {
+  it("names the asset with assetLabel and snapshots the same keys as a delete", async () => {
+    mockCreate.mockResolvedValue({
+      id: "a1", lineageId: "lin", quantity: 1, model: null, serialNumber: "SN1", hostname: "rec-01.example.org",
+      type: { name: "Recorder" }, manufacturer: null, location: { name: "Room 1" },
+    } as never);
+    expect((await createAsset(req({ ...BASE }), PARAMS)).status).toBe(201);
+    expect(vi.mocked(logAudit).mock.calls[0][0]).toMatchObject({
+      entityName: "rec-01.example.org",
+      detail: { snapshot: { Type: "Recorder", "Serial number": "SN1", Hostname: "rec-01.example.org", Location: "Room 1" } },
+    });
   });
 });

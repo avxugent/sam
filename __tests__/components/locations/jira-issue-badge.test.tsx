@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+
+vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
+
 import { JiraIssueBadge } from "@/components/locations/jira-issue-badge";
 
 const mockFetch = vi.fn();
@@ -18,7 +21,7 @@ describe("<JiraIssueBadge />", () => {
   it("renders summary and status when the issue is found", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({ found: true, key: "ABC-1", summary: "Fix bug", status: "In Progress", statusCategory: "in-progress", url: "https://jira/browse/ABC-1" }),
+      json: async () => ({ key: "ABC-1", summary: "Fix bug", status: "In Progress", statusCategory: "in-progress", url: "https://jira/browse/ABC-1" }),
     });
     render(<JiraIssueBadge issueKey="ABC-1" />);
     expect(await screen.findByText("Fix bug")).toBeInTheDocument();
@@ -26,16 +29,22 @@ describe("<JiraIssueBadge />", () => {
     expect(screen.getByRole("link")).toHaveAttribute("href", "https://jira/browse/ABC-1");
   });
 
-  it("builds a fallback browse URL from jiraBaseUrl when not found", async () => {
-    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ found: false }) });
+  it("says the issue is not found on a 404, with a fallback browse URL from jiraBaseUrl", async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 404, json: async () => ({ error: "JIRA issue not found." }) });
     render(<JiraIssueBadge issueKey="ABC-9" jiraBaseUrl="https://jira.example.com/" />);
-    await waitFor(() =>
-      expect(screen.getByRole("link")).toHaveAttribute("href", "https://jira.example.com/browse/ABC-9")
-    );
+    expect(await screen.findByText("jiraIssueNotFound")).toBeInTheDocument();
+    expect(screen.getByRole("link")).toHaveAttribute("href", "https://jira.example.com/browse/ABC-9");
+  });
+
+  it("says JIRA is unavailable on an outage, not that the issue is missing", async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 502, json: async () => ({ error: "JIRA could not be reached.", code: "jiraUnavailable" }) });
+    render(<JiraIssueBadge issueKey="ABC-8" />);
+    expect(await screen.findByText("jiraUnavailable")).toBeInTheDocument();
+    expect(screen.queryByText("jiraIssueNotFound")).not.toBeInTheDocument();
   });
 
   it("prevents navigation when no URL is resolvable", async () => {
-    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ found: false }) });
+    mockFetch.mockResolvedValue({ ok: false, status: 404, json: async () => ({ error: "JIRA issue not found." }) });
     render(<JiraIssueBadge issueKey="ABC-2" />);
     await waitFor(() => expect(screen.getByRole("link")).toHaveAttribute("href", "#"));
   });
@@ -44,5 +53,6 @@ describe("<JiraIssueBadge />", () => {
     mockFetch.mockRejectedValue(new Error("network"));
     render(<JiraIssueBadge issueKey="ABC-3" jiraBaseUrl="https://j" />);
     await waitFor(() => expect(screen.getByRole("link")).toHaveAttribute("href", "https://j/browse/ABC-3"));
+    expect(screen.getByText("jiraUnavailable")).toBeInTheDocument();
   });
 });

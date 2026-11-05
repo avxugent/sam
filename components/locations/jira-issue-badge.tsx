@@ -2,39 +2,36 @@
 
 import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api-client";
+import type { JiraIssue } from "@/lib/integrations/jira";
 
-type FetchedIssue = {
-  found: boolean;
-  key?: string;
-  summary?: string;
-  status?: string;
-  statusCategory?: "todo" | "in-progress" | "done" | "unknown";
-  url?: string;
-};
+/** 404: JIRA does not know the key; any other failure: JIRA (or the request) is down. */
+type Lookup = { status: "found"; issue: JiraIssue } | { status: "missing" } | { status: "unavailable" };
 
 const CATEGORY_COLORS: Record<string, string> = {
   todo: "bg-muted text-secondary-foreground",
-  "in-progress": "bg-[#fef3c7] text-[#92400e]",
-  done: "bg-[#dcfce7] text-[#15803d]",
+  "in-progress": "bg-warning-tint text-warning-foreground",
+  done: "bg-success-surface text-success-foreground",
   unknown: "bg-muted text-secondary-foreground",
 };
 
 export function JiraIssueBadge({ issueKey, jiraBaseUrl }: { issueKey: string; jiraBaseUrl?: string | null }) {
-  const [issue, setIssue] = useState<FetchedIssue | null>(null);
-  const [loading, setLoading] = useState(true);
+  const t = useTranslations("workLog");
+  const [lookup, setLookup] = useState<Lookup | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    apiFetch<FetchedIssue>(`/api/jira/issue/${encodeURIComponent(issueKey)}`).then((res) => {
+    setLookup(null);
+    apiFetch<JiraIssue>(`/api/jira/issue/${encodeURIComponent(issueKey)}`).then((res) => {
       if (cancelled) return;
-      setIssue(res.ok ? res.data : { found: false });
-      setLoading(false);
+      if (res.ok) setLookup({ status: "found", issue: res.data });
+      else setLookup({ status: res.status === 404 ? "missing" : "unavailable" });
     });
     return () => { cancelled = true; };
   }, [issueKey]);
 
+  const issue = lookup?.status === "found" ? lookup.issue : null;
   // Fallback URL when JIRA isn't reachable but a base URL is configured
   const fallbackUrl =
     issue?.url ??
@@ -50,20 +47,22 @@ export function JiraIssueBadge({ issueKey, jiraBaseUrl }: { issueKey: string; ji
       title={issue?.summary ?? issueKey}
     >
       <span className="font-mono">{issueKey}</span>
-      {loading ? (
+      {lookup === null ? (
         <span className="text-subtle truncate">…</span>
-      ) : issue?.found ? (
+      ) : issue ? (
         <>
           <span className="text-secondary-foreground truncate font-normal">{issue.summary}</span>
-          {issue.statusCategory && (
-            <span
-              className={`text-[10px] px-1.5 py-0 rounded-full font-semibold ${CATEGORY_COLORS[issue.statusCategory] ?? CATEGORY_COLORS.unknown}`}
-            >
-              {issue.status}
-            </span>
-          )}
+          <span
+            className={`text-[10px] px-1.5 py-0 rounded-full font-semibold ${CATEGORY_COLORS[issue.statusCategory] ?? CATEGORY_COLORS.unknown}`}
+          >
+            {issue.status}
+          </span>
         </>
-      ) : null}
+      ) : (
+        <span className="text-subtle truncate font-normal">
+          {lookup.status === "missing" ? t("jiraIssueNotFound") : t("jiraUnavailable")}
+        </span>
+      )}
       <ExternalLink className="h-3 w-3 opacity-60 group-hover:opacity-100 flex-shrink-0" />
     </a>
   );

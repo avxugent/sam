@@ -38,7 +38,7 @@ export function BulkDecommissionDialog({ open, onOpenChange, assetIds, onComplet
       resultSummary={(count) => t("bulkSkippedSummary", { count })}
       confirmLabel={(submitting) => (submitting ? t("decommissioning") : t("decommissionAsset"))}
       confirmDisabled={!disposalMethod}
-      confirmClassName="bg-[#ca8a04] hover:bg-[#a16207] text-white"
+      confirmClassName="bg-warning-solid hover:bg-warning-solid-hover text-white"
     >
       <div className="space-y-3">
         <div className="space-y-1">

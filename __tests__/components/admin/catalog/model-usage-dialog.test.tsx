@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("next-intl", () => ({
@@ -68,7 +68,7 @@ describe("ModelUsageDialog", () => {
   it("shows a spinner while loading", async () => {
     mockApiFetch.mockReturnValue(new Promise(() => {}));
     render(<ModelUsageDialog model={MODEL} onClose={vi.fn()} />);
-    expect(screen.getByRole("dialog").querySelector(".animate-spin")).not.toBeNull();
+    expect(within(screen.getByRole("dialog")).getByRole("status", { name: "loading" })).toBeInTheDocument();
   });
 
   it("toasts a failed load instead of showing the model as unused", async () => {
@@ -77,7 +77,7 @@ describe("ModelUsageDialog", () => {
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "error", description: "DB down", variant: "destructive" })),
     );
-    expect(screen.getByRole("dialog").querySelector(".animate-spin")).toBeNull();
+    expect(within(screen.getByRole("dialog")).queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("ignores a superseded response when the model changes", async () => {

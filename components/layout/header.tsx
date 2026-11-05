@@ -41,12 +41,13 @@ import {
 import { canManageCatalog, isAdmin, type Role } from "@/lib/permissions";
 import { apiFetch } from "@/lib/api-client";
 import { assetLabel } from "@/lib/assets/label";
+import type { AuthProvider } from "@/lib/users/providers";
 
 type HeaderUser = {
   name?: string | null;
   email?: string | null;
   role?: Role;
-  provider?: string;
+  provider?: AuthProvider;
   totpEnabled?: boolean;
 };
 
@@ -121,8 +122,7 @@ function SearchBar() {
     setLoading(true);
     try {
       const res = await apiFetch<QuickSearchResponse>(`/api/search?q=${encodeURIComponent(q)}`, { signal });
-      // Aborted because a newer query superseded this one, or the request
-      // failed: either way the dropdown simply shows no quick results.
+      // Aborted because a newer query superseded this one.
       if (signal.aborted) return;
       if (!res.ok) {
         setQuickResults([]);
@@ -170,35 +170,38 @@ function SearchBar() {
   // Reset highlight when results list changes
   useEffect(() => { setActiveIndex(-1); }, [quickResults]);
 
+  function openFullSearch() {
+    setOpen(false);
+    router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "ArrowDown" && quickResults.length > 0) {
-      e.preventDefault();
-      setOpen(true);
-      setActiveIndex((i) => (i + 1) % quickResults.length);
-      return;
-    }
-    if (e.key === "ArrowUp" && quickResults.length > 0) {
-      e.preventDefault();
-      setOpen(true);
-      setActiveIndex((i) => (i <= 0 ? quickResults.length - 1 : i - 1));
-      return;
-    }
-    if (e.key === "Enter") {
-      if (open && activeIndex >= 0 && quickResults[activeIndex]) {
+    switch (e.key) {
+      case "ArrowDown":
+        if (quickResults.length === 0) return;
         e.preventDefault();
-        const r = quickResults[activeIndex];
-        handleSelect(r.href);
+        setOpen(true);
+        setActiveIndex((i) => (i + 1) % quickResults.length);
         return;
-      }
-      if (query.trim().length >= 2) {
+      case "ArrowUp":
+        if (quickResults.length === 0) return;
+        e.preventDefault();
+        setOpen(true);
+        setActiveIndex((i) => (i <= 0 ? quickResults.length - 1 : i - 1));
+        return;
+      case "Enter":
+        if (open && activeIndex >= 0 && quickResults[activeIndex]) {
+          e.preventDefault();
+          handleSelect(quickResults[activeIndex].href);
+        } else if (query.trim().length >= 2) {
+          openFullSearch();
+        }
+        return;
+      case "Escape":
         setOpen(false);
-        router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-      }
-    }
-    if (e.key === "Escape") {
-      setOpen(false);
-      setActiveIndex(-1);
-      inputRef.current?.blur();
+        setActiveIndex(-1);
+        inputRef.current?.blur();
+        return;
     }
   }
 
@@ -302,8 +305,7 @@ function SearchBar() {
               className="text-xs text-primary hover:underline w-full text-left"
               onMouseDown={(e) => {
                 e.preventDefault();
-                setOpen(false);
-                router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+                openFullSearch();
               }}
             >
               {t("seeAllResultsFor", { query })}

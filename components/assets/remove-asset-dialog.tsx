@@ -51,7 +51,7 @@ function OptionRow({
       onClick={onClick}
       className={cn(
         "w-full flex items-start gap-3 rounded-[8px] border p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        danger ? "border-[#fecaca]" : "border-border"
+        danger ? "border-danger-border" : "border-border"
       )}
     >
       <div
@@ -184,7 +184,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
                 onClick={() => setStep("stock")}
               />
               <OptionRow
-                icon={<ArchiveX className="h-4 w-4 text-[#92400e]" />}
+                icon={<ArchiveX className="h-4 w-4 text-warning-foreground" />}
                 title={tDecom("decommissionAsset")}
                 description={tDecom("decommissionOptionDescription")}
                 onClick={() => setStep("decommission")}
@@ -312,7 +312,7 @@ export function RemoveAssetDialog({ assetId, assetName, assetStatus, children, o
               <Button
                 onClick={handleDecommission}
                 disabled={submitting || !disposalMethod}
-                className="bg-[#ca8a04] hover:bg-[#a16207] text-white"
+                className="bg-warning-solid hover:bg-warning-solid-hover text-white"
               >
                 {submitting ? tDecom("decommissioning") : tDecom("decommissionAsset")}
               </Button>

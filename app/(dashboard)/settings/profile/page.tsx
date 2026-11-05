@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ProfileClient } from "@/components/settings/profile-client";
+import { parseAuthProvider } from "@/lib/users/providers";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -29,7 +30,7 @@ export default async function ProfilePage() {
       <ProfileClient
         name={user.name}
         email={user.email}
-        provider={user.provider}
+        provider={parseAuthProvider(user.provider)}
         locationDefaultTab={user.locationDefaultTab}
       />
     </div>

@@ -38,7 +38,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sessionOrIntegrationTokenResponse } from "@/lib/tokens/session-or-integration";
 import { getLocationAncestors } from "@/lib/locations/path";
-import { buildLocationPathString, findFiNumber, parseFiNumber } from "@/lib/locations/tree";
+import { locationLabelPath, findFiNumber, parseFiNumber } from "@/lib/locations/tree";
 import { toIsoDay } from "@/lib/dates";
 import { invalidInput } from "@/lib/route-helpers";
 
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
       const ancestors = await getLocationAncestors(asset.locationId);
       const fiNumber = findFiNumber(ancestors);
       const fiParts = parseFiNumber(fiNumber);
-      const pathString = buildLocationPathString(ancestors);
+      const pathString = locationLabelPath(ancestors);
 
       return {
         id: asset.id,

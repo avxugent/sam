@@ -136,7 +136,7 @@ export function WorkLogList({
             items={items}
             currentUserId={currentUserId}
           >
-            <Button size="sm" className="h-[36px] gap-1.5 bg-brand-yellow text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
+            <Button size="sm" className="h-[36px] gap-1.5 bg-brand-yellow text-brand-yellow-foreground font-bold hover:brightness-95 text-[13px]">
               <Plus className="h-4 w-4" />
               {t("addEntry")}
             </Button>
@@ -185,7 +185,7 @@ export function WorkLogList({
                       <span className="text-[12px] text-muted-foreground">{formatDate(entry.performedAt)}</span>
 
                       {entry.item && (
-                        <span className="inline-flex items-center text-[10px] font-semibold bg-[#fef3c7] text-[#92400e] px-1.5 py-0.5 rounded-[4px]">
+                        <span className="inline-flex items-center text-[10px] font-semibold bg-warning-tint text-warning-foreground px-1.5 py-0.5 rounded-[4px]">
                           {entry.item.name}
                         </span>
                       )}

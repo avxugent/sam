@@ -29,7 +29,9 @@ describe("GET /api/jira/issue/[key]", () => {
   it("503 when Jira not configured", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
     vi.mocked(isJiraConfigured).mockReturnValue(false);
-    expect((await jiraIssue(req(), { params })).status).toBe(503);
+    const res = await jiraIssue(req(), { params });
+    expect(res.status).toBe(503);
+    expect((await res.json()).code).toBe("jiraNotConfigured");
   });
   it("400 on an invalid key format", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
@@ -37,23 +39,23 @@ describe("GET /api/jira/issue/[key]", () => {
     vi.mocked(isValidJiraKey).mockReturnValue(false);
     expect((await jiraIssue(req(), { params })).status).toBe(400);
   });
-  it("returns found:false when the issue is not found", async () => {
+  it("404 when the issue is not found", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
     vi.mocked(isJiraConfigured).mockReturnValue(true);
     vi.mocked(isValidJiraKey).mockReturnValue(true);
     vi.mocked(fetchJiraIssue).mockResolvedValue({ status: "missing" });
     const res = await jiraIssue(req(), { params });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ found: false, key: "ABC-1" });
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "JIRA issue not found." });
   });
-  it("returns found:true with the issue when present", async () => {
+  it("returns the issue when present", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);
     vi.mocked(isJiraConfigured).mockReturnValue(true);
     vi.mocked(isValidJiraKey).mockReturnValue(true);
     vi.mocked(fetchJiraIssue).mockResolvedValue({ status: "found", issue: { key: "ABC-1", summary: "Fix" } } as never);
     const res = await jiraIssue(req(), { params });
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ found: true, key: "ABC-1", summary: "Fix" });
+    expect(await res.json()).toEqual({ key: "ABC-1", summary: "Fix" });
   });
   it("answers 502 jiraUnavailable when JIRA cannot be reached", async () => {
     mockAuth.mockResolvedValue(session("VIEWER") as never);

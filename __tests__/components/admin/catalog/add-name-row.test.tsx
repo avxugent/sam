@@ -22,14 +22,14 @@ describe("AddButton", () => {
     render(<AddButton name="Dell" adding onAdd={vi.fn()} />);
     const button = screen.getByRole("button", { name: "add" });
     expect(button).toBeDisabled();
-    expect(button.querySelector(".animate-spin")).not.toBeNull();
+    expect(button).toHaveAttribute("aria-busy", "true");
   });
 
   it("calls onAdd when clicked with a name", async () => {
     const onAdd = vi.fn();
     render(<AddButton name="Dell" adding={false} onAdd={onAdd} />);
     const button = screen.getByRole("button", { name: "add" });
-    expect(button.querySelector(".animate-spin")).toBeNull();
+    expect(button).toHaveAttribute("aria-busy", "false");
     await userEvent.click(button);
     expect(onAdd).toHaveBeenCalledTimes(1);
   });

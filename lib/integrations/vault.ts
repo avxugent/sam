@@ -23,8 +23,6 @@
 
 type VaultSecretData = Record<string, string>;
 
-// ── Internal AppRole token cache ─────────────────────────────────────────────
-
 type CachedToken = {
   token: string;
   /** Unix timestamp (ms) after which the token should no longer be used */
@@ -57,8 +55,6 @@ export function tokenExpiresAt(ttlSeconds: number, now = Date.now()): number {
   return now + (ttlSeconds - buffer) * 1000;
 }
 
-// ── Auth method detection ─────────────────────────────────────────────────────
-
 function isTokenAuth(): boolean {
   return !!(process.env.VAULT_ADDR && process.env.VAULT_TOKEN);
 }
@@ -71,24 +67,25 @@ function isApproleAuth(): boolean {
   );
 }
 
-/** Returns true when Vault is configured via either auth method */
 export function isVaultConfigured(): boolean {
   return isApproleAuth() || isTokenAuth();
 }
 
-// ── Token acquisition ─────────────────────────────────────────────────────────
+/** VAULT_ADDR without a trailing slash; only call once Vault is configured. */
+function vaultAddr(): string {
+  return process.env.VAULT_ADDR!.replace(/\/$/, "");
+}
 
 /**
  * Authenticates with Vault using the AppRole method and caches the returned
  * client token. Returns null if authentication fails.
  */
 async function loginWithApprole(): Promise<string | null> {
-  const addr = process.env.VAULT_ADDR!.replace(/\/$/, "");
   const roleId = process.env.VAULT_ROLE_ID!;
   const secretId = process.env.VAULT_SECRET_ID!;
   const mount = (process.env.VAULT_APPROLE_MOUNT ?? "approle").replace(/^\/|\/$/g, "");
 
-  const url = `${addr}/v1/auth/${mount}/login`;
+  const url = `${vaultAddr()}/v1/auth/${mount}/login`;
 
   try {
     const res = await fetch(url, {
@@ -131,12 +128,10 @@ async function loginWithApprole(): Promise<string | null> {
 }
 
 /**
- * Returns a valid Vault token, using whichever auth method is configured.
- * AppRole takes precedence when both are set; the resulting token is cached
- * and refreshed automatically when it nears expiry.
+ * Returns a valid Vault token, using whichever auth method is configured. An
+ * AppRole token is cached and refreshed automatically when it nears expiry.
  */
 async function getVaultToken(): Promise<string | null> {
-  // AppRole takes precedence
   if (isApproleAuth()) {
     const roleId = process.env.VAULT_ROLE_ID!;
     const secretId = process.env.VAULT_SECRET_ID!;
@@ -152,7 +147,6 @@ async function getVaultToken(): Promise<string | null> {
     return loginWithApprole();
   }
 
-  // Fall back to static token
   if (isTokenAuth()) {
     return process.env.VAULT_TOKEN!;
   }
@@ -171,8 +165,6 @@ export type VaultRead<T> =
   | { status: "denied" }
   | { status: "unavailable" };
 
-// ── Public API ────────────────────────────────────────────────────────────────
-
 /**
  * Reads a KV secret from Vault and returns a map of key → value.
  *
@@ -186,28 +178,17 @@ export type VaultRead<T> =
 export async function readVaultSecret(path: string): Promise<VaultRead<VaultSecretData>> {
   if (!isVaultConfigured()) return { status: "unavailable" };
 
-  const addr = process.env.VAULT_ADDR!.replace(/\/$/, "");
-  const version = (process.env.VAULT_KV_VERSION ?? "v2").toLowerCase();
+  const kvV2 = (process.env.VAULT_KV_VERSION ?? "v2").toLowerCase() === "v2";
 
   const token = await getVaultToken();
   if (!token) return { status: "unavailable" };
 
-  // For KV v2, inject "data/" into the path after the mount point.
-  // We do this by splitting on the first "/":
-  //   "secret/av/rectest001" → "secret/data/av/rectest001"
-  let apiPath: string;
-  if (version === "v2") {
-    const slashIdx = path.indexOf("/");
-    if (slashIdx === -1) {
-      apiPath = path; // bare mount — unusual but pass through
-    } else {
-      apiPath = path.slice(0, slashIdx) + "/data" + path.slice(slashIdx);
-    }
-  } else {
-    apiPath = path;
-  }
+  // For KV v2, inject "data/" after the mount point (the first segment):
+  //   "secret/av/rectest001" → "secret/data/av/rectest001"; a bare mount passes through.
+  const slash = path.indexOf("/");
+  const apiPath = kvV2 && slash !== -1 ? `${path.slice(0, slash)}/data${path.slice(slash)}` : path;
 
-  const url = `${addr}/v1/${apiPath}`;
+  const url = `${vaultAddr()}/v1/${apiPath}`;
 
   try {
     const res = await fetch(url, {
@@ -242,7 +223,7 @@ export async function readVaultSecret(path: string): Promise<VaultRead<VaultSecr
 
     // KV v2 wraps the data: { data: { data: { key: val } } }
     // KV v1 has: { data: { key: val } }
-    const data = version === "v2"
+    const data = kvV2
       ? (body.data as { data?: VaultSecretData } | undefined)?.data
       : (body.data as VaultSecretData | undefined);
     // A KV v2 secret whose latest version is deleted answers 200 without data.

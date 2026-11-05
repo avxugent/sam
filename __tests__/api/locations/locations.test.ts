@@ -13,6 +13,8 @@ vi.mock("@/lib/prisma", () => ({
       count: vi.fn(),
     },
     stockItem: { count: vi.fn() },
+    asset: { count: vi.fn(async () => 0) },
+    attachment: { findUnique: vi.fn(), findMany: vi.fn(async () => []) },
     $queryRaw: vi.fn(),
     $transaction: vi.fn(),
   },
@@ -21,6 +23,7 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
 }));
+vi.mock("@/lib/uploads/storage", () => ({ deleteStoredFiles: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -188,8 +191,7 @@ describe("PUT /api/locations/[id]", () => {
   it("rejects invalid coverImageId not owned by this location", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     // Mock prisma.attachment.findUnique for coverImageId validation
-    vi.mocked(prisma as unknown as { attachment: { findUnique: ReturnType<typeof vi.fn> } })
-    .attachment = { findUnique: vi.fn().mockResolvedValue(null) };
+    vi.mocked(prisma.attachment.findUnique).mockResolvedValue(null as never);
     // Re-import to pick up the mock — just check we get a 400
     const res = await PUT(makeIdReq("PUT", { coverImageId: "nonexistent-attach" }), { params });
     // The route handler checks if the attachment exists and belongs to this location

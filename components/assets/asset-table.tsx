@@ -28,11 +28,20 @@ import { assetLabel } from "@/lib/assets/label";
 import { saveBlob } from "@/lib/api-client";
 import { escapeCsvCell } from "@/lib/csv/core";
 import { SortableTh } from "@/components/ui/sortable-th";
-import { paginate, useRowSelection } from "@/components/ui/use-row-selection";
+import { paginate, useRowSelection, useTableSort } from "@/components/ui/use-row-selection";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
-type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "hostname" | "installationDate" | "location";
+const SORT_KEYS = {
+  type: (a: AssetListRow) => a.type?.name ?? "",
+  manufacturer: (a: AssetListRow) => a.manufacturer?.name ?? "",
+  model: (a: AssetListRow) => a.model?.name ?? "",
+  serialNumber: (a: AssetListRow) => a.serialNumber ?? "",
+  hostname: (a: AssetListRow) => a.hostname ?? "",
+  installationDate: (a: AssetListRow) => String(a.installationDate ?? ""),
+  location: (a: AssetListRow) => a.location.name,
+};
+type SortCol = keyof typeof SORT_KEYS;
 
 function exportToCsv(assets: AssetListRow[], filename: string, headers: string[]) {
   const rows = assets.map((a) => [
@@ -62,7 +71,8 @@ export function AssetTable({
   locationId: string;
   userRole: Role;
   showLocation?: boolean;
-  hostnameUrlTemplate?: string | null;
+  /** "" or omitted when not configured. */
+  hostnameUrlTemplate?: string;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -72,8 +82,6 @@ export function AssetTable({
   const tDecom = useTranslations("decommissioned");
   const [assets, setAssets] = useState(initialAssets);
   const [search, setSearch] = useState("");
-  const [sortCol, setSortCol] = useState<SortCol | null>("type");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const { selected, setSelected, toggleAll, toggleRow: toggleSelectRow, allSelectedIn, someSelectedIn } = useRowSelection();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);
@@ -88,12 +96,6 @@ export function AssetTable({
     setAssets(initialAssets);
     setSelected((prev) => new Set([...prev].filter((id) => initialAssets.some((a) => a.id === id))));
   }, [initialAssets, setSelected]);
-
-  function handleSort(col: SortCol) {
-    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortCol(col); setSortDir("asc"); }
-    setPage(1);
-  }
 
   useEffect(() => { setPage(1); setSelected(new Set()); }, [search, setSelected]);
 
@@ -110,21 +112,12 @@ export function AssetTable({
     );
   }, [assets, search]);
 
-  const sorted = useMemo(() => {
-    if (!sortCol) return filtered;
-    return [...filtered].sort((a, b) => {
-      let av = "";
-      let bv = "";
-      if (sortCol === "type") { av = a.type?.name ?? ""; bv = b.type?.name ?? ""; }
-      else if (sortCol === "manufacturer") { av = a.manufacturer?.name ?? ""; bv = b.manufacturer?.name ?? ""; }
-      else if (sortCol === "model") { av = a.model?.name ?? ""; bv = b.model?.name ?? ""; }
-      else if (sortCol === "serialNumber") { av = a.serialNumber ?? ""; bv = b.serialNumber ?? ""; }
-      else if (sortCol === "hostname") { av = a.hostname ?? ""; bv = b.hostname ?? ""; }
-      else if (sortCol === "installationDate") { av = String(a.installationDate ?? ""); bv = String(b.installationDate ?? ""); }
-      else if (sortCol === "location") { av = a.location.name; bv = b.location.name; }
-      return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
-    });
-  }, [filtered, sortCol, sortDir]);
+  const { sortCol, sortDir, handleSort: toggleSort, sorted } = useTableSort(filtered, SORT_KEYS, "type");
+
+  function handleSort(col: SortCol) {
+    toggleSort(col);
+    setPage(1);
+  }
 
   const { totalPages, safePage, pageRows: paginated } = paginate(sorted, page, pageSize);
 
@@ -198,7 +191,7 @@ export function AssetTable({
           <span className="font-medium">{t("itemsSelected", { count: selected.size })}</span>
           <Button
             size="sm"
-            className="h-7 bg-[#ca8a04] hover:bg-[#a16207] text-white"
+            className="h-7 bg-warning-solid hover:bg-warning-solid-hover text-white"
             onClick={() => setBulkDecommissionOpen(true)}
           >
             {tDecom("decommissionAsset")}

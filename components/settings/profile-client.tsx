@@ -18,6 +18,7 @@ import { LOCATION_TABS, parseLocationTab, type LocationTab } from "@/lib/users/p
 import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
+import type { AuthProvider } from "@/lib/users/providers";
 
 const nameSchema = z.object({
   name: z.string().min(1, "Name is required.").max(128, "Name is too long."),
@@ -28,7 +29,7 @@ type NameForm = z.infer<typeof nameSchema>;
 type Props = {
   name: string;
   email: string;
-  provider: string;
+  provider: AuthProvider;
   locationDefaultTab?: string;
 };
 
@@ -54,10 +55,10 @@ export function ProfileClient({
     formState: { errors: nameErrors },
   } = useForm<NameForm>({ resolver: zodResolver(nameSchema), defaultValues: { name } });
 
-  /** PATCH /api/users/me with `saving` set meanwhile; toasts the error and returns false on failure. */
+  /** PUT /api/users/me with `saving` set meanwhile; toasts the error and returns false on failure. */
   async function patchMe(body: object, setSaving: (saving: boolean) => void): Promise<boolean> {
     setSaving(true);
-    const res = await apiFetch("/api/users/me", jsonBody("PATCH", body));
+    const res = await apiFetch("/api/users/me", jsonBody("PUT", body));
     setSaving(false);
     if (res.ok) return true;
     showApiError(res.error);

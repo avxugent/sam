@@ -25,3 +25,30 @@ export const HISTORY_CHANGE_LABELS = {
   /** StockItem UPDATE: moved to another location (app/api/stock/bulk-relocate). */
   location: "Location",
 } as const;
+
+type Named = { name: string } | null | undefined;
+
+/**
+ * The snapshot an asset CREATE or DELETE entry carries: what identified the
+ * asset, empty values left out (quantity only when it is not 1).
+ */
+export function assetSnapshot(asset: {
+  type?: Named;
+  manufacturer?: Named;
+  model?: Named;
+  serialNumber?: string | null;
+  hostname?: string | null;
+  location?: Named;
+  quantity: number;
+}): Record<string, string | number> {
+  const entries: [string, string | number | null | undefined][] = [
+    ["Type", asset.type?.name],
+    ["Manufacturer", asset.manufacturer?.name],
+    ["Model", asset.model?.name],
+    ["Serial number", asset.serialNumber],
+    ["Hostname", asset.hostname],
+    ["Location", asset.location?.name],
+    ["Quantity", asset.quantity !== 1 ? asset.quantity : null],
+  ];
+  return Object.fromEntries(entries.filter((entry): entry is [string, string | number] => !!entry[1]));
+}

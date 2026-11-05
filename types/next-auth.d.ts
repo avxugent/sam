@@ -22,8 +22,8 @@ declare module "next-auth" {
     needs2FA?: boolean;
     needsPasswordChange?: boolean;
     needs2FASetup?: boolean;
-    /** Second factor used by the "credentials-2fa-verified" provider ("totp" | "passkey") */
-    method?: string;
+    /** Second factor used by the "credentials-2fa-verified" provider */
+    method?: "totp" | "passkey";
   }
 }
 

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { buildLocationPathsFromRows } from "@/lib/locations/path";
+import { locationBreadcrumbsFromRows } from "@/lib/locations/path";
 
 /**
  * The lookup lists the report builder offers (filter values, location scope,
@@ -14,7 +14,7 @@ export async function loadReportBuilderOptions() {
     prisma.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
-  const locationPaths = buildLocationPathsFromRows(locations);
+  const locationPaths = locationBreadcrumbsFromRows(locations);
   const locationScopeOptions = locations.map((l) => ({ id: l.id, name: locationPaths.get(l.id) ?? l.name }));
 
   return { assetTypes, manufacturers, locations, locationScopeOptions, workLogItems, suppliers };

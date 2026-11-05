@@ -17,8 +17,8 @@ function formatRate(rate: number | null): string | null {
 
 function rateColor(rate: number | null): string {
   if (rate === null) return "text-muted-foreground";
-  if (rate >= 0.95) return "text-[#16a34a]";
-  if (rate >= 0.8) return "text-[#ca8a04]";
+  if (rate >= 0.95) return "text-success-foreground";
+  if (rate >= 0.8) return "text-warning";
   return "text-destructive";
 }
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export type ModelOption = {
   id: string;
@@ -46,9 +47,11 @@ export function ModelAutocomplete({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [models, setModels] = useState<ModelOption[]>([]);
+  const showApiError = useApiErrorToast();
 
   // Scoped option list, fetched independently of the search text so typing
   // never re-triggers a request — fetched fresh whenever the scope changes.
+  // A failed load is toasted and empties the list, so no out-of-scope model stays offered.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -56,11 +59,16 @@ export function ModelAutocomplete({
       if (typeId) params.set("typeId", typeId);
       if (manufacturerId) params.set("manufacturerId", manufacturerId);
       const res = await apiFetch<ModelOption[]>(`/api/models?${params}`);
-      if (cancelled || !res.ok) return;
+      if (cancelled) return;
+      if (!res.ok) {
+        setModels([]);
+        showApiError(res.error);
+        return;
+      }
       setModels(res.data);
     })();
     return () => { cancelled = true; };
-  }, [typeId, manufacturerId]);
+  }, [typeId, manufacturerId, showApiError]);
 
   // Keep the visible search text in sync with the selected model's name
   // (handles edit mode, where `value` arrives before the user has typed

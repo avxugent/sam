@@ -42,7 +42,7 @@ function call(id = "loc-1") {
 }
 
 function location(children: number) {
-  return { id: "loc-1", name: "Room 1", children: [], _count: { assets: 1, children, attachments: 0 } };
+  return { id: "loc-1", name: "Room 1", children: [], _count: { assets: 1, children, attachments: 0 }, attachments: [] };
 }
 
 beforeEach(() => {
@@ -57,7 +57,7 @@ beforeEach(() => {
   vi.mocked(prisma.location.findUnique).mockResolvedValue(location(0) as never);
   vi.mocked(locationBreadcrumbs).mockResolvedValue([{ id: "loc-1", name: "Room 1" }]);
   vi.mocked(getAllDescendantLocationIds).mockResolvedValue(["child-1", "child-2"]);
-  vi.mocked(withInstalledQuantities).mockImplementation(async (loc) => ({ location: loc, subtreeAssetCount: 7 }));
+  vi.mocked(withInstalledQuantities).mockImplementation(async (loc) => ({ location: loc, subtreeInstalledUnits: 7 }));
   vi.mocked(prisma.asset.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.workLog.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.user.findMany).mockResolvedValue([] as never);
@@ -90,15 +90,28 @@ describe("locations/[id] page", () => {
       showLocation: false,
       // A leaf ignores the user's preferred tab.
       defaultTab: "assets",
-      subtreeAssetCount: 7,
+      subtreeInstalledUnits: 7,
       breadcrumbs: [{ id: "loc-1", name: "Room 1" }],
       userRole: "EDITOR",
       currentUserId: "user-1",
       hostnameUrlTemplate: "https://h/{hostname}",
-      // Empty templates become null.
-      locationUrlTemplate: null,
+      // An unset template stays "".
+      locationUrlTemplate: "",
       jiraBaseUrl: null,
     });
+  });
+
+  it("passes attachments with a typed kind and ISO createdAt", async () => {
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({
+      ...location(0),
+      attachments: [{ id: "att-1", attachmentType: "link", createdAt: new Date("2026-02-03T04:05:06.000Z") }],
+    } as never);
+
+    await renderPage(call());
+
+    expect(propsOf(LocationDetailClient).location.attachments).toEqual([
+      { id: "att-1", attachmentType: "link", createdAt: "2026-02-03T04:05:06.000Z" },
+    ]);
   });
 
   it("for a location with children: includes descendants and honours the preferred tab", async () => {

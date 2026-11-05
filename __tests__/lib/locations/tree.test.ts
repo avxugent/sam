@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ancestorChain,
-  buildLocationPathString,
+  locationLabelPath,
   collectSubtreeIds,
   findFiNumber,
   flattenLocations,
@@ -162,9 +162,9 @@ describe("parseFiNumber()", () => {
   });
 });
 
-// ── buildLocationPathString ─────────────────────────────────────────────────
+// ── locationLabelPath ─────────────────────────────────────────────────
 
-describe("buildLocationPathString()", () => {
+describe("locationLabelPath()", () => {
   const ancestors: LocationAncestor[] = [
     { id: "1", name: "Campus A",   fiNumber: null },
     { id: "2", name: "Building 10", fiNumber: null },
@@ -173,17 +173,17 @@ describe("buildLocationPathString()", () => {
   ];
 
   it("joins ancestor names with ' / '", () => {
-    expect(buildLocationPathString(ancestors)).toBe(
+    expect(locationLabelPath(ancestors)).toBe(
       "Campus A / Building 10 / Floor 1 / Room 013"
     );
   });
 
   it("returns the single name for a single ancestor", () => {
-    expect(buildLocationPathString([{ id: "x", name: "Only", fiNumber: null }])).toBe("Only");
+    expect(locationLabelPath([{ id: "x", name: "Only", fiNumber: null }])).toBe("Only");
   });
 
   it("returns empty string for no ancestors", () => {
-    expect(buildLocationPathString([])).toBe("");
+    expect(locationLabelPath([])).toBe("");
   });
 });
 

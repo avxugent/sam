@@ -47,14 +47,14 @@ function renderLocation(loc = location(), userRole = "EDITOR") {
     <LocationDetailClient
       location={loc as never}
       assets={[]}
-      subtreeAssetCount={2}
+      subtreeInstalledUnits={2}
       breadcrumbs={[{ id: "b1", name: "Building 10" }]}
       userRole={userRole as never}
       currentUserId="u1"
       showLocation={false}
       defaultTab="assets"
-      hostnameUrlTemplate={null}
-      locationUrlTemplate={null}
+      hostnameUrlTemplate=""
+      locationUrlTemplate=""
       workLogs={[]}
       users={[]}
       workLogItems={[]}
@@ -100,9 +100,14 @@ describe("LocationDetailClient", () => {
     expect(mockFetch).toHaveBeenCalledWith("/api/locations/l1", { method: "DELETE" });
   });
 
+  it("offers an editor no delete for a location with sub-locations (cascade is Admin-only)", () => {
+    renderLocation(location({ _count: { assets: 0, children: 2, attachments: 0 } }), "EDITOR");
+    expect(screen.queryByRole("button", { name: /^delete$/ })).not.toBeInTheDocument();
+  });
+
   it("requires the cascade confirmation before deleting a subtree", async () => {
     mockFetch.mockResolvedValueOnce(ok());
-    renderLocation(location({ _count: { assets: 0, children: 2, attachments: 0 } }));
+    renderLocation(location({ _count: { assets: 0, children: 2, attachments: 0 } }), "ADMIN");
     await userEvent.click(screen.getByRole("button", { name: /^delete$/ }));
     const confirm = screen.getAllByRole("button", { name: "delete" }).at(-1)!;
     expect(confirm).toBeDisabled();

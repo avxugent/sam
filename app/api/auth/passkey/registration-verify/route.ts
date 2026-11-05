@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     action: "CREATE",
     entityType: "User",
     entityId: session.user.id,
-    entityName: session.user.email ?? undefined,
+    entityName: session.user.email,
     detail: { event: "Passkey registered", label },
   });
 

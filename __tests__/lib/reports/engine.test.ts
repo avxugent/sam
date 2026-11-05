@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -45,31 +45,55 @@ describe("translateFilters()", () => {
     expect(result).toEqual({ AND: [{ model: { name: { contains: "Dell" } } }] });
   });
 
-  it("translates installationDate olderThanYears", () => {
-    const before = new Date();
-    const result = translateFilters([{ field: "installationDate", op: "olderThanYears", value: "5" }]);
-    expect(result).toHaveProperty("AND");
-    const condition = (result as { AND: { installationDate?: { lt: Date } }[] }).AND[0];
-    expect(condition.installationDate?.lt).toBeInstanceOf(Date);
-    expect(condition.installationDate!.lt.getTime()).toBeLessThanOrEqual(before.getTime());
-  });
+  describe("date filters (clock pinned)", () => {
+    const NOW = new Date("2026-01-01T00:00:00Z");
+    const DAY = 24 * 60 * 60 * 1000;
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(NOW);
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
-  it("translates installationDate newerThanYears", () => {
-    const result = translateFilters([{ field: "installationDate", op: "newerThanYears", value: "2" }]);
-    const condition = (result as { AND: { installationDate?: { gt: Date } }[] }).AND[0];
-    expect(condition.installationDate?.gt).toBeInstanceOf(Date);
-  });
+    it("olderThanYears is lt now minus N years of 365.25 days", () => {
+      const result = translateFilters([{ field: "installationDate", op: "olderThanYears", value: "5" }]);
+      expect(result).toEqual({ AND: [{ installationDate: { lt: new Date(NOW.getTime() - 5 * 365.25 * DAY) } }] });
+    });
 
-  it("translates installationDate before ISO date", () => {
-    const result = translateFilters([{ field: "installationDate", op: "before", value: "2020-01-01" }]);
-    const condition = (result as { AND: { installationDate?: { lt: Date } }[] }).AND[0];
-    expect(condition.installationDate?.lt).toBeInstanceOf(Date);
-  });
+    it("newerThanYears is gt now minus N years, fractions included", () => {
+      const result = translateFilters([{ field: "installationDate", op: "newerThanYears", value: "1.5" }]);
+      expect(result).toEqual({ AND: [{ installationDate: { gt: new Date(NOW.getTime() - 1.5 * 365.25 * DAY) } }] });
+    });
 
-  it("translates installationDate after ISO date", () => {
-    const result = translateFilters([{ field: "installationDate", op: "after", value: "2022-06-01" }]);
-    const condition = (result as { AND: { installationDate?: { gt: Date } }[] }).AND[0];
-    expect(condition.installationDate?.gt).toBeInstanceOf(Date);
+    it("before an ISO date is lt that date", () => {
+      const result = translateFilters([{ field: "installationDate", op: "before", value: "2020-01-01" }]);
+      expect(result).toEqual({ AND: [{ installationDate: { lt: new Date("2020-01-01") } }] });
+    });
+
+    it("after an ISO date is gt that date", () => {
+      const result = translateFilters([{ field: "installationDate", op: "after", value: "2022-06-01" }]);
+      expect(result).toEqual({ AND: [{ installationDate: { gt: new Date("2022-06-01") } }] });
+    });
+
+    it("lastChanged newerThanDays is gt now minus N days, on updatedAt", () => {
+      const result = translateFilters([{ field: "lastChanged", op: "newerThanDays", value: "7" }]);
+      expect(result).toEqual({ AND: [{ updatedAt: { gt: new Date(NOW.getTime() - 7 * DAY) } }] });
+    });
+
+    it("lastChanged olderThanDays is lt now minus N days", () => {
+      const result = translateFilters([{ field: "lastChanged", op: "olderThanDays", value: "30" }]);
+      expect(result).toEqual({ AND: [{ updatedAt: { lt: new Date(NOW.getTime() - 30 * DAY) } }] });
+    });
+
+    it("lastChanged before / after an ISO date bound updatedAt", () => {
+      expect(translateFilters([{ field: "lastChanged", op: "before", value: "2024-01-01" }])).toEqual({
+        AND: [{ updatedAt: { lt: new Date("2024-01-01") } }],
+      });
+      expect(translateFilters([{ field: "lastChanged", op: "after", value: "2024-06-01" }])).toEqual({
+        AND: [{ updatedAt: { gt: new Date("2024-06-01") } }],
+      });
+    });
   });
 
   it("translates installationDate isNull", () => {
@@ -95,32 +119,6 @@ describe("translateFilters()", () => {
   it("ignores olderThanYears with non-numeric value", () => {
     const result = translateFilters([{ field: "installationDate", op: "olderThanYears", value: "abc" }]);
     expect(result).toEqual({});
-  });
-
-  it("translates lastChanged newerThanDays", () => {
-    const before = new Date();
-    const result = translateFilters([{ field: "lastChanged", op: "newerThanDays", value: "7" }]);
-    const condition = (result as { AND: { updatedAt?: { gt: Date } }[] }).AND[0];
-    expect(condition.updatedAt?.gt).toBeInstanceOf(Date);
-    expect(condition.updatedAt!.gt.getTime()).toBeLessThanOrEqual(before.getTime());
-  });
-
-  it("translates lastChanged olderThanDays", () => {
-    const result = translateFilters([{ field: "lastChanged", op: "olderThanDays", value: "30" }]);
-    const condition = (result as { AND: { updatedAt?: { lt: Date } }[] }).AND[0];
-    expect(condition.updatedAt?.lt).toBeInstanceOf(Date);
-  });
-
-  it("translates lastChanged before ISO date", () => {
-    const result = translateFilters([{ field: "lastChanged", op: "before", value: "2024-01-01" }]);
-    const condition = (result as { AND: { updatedAt?: { lt: Date } }[] }).AND[0];
-    expect(condition.updatedAt?.lt).toBeInstanceOf(Date);
-  });
-
-  it("translates lastChanged after ISO date", () => {
-    const result = translateFilters([{ field: "lastChanged", op: "after", value: "2024-06-01" }]);
-    const condition = (result as { AND: { updatedAt?: { gt: Date } }[] }).AND[0];
-    expect(condition.updatedAt?.gt).toBeInstanceOf(Date);
   });
 
   it("ignores lastChanged newerThanDays with non-numeric value", () => {

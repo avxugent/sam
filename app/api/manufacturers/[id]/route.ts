@@ -87,7 +87,13 @@ export async function DELETE(
     );
   }
 
-  await prisma.manufacturer.delete({ where: { id } });
+  try {
+    await prisma.manufacturer.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Manufacturer");
+    throw err;
+  }
   await logAudit({
     session,
     req,

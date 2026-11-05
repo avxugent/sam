@@ -16,6 +16,7 @@
  * to warm the server's auth cache.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { testFiNumber } from "./fixtures";
 
 const enabled = process.env.RUN_DB_TESTS === "1";
 
@@ -30,7 +31,7 @@ describe.runIf(enabled)("location-path SQL (integration)", () => {
     lib = await import("@/lib/locations/path");
     const campus = await prisma.location.create({ data: { name: `${tag} campus` } });
     const building = await prisma.location.create({ data: { name: `${tag} building`, parentId: campus.id } });
-    const room = await prisma.location.create({ data: { name: `${tag} room`, parentId: building.id, fiNumber: `99.99.${String(Date.now()).slice(-3)}.001` } });
+    const room = await prisma.location.create({ data: { name: `${tag} room`, parentId: building.id, fiNumber: testFiNumber("99.99") } });
     const type = await prisma.assetType.create({ data: { name: `${tag} type` } });
     await prisma.asset.create({ data: { locationId: room.id, typeId: type.id, quantity: 3 } });
     Object.assign(ids, { campus: campus.id, building: building.id, room: room.id, typeId: type.id });
@@ -56,15 +57,15 @@ describe.runIf(enabled)("location-path SQL (integration)", () => {
     expect(await lib.getAllDescendantLocationIds(ids.room)).toEqual([]);
   });
 
-  it("getRecursiveAssetCounts sums installed quantity up the tree", async () => {
-    const counts = await lib.getRecursiveAssetCounts();
+  it("getInstalledUnitTotals sums installed quantity up the tree", async () => {
+    const counts = await lib.getInstalledUnitTotals();
     expect(counts[ids.room]).toBe(3);
     expect(counts[ids.building]).toBe(3);
     expect(counts[ids.campus]).toBe(3);
   });
 
-  it("getRecursiveAssetCounts scoped to root ids counts only those roots (search)", async () => {
-    expect(await lib.getRecursiveAssetCounts([ids.building, ids.room])).toEqual({ [ids.building]: 3, [ids.room]: 3 });
+  it("getInstalledUnitTotals scoped to root ids counts only those roots (search)", async () => {
+    expect(await lib.getInstalledUnitTotals([ids.building, ids.room])).toEqual({ [ids.building]: 3, [ids.room]: 3 });
   });
 
   it("getSubtreeIdsDeepestFirst lists the subtree in delete order", async () => {

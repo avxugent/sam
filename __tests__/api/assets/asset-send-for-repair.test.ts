@@ -74,6 +74,7 @@ describe("POST /api/assets/[id]/send-for-repair", () => {
     mockFindUnique.mockResolvedValue(IN_REPAIR_ASSET as never);
     const res = await sendForRepair(req(), { params: PARAMS });
     expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("ALREADY_IN_REPAIR");
   });
 
   it("rejects note longer than 500 chars", async () => {

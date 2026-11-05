@@ -13,18 +13,8 @@ import { ASSET_LIST_INCLUDE } from "@/lib/assets/include";
 import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
 import { toIsoDay } from "@/lib/dates";
 import { LOCATION_PAGE_INCLUDE } from "@/lib/locations/include";
+import { attachmentKind } from "@/components/attachments/attachment";
 
-
-async function getUrlTemplates(): Promise<{
-  hostnameUrlTemplate: string | null;
-  locationUrlTemplate: string | null;
-}> {
-  const templates = await readGeneralSettings();
-  return {
-    hostnameUrlTemplate: templates.hostnameUrlTemplate || null,
-    locationUrlTemplate: templates.locationUrlTemplate || null,
-  };
-}
 
 export default async function LocationPage({
   params,
@@ -33,7 +23,7 @@ export default async function LocationPage({
 }) {
   const session = await auth();
   const { id } = await params;
-  const { hostnameUrlTemplate, locationUrlTemplate } = await getUrlTemplates();
+  const { hostnameUrlTemplate, locationUrlTemplate } = await readGeneralSettings();
 
   const userPref = session?.user?.id
     ? await prisma.user.findUnique({
@@ -64,7 +54,7 @@ export default async function LocationPage({
     orderBy: { createdAt: "desc" },
   });
 
-  const { location: locationWithQuantities, subtreeAssetCount } = await withInstalledQuantities(location, locationIds);
+  const { location: locationWithQuantities, subtreeInstalledUnits } = await withInstalledQuantities(location, locationIds);
 
   const workLogs = await prisma.workLog.findMany({
     where: { locationId: id },
@@ -84,9 +74,16 @@ export default async function LocationPage({
 
   return (
     <LocationDetailClient
-      location={locationWithQuantities}
+      location={{
+        ...locationWithQuantities,
+        attachments: locationWithQuantities.attachments.map((a) => ({
+          ...a,
+          attachmentType: attachmentKind(a.attachmentType),
+          createdAt: a.createdAt.toISOString(),
+        })),
+      }}
       assets={assets}
-      subtreeAssetCount={subtreeAssetCount}
+      subtreeInstalledUnits={subtreeInstalledUnits}
       breadcrumbs={breadcrumbs}
       userRole={session?.user?.role ?? Role.VIEWER}
       currentUserId={session?.user?.id ?? ""}

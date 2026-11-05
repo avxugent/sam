@@ -43,11 +43,11 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
         summary={
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[13px] text-muted-foreground">{t("resultCount", { count: result.total })}</span>
-            <span className="inline-flex items-center gap-1 text-[11px] bg-[#dcfce7] text-[#166534] px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-[11px] bg-success-surface text-success-foreground px-2 py-0.5 rounded-full">
               <Check className="h-3 w-3" />
               {t("filledCount", { count: result.filledCount })}
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] bg-[#fee2e2] text-destructive px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-[11px] bg-danger-surface text-destructive px-2 py-0.5 rounded-full">
               <X className="h-3 w-3" />
               {t("notFilledCount", { count: result.notFilledCount })}
             </span>
@@ -111,7 +111,7 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
                           if (s?.filled) {
                             return (
                               <td key={c.id} className="px-4 py-[10px]">
-                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#166534]">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success-foreground">
                                   <Check className="h-3.5 w-3.5" />
                                   {s.date ?? t("filled")}
                                 </span>
@@ -122,7 +122,7 @@ export function LocationReportViewer({ reportId, reportName, result, canEdit }: 
                           // entry, surface its date (overdue) instead of nothing.
                           return (
                             <td key={c.id} className="px-4 py-[10px]">
-                              <span className="inline-flex items-center gap-1 text-[11px] text-[#b45309]" title={s?.date ? t("overdue") : undefined}>
+                              <span className="inline-flex items-center gap-1 text-[11px] text-warning-foreground" title={s?.date ? t("overdue") : undefined}>
                                 <X className="h-3.5 w-3.5" />
                                 {s?.date ?? t("notFilled")}
                               </span>

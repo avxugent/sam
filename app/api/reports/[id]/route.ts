@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { updateReportSchema } from "@/lib/schemas/report";
 import { logAudit } from "@/lib/audit";
 import { canEdit, isAdmin } from "@/lib/permissions";
-import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -12,7 +12,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
   const report = await prisma.report.findUnique({ where: { id } });
-  if (!report) return notFoundResponse();
+  if (!report) return notFoundResponse("Report");
 
   return NextResponse.json(report);
 }
@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const report = await prisma.report.findUnique({ where: { id } });
-  if (!report) return notFoundResponse();
+  if (!report) return notFoundResponse("Report");
 
   const body = await readJsonBody(req);
   const parsed = updateReportSchema.safeParse(body);
@@ -33,14 +33,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { name, description, definition } = parsed.data;
-  const updated = await prisma.report.update({
-    where: { id },
-    data: {
-      name,
-      description,
-      definition: definition && JSON.stringify(definition),
-    },
-  });
+  let updated;
+  try {
+    updated = await prisma.report.update({
+      where: { id },
+      data: {
+        name,
+        description,
+        definition: definition && JSON.stringify(definition),
+      },
+    });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Report");
+    throw err;
+  }
 
   await logAudit({
     session,
@@ -64,9 +71,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const { id } = await params;
   const report = await prisma.report.findUnique({ where: { id } });
-  if (!report) return notFoundResponse();
+  if (!report) return notFoundResponse("Report");
 
-  await prisma.report.delete({ where: { id } });
+  try {
+    await prisma.report.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Report");
+    throw err;
+  }
 
   await logAudit({
     session,

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 export function AddButton({ name, adding, onAdd }: { name: string; adding: boolean; onAdd: () => void }) {
   const tCommon = useTranslations("common");
   return (
-    <Button onClick={onAdd} disabled={adding || !name.trim()}>
+    <Button onClick={onAdd} disabled={adding || !name.trim()} aria-busy={adding}>
       {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
       {tCommon("add")}
     </Button>

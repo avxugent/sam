@@ -8,12 +8,17 @@ import { defineConfig } from "prisma/config";
 
 if (existsSync(".env")) process.loadEnvFile(".env");
 
+/** The migrate URL from the DB_* vars; throws like lib/prisma.ts when a required one is unset. */
 function buildDatabaseUrl(): string {
-  const host = process.env.DB_HOST ?? "localhost";
+  const host = process.env.DB_HOST;
   const port = process.env.DB_PORT ?? "3306";
-  const name = process.env.DB_NAME ?? "samdb";
-  const user = process.env.DB_USER ?? "sam";
+  const name = process.env.DB_NAME;
+  const user = process.env.DB_USER;
   const password = process.env.DB_PASSWORD ?? "";
+
+  if (!host || !name || !user) {
+    throw new Error("Missing required database environment variables: DB_HOST, DB_NAME, DB_USER");
+  }
 
   const encodedUser = encodeURIComponent(user);
   const encodedPassword = encodeURIComponent(password);
@@ -26,14 +31,17 @@ function buildDatabaseUrl(): string {
   return url;
 }
 
-const databaseUrl = buildDatabaseUrl();
-
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
   },
+  // A getter, so only commands that connect (migrate, db) need the DB_* vars:
+  // `prisma generate` never reads the URL and runs without them (Dockerfile
+  // builder stage, CI type-check job).
   datasource: {
-    url: databaseUrl,
+    get url() {
+      return buildDatabaseUrl();
+    },
   },
 });

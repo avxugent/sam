@@ -7,7 +7,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { isHostnameCompliant } from "@/lib/hostname";
-import { getLocationPathsBatch } from "@/lib/locations/path";
+import { locationExportPathsBatch } from "@/lib/locations/path";
 
 export type NonCompliantAsset = {
   id: string;
@@ -59,7 +59,7 @@ export async function computeHostnameCompliance(): Promise<HostnameComplianceRes
   const locationIds = [
     ...new Set(assets.map((a) => a.locationId).filter((id): id is string => !!id)),
   ];
-  const pathMap = await getLocationPathsBatch(locationIds);
+  const pathMap = await locationExportPathsBatch(locationIds);
 
   const buckets = new Map<string, TypeCompliance>();
   function bucketFor(typeId: string | null): TypeCompliance {

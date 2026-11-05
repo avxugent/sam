@@ -54,7 +54,7 @@ export async function logAudit({
   action: AuditAction;
   entityType: AuditEntityType;
   entityId?: string;
-  entityName?: string;
+  entityName?: string | null;
   detail?: Record<string, unknown>;
   /** Asset/StockItem lineage grouping key — see Asset.lineageId. */
   lineageId?: string;

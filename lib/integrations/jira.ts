@@ -102,8 +102,7 @@ function basicAuthHeader(): string {
 }
 
 export async function fetchJiraIssue(key: string): Promise<JiraLookup> {
-  const base = jiraBaseUrl();
-  if (!isJiraConfigured() || !base) return { status: "unavailable" };
+  if (!isJiraConfigured()) return { status: "unavailable" };
   if (!isValidJiraKey(key)) return { status: "missing" };
 
   const cached = cache.get(key);
@@ -111,7 +110,7 @@ export async function fetchJiraIssue(key: string): Promise<JiraLookup> {
     return cached.value;
   }
 
-  const url = `${base}/rest/api/3/issue/${encodeURIComponent(key)}?fields=summary,status`;
+  const url = `${jiraBaseUrl()}/rest/api/3/issue/${encodeURIComponent(key)}?fields=summary,status`;
 
   try {
     const res = await fetch(url, {
@@ -148,7 +147,7 @@ export async function fetchJiraIssue(key: string): Promise<JiraLookup> {
         summary: body.fields?.summary ?? "",
         status: body.fields?.status?.name ?? "Unknown",
         statusCategory: categorize(body.fields?.status?.statusCategory?.key),
-        url: `${base}/browse/${key}`,
+        url: jiraIssueUrl(key)!,
       },
     };
     remember(key, lookup);

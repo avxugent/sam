@@ -28,7 +28,7 @@ vi.mock("bcryptjs", () => ({
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
-import { PATCH } from "@/app/api/users/me/route";
+import { PUT } from "@/app/api/users/me/route";
 
 const mockAuth = vi.mocked(auth);
 const mockFindUnique = vi.mocked(prisma.user.findUnique);
@@ -37,18 +37,18 @@ const mockCompare = vi.mocked(bcrypt.compare);
 
 function makeRequest(body: object) {
   return new NextRequest("http://localhost/api/users/me", {
-    method: "PATCH",
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 }
 
-describe("PATCH /api/users/me", () => {
+describe("PUT /api/users/me", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when unauthenticated", async () => {
     mockAuth.mockResolvedValue(null as never);
-    const res = await PATCH(makeRequest({ name: "New Name" }));
+    const res = await PUT(makeRequest({ name: "New Name" }));
     expect(res.status).toBe(401);
   });
 
@@ -57,7 +57,7 @@ describe("PATCH /api/users/me", () => {
     mockFindUnique.mockResolvedValue({ passwordHash: "$2b$hash", provider: "credentials" } as never);
     mockUpdate.mockResolvedValue({ id: "u1", name: "New Name" } as never);
 
-    const res = await PATCH(makeRequest({ name: "New Name" }));
+    const res = await PUT(makeRequest({ name: "New Name" }));
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ name: "New Name" }) })
@@ -68,7 +68,7 @@ describe("PATCH /api/users/me", () => {
     mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" } } as never);
     mockFindUnique.mockResolvedValue({ passwordHash: "$2b$hash", provider: "credentials" } as never);
 
-    const res = await PATCH(makeRequest({}));
+    const res = await PUT(makeRequest({}));
     expect(res.status).toBe(400);
   });
 
@@ -77,7 +77,7 @@ describe("PATCH /api/users/me", () => {
     mockFindUnique.mockResolvedValue({ passwordHash: "$2b$hash", provider: "credentials" } as never);
     mockCompare.mockResolvedValue(false as never);
 
-    const res = await PATCH(makeRequest({
+    const res = await PUT(makeRequest({
       currentPassword: "wrongpassword",
       newPassword: "newpassword1",
       confirmPassword: "newpassword1",
@@ -93,7 +93,7 @@ describe("PATCH /api/users/me", () => {
     mockCompare.mockResolvedValue(true as never);
     mockUpdate.mockResolvedValue({ id: "u1", name: "User" } as never);
 
-    const res = await PATCH(makeRequest({
+    const res = await PUT(makeRequest({
       currentPassword: "oldpassword",
       newPassword: "newpassword1",
       confirmPassword: "newpassword1",
@@ -110,7 +110,7 @@ describe("PATCH /api/users/me", () => {
     mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" } } as never);
     mockFindUnique.mockResolvedValue({ passwordHash: "$2b$hash", provider: "credentials" } as never);
 
-    const res = await PATCH(makeRequest({
+    const res = await PUT(makeRequest({
       currentPassword: "oldpassword",
       newPassword: "newpassword1",
       confirmPassword: "different",
@@ -122,7 +122,7 @@ describe("PATCH /api/users/me", () => {
     mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" } } as never);
     mockFindUnique.mockResolvedValue({ passwordHash: null, provider: "microsoft-entra-id" } as never);
 
-    const res = await PATCH(makeRequest({
+    const res = await PUT(makeRequest({
       currentPassword: "anything",
       newPassword: "newpassword1",
       confirmPassword: "newpassword1",
@@ -136,7 +136,7 @@ describe("PATCH /api/users/me", () => {
     mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" } } as never);
     mockFindUnique.mockResolvedValue({ passwordHash: "$2b$hash", provider: "credentials" } as never);
 
-    const res = await PATCH(makeRequest({
+    const res = await PUT(makeRequest({
       currentPassword: "oldpassword",
       newPassword: "short",
       confirmPassword: "short",

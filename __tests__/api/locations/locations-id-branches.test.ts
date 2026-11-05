@@ -7,16 +7,20 @@ vi.mock("@/lib/prisma", () => ({
   __esModule: true,
   prisma: {
     location: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn(), delete: vi.fn(), count: vi.fn() },
-    attachment: { findUnique: vi.fn() },
+    attachment: { findUnique: vi.fn(), findMany: vi.fn() },
+    asset: { count: vi.fn() },
     stockItem: { count: vi.fn() },
+    $transaction: vi.fn(),
   },
 }));
-vi.mock("@/lib/locations/path", () => ({ getAllDescendantLocationIds: vi.fn() }));
+vi.mock("@/lib/locations/path", () => ({ getAllDescendantLocationIds: vi.fn(), getSubtreeIdsDeepestFirst: vi.fn() }));
+vi.mock("@/lib/uploads/storage", () => ({ deleteStoredFiles: vi.fn() }));
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { getAllDescendantLocationIds } from "@/lib/locations/path";
+import { getAllDescendantLocationIds, getSubtreeIdsDeepestFirst } from "@/lib/locations/path";
+import { deleteStoredFiles } from "@/lib/uploads/storage";
 import { GET, PUT, DELETE } from "@/app/api/locations/[id]/route";
 
 const mockAuth = vi.mocked(auth);
@@ -35,6 +39,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockDescendants.mockResolvedValue([]);
   vi.mocked(prisma.stockItem.count).mockResolvedValue(0 as never);
+  vi.mocked(prisma.asset.count).mockResolvedValue(0 as never);
+  vi.mocked(prisma.attachment.findMany).mockResolvedValue([] as never);
 });
 
 describe("GET /api/locations/[id]", () => {
@@ -134,6 +140,24 @@ describe("PUT /api/locations/[id]", () => {
     expect(prisma.location.update).not.toHaveBeenCalled();
   });
 
+  it("404 when the location is deleted between the read and the update (P2025)", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ id: "loc1", name: "Old" } as never);
+    vi.mocked(prisma.location.update).mockRejectedValue({ code: "P2025" });
+    const res = await PUT(put({ description: "x" }), { params: params() });
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Location not found." });
+  });
+  it("400 unknownReference when the new parent is deleted after the check (P2003)", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.location.findUnique)
+      .mockResolvedValueOnce({ id: "loc1", name: "Old", parentId: null } as never)
+      .mockResolvedValueOnce({ id: "p2" } as never);
+    vi.mocked(prisma.location.update).mockRejectedValue({ code: "P2003" });
+    const res = await PUT(put({ parentId: "p2" }), { params: params() });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ code: "unknownReference", error: "Target location does not exist." });
+  });
   it("400 when moving a location into itself", async () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     const res = await PUT(put({ parentId: "loc1" }), { params: params() });
@@ -204,6 +228,56 @@ describe("DELETE /api/locations/[id]", () => {
     vi.mocked(prisma.location.findUnique).mockResolvedValue(null as never);
     expect((await DELETE(del(), { params: params() })).status).toBe(404);
     expect(prisma.location.delete).not.toHaveBeenCalled();
+  });
+  it("403 when an editor deletes a location that has sub-locations", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ name: "Building" } as never);
+    vi.mocked(prisma.location.count).mockResolvedValue(2 as never);
+    const req = new NextRequest("http://localhost/api/locations/loc1?cascade=true", { method: "DELETE" });
+    expect((await DELETE(req, { params: params() })).status).toBe(403);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+  it("lets an editor delete a leaf location", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ name: "Room" } as never);
+    vi.mocked(prisma.location.count).mockResolvedValue(0 as never);
+    vi.mocked(prisma.location.delete).mockResolvedValue({} as never);
+    expect((await DELETE(del(), { params: params() })).status).toBe(200);
+  });
+  it("404 when the location is deleted between the read and the delete (P2025)", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ name: "Room" } as never);
+    vi.mocked(prisma.location.count).mockResolvedValue(0 as never);
+    vi.mocked(prisma.location.delete).mockRejectedValue({ code: "P2025" });
+    const res = await DELETE(del(), { params: params() });
+    expect(res.status).toBe(404);
+    expect(deleteStoredFiles).not.toHaveBeenCalled();
+    expect(mockLogAudit).not.toHaveBeenCalled();
+  });
+  it("admin cascade removes the subtree's stored files and audits how much went with it", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    vi.mocked(prisma.location.findUnique).mockResolvedValue({ name: "Building" } as never);
+    vi.mocked(prisma.location.count).mockResolvedValue(1 as never);
+    mockDescendants.mockResolvedValue(["child1", "child2"]);
+    vi.mocked(getSubtreeIdsDeepestFirst).mockResolvedValue(["child2", "child1", "loc1"]);
+    vi.mocked(prisma.$transaction).mockResolvedValue([] as never);
+    vi.mocked(prisma.asset.count).mockResolvedValue(4 as never);
+    vi.mocked(prisma.attachment.findMany).mockResolvedValue([{ path: "locations/child1/a.png" }, { path: "assets/as1/b.pdf" }] as never);
+    const req = new NextRequest("http://localhost/api/locations/loc1?cascade=true", { method: "DELETE" });
+    const res = await DELETE(req, { params: params() });
+    expect(res.status).toBe(200);
+    const ids = ["loc1", "child1", "child2"];
+    expect(prisma.attachment.findMany).toHaveBeenCalledWith({
+      where: { path: { not: null }, OR: [{ locationId: { in: ids } }, { asset: { locationId: { in: ids } } }] },
+      select: { path: true },
+    });
+    expect(deleteStoredFiles).toHaveBeenCalledWith(["locations/child1/a.png", "assets/as1/b.pdf"]);
+    expect(vi.mocked(prisma.$transaction).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(deleteStoredFiles).mock.invocationCallOrder[0]
+    );
+    expect(mockLogAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { snapshot: { Name: "Building" }, cascade: { locations: 3, assets: 4 } } })
+    );
   });
   it("400 when the location still has sub-locations", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);

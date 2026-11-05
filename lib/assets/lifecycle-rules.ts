@@ -19,7 +19,7 @@ export type LifecycleViolationCode =
 /** Why a stock deploy is not allowed (single-item only, so not a bulk skip reason). */
 export type DeployViolationCode = "INSUFFICIENT_QUANTITY" | "SINGLE_UNIT_DEVICE";
 
-/** Why a transition is not allowed: `code` for bulk results, `message` for a 400. */
+/** Why a transition is not allowed: `code` (a bulk skip reason, also sent with a single-asset 400) and a readable `message`. */
 export type LifecycleViolation<C extends string = LifecycleViolationCode> = { code: C; message: string };
 
 const violation = <C extends string>(code: C, message: string): LifecycleViolation<C> => ({ code, message });

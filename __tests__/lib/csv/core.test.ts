@@ -55,6 +55,24 @@ describe("parseCsvDate()", () => {
     // genuinely unparseable string that no Date constructor handles
     expect(parseCsvDate("99-99-9999")).toBeNull();
   });
+
+  it("returns UTC midnight of the day", () => {
+    expect(parseCsvDate("2024-01-15")!.toISOString()).toBe("2024-01-15T00:00:00.000Z");
+    expect(parseCsvDate("5/3/2024")!.toISOString()).toBe("2024-03-05T00:00:00.000Z");
+    expect(parseCsvDate("05.03.24")!.toISOString()).toBe("2024-03-05T00:00:00.000Z");
+  });
+
+  it("returns null for a day that does not exist instead of rolling over", () => {
+    expect(parseCsvDate("31/02/2024")).toBeNull();
+    expect(parseCsvDate("2023-02-29")).toBeNull();
+    expect(parseCsvDate("31.04.24")).toBeNull();
+    expect(parseCsvDate("2024-13-01")).toBeNull();
+    expect(parseCsvDate("29/02/2024")!.toISOString()).toBe("2024-02-29T00:00:00.000Z");
+  });
+
+  it("returns null for formats outside the documented ones", () => {
+    expect(parseCsvDate("Jan 01 2024")).toBeNull();
+  });
 });
 
 // ── splitCsvLine ─────────────────────────────────────────────────────────────

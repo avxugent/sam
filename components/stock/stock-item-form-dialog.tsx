@@ -151,14 +151,12 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   const selectedLocationId = useWatch({ control, name: "locationId" }) ?? "";
   const modelIdValue = useWatch({ control, name: "modelId" });
 
-  // Lock quantity to 1 when serial is set
   useEffect(() => {
     if (serialNumber?.trim()) {
       setValue("quantity", 1, { shouldValidate: true });
     }
   }, [serialNumber, setValue]);
 
-  // Fetch dropdown options when dialog opens
   useEffect(() => {
     if (!open) return;
     apiFetch<AssetType[]>("/api/asset-types").then((res) => {

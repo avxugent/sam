@@ -15,6 +15,7 @@ vi.mock("@/lib/two-factor/session-upgrade", () => ({ upgradeSession: vi.fn() }))
 vi.mock("@/lib/audit", () => ({ __esModule: true, logAudit: vi.fn() }));
 vi.mock("@/lib/two-factor/totp", () => ({ __esModule: true, verifyTotpCode: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ __esModule: true, consumeRateLimit: vi.fn() }));
+vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -51,6 +52,14 @@ beforeEach(() => {
 });
 
 describe("POST /api/auth/2fa/verify — audit logging", () => {
+  it("403 for a session that still owes a password change before its 2FA step", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", email: "a@b.c", role: "EDITOR" }, needs2FA: true, needsPasswordChange: true } as never);
+    const res = await POST(req());
+    expect(res.status).toBe(403);
+    expect(mockVerify).not.toHaveBeenCalled();
+    expect(upgradeSession).not.toHaveBeenCalled();
+  });
+
   it("logs LOGIN_FAILED (stage totp) on an invalid code", async () => {
     mockAuth.mockResolvedValue(pendingSession());
     mockVerify.mockReturnValue(false);

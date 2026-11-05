@@ -31,9 +31,10 @@ import {
 } from "lucide-react";
 import { confirmTotpSetup, normalizeTotpCode, requestTotpSetup } from "@/components/auth/enrollment-api";
 import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
+import type { AuthProvider } from "@/lib/users/providers";
 
 type Props = {
-  provider: string;
+  provider: AuthProvider;
   totpEnabled: boolean;
 };
 

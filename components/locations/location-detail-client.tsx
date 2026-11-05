@@ -46,7 +46,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { renderLocationUrl } from "@/lib/url-templates";
-import { canEdit, type Role } from "@/lib/permissions";
+import { canEdit, isAdmin, type Role } from "@/lib/permissions";
 import type { AssetListRow } from "@/lib/assets/include";
 import { assetLabel } from "@/lib/assets/label";
 import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
@@ -58,7 +58,7 @@ type Breadcrumb = { id: string; name: string };
 export function LocationDetailClient({
   location,
   assets,
-  subtreeAssetCount,
+  subtreeInstalledUnits,
   breadcrumbs,
   userRole,
   currentUserId,
@@ -71,16 +71,18 @@ export function LocationDetailClient({
   workLogItems,
   jiraBaseUrl,
 }: {
-  location: LocationPageData;
+  location: Omit<LocationPageData, "attachments"> & { attachments: Attachment[] };
   assets: AssetListRow[];
-  subtreeAssetCount: number;
+  subtreeInstalledUnits: number;
   breadcrumbs: Breadcrumb[];
   userRole: Role;
   currentUserId: string;
   showLocation: boolean;
   defaultTab: string;
-  hostnameUrlTemplate: string | null;
-  locationUrlTemplate: string | null;
+  /** "" when not configured. */
+  hostnameUrlTemplate: string;
+  /** "" when not configured. */
+  locationUrlTemplate: string;
   workLogs: WorkLogEntry[];
   users: WorkLogUserOption[];
   workLogItems: WorkLogItemOption[];
@@ -98,6 +100,8 @@ export function LocationDetailClient({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [cascadeConfirmed, setCascadeConfirmed] = useState(false);
   const hasSubLocations = location._count.children > 0;
+  // Deleting with sub-locations cascades through the subtree: Admin-only.
+  const canDelete = !hasSubLocations || isAdmin(userRole);
   const [attachments, setAttachments] = useState<Attachment[]>(location.attachments);
   const [coverImageId, setCoverImageId] = useState<string | null>(location.coverImageId);
   const [mapData, setMapData] = useState({
@@ -302,7 +306,7 @@ export function LocationDetailClient({
             >
               <Button
                 size="sm"
-                className="h-8 rounded-[7px] bg-brand-yellow text-[#0f172a] font-bold hover:brightness-95 gap-1.5 text-[13px]"
+                className="h-8 rounded-[7px] bg-brand-yellow text-brand-yellow-foreground font-bold hover:brightness-95 gap-1.5 text-[13px]"
               >
                 <Plus className="h-3.5 w-3.5" />
                 {tNav("addAsset")}
@@ -316,7 +320,7 @@ export function LocationDetailClient({
       <div className="flex items-center gap-6 flex-wrap">
         <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <Package className="h-4 w-4" />
-          <span>{t("directAssets", { count: location._count.assets })}</span>
+          <span>{t("directAssets", { count: location.installedUnits })}</span>
         </div>
         <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <FolderOpen className="h-4 w-4" />
@@ -337,50 +341,52 @@ export function LocationDetailClient({
               <FolderInput className="h-3.5 w-3.5" />
               {t("moveLocationButton")}
             </Button>
-            <AlertDialog
-              open={deleteOpen}
-              onOpenChange={(o) => {
-                setDeleteOpen(o);
-                if (!o) setCascadeConfirmed(false);
-              }}
-            >
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 text-destructive border-[#fecaca] hover:bg-red-50 text-[13px] rounded-[7px]">
-                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                  {tCommon("delete")}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t("deleteConfirmTitle", { name: location.name })}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {hasSubLocations
-                      ? t("deleteConfirmDescriptionWithSubs", { count: location._count.children })
-                      : t("deleteConfirmDescription")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                {hasSubLocations && (
-                  <label className="flex items-start gap-2 text-sm">
-                    <Checkbox
-                      checked={cascadeConfirmed}
-                      onCheckedChange={(c) => setCascadeConfirmed(c === true)}
-                      className="mt-0.5"
-                    />
-                    <span>{t("deleteCascadeConfirm", { count: location._count.children })}</span>
-                  </label>
-                )}
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    disabled={hasSubLocations && !cascadeConfirmed}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
+            {canDelete && (
+              <AlertDialog
+                open={deleteOpen}
+                onOpenChange={(o) => {
+                  setDeleteOpen(o);
+                  if (!o) setCascadeConfirmed(false);
+                }}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-destructive border-danger-border hover:bg-red-50 text-[13px] rounded-[7px]">
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
                     {tCommon("delete")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t("deleteConfirmTitle", { name: location.name })}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {hasSubLocations
+                        ? t("deleteConfirmDescriptionWithSubs", { count: location._count.children })
+                        : t("deleteConfirmDescription")}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  {hasSubLocations && (
+                    <label className="flex items-start gap-2 text-sm">
+                      <Checkbox
+                        checked={cascadeConfirmed}
+                        onCheckedChange={(c) => setCascadeConfirmed(c === true)}
+                        className="mt-0.5"
+                      />
+                      <span>{t("deleteCascadeConfirm", { count: location._count.children })}</span>
+                    </label>
+                  )}
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      disabled={hasSubLocations && !cascadeConfirmed}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {tCommon("delete")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         )}
       </div>
@@ -460,7 +466,7 @@ export function LocationDetailClient({
             <h2 className="text-[18px] font-semibold text-foreground">{t("subLocationsHeading")}</h2>
             {editable && (
               <LocationFormDialog mode="create" parentId={location.id}>
-                <Button size="sm" className="h-[34px] rounded-[7px] bg-brand-yellow text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
+                <Button size="sm" className="h-[34px] rounded-[7px] bg-brand-yellow text-brand-yellow-foreground font-bold hover:brightness-95 text-[13px]">
                   <Plus className="h-4 w-4 mr-1" />
                   {tNav("addSubLocation")}
                 </Button>
@@ -486,7 +492,7 @@ export function LocationDetailClient({
                         <MapPin className="h-3.5 w-3.5 fill-primary stroke-primary flex-shrink-0" />
                         <span className="text-[13.5px] font-semibold text-foreground">{child.name}</span>
                         {child.inMaintenance && (
-                          <span className="inline-flex items-center gap-1 font-semibold text-[10px] text-[#92400e] bg-amber-100 border border-amber-300 px-1.5 py-[1px] rounded-[4px]">
+                          <span className="inline-flex items-center gap-1 font-semibold text-[10px] text-warning-foreground bg-warning-tint border border-warning-border px-1.5 py-[1px] rounded-[4px]">
                             <Wrench className="h-2.5 w-2.5" />
                             {t("inMaintenance")}
                           </span>
@@ -496,7 +502,7 @@ export function LocationDetailClient({
                         <p className="font-mono text-[11px] text-muted-foreground mb-2">{child.fiNumber}</p>
                       )}
                       <div className="flex gap-3 text-[12px] text-muted-foreground">
-                        <span>{t("directAssets", { count: child._count.assets })}</span>
+                        <span>{t("directAssets", { count: child.installedUnits })}</span>
                         <span>{t("subLocations", { count: child._count.children })}</span>
                       </div>
                     </Link>
@@ -508,7 +514,7 @@ export function LocationDetailClient({
                           disabled={maintPendingId === child.id}
                           className={`inline-flex items-center gap-1 text-[12px] font-medium transition-colors ${
                             child.inMaintenance
-                              ? "text-[#92400e] hover:text-[#78350f]"
+                              ? "text-warning-foreground hover:text-warning-foreground/80"
                               : "text-muted-foreground hover:text-primary"
                           }`}
                         >
@@ -604,7 +610,7 @@ export function LocationDetailClient({
           locationId={location.id}
           locationName={location.name}
           currentParentId={location.parent?.id ?? null}
-          assetCount={subtreeAssetCount}
+          assetCount={subtreeInstalledUnits}
         />
       )}
     </div>

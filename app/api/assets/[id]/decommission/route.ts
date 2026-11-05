@@ -20,13 +20,13 @@ export async function POST(
   const { id } = await params;
 
   const existing = await prisma.asset.findUnique({ where: { id }, select: DECOMMISSION_SELECT });
-  if (!existing) return notFoundResponse();
+  if (!existing) return notFoundResponse("Asset");
   const violation = lifecycleViolationResponse(decommissionViolation(existing));
   if (violation) return violation;
 
   const parsed = schema.safeParse(await readJsonBody(req));
   if (!parsed.success) return invalidInput(parsed.error);
 
-  const asset = await decommissionAsset(req, session, id, existing, parsed.data);
+  const asset = await decommissionAsset(req, session, existing, parsed.data);
   return asset ? NextResponse.json(asset) : statusChangedResponse();
 }

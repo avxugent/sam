@@ -8,20 +8,20 @@ vi.mock("next-intl/server", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: { location: { findMany: vi.fn() }, asset: { aggregate: vi.fn() } },
 }));
-vi.mock("@/lib/locations/path", () => ({ getRecursiveAssetCounts: vi.fn() }));
+vi.mock("@/lib/locations/path", () => ({ getInstalledUnitTotals: vi.fn() }));
 vi.mock("@/components/locations/location-browser-client", () => ({ LocationBrowserClient: vi.fn(() => null) }));
 vi.mock("@/components/layout/page-header", () => ({ PageHeader: vi.fn(() => null) }));
 
 import AllLocationsPage, { generateMetadata } from "@/app/(dashboard)/locations/page";
 import { prisma } from "@/lib/prisma";
-import { getRecursiveAssetCounts } from "@/lib/locations/path";
+import { getInstalledUnitTotals } from "@/lib/locations/path";
 import { LocationBrowserClient } from "@/components/locations/location-browser-client";
 import { PageHeader } from "@/components/layout/page-header";
 import { propsOf, renderPage } from "../helpers";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getRecursiveAssetCounts).mockResolvedValue({ campus: 3, b: 3 } as never);
+  vi.mocked(getInstalledUnitTotals).mockResolvedValue({ campus: 3, b: 3 } as never);
 });
 
 describe("locations overview page", () => {

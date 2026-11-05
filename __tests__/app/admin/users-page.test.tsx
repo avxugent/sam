@@ -50,7 +50,7 @@ describe("admin/users page", () => {
 
     // Dates cross to the client as ISO strings, the same shape the API returns.
     expect(propsOf(UsersClient)).toEqual({
-      initialUsers: [{ ...users[0], createdAt: "2026-01-01T00:00:00.000Z" }],
+      initialUsers: [{ ...users[0], provider: "credentials", createdAt: "2026-01-01T00:00:00.000Z" }],
       currentUserId: "admin-1",
     });
     // Never select the password hash or TOTP secret for the client.

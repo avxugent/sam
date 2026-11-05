@@ -42,30 +42,32 @@ import { Criticality } from "@/generated/prisma/enums";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { hasDeviceIdentity } from "@/lib/schemas/asset";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
+import type { AssetDetailData } from "@/components/assets/asset-detail-client";
 
 
 type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: Criticality | null };
 
-/** The fields of GET /api/assets/[id] the edit form loads. */
-type EditedAsset = {
-  typeId: string | null;
-  manufacturerId: string | null;
-  modelId: string | null;
-  serialNumber: string | null;
-  hostname: string | null;
-  quantity: number | null;
-  installationDate: string | null;
-  invoiceNumber: string | null;
-  invoiceDate: string | null;
-  notes: string | null;
-  vaultPath: string | null;
-  ownerId: string | null;
-  criticality: Criticality | null;
-  endOfSupportDate: string | null;
-  supplierId: string | null;
-  macAddresses: { address: string }[];
-  customFields: { key: string; value: string }[];
-};
+/** The fields of GET /api/assets/[id] (ASSET_DETAIL_INCLUDE) the edit form loads. */
+type EditedAsset = Pick<
+  AssetDetailData,
+  | "typeId"
+  | "manufacturerId"
+  | "modelId"
+  | "serialNumber"
+  | "hostname"
+  | "quantity"
+  | "installationDate"
+  | "invoiceNumber"
+  | "invoiceDate"
+  | "notes"
+  | "vaultPath"
+  | "ownerId"
+  | "criticality"
+  | "endOfSupportDate"
+  | "supplierId"
+  | "macAddresses"
+  | "customFields"
+>;
 type Supplier = {
   id: string;
   name: string;

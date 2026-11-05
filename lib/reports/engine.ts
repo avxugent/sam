@@ -1,13 +1,9 @@
 import { Prisma } from "@/generated/prisma/client";
 import { AssetStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
-import { getLocationPathsBatch, getAncestorChainsBatch } from "@/lib/locations/path";
+import { locationExportPathsBatch, getAncestorChainsBatch } from "@/lib/locations/path";
 import { effectiveCriticality, parseCriticality } from "@/lib/criticality";
 import type {
-  ReportDefinition,
-  AssetReportDefinition,
-  LocationReportDefinition,
-  ReportFilter,
   ReportRow,
   GroupCount,
   ReportResult,
@@ -17,7 +13,13 @@ import type {
 } from "@/lib/reports/types";
 import { isLocationReport } from "@/lib/reports/types";
 import { toIsoDay } from "@/lib/dates";
-import { REPORT_FILTER_FIELDS } from "@/lib/schemas/report";
+import {
+  REPORT_FILTER_FIELDS,
+  type ReportDefinition,
+  type AssetReportDefinition,
+  type LocationReportDefinition,
+  type ReportFilter,
+} from "@/lib/schemas/report";
 
 function periodCutoff(count: number, unit: "days" | "months" | "years"): Date {
   const d = new Date();
@@ -250,7 +252,7 @@ export async function runAssetReport(
   const uniqueLocationIds = [
     ...new Set(assets.map((a) => a.locationId)),
   ];
-  const locationPathMap = await getLocationPathsBatch(uniqueLocationIds);
+  const locationPathMap = await locationExportPathsBatch(uniqueLocationIds);
 
   const rows: ReportRow[] = assets.map((a) => ({
     id: a.id,
@@ -284,12 +286,12 @@ export async function runAssetReport(
       "No manufacturer"
     );
   } else if (definition.groupBy === "location") {
-    groups = await countGroups("locationId", where, getLocationPathsBatch);
+    groups = await countGroups("locationId", where, locationExportPathsBatch);
   } else if (definition.groupBy === "installationYear") {
     const yearMap = new Map<string, number>();
     const dated = truncated ? await prisma.asset.findMany({ where, select: { installationDate: true } }) : assets;
     for (const a of dated) {
-      const year = a.installationDate ? String(a.installationDate.getFullYear()) : "Unknown";
+      const year = a.installationDate ? String(a.installationDate.getUTCFullYear()) : "Unknown";
       yearMap.set(year, (yearMap.get(year) ?? 0) + 1);
     }
     groups = Array.from(yearMap, ([label, count]) => ({ label, count }));

@@ -125,7 +125,7 @@ export function ModelFormDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>{tCommon("cancel")}</Button>
-          <Button onClick={handleSave} disabled={saving || !typeId || !name.trim()}>
+          <Button onClick={handleSave} disabled={saving || !typeId || !name.trim()} aria-busy={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {tCommon("save")}
           </Button>

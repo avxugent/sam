@@ -129,7 +129,7 @@ export function ReportsListClient({ reports: initial, userRole }: Props) {
                           variant="ghost"
                           size="sm"
                           aria-label={`${t("deleteReport")} ${r.name}`}
-                          className="h-[28px] px-2 text-[12px] hover:bg-[#fee2e2]"
+                          className="h-[28px] px-2 text-[12px] hover:bg-danger-surface"
                           onClick={() => setDeleteId(r.id)}
                         >
                           <Trash2 className="h-3 w-3 text-destructive" />

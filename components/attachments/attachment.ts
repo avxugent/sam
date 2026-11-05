@@ -1,7 +1,15 @@
+/** An uploaded file, or a link to an external URL. */
+export type AttachmentKind = "file" | "link";
+
+/** The attachmentType column (a plain string in the schema, written as "file" or "link") as an AttachmentKind. */
+export function attachmentKind(value: string): AttachmentKind {
+  return value === "link" ? "link" : "file";
+}
+
 /** An attachment as the gallery shows it (page props, or the attachments API's JSON). */
 export type Attachment = {
   id: string;
-  attachmentType?: string;
+  attachmentType: AttachmentKind;
   filename?: string | null;
   originalName: string;
   displayName?: string | null;

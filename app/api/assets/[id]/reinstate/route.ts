@@ -16,11 +16,11 @@ export async function POST(
 
   const { id } = await params;
   const existing = await prisma.asset.findUnique({ where: { id }, select: REPAIR_SELECT });
-  if (!existing) return notFoundResponse();
+  if (!existing) return notFoundResponse("Asset");
   const violation = lifecycleViolationResponse(reinstateViolation(existing));
   if (violation) return violation;
 
-  const asset = await reinstateAsset(req, session, id, existing);
+  const asset = await reinstateAsset(req, session, existing);
   if (!asset) return statusChangedResponse();
 
   return NextResponse.json(asset);

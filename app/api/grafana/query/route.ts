@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
         });
         const yearMap = new Map<number, number>();
         for (const a of assets) {
-          const year = a.installationDate!.getFullYear();
+          const year = a.installationDate!.getUTCFullYear();
           yearMap.set(year, (yearMap.get(year) ?? 0) + 1);
         }
         const sorted = Array.from(yearMap.entries()).sort((a, b) => a[0] - b[0]);

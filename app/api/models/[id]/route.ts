@@ -99,7 +99,13 @@ export async function DELETE(
     );
   }
 
-  await prisma.model.delete({ where: { id } });
+  try {
+    await prisma.model.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Model");
+    throw err;
+  }
   await logAudit({
     session,
     req,

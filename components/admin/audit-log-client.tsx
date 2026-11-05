@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
 import { SortableTh } from "@/components/ui/sortable-th";
+import { useTableSort } from "@/components/ui/use-row-selection";
 import type { AuditAction, AuditEntityType } from "@/lib/audit";
 import type { AuditChanges } from "@/lib/audit/diff";
 
@@ -24,17 +25,22 @@ type AuditLog = {
 };
 
 const ACTION_COLORS: Record<AuditAction, string> = {
-  CREATE: "bg-[#dcfce7] text-[#16a34a]",
-  UPDATE: "bg-info-surface text-[#1d4ed8]",
-  DELETE: "bg-[#fee2e2] text-destructive",
-  IMPORT: "bg-[#fef9c3] text-[#ca8a04]",
-  EXPORT: "bg-[#f3e8ff] text-[#7c3aed]",
-  LOGIN_SUCCESS: "bg-[#dcfce7] text-[#15803d]",
-  LOGIN_FAILED: "bg-[#fee2e2] text-destructive",
+  CREATE: "bg-success-surface text-success-foreground",
+  UPDATE: "bg-info-surface text-info-foreground",
+  DELETE: "bg-danger-surface text-destructive",
+  IMPORT: "bg-warning-tint text-warning",
+  EXPORT: "bg-purple-surface text-purple-foreground",
+  LOGIN_SUCCESS: "bg-success-surface text-success-foreground",
+  LOGIN_FAILED: "bg-danger-surface text-destructive",
   LOGOUT: "bg-border text-secondary-foreground",
 };
 
-type SortCol = "timestamp" | "user" | "action" | "entity";
+const SORT_KEYS = {
+  timestamp: (l: AuditLog) => l.timestamp,
+  user: (l: AuditLog) => l.userEmail ?? "",
+  action: (l: AuditLog) => l.action,
+  entity: (l: AuditLog) => `${l.entityType} ${l.entityName ?? ""}`.trim(),
+};
 
 function ActionBadge({ action }: { action: AuditAction }) {
   return (
@@ -61,7 +67,7 @@ function DetailRenderer({ detail }: { detail: string }) {
               <td className="pr-4 text-muted-foreground font-medium whitespace-nowrap align-top">{field}</td>
               <td className="pr-2 text-destructive line-through align-top break-all max-w-[220px]">{String(from ?? "—")}</td>
               <td className="pr-2 text-muted-foreground align-top">→</td>
-              <td className="text-[#16a34a] font-medium align-top break-all max-w-[220px]">{String(to ?? "—")}</td>
+              <td className="text-success-foreground font-medium align-top break-all max-w-[220px]">{String(to ?? "—")}</td>
             </tr>
           ))}
         </tbody>
@@ -93,14 +99,6 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
   const [actionFilter, setActionFilter] = useState("");
   const [entityFilter, setEntityFilter] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [sortCol, setSortCol] = useState<SortCol>("timestamp");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-
-  function handleSort(col: SortCol) {
-    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortCol(col); setSortDir("asc"); }
-  }
-
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return initialLogs.filter((log) => {
@@ -117,16 +115,7 @@ export function AuditLogClient({ initialLogs }: { initialLogs: AuditLog[] }) {
     });
   }, [initialLogs, search, actionFilter, entityFilter]);
 
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      let av = "", bv = "";
-      if (sortCol === "timestamp") { av = a.timestamp; bv = b.timestamp; }
-      else if (sortCol === "user") { av = a.userEmail ?? ""; bv = b.userEmail ?? ""; }
-      else if (sortCol === "action") { av = a.action; bv = b.action; }
-      else if (sortCol === "entity") { av = `${a.entityType} ${a.entityName ?? ""}`.trim(); bv = `${b.entityType} ${b.entityName ?? ""}`.trim(); }
-      return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
-    });
-  }, [filtered, sortCol, sortDir]);
+  const { sortCol, sortDir, handleSort, sorted } = useTableSort(filtered, SORT_KEYS, "timestamp", "desc");
 
   const actions = [...new Set(initialLogs.map((l) => l.action))].sort();
   const entityTypes = [...new Set(initialLogs.map((l) => l.entityType))].sort();

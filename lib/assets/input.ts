@@ -41,12 +41,12 @@ export function hostnameTakenResponse(): NextResponse {
   return NextResponse.json({ error: "This hostname is already assigned to another asset." }, { status: 409 });
 }
 
-/** MAC address rows to create, skipping blank entries. */
+/** MAC address rows to create from validated addresses (callers never pass blanks). */
 export function macAddressRows(addresses: string[]): { address: string }[] {
-  return addresses.filter(Boolean).map((address) => ({ address }));
+  return addresses.map((address) => ({ address }));
 }
 
-/** Custom field rows to create, skipping entries without a key. */
+/** Custom field rows to create from validated fields (every key non-empty). */
 export function customFieldRows(fields: { key: string; value: string }[]): { key: string; value: string }[] {
-  return fields.filter((f) => f.key).map((f) => ({ key: f.key, value: f.value }));
+  return fields.map(({ key, value }) => ({ key, value }));
 }

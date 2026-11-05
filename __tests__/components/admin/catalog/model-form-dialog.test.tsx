@@ -138,7 +138,7 @@ describe("ModelFormDialog edit", () => {
     const save = screen.getByRole("button", { name: "save" });
     await userEvent.click(save);
     expect(save).toBeDisabled();
-    expect(save.querySelector(".animate-spin")).not.toBeNull();
+    expect(save).toHaveAttribute("aria-busy", "true");
     resolve({ ok: true, status: 200, data: EXISTING });
     await waitFor(() => expect(save).toBeEnabled());
   });

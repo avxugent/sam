@@ -30,10 +30,10 @@ export async function POST(
   const { id } = await params;
 
   const found = await prisma.asset.findUnique({ where: { id }, include: RETURN_TO_STOCK_INCLUDE });
-  if (!found) return notFoundResponse();
+  if (!found) return notFoundResponse("Asset");
   const check = checkReturnToStock(found);
   if (check.violation) return lifecycleViolationResponse(check.violation);
 
-  const stockItem = await returnAssetToStock(req, session, check.asset, locationId);
+  const stockItem = await returnAssetToStock(req, session, check.asset, { locationId });
   return stockItem ? NextResponse.json({ stockItemId: stockItem.id }) : statusChangedResponse();
 }

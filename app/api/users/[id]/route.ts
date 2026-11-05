@@ -6,7 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { isAdmin, Role } from "@/lib/permissions";
 import { updateUserSchema } from "@/lib/schemas/user";
-import { invalidInput, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 import type { Prisma } from "@/generated/prisma/client";
 
 export async function PUT(
@@ -59,6 +59,8 @@ export async function PUT(
       select: { id: true, name: true, email: true, role: true, provider: true, totpEnabled: true, mustChangePassword: true, twoFactorRequired: true, createdAt: true },
     });
   } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("User");
     if (isUniqueConstraintError(err)) return nameTakenResponse("Email already in use.");
     throw err;
   }
@@ -108,7 +110,13 @@ export async function DELETE(
     return NextResponse.json({ error: "Cannot delete the last admin account." }, { status: 400 });
   }
 
-  await prisma.user.delete({ where: { id } });
+  try {
+    await prisma.user.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("User");
+    throw err;
+  }
   await logAudit({
     session,
     req,

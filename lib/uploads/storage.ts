@@ -252,3 +252,18 @@ export function attemptStorageRead(
     }
   });
 }
+
+/**
+ * Best-effort removal of stored files whose database rows are already gone
+ * (e.g. attachments cascaded away with their asset or location). A failure is
+ * logged with the object key and never thrown: the delete it follows has
+ * already happened.
+ */
+export async function deleteStoredFiles(paths: string[]): Promise<void> {
+  const driver = getStorageDriver();
+  await Promise.all(
+    paths.map((path) =>
+      driver.deleteObject(path).catch((err) => console.error("[storage] orphan cleanup failed", path, err))
+    )
+  );
+}

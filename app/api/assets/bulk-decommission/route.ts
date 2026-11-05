@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       failed.push({ id, reason: reason ?? "NOT_FOUND" });
       continue;
     }
-    if (!(await decommissionAsset(req, session, id, existing, input))) {
+    if (!(await decommissionAsset(req, session, existing, input))) {
       failed.push({ id, reason: STATUS_CHANGED });
       continue;
     }

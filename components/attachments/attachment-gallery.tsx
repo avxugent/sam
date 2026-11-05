@@ -193,12 +193,12 @@ export function AttachmentGallery({
                     </div>
                   </button>
                 ) : isLink ? (
-                  <div className="w-[52px] h-[52px] rounded-[7px] flex items-center justify-center flex-shrink-0 bg-[#f0fdf4]">
-                    <Link2 className="h-5 w-5 text-green-600" />
+                  <div className="w-[52px] h-[52px] rounded-[7px] flex items-center justify-center flex-shrink-0 bg-success-surface">
+                    <Link2 className="h-5 w-5 text-success-foreground" />
                   </div>
                 ) : isPdf ? (
-                  <div className="w-[52px] h-[52px] rounded-[7px] flex items-center justify-center flex-shrink-0 bg-[#fef2f2]">
-                    <FileText className="h-5 w-5 text-red-500" />
+                  <div className="w-[52px] h-[52px] rounded-[7px] flex items-center justify-center flex-shrink-0 bg-danger-surface">
+                    <FileText className="h-5 w-5 text-destructive" />
                   </div>
                 ) : (
                   <div className="w-[52px] h-[52px] rounded-[7px] flex items-center justify-center flex-shrink-0 bg-muted">

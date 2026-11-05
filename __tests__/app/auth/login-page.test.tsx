@@ -8,14 +8,13 @@ vi.mock("@/lib/auth", () => ({
     return authState.ssoEnabled;
   },
 }));
-vi.mock("@/lib/app-settings", () => ({ readBrandingSettings: vi.fn() }));
 vi.mock("@/components/auth/login-client", () => ({ LoginClient: vi.fn(() => null) }));
 
 import LoginPage, { generateMetadata } from "@/app/(auth)/login/page";
 import { getTranslations } from "next-intl/server";
-import { readBrandingSettings } from "@/lib/app-settings";
 import { LoginClient } from "@/components/auth/login-client";
-import { propsOf, renderPage } from "../helpers";
+import { render } from "@testing-library/react";
+import { propsOf } from "../helpers";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -28,16 +27,14 @@ describe("login page", () => {
     expect(getTranslations).toHaveBeenCalledWith("auth");
   });
 
-  it("passes the branding logo and title, with SSO off", async () => {
-    vi.mocked(readBrandingSettings).mockResolvedValue({ appTitle: "Inventory", hasLogo: true } as never);
-    await renderPage(LoginPage());
-    expect(propsOf(LoginClient)).toEqual({ ssoEnabled: false, appTitle: "Inventory", logoUrl: "/api/branding/logo" });
+  it("passes SSO off to the client", () => {
+    render(LoginPage());
+    expect(propsOf(LoginClient)).toEqual({ ssoEnabled: false });
   });
 
-  it("passes no logo URL without a logo and reports SSO when enabled", async () => {
+  it("reports SSO when enabled", () => {
     authState.ssoEnabled = true;
-    vi.mocked(readBrandingSettings).mockResolvedValue({ appTitle: "SAM", hasLogo: false } as never);
-    await renderPage(LoginPage());
-    expect(propsOf(LoginClient)).toEqual({ ssoEnabled: true, appTitle: "SAM", logoUrl: null });
+    render(LoginPage());
+    expect(propsOf(LoginClient)).toEqual({ ssoEnabled: true });
   });
 });

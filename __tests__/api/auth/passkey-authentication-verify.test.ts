@@ -12,7 +12,8 @@ vi.mock("@/lib/auth", () => {
 vi.mock("@/lib/two-factor/session-upgrade", () => ({ upgradeSession: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ consumeRateLimit: vi.fn() }));
-vi.mock("@/lib/two-factor/remember-device", () => ({ setRememberMeCookie: vi.fn() }));
+vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
+vi.mock("@/lib/two-factor/remember-device", () => ({ REMEMBER_ME_COOKIE: "sam_2fa_rm", setRememberMeCookie: vi.fn(), verifyRememberMeToken: vi.fn(async () => false) }));
 vi.mock("@/lib/two-factor/webauthn", () => ({
   verifyAuthentication: vi.fn(),
   readChallengeCookie: vi.fn(),
@@ -67,6 +68,13 @@ describe("POST /api/auth/passkey/authentication-verify", () => {
     mockAuth.mockResolvedValue(null as never);
     const res = await POST(req({ response: { id: "cred1" } }));
     expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for a session that still owes a password change before its 2FA step", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1" }, needs2FA: true, needsPasswordChange: true } as never);
+    const res = await POST(req({ response: { id: "cred1" } }));
+    expect(res.status).toBe(403);
+    expect(mockUpgrade).not.toHaveBeenCalled();
   });
 
   it("no-ops with 200 when already fully authenticated", async () => {

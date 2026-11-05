@@ -53,7 +53,7 @@ export async function POST(
 
   let createdAssets;
   try {
-    createdAssets = await deployStockItem(req, session, stockItem, location, { quantity, serialNumbers });
+    createdAssets = await deployStockItem(req, session, stockItem, { location, quantity, serialNumbers });
   } catch (err: unknown) {
     // hostname is the only unique Asset column a deployed copy can collide on
     if (isUniqueConstraintError(err)) return hostnameTakenResponse();

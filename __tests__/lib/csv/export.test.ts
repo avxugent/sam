@@ -12,10 +12,10 @@ vi.mock("@/lib/prisma", () => ({
 }));
 // The stock export resolves its location paths through this helper; its own
 // tree query is covered by the path tests, so it is stubbed with the fixture.
-vi.mock("@/lib/locations/path", () => ({ getLocationPathsBatch: vi.fn() }));
+vi.mock("@/lib/locations/path", () => ({ locationExportPathsBatch: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
-import { getLocationPathsBatch } from "@/lib/locations/path";
+import { locationExportPathsBatch } from "@/lib/locations/path";
 import { ancestorChain } from "@/lib/locations/tree";
 import { parseImportRow } from "@/lib/csv/import";
 import { CUSTOM_FIELD_COLUMNS } from "@/lib/csv/columns";
@@ -266,7 +266,7 @@ describe("generateStockCsv()", () => {
   beforeEach(() => {
     // Paths from the fixture tree; the export's own query is the FI-number lookup.
     const byId = new Map(LOCATIONS.map((l) => [l.id, l]));
-    vi.mocked(getLocationPathsBatch).mockImplementation(async (ids, separator = " - ") =>
+    vi.mocked(locationExportPathsBatch).mockImplementation(async (ids, separator = " - ") =>
       new Map(ids.map((id) => [id, ancestorChain(id, byId).map((l) => l.name).join(separator)]))
     );
     mockLocFind.mockResolvedValue([{ id: "room", fiNumber: "14.10.100.013" }] as never);

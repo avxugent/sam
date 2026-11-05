@@ -60,6 +60,7 @@ describe("settings/2fa page", () => {
     expect(propsOf(TwoFactorSettings)).toEqual({ provider: "credentials", totpEnabled: true });
     expect(propsOf(PasskeySettings)).toEqual({
       provider: "credentials",
+      totpEnabled: true,
       passkeys: [
         { id: "p1", label: "Key", deviceType: "singleDevice", backedUp: false, createdAt: "2026-01-01T00:00:00.000Z", lastUsedAt: null },
         { id: "p2", label: "Phone", deviceType: "multiDevice", backedUp: true, createdAt: "2026-02-01T00:00:00.000Z", lastUsedAt: "2026-03-01T00:00:00.000Z" },

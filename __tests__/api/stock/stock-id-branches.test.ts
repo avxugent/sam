@@ -12,6 +12,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { GET, PUT, DELETE } from "@/app/api/stock/[id]/route";
+import { HISTORY_CHANGE_LABELS } from "@/lib/assets/history-keys";
 
 const mockAuth = vi.mocked(auth);
 const mockLogAudit = vi.mocked(logAudit);
@@ -87,6 +88,39 @@ describe("PUT /api/stock/[id]", () => {
       })
     );
   });
+  it("audits a relocation under the history timeline's location label, with names", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({
+      id: "s1", locationId: "l1", location: { name: "Store A" }, serialNumber: null, quantity: 1, metadata: null, model: { name: "M" },
+    } as never);
+    vi.mocked(prisma.stockItem.update).mockResolvedValue({ id: "s1", locationId: "l2", location: { name: "Store B" }, model: { name: "M" } } as never);
+    await PUT(put({ locationId: "l2" }), { params: params() });
+    expect(mockLogAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { changes: { [HISTORY_CHANGE_LABELS.location]: { from: "Store A", to: "Store B" } } } })
+    );
+  });
+  it("audits a MAC list change and keeps the other metadata keys", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({
+      id: "s1", serialNumber: null, quantity: 1, model: { name: "M" }, metadata: JSON.stringify({ hostname: "h1", macAddresses: [] }),
+    } as never);
+    vi.mocked(prisma.stockItem.update).mockResolvedValue({ id: "s1", model: { name: "M" } } as never);
+    await PUT(put({ macAddresses: ["AA:BB:CC:DD:EE:FF"] }), { params: params() });
+    expect(JSON.parse(vi.mocked(prisma.stockItem.update).mock.calls[0][0].data.metadata as string)).toEqual({
+      hostname: "h1",
+      macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }],
+    });
+    expect(mockLogAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { changes: { "MAC addresses": { from: null, to: "AA:BB:CC:DD:EE:FF" } } } })
+    );
+  });
+  it("404 when the item was deleted concurrently between read and update", async () => {
+    mockAuth.mockResolvedValue(session("EDITOR") as never);
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1", serialNumber: null, quantity: 1, metadata: null } as never);
+    vi.mocked(prisma.stockItem.update).mockRejectedValue(Object.assign(new Error("gone"), { code: "P2025" }));
+    expect((await PUT(put({ notes: "x" }), { params: params() })).status).toBe(404);
+    expect(mockLogAudit).not.toHaveBeenCalled();
+  });
   it("nulls invoiceDate when passed null", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ id: "s1", modelId: "mo-m", model: { name: "M" }, serialNumber: null, quantity: 1, notes: null, invoiceNumber: null } as never);
@@ -105,6 +139,19 @@ describe("DELETE /api/stock/[id]", () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);
     vi.mocked(prisma.stockItem.findUnique).mockResolvedValue(null as never);
     expect((await DELETE(del(), { params: params() })).status).toBe(404);
+  });
+  it("404 without an audit entry when the item vanished between read and delete", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ model: { name: "X" } } as never);
+    vi.mocked(prisma.stockItem.delete).mockRejectedValueOnce(Object.assign(new Error("gone"), { code: "P2025" }));
+    expect((await DELETE(del(), { params: params() })).status).toBe(404);
+    expect(mockLogAudit).not.toHaveBeenCalled();
+  });
+  it("rethrows other delete errors", async () => {
+    mockAuth.mockResolvedValue(session("ADMIN") as never);
+    vi.mocked(prisma.stockItem.findUnique).mockResolvedValue({ model: { name: "X" } } as never);
+    vi.mocked(prisma.stockItem.delete).mockRejectedValueOnce(new Error("boom"));
+    await expect(DELETE(del(), { params: params() })).rejects.toThrow("boom");
   });
   it("deletes and audits", async () => {
     mockAuth.mockResolvedValue(session("ADMIN") as never);

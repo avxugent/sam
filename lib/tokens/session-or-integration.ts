@@ -1,4 +1,4 @@
-import type { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import type { Role } from "@/lib/permissions";
 import { integrationTokenResponse } from "@/lib/tokens/integration";
@@ -8,7 +8,8 @@ import { integrationTokenResponse } from "@/lib/tokens/integration";
  * a fully signed-in session whose role passes `sessionAllowed`, or else the
  * integration Bearer token. auth() never returns a partly signed-in session
  * (still owing a login step), which matters here: these routes are exempt
- * from the proxy redirect.
+ * from the proxy redirect. A signed-in user whose role is not allowed and who
+ * sends no Bearer header gets 403, like any other route.
  * Returns null when the request may proceed.
  */
 export async function sessionOrIntegrationTokenResponse(
@@ -18,6 +19,9 @@ export async function sessionOrIntegrationTokenResponse(
   const session = await auth();
   if (session?.user && sessionAllowed(session.user.role)) {
     return null;
+  }
+  if (session?.user && !req.headers.get("authorization")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return integrationTokenResponse(req);
 }

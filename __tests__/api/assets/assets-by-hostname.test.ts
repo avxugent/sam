@@ -3,16 +3,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("@/lib/prisma", () => ({ prisma: { asset: { findMany: vi.fn() } } }));
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: () => undefined })) }));
+// Only the tree query is stubbed; path, FI inheritance and FI parsing run for real.
 vi.mock("@/lib/locations/path", () => ({
   getLocationAncestors: vi.fn(async () => [
-    { id: "root", name: "Campus", fiNumber: null },
-    { id: "l1", name: "Room 1", fiNumber: "AB.01.02.003" },
+    { id: "root", name: "Campus 14", fiNumber: null },
+    { id: "b10", name: "Building 10", fiNumber: "14.10.100.001" },
+    { id: "l1", name: "Room 013", fiNumber: null },
   ]),
-}));
-vi.mock("@/lib/locations/tree", () => ({
-  buildLocationPathString: vi.fn(() => "Campus > Room 1"),
-  findFiNumber: vi.fn(() => "AB.01.02.003"),
-  parseFiNumber: vi.fn(() => ({ campus: "AB", building: "01", floor: "02", room: "003" })),
 }));
 
 import { NextRequest } from "next/server";
@@ -41,7 +38,7 @@ const asset = {
   manufacturer: { id: "m1", name: "Dell" },
   macAddresses: [{ id: "mac1", address: "AA:BB:CC:DD:EE:FF" }],
   customFields: [],
-  location: { id: "l1", name: "Room 1", fiNumber: "AB.01.02.003", address: null, city: null, country: null },
+  location: { id: "l1", name: "Room 013", fiNumber: null, address: null, city: null, country: null },
 };
 
 beforeEach(() => {
@@ -93,8 +90,17 @@ describe("GET /api/assets/by-hostname", () => {
       model: "XPS",
       installationDate: "2024-05-06",
       macAddresses: ["AA:BB:CC:DD:EE:FF"],
-      location: { path: "Campus > Room 1", fiNumberResolved: "AB.01.02.003", campus: "AB", room: "003" },
+      // The room has no FI number of its own, so it inherits the building's.
+      location: {
+        fiNumber: null,
+        path: "Campus 14 / Building 10 / Room 013",
+        fiNumberResolved: "14.10.100.001",
+        campus: "14",
+        building: "10",
+        floor: "100",
+        room: "001",
+      },
     });
-    expect(row.location.ancestors).toHaveLength(2);
+    expect(row.location.ancestors).toHaveLength(3);
   });
 });

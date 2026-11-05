@@ -7,7 +7,7 @@ import { attemptStorage, attemptStorageRead, getStorageDriver } from "@/lib/uplo
 import { safeFilename } from "@/lib/uploads/policy";
 import { z } from "zod";
 import { canEdit } from "@/lib/permissions";
-import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { invalidInput, isRecordNotFoundError, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 const updateSchema = z.object({
   displayName: z.string().max(255).nullable().optional(),
@@ -25,7 +25,7 @@ function contentDispositionHeader(disposition: "inline" | "attachment", filename
   return `${disposition}; filename="${filename}"; filename*=UTF-8''${encoded}`;
 }
 
-export async function PATCH(
+export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -35,7 +35,7 @@ export async function PATCH(
 
   const { id } = await params;
   const attachment = await prisma.attachment.findUnique({ where: { id } });
-  if (!attachment) return notFoundResponse();
+  if (!attachment) return notFoundResponse("Attachment");
 
   const body = await readJsonBody(req);
   const parsed = updateSchema.safeParse(body);
@@ -45,16 +45,23 @@ export async function PATCH(
     return NextResponse.json({ error: "Cannot set URL on file attachments." }, { status: 400 });
   }
 
-  const updated = await prisma.attachment.update({
-    where: { id },
-    // PATCH semantics: omitted fields keep their value, null clears them.
-    data: {
-      ...(parsed.data.displayName !== undefined && { displayName: parsed.data.displayName }),
-      ...(parsed.data.description !== undefined && { description: parsed.data.description }),
-      ...(parsed.data.url !== undefined && { url: parsed.data.url }),
-    },
-    include: { uploadedBy: { select: { id: true, name: true } } },
-  });
+  let updated;
+  try {
+    updated = await prisma.attachment.update({
+      where: { id },
+      // Partial update: omitted fields keep their value, null clears them.
+      data: {
+        ...(parsed.data.displayName !== undefined && { displayName: parsed.data.displayName }),
+        ...(parsed.data.description !== undefined && { description: parsed.data.description }),
+        ...(parsed.data.url !== undefined && { url: parsed.data.url }),
+      },
+      include: { uploadedBy: { select: { id: true, name: true } } },
+    });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Attachment");
+    throw err;
+  }
 
   const d = parsed.data;
   const changes = auditChanges([
@@ -86,7 +93,7 @@ export async function DELETE(
 
   const { id } = await params;
   const attachment = await prisma.attachment.findUnique({ where: { id } });
-  if (!attachment) return notFoundResponse();
+  if (!attachment) return notFoundResponse("Attachment");
 
   if (attachment.attachmentType !== "link" && attachment.path) {
     // Drivers already treat a missing file as deleted. Any other storage
@@ -101,7 +108,13 @@ export async function DELETE(
     if ("error" in removed) return removed.error;
   }
 
-  await prisma.attachment.delete({ where: { id } });
+  try {
+    await prisma.attachment.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Attachment");
+    throw err;
+  }
   await logAudit({
     session,
     req,
@@ -122,7 +135,7 @@ export async function GET(
 
   const { id } = await params;
   const attachment = await prisma.attachment.findUnique({ where: { id } });
-  if (!attachment) return notFoundResponse();
+  if (!attachment) return notFoundResponse("Attachment");
 
   // Link attachments: redirect to the stored URL
   if (attachment.attachmentType === "link" && attachment.url) {

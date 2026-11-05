@@ -3,14 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/input";
-import { hasDeviceIdentity, IDENTITY_QUANTITY_MESSAGE, updateAssetSchema } from "@/lib/schemas/asset";
+import { HOSTNAME_MAC_MESSAGE, hasDeviceIdentity, IDENTITY_QUANTITY_MESSAGE, updateAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
 import { auditChanges, type FieldChange } from "@/lib/audit/diff";
 import { canEdit } from "@/lib/permissions";
 import { invalidInput, isForeignKeyError, isRecordNotFoundError, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { toDateUpdate, toIsoDay } from "@/lib/dates";
-import { ASSET_ROW_INCLUDE } from "@/lib/assets/include";
+import { ASSET_DETAIL_INCLUDE, ASSET_ROW_INCLUDE } from "@/lib/assets/include";
 import { assetLabel } from "@/lib/assets/label";
+import { assetSnapshot } from "@/lib/assets/history-keys";
+import { deleteStoredFiles } from "@/lib/uploads/storage";
 
 export async function GET(
   _req: NextRequest,
@@ -20,31 +22,16 @@ export async function GET(
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const asset = await prisma.asset.findUnique({
-    where: { id },
-    include: {
-      type: true,
-      manufacturer: true,
-      model: true,
-      supplier: true,
-      macAddresses: true,
-      customFields: true,
-      location: { select: { id: true, name: true } },
-      attachments: {
-        include: { uploadedBy: { select: { id: true, name: true } } },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  });
+  const asset = await prisma.asset.findUnique({ where: { id }, include: ASSET_DETAIL_INCLUDE });
 
-  if (!asset) return notFoundResponse();
+  if (!asset) return notFoundResponse("Asset");
   return NextResponse.json(asset);
 }
 
 /** One diff entry per custom field key that was added, removed or changed. */
 function customFieldChanges(before: { key: string; value: string }[], after: { key: string; value: string }[]): FieldChange[] {
   const fromMap = new Map(before.map((f) => [f.key, f.value]));
-  const toMap = new Map(after.filter((f) => f.key).map((f) => [f.key, f.value]));
+  const toMap = new Map(after.map((f) => [f.key, f.value]));
   return [...new Set([...fromMap.keys(), ...toMap.keys()])].map((key) => ({
     label: `Custom field: ${key}`,
     before: fromMap.get(key) ?? null,
@@ -85,7 +72,7 @@ export async function PUT(
     },
   });
 
-  if (!before) return notFoundResponse();
+  if (!before) return notFoundResponse("Asset");
 
   // Values the asset will have after this (possibly partial) update.
   const effective = {
@@ -102,6 +89,12 @@ export async function PUT(
   if (assetData.hostname !== undefined || assetData.typeId !== undefined) {
     const hostnameError = await hostnameFormatResponse(effective.hostname, effective.typeId);
     if (hostnameError) return hostnameError;
+  }
+
+  // Checked against the effective values: a hostname-only update keeps the
+  // stored MACs, and clearing the MACs must not leave a hostname without one.
+  if ((assetData.hostname !== undefined || macAddresses !== undefined) && effective.hostname && effective.macCount === 0) {
+    return NextResponse.json({ error: HOSTNAME_MAC_MESSAGE }, { status: 400 });
   }
 
   // Quantity > 1 only makes sense for bulk items with no individual identity.
@@ -147,6 +140,8 @@ export async function PUT(
   } catch (err: unknown) {
     if (isUniqueConstraintError(err)) return hostnameTakenResponse();
     if (isForeignKeyError(err)) return unknownReferenceResponse();
+    // Deleted (or returned to stock) by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Asset");
     throw err;
   }
 
@@ -179,7 +174,7 @@ export async function PUT(
     action: "UPDATE",
     entityType: "Asset",
     entityId: id,
-    entityName: assetLabel(asset) ?? undefined,
+    entityName: assetLabel(asset),
     detail: Object.keys(changes).length > 0 ? { changes } : undefined,
     lineageId: asset.lineageId,
   });
@@ -205,22 +200,20 @@ export async function DELETE(
       location: { select: { name: true } },
     },
   });
-  if (!asset) return notFoundResponse();
+  if (!asset) return notFoundResponse("Asset");
+  // The attachment rows cascade with the asset; their stored files are removed after it.
+  const files = await prisma.attachment.findMany({ where: { assetId: id, path: { not: null } }, select: { path: true } });
   try {
     await prisma.asset.delete({ where: { id } });
   } catch (err) {
     // Deleted (or returned to stock) by a concurrent request since the read.
-    if (isRecordNotFoundError(err)) return notFoundResponse();
+    if (isRecordNotFoundError(err)) return notFoundResponse("Asset");
     throw err;
   }
 
-  const snapshot: Record<string, string> = {};
-  if (asset.model?.name) snapshot["Model"] = asset.model.name;
-  if (asset.serialNumber) snapshot["Serial number"] = asset.serialNumber;
-  if (asset.type?.name) snapshot["Type"] = asset.type.name;
-  if (asset.manufacturer?.name) snapshot["Manufacturer"] = asset.manufacturer.name;
-  if (asset.location?.name) snapshot["Location"] = asset.location.name;
-  if (asset.hostname) snapshot["Hostname"] = asset.hostname;
+  await deleteStoredFiles(files.flatMap((f) => (f.path ? [f.path] : [])));
+
+  const snapshot = assetSnapshot(asset);
 
   await logAudit({
     session,
@@ -228,7 +221,7 @@ export async function DELETE(
     action: "DELETE",
     entityType: "Asset",
     entityId: id,
-    entityName: assetLabel(asset) ?? undefined,
+    entityName: assetLabel(asset),
     detail: Object.keys(snapshot).length > 0 ? { snapshot } : undefined,
     lineageId: asset.lineageId,
   });

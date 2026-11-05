@@ -156,6 +156,11 @@ describe("credentials-2fa-verified authorize()", () => {
     });
   });
 
+  it("records any method other than passkey as totp", async () => {
+    vi.mocked(verifyUpgradeProof).mockResolvedValue(true);
+    expect(await upgrade({ userId: "u1", proof: "p", method: "<script>" })).toMatchObject({ method: "totp" });
+  });
+
   it("rejects a user that is no longer a password account", async () => {
     vi.mocked(verifyUpgradeProof).mockResolvedValue(true);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ ...USER, passwordHash: null } as never);

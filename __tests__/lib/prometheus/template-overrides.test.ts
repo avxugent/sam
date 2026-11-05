@@ -93,6 +93,17 @@ describe("update/delete", () => {
     expect(logAudit).toHaveBeenCalledWith(expect.objectContaining({ action: "UPDATE", entityName: "Recorder / Dell / XPS" }));
   });
 
+  it("404 when the override is deleted between the read and the write (P2025)", async () => {
+    vi.mocked(prisma.assetTypeModelTemplate.findUnique).mockResolvedValue(row as never);
+    vi.mocked(prisma.assetTypeModelTemplate.update).mockRejectedValue({ code: "P2025" });
+    vi.mocked(prisma.assetTypeModelTemplate.delete).mockRejectedValue({ code: "P2025" });
+    const updated = await updateTemplateOverride(post({ scrapeTargetTemplate: "a=b" }), session, modelTemplates, "o1");
+    expect(updated.status).toBe(404);
+    expect(await updated.json()).toEqual({ error: "Template override not found." });
+    expect((await deleteTemplateOverride(post({}), session, modelTemplates, "o1")).status).toBe(404);
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
   it("deletes and audits", async () => {
     vi.mocked(prisma.assetTypeManufacturerTemplate.findUnique).mockResolvedValue({ ...row, model: undefined } as never);
     const res = await deleteTemplateOverride(post({}), session, manufacturerTemplates, "o1");

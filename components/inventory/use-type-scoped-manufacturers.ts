@@ -2,6 +2,7 @@
 
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export type ManufacturerOption = { id: string; name: string };
 
@@ -9,7 +10,7 @@ export type ManufacturerOption = { id: string; name: string };
  * Manufacturer options for the asset and stock forms, scoped to the selected
  * asset type (only manufacturers with at least one Model under that type) and
  * refetched whenever the type changes. Responses that arrive after a newer
- * request started are ignored.
+ * request started are ignored; a failed load is toasted and empties the list.
  *
  * The first load after opening never reports the current selection as
  * invalid, even if that manufacturer has no Model yet for this type; only a
@@ -29,6 +30,7 @@ export function useTypeScopedManufacturers({
   const [manufacturers, setManufacturers] = useState<ManufacturerOption[]>([]);
   const isInitialLoadRef = useRef(true);
   const reportInvalid = useEffectEvent(onSelectionInvalid);
+  const showApiError = useApiErrorToast();
 
   useEffect(() => {
     if (open) isInitialLoadRef.current = true;
@@ -36,12 +38,17 @@ export function useTypeScopedManufacturers({
 
   useEffect(() => {
     if (!open) return;
-    let stale = false;
+    let cancelled = false;
     (async () => {
       const params = new URLSearchParams();
       if (typeId) params.set("typeId", typeId);
       const res = await apiFetch<ManufacturerOption[]>(`/api/manufacturers?${params}`);
-      if (stale || !res.ok) return;
+      if (cancelled) return;
+      if (!res.ok) {
+        setManufacturers([]);
+        showApiError(res.error);
+        return;
+      }
       const list = res.data;
       setManufacturers(list);
       if (!isInitialLoadRef.current && manufacturerId && !list.some((m) => m.id === manufacturerId)) {
@@ -50,9 +57,9 @@ export function useTypeScopedManufacturers({
       isInitialLoadRef.current = false;
     })();
     return () => {
-      stale = true;
+      cancelled = true;
     };
-  }, [open, typeId, manufacturerId]);
+  }, [open, typeId, manufacturerId, showApiError]);
 
   return manufacturers;
 }

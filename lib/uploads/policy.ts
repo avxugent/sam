@@ -33,12 +33,17 @@ export function safeFilename(name: string): string {
   return name.replace(/[\r\n\\"]/g, "_").slice(0, 255);
 }
 
+const TEXT_TYPES = new Set(["image/svg+xml", "text/plain", "text/csv"]);
+
 /**
  * Whether the file content starts like its declared MIME type (magic bytes),
- * so a client cannot upload a dangerous file under a spoofed type. Text
- * types (including SVG) must not contain NUL bytes. Unknown types fail.
+ * so a client cannot upload a dangerous file under a spoofed type. Binary
+ * types need at least their 4-byte signature; text types (including SVG) of
+ * any length pass when their first 512 bytes hold no NUL (binary content
+ * masquerading as text). Unknown types fail.
  */
 export function contentMatchesType(buffer: Buffer, mimeType: string): boolean {
+  if (TEXT_TYPES.has(mimeType)) return !buffer.subarray(0, 512).includes(0x00);
   if (buffer.length < 4) return false;
   switch (mimeType) {
     case "image/jpeg":
@@ -98,12 +103,6 @@ export function contentMatchesType(buffer: Buffer, mimeType: string): boolean {
         buffer[2] === 0x03 &&
         buffer[3] === 0x04
       );
-    case "image/svg+xml":
-    case "text/plain":
-    case "text/csv":
-      // Text formats: reject files containing null bytes in the first 512 bytes,
-      // which would indicate binary content masquerading as text
-      return !buffer.subarray(0, 512).includes(0x00);
     default:
       return false;
   }

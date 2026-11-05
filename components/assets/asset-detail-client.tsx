@@ -53,6 +53,20 @@ import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Breadcrumb = { id: string; name: string };
 
+type AssetDateField =
+  | "installationDate"
+  | "invoiceDate"
+  | "endOfSupportDate"
+  | "decommissionedAt"
+  | "repairStartedAt"
+  | "createdAt"
+  | "updatedAt";
+
+/** The detail page's asset with its dates as ISO strings (the server → client convention). */
+export type AssetDetailData = Omit<AssetDetail, AssetDateField | "attachments"> & {
+  [K in AssetDateField]: null extends AssetDetail[K] ? string | null : string;
+} & { attachments: Attachment[] };
+
 function InfoCard({
   icon,
   title,
@@ -99,7 +113,7 @@ export function AssetDetailClient({
   decommissionedByName,
   sentForRepairByName,
 }: {
-  asset: AssetDetail;
+  asset: AssetDetailData;
   breadcrumbs: Breadcrumb[];
   userRole: Role;
   /** "" when not configured. */
@@ -159,32 +173,32 @@ export function AssetDetailClient({
       </nav>
 
       {isDecommissioned && (
-        <div className="flex items-start gap-3 bg-[#fefce8] border border-[#fde047] rounded-[10px] px-4 py-3">
-          <TriangleAlert className="h-4 w-4 text-[#ca8a04] mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-3 bg-warning-surface border border-warning-border rounded-[10px] px-4 py-3">
+          <TriangleAlert className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-[#713f12]">
+            <p className="text-[13px] font-semibold text-warning-foreground">
               {tDecom("bannerLabel")}
               {asset.decommissionedAt && (
-                <span className="font-normal ml-1.5 text-[#92400e]">
-                  · {new Date(asset.decommissionedAt).toLocaleDateString("sv-SE")}
+                <span className="font-normal ml-1.5 text-warning-foreground">
+                  · {formatDate(asset.decommissionedAt)}
                 </span>
               )}
             </p>
             {(asset.disposalMethod || decommissionedByName) && (
-              <p className="text-[12px] text-[#92400e] mt-0.5">
+              <p className="text-[12px] text-warning-foreground mt-0.5">
                 {asset.disposalMethod && tDecom(`disposalMethod.${asset.disposalMethod}`)}
                 {asset.disposalMethod && decommissionedByName && " · "}
                 {decommissionedByName && tDecom("decommissionedBy", { name: decommissionedByName })}
               </p>
             )}
             {asset.decommissionNote && (
-              <p className="text-[12px] text-[#92400e] mt-0.5">{asset.decommissionNote}</p>
+              <p className="text-[12px] text-warning-foreground mt-0.5">{asset.decommissionNote}</p>
             )}
           </div>
           {isAdmin(userRole) && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-[30px] text-[12px] gap-1.5 border-[#fde047] text-[#713f12] hover:bg-[#fef9c3] flex-shrink-0">
+                <Button variant="outline" size="sm" className="h-[30px] text-[12px] gap-1.5 border-warning-border text-warning-foreground hover:bg-warning-tint flex-shrink-0">
                   <RotateCcw className="h-3 w-3" />
                   {tDecom("reinstate")}
                 </Button>
@@ -216,7 +230,7 @@ export function AssetDetailClient({
               {tRepair("bannerLabel")}
               {asset.repairStartedAt && (
                 <span className="font-normal ml-1.5 text-info-foreground">
-                  · {new Date(asset.repairStartedAt).toLocaleDateString("sv-SE")}
+                  · {formatDate(asset.repairStartedAt)}
                 </span>
               )}
             </p>
@@ -300,7 +314,7 @@ export function AssetDetailClient({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-[34px] rounded-[7px] border-[#fecaca] text-destructive hover:bg-red-50 text-[13px] gap-1.5"
+                className="h-[34px] rounded-[7px] border-danger-border text-destructive hover:bg-red-50 text-[13px] gap-1.5"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 {t("removeAsset")}
@@ -334,7 +348,7 @@ export function AssetDetailClient({
                       {asset.model.name}
                       {!asset.model.documentationUrl && (
                         <TriangleAlert
-                          className="h-3.5 w-3.5 text-[#ca8a04] flex-shrink-0"
+                          className="h-3.5 w-3.5 text-warning flex-shrink-0"
                           aria-label={t("modelNoDocumentation")}
                         >
                           <title>{t("modelNoDocumentation")}</title>
@@ -497,7 +511,7 @@ export function AssetDetailClient({
                 className={`flex items-center gap-2 px-3 py-2 mb-3 rounded-[8px] border text-[12.5px] ${
                   asset.model.documentationUrl
                     ? "border-border bg-card"
-                    : "border-[#fde047] bg-[#fefce8] text-[#713f12]"
+                    : "border-warning-border bg-warning-surface text-warning-foreground"
                 }`}
               >
                 {asset.model.documentationUrl ? (
@@ -515,7 +529,7 @@ export function AssetDetailClient({
                   </>
                 ) : (
                   <>
-                    <TriangleAlert className="h-3.5 w-3.5 text-[#ca8a04] flex-shrink-0" />
+                    <TriangleAlert className="h-3.5 w-3.5 text-warning flex-shrink-0" />
                     <span>{t("modelNoDocumentation")}</span>
                   </>
                 )}
@@ -578,7 +592,7 @@ export function AssetDetailClient({
                       target="_blank"
                       rel="noopener noreferrer"
                       className={`w-[52px] h-[52px] rounded-[7px] flex items-center justify-center text-[10px] text-center font-medium overflow-hidden ${
-                        isImage ? "bg-info-surface" : isPdf ? "bg-[#fee2e2]" : "bg-muted"
+                        isImage ? "bg-info-surface" : isPdf ? "bg-danger-surface" : "bg-muted"
                       }`}
                     >
                       {isImage ? (

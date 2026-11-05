@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     action: "UPDATE",
     entityType: "User",
     entityId: session.user.id,
-    entityName: session.user.email ?? undefined,
+    entityName: session.user.email,
     detail: { event: "2FA enabled" },
   });
 

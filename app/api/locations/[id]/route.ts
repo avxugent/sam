@@ -4,8 +4,9 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { auditChanges } from "@/lib/audit/diff";
 import { getAllDescendantLocationIds, getSubtreeIdsDeepestFirst } from "@/lib/locations/path";
-import { canEdit } from "@/lib/permissions";
-import { invalidInput, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { canEdit, isAdmin } from "@/lib/permissions";
+import { deleteStoredFiles } from "@/lib/uploads/storage";
+import { invalidInput, isForeignKeyError, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { updateLocationSchema } from "@/lib/schemas/location";
 import { LOCATION_DETAIL_INCLUDE } from "@/lib/locations/include";
 
@@ -22,7 +23,7 @@ export async function GET(
     include: LOCATION_DETAIL_INCLUDE,
   });
 
-  if (!location) return notFoundResponse();
+  if (!location) return notFoundResponse("Location");
   return NextResponse.json(location);
 }
 
@@ -45,7 +46,7 @@ export async function PUT(
     where: { id },
     include: { parent: { select: { name: true } } },
   });
-  if (!before) return notFoundResponse();
+  if (!before) return notFoundResponse("Location");
 
   // Validate coverImageId: must be an image attachment belonging to this location
   if (parsed.data.coverImageId) {
@@ -126,6 +127,10 @@ export async function PUT(
       include: { parent: { select: { name: true } } },
     });
   } catch (err: unknown) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Location");
+    // The new parent was deleted since the check above.
+    if (isForeignKeyError(err)) return unknownReferenceResponse("Target location");
     if (isUniqueConstraintError(err)) return nameTakenResponse("This FI number is already assigned to another location.");
     throw err;
   }
@@ -173,9 +178,14 @@ export async function DELETE(
     where: { id },
     select: { name: true, fiNumber: true, address: true, city: true, country: true },
   });
-  if (!loc) return notFoundResponse();
+  if (!loc) return notFoundResponse("Location");
 
   const childCount = await prisma.location.count({ where: { parentId: id } });
+  // Cascading takes the whole subtree with its assets, so it is Admin-only;
+  // a leaf location stays deletable by any editor.
+  if (childCount > 0 && !isAdmin(session.user.role)) {
+    return NextResponse.json({ error: "Only admins can delete a location with sub-locations." }, { status: 403 });
+  }
   if (childCount > 0 && !cascade) {
     return NextResponse.json(
       { error: "This location has sub-locations; confirm deleting them too.", code: "hasSublocations" },
@@ -187,8 +197,9 @@ export async function DELETE(
   // whole subtree when cascading) so this returns a friendly error instead of
   // an unhandled FK constraint failure mid-transaction below.
   const descendantIds = childCount > 0 ? await getAllDescendantLocationIds(id) : [];
+  const locationIds = [id, ...descendantIds];
   const stockCount = await prisma.stockItem.count({
-    where: { locationId: { in: [id, ...descendantIds] } },
+    where: { locationId: { in: locationIds } },
   });
   if (stockCount > 0) {
     return NextResponse.json(
@@ -197,22 +208,43 @@ export async function DELETE(
     );
   }
 
-  if (childCount > 0) {
-    // Delete the whole subtree. The Location → parent relation is onDelete:
-    // Restrict, so descendants must be removed deepest-first. Assets,
-    // attachments and work logs cascade per location automatically.
-    const subtree = await getSubtreeIdsDeepestFirst(id);
-    await prisma.$transaction(subtree.map((locationId) => prisma.location.delete({ where: { id: locationId } })));
-  } else {
-    await prisma.location.delete({ where: { id } });
-  }
+  // The attachment rows cascade with their location or asset, so read the
+  // stored files' paths now and remove the files once the rows are gone.
+  const assetCount = await prisma.asset.count({ where: { locationId: { in: locationIds } } });
+  const files = await prisma.attachment.findMany({
+    where: {
+      path: { not: null },
+      OR: [{ locationId: { in: locationIds } }, { asset: { locationId: { in: locationIds } } }],
+    },
+    select: { path: true },
+  });
 
-  const snapshot: Record<string, string> = {};
-  if (loc.name) snapshot["Name"] = loc.name;
-  if (loc.fiNumber) snapshot["FI number"] = loc.fiNumber;
-  if (loc.address) snapshot["Address"] = loc.address;
-  if (loc.city) snapshot["City"] = loc.city;
-  if (loc.country) snapshot["Country"] = loc.country;
+  try {
+    if (childCount > 0) {
+      // Delete the whole subtree. The Location → parent relation is onDelete:
+      // Restrict, so descendants must be removed deepest-first. Assets,
+      // attachments and work logs cascade per location automatically.
+      const subtree = await getSubtreeIdsDeepestFirst(id);
+      await prisma.$transaction(subtree.map((locationId) => prisma.location.delete({ where: { id: locationId } })));
+    } else {
+      await prisma.location.delete({ where: { id } });
+    }
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Location");
+    throw err;
+  }
+  await deleteStoredFiles(files.flatMap((f) => (f.path ? [f.path] : [])));
+
+  const snapshot = Object.fromEntries(
+    Object.entries({
+      "Name": loc.name,
+      "FI number": loc.fiNumber,
+      "Address": loc.address,
+      "City": loc.city,
+      "Country": loc.country,
+    }).filter(([, v]) => v)
+  );
 
   await logAudit({
     session,
@@ -221,7 +253,10 @@ export async function DELETE(
     entityType: "Location",
     entityId: id,
     entityName: loc.name,
-    detail: Object.keys(snapshot).length > 0 ? { snapshot } : undefined,
+    detail: {
+      snapshot,
+      ...(childCount > 0 && { cascade: { locations: locationIds.length, assets: assetCount } }),
+    },
   });
   return NextResponse.json({ ok: true });
 }

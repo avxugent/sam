@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const report = await prisma.report.findUnique({ where: { id } });
-  if (!report) return notFoundResponse();
+  if (!report) return notFoundResponse("Report");
 
   const definition = parseReportDefinition(report.definition);
   if (!definition) {

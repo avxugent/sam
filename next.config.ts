@@ -35,10 +35,15 @@ const nextConfig: NextConfig = {
 
   serverExternalPackages: ["bcryptjs", "qrcode", "mariadb", "@prisma/adapter-mariadb"],
 
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "10mb",
-    },
+  // Old URLs of pages that moved under /admin. Next applies these before the
+  // proxy, so the destination's session guard still runs.
+  async redirects() {
+    return [
+      { source: "/settings/users", destination: "/admin/users", permanent: false },
+      { source: "/settings/asset-types", destination: "/admin/asset-types", permanent: false },
+      { source: "/settings/manufacturers", destination: "/admin/manufacturers", permanent: false },
+      { source: "/import", destination: "/admin/import", permanent: false },
+    ];
   },
 
   async headers() {

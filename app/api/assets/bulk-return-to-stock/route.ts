@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       failed.push({ id, reason: check.violation.code });
       continue;
     }
-    if (!(await returnAssetToStock(req, session, check.asset, locationId))) {
+    if (!(await returnAssetToStock(req, session, check.asset, { locationId }))) {
       failed.push({ id, reason: STATUS_CHANGED });
       continue;
     }

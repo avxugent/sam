@@ -3,9 +3,11 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/uploads/storage", () => ({ deleteStoredFiles: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     asset: { findUnique: vi.fn(), delete: vi.fn() },
+    attachment: { findMany: vi.fn() },
     assetType: { findUnique: vi.fn() },
     supplier: { findUnique: vi.fn() },
     $transaction: vi.fn(),
@@ -15,6 +17,7 @@ vi.mock("@/lib/prisma", () => ({
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { deleteStoredFiles } from "@/lib/uploads/storage";
 import { GET, PUT, DELETE } from "@/app/api/assets/[id]/route";
 
 const mockAuth = vi.mocked(auth);
@@ -76,6 +79,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockAuth.mockResolvedValue({ user: { id: "u1", role: "EDITOR" } } as never);
   findAsset.mockResolvedValue(BEFORE as never);
+  vi.mocked(prisma.attachment.findMany).mockResolvedValue([] as never);
 });
 
 describe("GET /api/assets/[id]", () => {
@@ -119,6 +123,29 @@ describe("PUT /api/assets/[id]", () => {
   it("409 when the hostname is already taken", async () => {
     vi.mocked(prisma.$transaction).mockRejectedValue(Object.assign(new Error("dup"), { code: "P2002" }));
     expect((await PUT(req("PUT", { hostname: "rec-01.example.org", macAddresses: ["AA:BB:CC:DD:EE:FF"] }), params)).status).toBe(409);
+  });
+
+  it("404 when the asset was deleted concurrently between read and update", async () => {
+    vi.mocked(prisma.$transaction).mockRejectedValue(Object.assign(new Error("gone"), { code: "P2025" }));
+    expect((await PUT(req("PUT", { notes: "x" }), params)).status).toBe(404);
+  });
+
+  it("accepts a hostname-only update when the asset already has a MAC", async () => {
+    findAsset.mockResolvedValue({ ...BEFORE, serialNumber: null, macAddresses: [{ address: MAC[0] }] } as never);
+    mockAssetTypeFindUnique.mockResolvedValue({ hostnamePattern: null } as never);
+    runTransaction({ hostname: "rec-01.example.org" });
+    expect((await PUT(req("PUT", { hostname: "rec-01.example.org" }), params)).status).toBe(200);
+  });
+
+  it("400 when a hostname is set on an asset without MACs, or the MACs of a hostname are cleared", async () => {
+    mockAssetTypeFindUnique.mockResolvedValue({ hostnamePattern: null } as never);
+    const res = await PUT(req("PUT", { hostname: "rec-01.example.org" }), params);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/MAC address is required/);
+
+    findAsset.mockResolvedValue({ ...BEFORE, hostname: "rec-01.example.org", macAddresses: [{ address: MAC[0] }] } as never);
+    expect((await PUT(req("PUT", { macAddresses: [] }), params)).status).toBe(400);
+    expect(mockTransaction).not.toHaveBeenCalled();
   });
 
   it("replaces MACs and custom fields and audits only the changed fields", async () => {
@@ -169,6 +196,14 @@ describe("DELETE /api/assets/[id]", () => {
     vi.mocked(prisma.asset.delete).mockRejectedValueOnce(Object.assign(new Error("gone"), { code: "P2025" }));
     expect((await DELETE(req("DELETE"), params)).status).toBe(404);
     expect(logAudit).not.toHaveBeenCalled();
+    expect(deleteStoredFiles).not.toHaveBeenCalled();
+  });
+
+  it("removes the stored files of the asset's file attachments after the delete", async () => {
+    vi.mocked(prisma.attachment.findMany).mockResolvedValue([{ path: "assets/a1/x.pdf" }] as never);
+    expect((await DELETE(req("DELETE"), params)).status).toBe(200);
+    expect(prisma.attachment.findMany).toHaveBeenCalledWith({ where: { assetId: "a1", path: { not: null } }, select: { path: true } });
+    expect(deleteStoredFiles).toHaveBeenCalledWith(["assets/a1/x.pdf"]);
   });
 
   it("rethrows other delete errors", async () => {

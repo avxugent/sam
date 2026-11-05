@@ -118,6 +118,14 @@ describe("setting groups", () => {
     expect(prisma.appSetting.deleteMany).toHaveBeenCalledWith({ where: { key: { in: ["branding.backgroundMode"] } } });
   });
 
+  it("branding: the title write and the background-mode removal share one transaction", async () => {
+    await writeBrandingSettings({ appTitle: "Inv", backgroundMode: "" });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(prisma.$transaction).mock.calls[0][0]).toHaveLength(2);
+    expect(prisma.appSetting.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.appSetting.deleteMany).toHaveBeenCalledTimes(1);
+  });
+
   it("export: defaults, and partial writes", async () => {
     stored({});
     expect(await readExportSettings()).toEqual({ cronExpression: "0 2 * * *", outputDir: "/backups", enabled: false });

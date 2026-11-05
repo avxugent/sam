@@ -274,3 +274,19 @@ describe("attemptStorageRead()", () => {
     errSpy.mockRestore();
   });
 });
+
+describe("deleteStoredFiles()", () => {
+  it("deletes every path and logs, without throwing, the ones that fail", async () => {
+    const { deleteStoredFiles, getStorageDriver } = await import("@/lib/uploads/storage");
+    const driver = getStorageDriver();
+    const del = vi.spyOn(driver, "deleteObject").mockImplementation(async (p: string) => {
+      if (p === "bad") throw new Error("boom");
+    });
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(deleteStoredFiles(["a", "bad"])).resolves.toBeUndefined();
+    expect(del).toHaveBeenCalledWith("a");
+    expect(del).toHaveBeenCalledWith("bad");
+    expect(log).toHaveBeenCalledWith("[storage] orphan cleanup failed", "bad", expect.any(Error));
+    del.mockRestore(); log.mockRestore();
+  });
+});

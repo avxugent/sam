@@ -69,7 +69,7 @@ export function MobileBottomNav({ showAdminTab }: { showAdminTab: boolean }) {
             <div
               className={cn(
                 "w-8 h-8 rounded-[8px] flex items-center justify-center",
-                active ? "bg-[#fffbe6]" : ""
+                active ? "bg-warning-surface" : ""
               )}
             >
               {tab.icon}

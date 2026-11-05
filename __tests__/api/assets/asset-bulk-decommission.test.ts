@@ -72,8 +72,8 @@ describe("POST /api/assets/bulk-decommission", () => {
     mockAuth.mockResolvedValue(session("EDITOR") as never);
     mockFindUnique.mockImplementation((async ({ where: { id } }: { where: { id: string } }) => {
       if (id === "missing") return null;
-      if (id === "already-done") return { ...ASSET, status: "DECOMMISSIONED" };
-      return ASSET;
+      if (id === "already-done") return { ...ASSET, id, status: "DECOMMISSIONED" };
+      return { ...ASSET, id };
     }) as never);
     mockUpdate.mockResolvedValue({} as never);
 

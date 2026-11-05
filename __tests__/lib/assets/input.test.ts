@@ -36,8 +36,8 @@ describe("asset write helpers", () => {
     expect(hostnameTakenResponse().status).toBe(409);
   });
 
-  it("row builders drop blank MACs and keyless custom fields", () => {
-    expect(macAddressRows(["AA:BB:CC:DD:EE:FF", ""])).toEqual([{ address: "AA:BB:CC:DD:EE:FF" }]);
-    expect(customFieldRows([{ key: "", value: "x" }, { key: "k", value: "v" }])).toEqual([{ key: "k", value: "v" }]);
+  it("row builders map validated MACs and custom fields to rows", () => {
+    expect(macAddressRows(["AA:BB:CC:DD:EE:FF"])).toEqual([{ address: "AA:BB:CC:DD:EE:FF" }]);
+    expect(customFieldRows([{ key: "k", value: "v" }])).toEqual([{ key: "k", value: "v" }]);
   });
 });

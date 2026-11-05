@@ -34,6 +34,14 @@ const baseAsset = {
   ownerId: null,
   decommissionedById: null,
   sentForRepairById: null,
+  installationDate: new Date("2026-01-02T00:00:00.000Z"),
+  invoiceDate: null,
+  endOfSupportDate: null,
+  decommissionedAt: new Date("2026-03-04T10:00:00.000Z"),
+  repairStartedAt: null,
+  createdAt: new Date("2026-01-01T08:00:00.000Z"),
+  updatedAt: new Date("2026-01-05T09:00:00.000Z"),
+  attachments: [{ id: "att-1", attachmentType: "file", createdAt: new Date("2026-01-06T00:00:00.000Z") }],
 };
 
 beforeEach(() => {
@@ -67,12 +75,19 @@ describe("locations/[id]/assets/[assetId] page", () => {
     expect(AssetDetailClient).not.toHaveBeenCalled();
   });
 
-  it("passes the asset, breadcrumbs, role and templates (\"\" when unset) to the client", async () => {
+  it("passes the asset (dates as ISO strings), breadcrumbs, role and templates (\"\" when unset) to the client", async () => {
     await renderPage(call());
 
     expect(locationBreadcrumbs).toHaveBeenCalledWith("loc-1");
     expect(propsOf(AssetDetailClient)).toEqual({
-      asset: baseAsset,
+      asset: {
+        ...baseAsset,
+        installationDate: "2026-01-02T00:00:00.000Z",
+        decommissionedAt: "2026-03-04T10:00:00.000Z",
+        createdAt: "2026-01-01T08:00:00.000Z",
+        updatedAt: "2026-01-05T09:00:00.000Z",
+        attachments: [{ id: "att-1", attachmentType: "file", createdAt: "2026-01-06T00:00:00.000Z" }],
+      },
       breadcrumbs: [{ id: "loc-1", name: "Room 1" }],
       userRole: "MAINTAINER",
       hostnameUrlTemplate: "",

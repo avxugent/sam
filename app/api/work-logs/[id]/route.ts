@@ -7,7 +7,7 @@ import { updateWorkLogSchema } from "@/lib/schemas/work-log";
 import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
 import { canModifyWorkLog } from "@/lib/permissions";
 import { userNamesById } from "@/lib/users/names";
-import { invalidInput, isForeignKeyError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { invalidInput, isForeignKeyError, isRecordNotFoundError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
 import { toIsoDay } from "@/lib/dates";
 
 export async function GET(
@@ -23,7 +23,7 @@ export async function GET(
     include: { ...WORK_LOG_INCLUDE, location: { select: { id: true, name: true } } },
   });
 
-  if (!log) return notFoundResponse();
+  if (!log) return notFoundResponse("Work log");
   return NextResponse.json(log);
 }
 
@@ -36,7 +36,7 @@ export async function PUT(
 
   const { id } = await params;
   const existing = await prisma.workLog.findUnique({ where: { id } });
-  if (!existing) return notFoundResponse();
+  if (!existing) return notFoundResponse("Work log");
 
   if (!canModifyWorkLog(session.user.role, session.user.id, existing.performedById)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -64,6 +64,8 @@ export async function PUT(
       include: WORK_LOG_INCLUDE,
     });
   } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Work log");
     // A stale asset, item or performer id from the body.
     if (isForeignKeyError(err)) return unknownReferenceResponse();
     throw err;
@@ -107,13 +109,19 @@ export async function DELETE(
 
   const { id } = await params;
   const existing = await prisma.workLog.findUnique({ where: { id } });
-  if (!existing) return notFoundResponse();
+  if (!existing) return notFoundResponse("Work log");
 
   if (!canModifyWorkLog(session.user.role, session.user.id, existing.performedById)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  await prisma.workLog.delete({ where: { id } });
+  try {
+    await prisma.workLog.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Work log");
+    throw err;
+  }
   await logAudit({
     session,
     req,

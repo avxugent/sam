@@ -178,12 +178,12 @@ export async function verifyAuthentication(
 // pattern already used for the "remember this device" cookie
 // (lib/two-factor/remember-device.ts). `purpose` binds the cookie to one call type so a
 // registration challenge can't be replayed against the authentication-verify
-// route or vice versa.
+// route or vice versa, and a login challenge can't confirm a passkey removal.
 
 const CHALLENGE_COOKIE = "sam_webauthn_challenge";
 const CHALLENGE_TTL_SECONDS = 5 * 60;
 
-export type ChallengePurpose = "registration" | "authentication";
+export type ChallengePurpose = "registration" | "authentication" | "confirmation";
 
 export async function setChallengeCookie(
   response: NextResponse,

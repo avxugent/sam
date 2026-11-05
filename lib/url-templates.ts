@@ -2,6 +2,8 @@
  * Admin-configured link templates (AppSettings hostname/macAddress/location
  * .urlTemplate) rendered into per-asset and per-location URLs.
  */
+import { normalizeMacAddress } from "@/lib/mac-address";
+
 export function renderHostnameUrl(
   template: string,
   asset: {
@@ -40,9 +42,9 @@ export function renderLocationUrl(
 }
 
 export function renderMacAddressUrl(template: string, mac: string): string {
-  const plain = mac.replace(/[:\-\.]/g, "").toLowerCase();
-  const colon = plain.match(/.{2}/g)?.join(":") ?? mac;
-  const dash = plain.match(/.{2}/g)?.join("-") ?? mac;
+  const colon = (normalizeMacAddress(mac) ?? mac).toLowerCase();
+  const plain = colon.replaceAll(":", "");
+  const dash = colon.replaceAll(":", "-");
   return template
     .replaceAll("{mac}", colon)
     .replaceAll("{mac_plain}", plain)

@@ -10,7 +10,8 @@ import { ThemeSync } from "@/components/layout/theme-sync";
 import { AppFooter } from "@/components/layout/app-footer";
 import { version } from "@/package.json";
 import { canManageCatalog } from "@/lib/permissions";
-import { getRecursiveAssetCounts } from "@/lib/locations/path";
+import { parseAuthProvider } from "@/lib/users/providers";
+import { getInstalledUnitTotals } from "@/lib/locations/path";
 import { nestLocations } from "@/lib/locations/tree";
 
 export default async function DashboardLayout({
@@ -32,7 +33,7 @@ export default async function DashboardLayout({
     await prisma.location.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] })
   );
 
-  const assetCountMap = await getRecursiveAssetCounts();
+  const assetCountMap = await getInstalledUnitTotals();
 
   const [stockItemCount, decommissionedCount, inRepairCount, stockTypes, branding] = await Promise.all([
     prisma.stockItem.count(),
@@ -58,7 +59,7 @@ export default async function DashboardLayout({
     name: session.user.name,
     email: session.user.email,
     role: session.user.role,
-    provider: dbUser?.provider ?? "credentials",
+    provider: parseAuthProvider(dbUser?.provider),
     totpEnabled: dbUser?.totpEnabled ?? false,
   };
 

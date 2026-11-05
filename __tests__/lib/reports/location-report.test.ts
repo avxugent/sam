@@ -10,7 +10,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 // The report reads campus/building through this helper; its own tree query is
 // covered by the path tests, so it is stubbed with the fixture tree.
-vi.mock("@/lib/locations/path", () => ({ getAncestorChainsBatch: vi.fn(), getLocationPathsBatch: vi.fn() }));
+vi.mock("@/lib/locations/path", () => ({ getAncestorChainsBatch: vi.fn(), locationExportPathsBatch: vi.fn() }));
 
 import { runLocationReport } from "@/lib/reports/engine";
 import { prisma } from "@/lib/prisma";
@@ -117,6 +117,29 @@ describe("runLocationReport()", () => {
       periodUnit: "years",
     });
     expect(result.rows.map((r) => r.id)).toEqual(["loc1"]);
+  });
+
+  it("cuts a months window off at the same day N calendar months back", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 0, 15, 12)); // 15 Jan 2026, local noon
+    try {
+      // One day inside and one day outside a 1-month window (cutoff 15 Dec 2025).
+      mockLogFindMany.mockResolvedValue([
+        { locationId: "loc1", itemId: "wi1", performedAt: new Date(2025, 11, 16, 12), performedBy: { name: "Alice" } },
+        { locationId: "loc2", itemId: "wi1", performedAt: new Date(2025, 11, 14, 12), performedBy: { name: "Bob" } },
+      ] as never);
+      const result = await runLocationReport({
+        source: "location",
+        itemIds: ["wi1"],
+        status: "all",
+        periodCount: 1,
+        periodUnit: "months",
+      });
+      const filled = Object.fromEntries(result.rows.map((r) => [r.id, r.items["wi1"].filled]));
+      expect(filled).toEqual({ loc1: true, loc2: false });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("drops itemIds that no longer exist", async () => {

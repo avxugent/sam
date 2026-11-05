@@ -21,7 +21,7 @@ export async function POST(
 
   const { id } = await params;
   const existing = await prisma.asset.findUnique({ where: { id }, select: REPAIR_SELECT });
-  if (!existing) return notFoundResponse();
+  if (!existing) return notFoundResponse("Asset");
   const violation = lifecycleViolationResponse(repairViolation(existing));
   if (violation) return violation;
 
@@ -31,7 +31,7 @@ export async function POST(
     return invalidInput(parsed.error);
   }
 
-  const asset = await sendAssetForRepair(req, session, id, existing, { note: parsed.data.note });
+  const asset = await sendAssetForRepair(req, session, existing, { note: parsed.data.note });
   if (!asset) return statusChangedResponse();
 
   return NextResponse.json(asset);

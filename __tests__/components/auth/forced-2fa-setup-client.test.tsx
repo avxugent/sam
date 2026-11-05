@@ -30,7 +30,7 @@ describe("Forced2FASetupClient", () => {
     render(<Forced2FASetupClient />);
     await userEvent.click(screen.getByRole("button", { name: /twoFactorSetupTitle/ }));
     expect(await screen.findByAltText("twoFactorQrAlt")).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText("twoFactorCode"), "123456");
+    await userEvent.type(screen.getByLabelText("twoFactorEnterAppCode"), "123456");
     await userEvent.click(screen.getByRole("button", { name: /twoFactorSetupConfirm/ }));
 
     expect(await screen.findByText("twoFactorEnabled")).toBeInTheDocument();
@@ -42,11 +42,11 @@ describe("Forced2FASetupClient", () => {
     vi.mocked(confirmTotpSetup).mockResolvedValue({ ok: false, error: "Invalid code." });
     render(<Forced2FASetupClient />);
     await userEvent.click(screen.getByRole("button", { name: /twoFactorSetupTitle/ }));
-    await userEvent.type(await screen.findByLabelText("twoFactorCode"), "000000");
+    await userEvent.type(await screen.findByLabelText("twoFactorEnterAppCode"), "000000");
     await userEvent.click(screen.getByRole("button", { name: /twoFactorSetupConfirm/ }));
     await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ description: "Invalid code." })));
     expect(screen.queryByText("twoFactorEnabled")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("twoFactorCode")).toHaveValue("");
+    expect(screen.getByLabelText("twoFactorEnterAppCode")).toHaveValue("");
   });
 
   it("enrols a passkey instead, and explains a cancelled prompt", async () => {

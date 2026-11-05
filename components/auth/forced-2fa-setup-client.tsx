@@ -2,11 +2,9 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { TotpEnrollmentForm } from "@/components/auth/totp-enrollment-form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Loader2, ShieldCheck, Fingerprint } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { confirmTotpSetup, normalizeTotpCode, registerPasskey, requestTotpSetup } from "@/components/auth/enrollment-api";
@@ -22,7 +20,6 @@ export function Forced2FASetupClient() {
   const [qrCode, setQrCode] = useState("");
   const [secret, setSecret] = useState("");
   const [code, setCode] = useState("");
-  const [showManualKey, setShowManualKey] = useState(false);
   const [loading, setLoading] = useState(false);
   const [passkeyError, setPasskeyError] = useState("");
 
@@ -101,49 +98,8 @@ export function Forced2FASetupClient() {
             {t("twoFactorSetupSubtitle")}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="flex justify-center">
-            {qrCode && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={qrCode} alt={t("twoFactorQrAlt")} className="rounded-lg border" width={220} height={220} />
-            )}
-          </div>
-
-          <div className="text-center">
-            <button
-              type="button"
-              className="text-xs text-primary hover:underline"
-              onClick={() => setShowManualKey((v) => !v)}
-            >
-              {showManualKey ? t("hideManualKey") : t("cantScanKey")}
-            </button>
-            {showManualKey && (
-              <div className="mt-2 p-3 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">{t("twoFactorSetupSecret")}:</p>
-                <code className="text-sm font-mono select-all break-all">{secret}</code>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Type: Time-based · Period: 30s · Digits: 6
-                </p>
-              </div>
-            )}
-          </div>
-
-          <Separator />
-
-          <form onSubmit={handleEnable} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="totp-code">{t("twoFactorCode")}</Label>
-              <Input
-                id="totp-code"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="000000"
-                className="font-mono text-center tracking-widest text-xl h-12"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                autoFocus
-              />
-            </div>
+        <CardContent>
+          <TotpEnrollmentForm qrCode={qrCode} secret={secret} code={code} onCodeChange={setCode} onSubmit={handleEnable}>
             <Button
               type="submit"
               className="w-full"
@@ -152,7 +108,7 @@ export function Forced2FASetupClient() {
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t("twoFactorSetupConfirm")}
             </Button>
-          </form>
+          </TotpEnrollmentForm>
         </CardContent>
       </Card>
     );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { TotpEnrollmentForm } from "@/components/auth/totp-enrollment-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,7 +54,6 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
   const [enableCode, setEnableCode] = useState("");
   const [disableCode, setDisableCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showManualKey, setShowManualKey] = useState(false);
 
   // Not applicable to SSO accounts
   if (provider !== "credentials") {
@@ -234,56 +234,8 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
             {t("twoFactorSetupSubtitle")}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="flex justify-center">
-            {qrCode && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={qrCode}
-                alt={t("twoFactorQrAlt")}
-                className="rounded-lg border"
-                width={220}
-                height={220}
-              />
-            )}
-          </div>
-
-          {/* Manual entry toggle */}
-          <div className="text-center">
-            <button
-              type="button"
-              className="text-xs text-primary hover:underline"
-              onClick={() => setShowManualKey((v) => !v)}
-            >
-              {showManualKey ? t("hideManualKey") : t("cantScanKey")}
-            </button>
-            {showManualKey && (
-              <div className="mt-2 p-3 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">{t("twoFactorManualKey")}</p>
-                <code className="text-sm font-mono select-all break-all">{secret}</code>
-                <p className="text-xs text-muted-foreground mt-1">{t("twoFactorManualKeyParams")}</p>
-              </div>
-            )}
-          </div>
-
-          <Separator />
-
-          <form onSubmit={handleEnable} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="enable-code">{t("twoFactorEnterAppCode")}</Label>
-              <Input
-                id="enable-code"
-                value={enableCode}
-                onChange={(e) =>
-                  setEnableCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                placeholder="000000"
-                className="font-mono text-center tracking-widest text-xl h-12"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                autoFocus
-              />
-            </div>
+        <CardContent>
+          <TotpEnrollmentForm qrCode={qrCode} secret={secret} code={enableCode} onCodeChange={setEnableCode} onSubmit={handleEnable}>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -302,7 +254,7 @@ export function TwoFactorSettings({ provider, totpEnabled: initialEnabled }: Pro
                 {t("twoFactorSetupConfirm")}
               </Button>
             </div>
-          </form>
+          </TotpEnrollmentForm>
         </CardContent>
       </Card>
     );

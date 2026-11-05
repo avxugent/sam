@@ -537,7 +537,6 @@
     "twoFactorBack": "Back to sign in",
     "twoFactorSetupTitle": "Set up two-factor authentication",
     "twoFactorSetupSubtitle": "Scan the QR code with your authenticator app, then enter the 6-digit code to confirm",
-    "twoFactorSetupSecret": "Or enter this code manually",
     "twoFactorSetupConfirm": "Enable 2FA",
     "twoFactorEnabled": "Two-factor authentication enabled",
     "twoFactorDisabled": "Two-factor authentication disabled",

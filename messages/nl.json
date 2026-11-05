@@ -537,7 +537,6 @@
     "twoFactorBack": "Terug naar aanmelden",
     "twoFactorSetupTitle": "Tweestapsverificatie instellen",
     "twoFactorSetupSubtitle": "Scan de QR-code met uw authenticator-app en voer de 6-cijferige code in om te bevestigen",
-    "twoFactorSetupSecret": "Of voer deze code handmatig in",
     "twoFactorSetupConfirm": "2FA inschakelen",
     "twoFactorEnabled": "Tweestapsverificatie ingeschakeld",
     "twoFactorDisabled": "Tweestapsverificatie uitgeschakeld",

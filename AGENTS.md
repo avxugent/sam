@@ -57,6 +57,9 @@ Currently used for `bcryptjs`. If you add native Node modules used in server com
 ### `overrides.postcss` in package.json is deliberate
 Next pins postcss exactly (8.5.23) while Tailwind and Vite accept newer; the `>=8.5.10` override makes npm install one shared copy (and keeps out versions with the pre-8.5.10 advisory). Remove it only if `npm ls postcss` still shows a single version afterwards.
 
+### `overrides.@typescript-eslint/typescript-estree.minimatch` is deliberate
+typescript-estree pins `minimatch@^10.2.2`, whose latest 10.x is inside the GHSA-g3hv-75wg-m249 range (7.0.0 – 11.0.0); the scoped override installs a patched 11.x for it so `npm audit --audit-level=moderate` (a CI step) passes. Drop it once typescript-estree depends on a patched minimatch itself.
+
 ### `output: "standalone"` is enabled
 The production build produces `.next/standalone/server.js`. The Dockerfile relies on this. Never set `output` to anything else.
 

@@ -42,7 +42,7 @@ import { Criticality } from "@/generated/prisma/enums";
 import { apiFetch, jsonBody } from "@/lib/api-client";
 import { hasDeviceIdentity } from "@/lib/schemas/asset";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
-import type { AssetDetailData } from "@/components/assets/asset-detail-client";
+import type { AssetDetailData } from "@/components/assets/asset-detail-data";
 
 
 type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: Criticality | null };

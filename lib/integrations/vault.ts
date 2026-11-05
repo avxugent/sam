@@ -229,7 +229,7 @@ export async function readVaultSecret(path: string): Promise<VaultRead<VaultSecr
     // A KV v2 secret whose latest version is deleted answers 200 without data.
     return data ? { status: "found", value: data } : { status: "missing" };
   } catch (err) {
-    console.warn(`[vault] Failed to read secret at path "${path}":`, err);
+    console.warn(`[vault] Failed to read secret at path "${path}":`, err instanceof Error ? err.message : "unknown error");
     return { status: "unavailable" };
   }
 }

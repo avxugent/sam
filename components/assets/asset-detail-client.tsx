@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { renderHostnameUrl, renderMacAddressUrl } from "@/lib/url-templates";
 import { getAssetTypeIcon } from "@/lib/assets/type-icon";
-import type { AssetDetail } from "@/lib/assets/include";
+import type { AssetDetailData } from "@/components/assets/asset-detail-data";
 import { MoveAssetDialog } from "@/components/assets/move-asset-dialog";
 import { AssetHistoryTimeline } from "@/components/assets/asset-history-timeline";
 import { canEdit, isAdmin, type Role } from "@/lib/permissions";
@@ -52,20 +52,6 @@ import { apiFetch } from "@/lib/api-client";
 import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Breadcrumb = { id: string; name: string };
-
-type AssetDateField =
-  | "installationDate"
-  | "invoiceDate"
-  | "endOfSupportDate"
-  | "decommissionedAt"
-  | "repairStartedAt"
-  | "createdAt"
-  | "updatedAt";
-
-/** The detail page's asset with its dates as ISO strings (the server → client convention). */
-export type AssetDetailData = Omit<AssetDetail, AssetDateField | "attachments"> & {
-  [K in AssetDateField]: null extends AssetDetail[K] ? string | null : string;
-} & { attachments: Attachment[] };
 
 function InfoCard({
   icon,

@@ -9,8 +9,10 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.mts"],
-    // Use vmForks pool to handle ESM-only dependencies (jsdom, csstools, etc.)
-    pool: "vmForks",
+    // One child process per test file. The vm pools run with isolation off in Vitest 4, so files that share
+    // a worker share globals and module state: a Radix dialog left open by one file broke the next, and
+    // which files shared a worker depended on the CPU count (CI hung where 8-core machines passed).
+    pool: "forks",
     alias: {
       "@": path.resolve(__dirname, "."),
     },

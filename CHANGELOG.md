@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.0.0-alpha.2] - 2026-11-06
+
+Second pre-release of the 4.0.0 line; the only change since `4.0.0-alpha.1` is the Docker base image. Published as a prerelease image tag, never `:latest`.
+
+### Security
+
+- **Docker base image `node:24.22.1-alpine` → `node:24.22.2-alpine`** (Alpine 3.24.3 → 3.24.4, `apk-tools` 3.0.8 → 3.0.9); `.nvmrc` follows. `musl 1.2.6-r3`, the Alpine fix for CVE-2026-107891, was already in the previous base and stays. CVE-2026-4738 concerns OSGeo GDAL before 3.11.0, which the image does not contain, so no base-image change addresses it.
+
+---
+
 ## [4.0.0-alpha.1] - 2026-11-06
 
 Pre-release for testing the `desloppify/code-health` branch (PR #1). It bundles ~190 commits of fixes, security hardening, refactoring and tests on top of 3.1.3. Published as a prerelease image tag; it never becomes `:latest`.

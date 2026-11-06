@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { TwoFactorSettings } from "@/components/auth/two-factor-settings";
 import { PasskeySettings } from "@/components/auth/passkey-settings";
+import { parseAuthProvider } from "@/lib/users/providers";
+import { getTranslations } from "next-intl/server";
 
 export default async function TwoFactorSettingsPage() {
   const session = await auth();
@@ -13,6 +15,8 @@ export default async function TwoFactorSettingsPage() {
     select: { provider: true, totpEnabled: true },
   });
   if (!user) redirect("/login");
+  const provider = parseAuthProvider(user.provider);
+  const t = await getTranslations("settings");
 
   const passkeys = await prisma.passkey.findMany({
     where: { userId: session.user.id },
@@ -23,21 +27,23 @@ export default async function TwoFactorSettingsPage() {
   return (
     <div className="max-w-lg space-y-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Two-Factor Authentication</h1>
-        <p className="text-muted-foreground mt-1">
-          Secure your account with a time-based one-time password (TOTP) or a passkey.
-        </p>
+        <h1 className="text-2xl font-bold">{t("twoFactorPageTitle")}</h1>
+        <p className="text-muted-foreground mt-1">{t("twoFactorPageSubtitle")}</p>
       </div>
       <TwoFactorSettings
-        provider={user.provider}
+        provider={provider}
         totpEnabled={user.totpEnabled}
       />
       <PasskeySettings
-        provider={user.provider}
+        provider={provider}
+        totpEnabled={user.totpEnabled}
         passkeys={passkeys.map((p) => ({ ...p, createdAt: p.createdAt.toISOString(), lastUsedAt: p.lastUsedAt?.toISOString() ?? null }))}
       />
     </div>
   );
 }
 
-export const metadata = { title: "Two-Factor Authentication – SAM" };
+export async function generateMetadata() {
+  const t = await getTranslations("settings");
+  return { title: t("twoFactorPageTitle") };
+}

@@ -1,11 +1,16 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { AuditLogClient } from "@/components/settings/audit-log-client";
+import { AuditLogClient } from "@/components/admin/audit-log-client";
+import { isAdmin } from "@/lib/permissions";
+import type { AuditAction, AuditEntityType } from "@/lib/audit";
 
 export default async function AuditLogPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/");
+  if (!session?.user || !isAdmin(session.user.role)) redirect("/");
+
+  const t = await getTranslations("adminPages");
 
   const logs = await prisma.auditLog.findMany({
     orderBy: { timestamp: "desc" },
@@ -15,14 +20,23 @@ export default async function AuditLogPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Audit Log</h1>
-        <p className="text-muted-foreground mt-1">
-          All administrative actions for NIS2 compliance. Showing last 500 entries.
-        </p>
+        <h1 className="text-2xl font-bold">{t("audit.title")}</h1>
+        <p className="text-muted-foreground mt-1">{t("audit.subtitle")}</p>
       </div>
-      <AuditLogClient initialLogs={logs.map((l) => ({ ...l, timestamp: l.timestamp.toISOString() }))} />
+      <AuditLogClient
+        // Rows are only ever written by logAudit(), whose action and entityType are typed.
+        initialLogs={logs.map((l) => ({
+          ...l,
+          action: l.action as AuditAction,
+          entityType: l.entityType as AuditEntityType,
+          timestamp: l.timestamp.toISOString(),
+        }))}
+      />
     </div>
   );
 }
 
-export const metadata = { title: "Audit Log – SAM Admin" };
+export async function generateMetadata() {
+  const t = await getTranslations("adminPages");
+  return { title: t("audit.title") };
+}

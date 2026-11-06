@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { createPresetSchema } from "@/lib/work-log-schema";
+import { createPresetSchema } from "@/lib/schemas/work-log";
+import { isAdmin } from "@/lib/permissions";
+import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET(
   _req: NextRequest,
@@ -25,16 +27,16 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id: assetTypeId } = await params;
   const type = await prisma.assetType.findUnique({ where: { id: assetTypeId }, select: { id: true, name: true } });
-  if (!type) return NextResponse.json({ error: "Asset type not found" }, { status: 404 });
+  if (!type) return notFoundResponse("Asset type");
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = createPresetSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const created = await prisma.maintenancePreset.create({

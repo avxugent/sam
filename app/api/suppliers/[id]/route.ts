@@ -2,27 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { supplierSchema, findConflictingWindows } from "@/lib/supplier-schema";
+import { auditChanges } from "@/lib/audit/diff";
+import { supplierSchema } from "@/lib/schemas/supplier";
+import { findConflictingWindows } from "@/lib/suppliers/conflicts";
+import { canManageCatalog } from "@/lib/permissions";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { toIsoDay } from "@/lib/dates";
 
 function dateCell(d: Date | null): string {
-  return d ? d.toISOString().slice(0, 10) : "";
+  return toIsoDay(d) ?? "";
 }
 
+/** Replaces the supplier: optional fields left out of the body are cleared. */
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = supplierSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const current = await prisma.supplier.findUnique({ where: { id } });
-  if (!current) return NextResponse.json({ error: "Supplier not found." }, { status: 404 });
+  if (!current) return notFoundResponse("Supplier");
 
   const conflicts = await findConflictingWindows(
     {
@@ -32,7 +38,10 @@ export async function PUT(
     id
   );
   if (conflicts) {
-    return NextResponse.json({ error: "supplierWindowOverlap", details: conflicts }, { status: 400 });
+    return NextResponse.json(
+      { error: "Default window overlaps another supplier", code: "supplierWindowOverlap", details: conflicts },
+      { status: 400 }
+    );
   }
 
   try {
@@ -47,20 +56,14 @@ export async function PUT(
       },
     });
 
-    const changes: Record<string, { from: string; to: string }> = {};
-    if (current.name !== supplier.name) changes["Name"] = { from: current.name, to: supplier.name };
-    if ((current.contractReference ?? "") !== (supplier.contractReference ?? "")) {
-      changes["Contract reference"] = { from: current.contractReference ?? "", to: supplier.contractReference ?? "" };
-    }
-    if ((current.contactInfo ?? "") !== (supplier.contactInfo ?? "")) {
-      changes["Contact info"] = { from: current.contactInfo ?? "", to: supplier.contactInfo ?? "" };
-    }
-    if (dateCell(current.defaultFrom) !== dateCell(supplier.defaultFrom)) {
-      changes["Default from"] = { from: dateCell(current.defaultFrom), to: dateCell(supplier.defaultFrom) };
-    }
-    if (dateCell(current.defaultUntil) !== dateCell(supplier.defaultUntil)) {
-      changes["Default until"] = { from: dateCell(current.defaultUntil), to: dateCell(supplier.defaultUntil) };
-    }
+    // Empty and missing values both read as "" in the supplier audit trail.
+    const changes = auditChanges([
+      { label: "Name", before: current.name, after: supplier.name },
+      { label: "Contract reference", before: current.contractReference ?? "", after: supplier.contractReference ?? "" },
+      { label: "Contact info", before: current.contactInfo ?? "", after: supplier.contactInfo ?? "" },
+      { label: "Default from", before: dateCell(current.defaultFrom), after: dateCell(supplier.defaultFrom) },
+      { label: "Default until", before: dateCell(current.defaultUntil), after: dateCell(supplier.defaultUntil) },
+    ]);
 
     await logAudit({
       session,
@@ -73,8 +76,12 @@ export async function PUT(
     });
     return NextResponse.json(supplier);
   } catch (err) {
-    if ((err as { code?: string }).code === "P2002") {
-      return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+    // Races with a concurrent delete.
+    if (isRecordNotFoundError(err)) {
+      return notFoundResponse("Supplier");
+    }
+    if (isUniqueConstraintError(err)) {
+      return nameTakenResponse();
     }
     throw err;
   }
@@ -86,7 +93,7 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const count = await prisma.asset.count({ where: { supplierId: id } });
@@ -98,9 +105,15 @@ export async function DELETE(
   }
 
   const supplier = await prisma.supplier.findUnique({ where: { id }, select: { name: true } });
-  if (!supplier) return NextResponse.json({ error: "Supplier not found." }, { status: 404 });
+  if (!supplier) return notFoundResponse("Supplier");
 
-  await prisma.supplier.delete({ where: { id } });
+  try {
+    await prisma.supplier.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Supplier");
+    throw err;
+  }
   await logAudit({
     session,
     req,

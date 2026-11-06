@@ -7,47 +7,36 @@ import { useTranslations } from "next-intl";
 import { MapPin, ChevronRight, ChevronDown, Search, FolderOpen, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { subtreeMatchesFilter, treeFilterState, type Nested } from "@/lib/locations/tree";
 
-export type LocationNode = {
-  id: string;
-  name: string;
-  fiNumber: string | null;
-  children: LocationNode[];
-};
-
-function nodeMatchesFilter(node: LocationNode, query: string): boolean {
-  if (node.name.toLowerCase().includes(query)) return true;
-  return node.children.some((c) => nodeMatchesFilter(c, query));
-}
+type LocationNode = Nested<{ id: string; name: string; fiNumber: string | null }>;
 
 function LocationTreeItem({
   location,
   depth,
   assetCountMap,
   filterQuery,
+  insideMatch = false,
 }: {
   location: LocationNode;
   depth: number;
   assetCountMap: Record<string, number>;
   filterQuery: string;
+  insideMatch?: boolean;
 }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const isActive =
     pathname === `/locations/${location.id}` ||
     pathname.startsWith(`/locations/${location.id}/`);
   const hasChildren = location.children.length > 0;
 
-  const isFiltering = filterQuery.length > 0;
-  const selfMatches = isFiltering && location.name.toLowerCase().includes(filterQuery);
-  const childMatches =
-    isFiltering &&
-    !selfMatches &&
-    location.children.some((c) => nodeMatchesFilter(c, filterQuery));
-
-  const forceOpen = isFiltering && (selfMatches || childMatches);
+  const filter = treeFilterState(location, filterQuery, insideMatch);
+  const { matches: selfMatches, forceOpen } = filter;
   const [open, setOpen] = useState(isActive || forceOpen);
 
-  if (isFiltering && !selfMatches && !childMatches) return null;
+  if (!filter.visible) return null;
+  const expanded = forceOpen || open || insideMatch;
   const totalAssets = assetCountMap[location.id] ?? 0;
 
   return (
@@ -56,24 +45,24 @@ function LocationTreeItem({
         className={cn(
           "flex items-center gap-2 py-[10px] text-[14px] rounded-[8px] transition-colors",
           isActive
-            ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold"
-            : "text-[#334155] hover:bg-[#f8fafc] active:bg-[#f1f5f9]"
+            ? "bg-primary-tint text-primary font-semibold"
+            : "text-secondary-foreground hover:bg-background active:bg-muted"
         )}
         style={{ paddingLeft: `${12 + depth * 20}px`, paddingRight: "12px" }}
       >
         {/* Expand/collapse button — larger hit target for touch */}
         <button
           type="button"
-          className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8]"
+          className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           onClick={() => setOpen((v) => !v)}
-          aria-label={(forceOpen || open) ? `Collapse ${location.name}` : `Expand ${location.name}`}
-          aria-expanded={hasChildren ? (forceOpen || open) : undefined}
+          aria-label={expanded ? t("collapseLocation", { name: location.name }) : t("expandLocation", { name: location.name })}
+          aria-expanded={hasChildren ? expanded : undefined}
           disabled={!hasChildren}
         >
           {hasChildren ? (
-            (forceOpen || open)
-              ? <ChevronDown className={cn("h-4 w-4", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
-              : <ChevronRight className={cn("h-4 w-4", isActive ? "stroke-[#1e64c8]" : "stroke-[#94a3b8]")} />
+            expanded
+              ? <ChevronDown className={cn("h-4 w-4", isActive ? "stroke-primary" : "stroke-subtle")} />
+              : <ChevronRight className={cn("h-4 w-4", isActive ? "stroke-primary" : "stroke-subtle")} />
           ) : (
             <span className="h-4 w-4" />
           )}
@@ -87,7 +76,7 @@ function LocationTreeItem({
           <MapPin
             className={cn(
               "h-4 w-4 flex-shrink-0",
-              isActive ? "fill-[#1e64c8] stroke-[#1e64c8]" : "stroke-[#94a3b8]"
+              isActive ? "fill-primary stroke-primary" : "stroke-subtle"
             )}
           />
           <div className="min-w-0">
@@ -99,7 +88,7 @@ function LocationTreeItem({
               )}
             </span>
             {location.fiNumber && (
-              <span className="text-[11px] text-[#94a3b8] font-mono block truncate">
+              <span className="text-[11px] text-subtle font-mono block truncate">
                 {location.fiNumber}
               </span>
             )}
@@ -107,13 +96,13 @@ function LocationTreeItem({
         </Link>
 
         {totalAssets > 0 && (
-          <span className="text-[12px] text-[#64748b] bg-[#f1f5f9] px-2 py-0.5 rounded-[5px] flex-shrink-0">
+          <span className="text-[12px] text-muted-foreground bg-muted px-2 py-0.5 rounded-[5px] flex-shrink-0">
             {totalAssets}
           </span>
         )}
       </div>
 
-      {(forceOpen || open) && hasChildren && (
+      {expanded && hasChildren && (
         <div>
           {location.children.map((child) => (
             <LocationTreeItem
@@ -122,6 +111,7 @@ function LocationTreeItem({
               depth={depth + 1}
               assetCountMap={assetCountMap}
               filterQuery={filterQuery}
+              insideMatch={filter.childrenInsideMatch}
             />
           ))}
         </div>
@@ -143,9 +133,8 @@ export function LocationBrowserClient({
 
   return (
     <div className="space-y-3">
-      {/* Search/filter */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94a3b8]" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-subtle" />
         <Input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -156,25 +145,24 @@ export function LocationBrowserClient({
           <button
             type="button"
             onClick={() => setFilter("")}
-            aria-label="Clear filter"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
+            aria-label={t("clearLocationFilter")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-secondary-foreground"
           >
             <X className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      {/* Tree */}
-      <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border rounded-[10px] overflow-hidden">
         {locationTree.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-[#64748b]">
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <FolderOpen className="h-8 w-8 mb-2 opacity-40" />
             <p className="text-[14px]">{t("noLocationsYet")}</p>
           </div>
         ) : (
           <div className="py-1">
             {locationTree.map((loc) =>
-              query && !nodeMatchesFilter(loc, query) ? null : (
+              query && !subtreeMatchesFilter(loc, query) ? null : (
                 <LocationTreeItem
                   key={loc.id}
                   location={loc}
@@ -184,8 +172,8 @@ export function LocationBrowserClient({
                 />
               )
             )}
-            {query && locationTree.every((loc) => !nodeMatchesFilter(loc, query)) && (
-              <p className="text-[13px] text-[#94a3b8] text-center py-6">
+            {query && locationTree.every((loc) => !subtreeMatchesFilter(loc, query)) && (
+              <p className="text-[13px] text-subtle text-center py-6">
                 {t("noLocationsMatch")}
               </p>
             )}

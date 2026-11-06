@@ -1,36 +1,18 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
+import { readBrandingSettings } from "@/lib/app-settings";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
-import { ThemeSync } from "@/components/theme-sync";
+import { ThemeSync } from "@/components/layout/theme-sync";
 import { AppFooter } from "@/components/layout/app-footer";
 import { version } from "@/package.json";
-
-type AssetCountRow = { id: string; totalAssets: bigint };
-
-async function getRecursiveAssetCounts(): Promise<Record<string, number>> {
-  const rows = await prisma.$queryRaw<AssetCountRow[]>`
-    WITH RECURSIVE loc_tree AS (
-      SELECT id AS root_id, id AS loc_id FROM locations
-      UNION ALL
-      SELECT lt.root_id, l.id AS loc_id
-      FROM loc_tree lt
-      INNER JOIN locations l ON l.parentId = lt.loc_id
-    )
-    SELECT lt.root_id AS id, COALESCE(SUM(a.quantity), 0) AS totalAssets
-    FROM loc_tree lt
-    LEFT JOIN assets a ON a.locationId = lt.loc_id AND a.status = 'INSTALLED'
-    GROUP BY lt.root_id
-  `;
-
-  const map: Record<string, number> = {};
-  for (const row of rows) {
-    map[row.id] = Number(row.totalAssets);
-  }
-  return map;
-}
+import { canManageCatalog } from "@/lib/permissions";
+import { parseAuthProvider } from "@/lib/users/providers";
+import { getInstalledUnitTotals } from "@/lib/locations/path";
+import { nestLocations } from "@/lib/locations/tree";
 
 export default async function DashboardLayout({
   children,
@@ -47,49 +29,26 @@ export default async function DashboardLayout({
     redirect("/setup");
   }
 
-  const locationTree = await prisma.location.findMany({
-    where: { parentId: null },
-    include: {
-      children: {
-        include: {
-          children: {
-            include: {
-              children: {
-                include: {
-                  children: {
-                    include: {
-                      children: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    orderBy: [{ order: "asc" }, { name: "asc" }],
-  });
+  const locationTree = nestLocations(
+    await prisma.location.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] })
+  );
 
-  const assetCountMap = await getRecursiveAssetCounts();
+  const assetCountMap = await getInstalledUnitTotals();
 
-  const [stockItemCount, decommissionedCount, inRepairCount, stockTypes, brandingSettings] = await Promise.all([
-    prisma.stockItem.count().catch(() => 0),
-    prisma.asset.count({ where: { status: "DECOMMISSIONED" } }).catch(() => 0),
-    prisma.asset.count({ where: { status: "IN_REPAIR" } }).catch(() => 0),
+  const [stockItemCount, decommissionedCount, inRepairCount, stockTypes, branding] = await Promise.all([
+    prisma.stockItem.count(),
+    prisma.asset.count({ where: { status: "DECOMMISSIONED" } }),
+    prisma.asset.count({ where: { status: "IN_REPAIR" } }),
     prisma.assetType.findMany({
       where: { stockItems: { some: {} } },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
-    }).catch(() => [] as { id: string; name: string }[]),
-    prisma.appSetting.findMany({
-      where: { key: { in: ["app.title", "branding.logoStorageKey"] } },
-    }).catch(() => []),
+    }),
+    readBrandingSettings(),
   ]);
 
-  const brandingMap = Object.fromEntries(brandingSettings.map((s) => [s.key, s.value]));
-  const appTitle = brandingMap["app.title"] || "SAM";
-  const logoUrl = brandingMap["branding.logoStorageKey"] ? "/api/branding/logo" : null;
+  const { appTitle } = branding;
+  const logoUrl = branding.hasLogo ? "/api/branding/logo" : null;
 
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -100,22 +59,23 @@ export default async function DashboardLayout({
     name: session.user.name,
     email: session.user.email,
     role: session.user.role,
-    provider: dbUser?.provider ?? "credentials",
+    provider: parseAuthProvider(dbUser?.provider),
     totpEnabled: dbUser?.totpEnabled ?? false,
   };
 
-  const isAdminOrEditor = session.user.role === "ADMIN" || session.user.role === "EDITOR" || session.user.role === "MAINTAINER";
+  const showAdminNav = canManageCatalog(session.user.role);
+  const tNav = await getTranslations("nav");
 
   return (
     <>
     <ThemeSync serverTheme={dbUser?.theme ?? "light"} />
-    <div className="flex flex-col h-screen bg-[#f8fafc]">
+    <div className="flex flex-col h-screen bg-background">
       {/* Skip link — visible only on focus, jumps over the sidebar + header */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:bg-white focus:text-[#0f172a] focus:border focus:border-[#1e64c8] focus:rounded-md focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-md"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:bg-card focus:text-foreground focus:border focus:border-primary focus:rounded-md focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-md"
       >
-        Skip to main content
+        {tNav("skipToMainContent")}
       </a>
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — hidden on mobile, visible on lg+ */}
@@ -138,7 +98,7 @@ export default async function DashboardLayout({
           </main>
         </div>
         {/* Mobile bottom tab bar */}
-        <MobileBottomNav isAdminOrEditor={isAdminOrEditor} />
+        <MobileBottomNav showAdminTab={showAdminNav} />
       </div>
       <AppFooter version={version} />
     </div>

@@ -8,13 +8,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generateUsersCsv } from "@/lib/csv-export";
+import { generateUsersCsv } from "@/lib/csv/export";
 import { logAudit } from "@/lib/audit";
+import { isAdmin } from "@/lib/permissions";
+import { toIsoDay } from "@/lib/dates";
+import { csvDownload } from "@/lib/route-helpers";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const users = await prisma.user.findMany({
     select: {
@@ -40,11 +43,6 @@ export async function GET(req: NextRequest) {
     detail: { count: users.length },
   });
 
-  const date = new Date().toISOString().slice(0, 10);
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="sam-users-${date}.csv"`,
-    },
-  });
+  const date = toIsoDay(new Date());
+  return csvDownload(csv, `sam-users-${date}.csv`);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,31 +13,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Sun, Moon, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTheme, type Theme } from "@/components/theme-provider";
+import { useTheme, type Theme } from "@/components/layout/theme-provider";
+import { LOCATION_TABS, parseLocationTab, type LocationTab } from "@/lib/users/preferences";
+import { buildPasswordChangeSchema, type PasswordChangeValues } from "@/lib/schemas/password";
+import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
+import type { AuthProvider } from "@/lib/users/providers";
 
 const nameSchema = z.object({
   name: z.string().min(1, "Name is required.").max(128, "Name is too long."),
 });
 
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required."),
-  newPassword: z.string().min(8, "Password must be at least 8 characters.").max(128),
-  confirmPassword: z.string().min(1, "Please confirm your new password."),
-}).superRefine(({ newPassword, confirmPassword }, ctx) => {
-  if (newPassword !== confirmPassword) {
-    ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: "Passwords do not match." });
-  }
-});
-
 type NameForm = z.infer<typeof nameSchema>;
-type PasswordForm = z.infer<typeof passwordSchema>;
 
 type Props = {
   name: string;
   email: string;
-  provider: string;
+  provider: AuthProvider;
   locationDefaultTab?: string;
-  serverTheme?: string;
 };
 
 export function ProfileClient({
@@ -45,7 +38,6 @@ export function ProfileClient({
   email,
   provider,
   locationDefaultTab = "assets",
-  serverTheme: _serverTheme,
 }: Props) {
   const t = useTranslations("settings");
   const tCommon = useTranslations("common");
@@ -53,6 +45,7 @@ export function ProfileClient({
   const tAuth = useTranslations("auth");
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const isCredentials = provider === "credentials";
 
   // ── Name form ──────────────────────────────────────────────────────────────
@@ -62,37 +55,42 @@ export function ProfileClient({
     formState: { errors: nameErrors },
   } = useForm<NameForm>({ resolver: zodResolver(nameSchema), defaultValues: { name } });
 
+  /** PUT /api/users/me with `saving` set meanwhile; toasts the error and returns false on failure. */
+  async function patchMe(body: object, setSaving: (saving: boolean) => void): Promise<boolean> {
+    setSaving(true);
+    const res = await apiFetch("/api/users/me", jsonBody("PUT", body));
+    setSaving(false);
+    if (res.ok) return true;
+    showApiError(res.error);
+    return false;
+  }
+
   const [nameSaving, setNameSaving] = useState(false);
 
   async function onNameSubmit(data: NameForm) {
-    setNameSaving(true);
-    try {
-      const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: data.name }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        toast({ title: tCommon("error"), description: body.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
-      } else {
-        toast({ title: t("profileTitle") });
-        router.refresh();
-      }
-    } catch {
-      toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
-    } finally {
-      setNameSaving(false);
+    if (await patchMe({ name: data.name }, setNameSaving)) {
+      toast({ title: t("profileSaved") });
+      router.refresh();
     }
   }
 
   // ── Password form ──────────────────────────────────────────────────────────
+  const passwordSchema = useMemo(
+    () =>
+      buildPasswordChangeSchema({
+        currentRequired: tAuth("currentPasswordRequired"),
+        tooShort: tAuth("passwordTooShort"),
+        confirmRequired: tAuth("confirmPasswordRequired"),
+        mismatch: tAuth("passwordMismatch"),
+      }),
+    [tAuth]
+  );
   const {
     register: registerPw,
     handleSubmit: handlePwSubmit,
     formState: { errors: pwErrors },
     reset: resetPw,
-  } = useForm<PasswordForm>({ resolver: zodResolver(passwordSchema) });
+  } = useForm<PasswordChangeValues>({ resolver: zodResolver(passwordSchema) });
 
   const [pwSaving, setPwSaving] = useState(false);
 
@@ -102,83 +100,32 @@ export function ProfileClient({
 
   async function saveTheme(value: Theme) {
     setTheme(value); // instant local update
-    setThemeSaving(true);
-    try {
-      const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: value }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        toast({ title: tCommon("error"), description: body.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
-      } else {
-        toast({ title: t("preferencesSaved") });
-      }
-    } catch {
-      toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
-    } finally {
-      setThemeSaving(false);
+    if (await patchMe({ theme: value }, setThemeSaving)) {
+      toast({ title: t("preferencesSaved") });
     }
   }
 
   // ── Location preference ────────────────────────────────────────────────────
-  const [locTab, setLocTab] = useState<"assets" | "sublocations">(
-    locationDefaultTab === "sublocations" ? "sublocations" : "assets"
-  );
+  const [locTab, setLocTab] = useState<LocationTab>(parseLocationTab(locationDefaultTab));
   const [locTabSaving, setLocTabSaving] = useState(false);
 
-  async function saveLocTab(value: "assets" | "sublocations") {
+  async function saveLocTab(value: LocationTab) {
     setLocTab(value);
-    setLocTabSaving(true);
-    try {
-      const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locationDefaultTab: value }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        toast({ title: tCommon("error"), description: body.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
-      } else {
-        toast({ title: t("preferencesSaved") });
-      }
-    } catch {
-      toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
-    } finally {
-      setLocTabSaving(false);
+    if (await patchMe({ locationDefaultTab: value }, setLocTabSaving)) {
+      toast({ title: t("preferencesSaved") });
     }
   }
 
-  async function onPasswordSubmit(data: PasswordForm) {
-    setPwSaving(true);
-    try {
-      const res = await fetch("/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPassword: data.currentPassword,
-          newPassword: data.newPassword,
-          confirmPassword: data.confirmPassword,
-        }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        toast({ title: tCommon("error"), description: body.error ?? tCommon("somethingWentWrong"), variant: "destructive" });
-      } else {
-        toast({ title: t("passwordChanged") });
-        resetPw();
-      }
-    } catch {
-      toast({ title: tCommon("error"), description: tCommon("somethingWentWrong"), variant: "destructive" });
-    } finally {
-      setPwSaving(false);
+  async function onPasswordSubmit(data: PasswordChangeValues) {
+    const { currentPassword, newPassword, confirmPassword } = data;
+    if (await patchMe({ currentPassword, newPassword, confirmPassword }, setPwSaving)) {
+      toast({ title: t("passwordChanged") });
+      resetPw();
     }
   }
 
   return (
     <div className="space-y-6 max-w-lg">
-      {/* Name */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t("profileTitle")}</CardTitle>
@@ -285,7 +232,6 @@ export function ProfileClient({
         </Card>
       )}
 
-      {/* Theme preference */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t("themeTitle")}</CardTitle>
@@ -308,28 +254,27 @@ export function ProfileClient({
                   className={cn(
                     "flex flex-col items-center gap-2 rounded-[8px] border px-3 py-4 text-sm transition-colors",
                     active
-                      ? "border-[#1e64c8] bg-[#eff6ff] text-[#1e64c8] font-medium"
-                      : "border-[#e2e8f0] bg-white text-[#0f172a] hover:border-[#94a3b8]"
+                      ? "border-primary bg-info-surface text-primary font-medium"
+                      : "border-border bg-card text-foreground hover:border-subtle"
                   )}
                 >
-                  <Icon className={cn("h-5 w-5", active ? "text-[#1e64c8]" : "text-[#64748b]")} />
+                  <Icon className={cn("h-5 w-5", active ? "text-primary" : "text-muted-foreground")} />
                   <span className="text-xs">{t(labelKey)}</span>
                 </button>
               );
             })}
           </div>
-          {themeSaving && <p className="text-xs text-[#64748b] mt-2">{tCommon("saving")}…</p>}
+          {themeSaving && <p className="text-xs text-muted-foreground mt-2">{tCommon("saving")}…</p>}
         </CardContent>
       </Card>
 
-      {/* Location navigation preference */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t("locationNavTitle")}</CardTitle>
           <CardDescription>{t("locationNavSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {(["assets", "sublocations"] as const).map((value) => {
+          {LOCATION_TABS.map((value) => {
             const active = locTab === value;
             return (
               <button
@@ -340,20 +285,20 @@ export function ProfileClient({
                 className={cn(
                   "w-full text-left rounded-[8px] border px-4 py-3 text-sm transition-colors",
                   active
-                    ? "border-[#1e64c8] bg-[#eff6ff] text-[#1e64c8] font-medium"
-                    : "border-[#e2e8f0] bg-white text-[#0f172a] hover:border-[#94a3b8]"
+                    ? "border-primary bg-info-surface text-primary font-medium"
+                    : "border-border bg-card text-foreground hover:border-subtle"
                 )}
               >
                 <span className="font-medium">
                   {value === "assets" ? t("locationNavAssets") : t("locationNavSublocations")}
                 </span>
-                <p className="text-xs mt-0.5 text-[#64748b]">
+                <p className="text-xs mt-0.5 text-muted-foreground">
                   {value === "assets" ? t("locationNavAssetsDesc") : t("locationNavSublocationsDesc")}
                 </p>
               </button>
             );
           })}
-          {locTabSaving && <p className="text-xs text-[#64748b]">{tCommon("saving")}…</p>}
+          {locTabSaving && <p className="text-xs text-muted-foreground">{tCommon("saving")}…</p>}
         </CardContent>
       </Card>
     </div>

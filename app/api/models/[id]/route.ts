@@ -3,12 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { auditChanges } from "@/lib/audit/diff";
+import { canManageCatalog } from "@/lib/permissions";
+import { invalidInput, isForeignKeyError, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { nameConflictResponse } from "@/lib/catalog/merge";
+import { idSchema } from "@/lib/schemas/ids";
 
 const updateSchema = z.object({
-  typeId: z.string().min(1),
-  manufacturerId: z.string().min(1).optional().nullable(),
+  typeId: idSchema,
+  manufacturerId: idSchema.optional().nullable(),
   name: z.string().min(1).max(255),
-  documentationUrl: z.string().url().max(2048).nullable().optional(),
+  documentationUrl: z.url().max(2048).nullable().optional(),
 });
 
 export async function PUT(
@@ -17,12 +22,12 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const { typeId, name } = parsed.data;
   const manufacturerId = parsed.data.manufacturerId || null;
@@ -35,27 +40,28 @@ export async function PUT(
       include: { _count: { select: { assets: true, stockItems: true } } },
     }),
   ]);
-  if (!current) return NextResponse.json({ error: "Model not found." }, { status: 404 });
+  if (!current) return notFoundResponse("Model");
   if (existing) {
-    return NextResponse.json(
-      {
-        error: `"${existing.name}" already exists for this type/manufacturer.`,
-        existingId: existing.id,
-        existingName: existing.name,
-        existingAssetCount: existing._count.assets,
-        existingStockCount: existing._count.stockItems,
-      },
-      { status: 409 }
-    );
+    return nameConflictResponse(`"${existing.name}" already exists for this type/manufacturer.`, existing);
   }
 
-  const model = await prisma.model.update({ where: { id }, data: { typeId, manufacturerId, name, documentationUrl } });
+  let model;
+  try {
+    model = await prisma.model.update({ where: { id }, data: { typeId, manufacturerId, name, documentationUrl } });
+  } catch (err) {
+    // Races with a concurrent delete or rename, and a stale type/manufacturer id.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Model");
+    if (isUniqueConstraintError(err)) return nameTakenResponse(`"${name}" already exists for this type/manufacturer.`);
+    if (isForeignKeyError(err)) return unknownReferenceResponse("The asset type or manufacturer");
+    throw err;
+  }
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
-  if (current.typeId !== typeId) changes["Asset type"] = { from: current.typeId, to: typeId };
-  if (current.manufacturerId !== manufacturerId) changes["Manufacturer"] = { from: current.manufacturerId, to: manufacturerId };
-  if (current.name !== name) changes["Name"] = { from: current.name, to: name };
-  if (current.documentationUrl !== documentationUrl) changes["Documentation URL"] = { from: current.documentationUrl, to: documentationUrl };
+  const changes = auditChanges([
+    { label: "Asset type", before: current.typeId, after: typeId },
+    { label: "Manufacturer", before: current.manufacturerId, after: manufacturerId },
+    { label: "Name", before: current.name, after: name },
+    { label: "Documentation URL", before: current.documentationUrl, after: documentationUrl },
+  ]);
 
   await logAudit({
     session,
@@ -76,9 +82,12 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
+  const model = await prisma.model.findUnique({ where: { id }, select: { name: true } });
+  if (!model) return notFoundResponse("Model");
+
   const [assetCount, stockCount] = await Promise.all([
     prisma.asset.count({ where: { modelId: id } }),
     prisma.stockItem.count({ where: { modelId: id } }),
@@ -90,15 +99,20 @@ export async function DELETE(
     );
   }
 
-  const model = await prisma.model.findUnique({ where: { id }, select: { name: true } });
-  await prisma.model.delete({ where: { id } });
+  try {
+    await prisma.model.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Model");
+    throw err;
+  }
   await logAudit({
     session,
     req,
     action: "DELETE",
     entityType: "Model",
     entityId: id,
-    entityName: model?.name,
+    entityName: model.name,
   });
   return NextResponse.json({ ok: true });
 }

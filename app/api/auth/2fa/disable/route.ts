@@ -14,12 +14,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { verifyTotpCode } from "@/lib/totp";
+import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
+import { isAdmin } from "@/lib/permissions";
+import { invalidInput, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { MAX_ID_LENGTH } from "@/lib/schemas/ids";
 
 const schema = z.object({
-  userId: z.string().optional(),
+  userId: z.string().max(MAX_ID_LENGTH).optional(),
   code: z.string().length(6).optional(),
 });
 
@@ -27,24 +30,24 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const targetId = parsed.data.userId ?? session.user.id;
   const isSelf = targetId === session.user.id;
-  const isAdmin = session.user.role === "ADMIN";
 
   // Only admins can disable 2FA for other users
-  if (!isSelf && !isAdmin) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  if (!isSelf && !isAdmin(session.user.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const user = await prisma.user.findUnique({
     where: { id: targetId },
     select: { provider: true, totpEnabled: true, totpSecret: true, email: true },
   });
-  if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
+  // A body-supplied id that names no user is invalid input; the signed-in user missing is a 404.
+  if (!user) return isSelf ? notFoundResponse("User") : unknownReferenceResponse("The user");
   if (user.provider !== "credentials") {
     return NextResponse.json({ error: "Not applicable to SSO accounts." }, { status: 400 });
   }
@@ -76,7 +79,7 @@ export async function POST(req: NextRequest) {
     action: "UPDATE",
     entityType: "User",
     entityId: targetId,
-    entityName: user.email ?? undefined,
+    entityName: user.email,
     detail: {
       event: "2FA disabled",
       ...(isSelf ? {} : { adminOverride: true }),

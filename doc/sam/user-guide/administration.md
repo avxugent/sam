@@ -60,7 +60,7 @@ Asset types categorise assets (Projector, Display, Audio Processor, etc.).
 Manufacturer names used across all assets.
 
 - **Create / Edit / Delete** — same pattern as asset types.
-- **Merge** — combine duplicate manufacturer entries. All assets from the source manufacturer are reassigned to the target, then the source is deleted.
+- **Merge** — combine duplicate manufacturer entries. All assets, stock items and models from the source manufacturer are reassigned to the target, then the source is deleted. A source model whose name already exists under the target manufacturer (same asset type) is folded into that model.
 
 ---
 

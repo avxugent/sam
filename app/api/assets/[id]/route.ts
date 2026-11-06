@@ -1,72 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
-import { matchesHostnamePattern } from "@/lib/hostname-pattern";
-import { normalizeMacAddress } from "@/lib/mac-address";
+import { customFieldRows, hostnameFormatResponse, hostnameTakenResponse, macAddressRows, unknownSupplierResponse } from "@/lib/assets/input";
+import { HOSTNAME_MAC_MESSAGE, hasDeviceIdentity, IDENTITY_QUANTITY_MESSAGE, updateAssetSchema } from "@/lib/schemas/asset";
 import { logAudit } from "@/lib/audit";
-import { CRITICALITY_VALUES } from "@/lib/criticality";
-
-const MAX_CUSTOM_FIELDS = 50;
-const MAX_MAC_ADDRESSES = 20;
-
-const FQDN_REGEX =
-  /^(?!-)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
-
-// Accepts any recoverable MAC shape (colon, hyphen, dot-grouped, no
-// separator, mixed case) and normalizes it to AA:BB:CC:DD:EE:FF — mirrors
-// the CSV import behavior so manually edited assets can't reintroduce
-// inconsistent formats.
-const macAddressField = z.string().transform((v, ctx) => {
-  const normalized = normalizeMacAddress(v);
-  if (normalized === null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Invalid MAC address format (expected AA:BB:CC:DD:EE:FF)",
-    });
-    return z.NEVER;
-  }
-  return normalized;
-});
-
-const customFieldSchema = z.object({
-  key: z.string().min(1).max(100),
-  value: z.string().max(1000),
-});
-
-const updateSchema = z
-  .object({
-    locationId: z.string().optional(),
-    typeId: z.string().min(1, "Type is required").optional(),
-    manufacturerId: z.string().min(1, "Manufacturer is required").optional(),
-    modelId: z.string().min(1, "Model is required").optional(),
-    serialNumber: z.string().max(100).optional().nullable(),
-    hostname: z.string().max(255).optional().nullable(),
-    quantity: z.number().int().min(1).max(9999).optional(),
-    installationDate: z.string().optional().nullable(),
-    invoiceNumber: z.string().max(100).optional().nullable(),
-    invoiceDate: z.string().optional().nullable(),
-    notes: z.string().max(5000).optional().nullable(),
-    vaultPath: z.string().max(500).optional().nullable(),
-    ownerId: z.string().max(64).optional().nullable(),
-    criticality: z.enum(CRITICALITY_VALUES).optional().nullable(),
-    endOfSupportDate: z.string().optional().nullable(),
-    supplierId: z.string().max(64).optional().nullable(),
-    macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
-    customFields: z.array(customFieldSchema).max(MAX_CUSTOM_FIELDS).optional(),
-  })
-  .superRefine((data, ctx) => {
-    const hostnameSet = !!data.hostname?.trim();
-    const hasValidMac = (data.macAddresses ?? []).length > 0;
-    if (hostnameSet && !hasValidMac) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["macAddresses"],
-        message: "At least one MAC address is required when hostname is set.",
-      });
-    }
-  });
+import { auditChanges, type FieldChange } from "@/lib/audit/diff";
+import { canEdit } from "@/lib/permissions";
+import { invalidInput, isForeignKeyError, isRecordNotFoundError, isUniqueConstraintError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { toDateUpdate, toIsoDay } from "@/lib/dates";
+import { ASSET_DETAIL_INCLUDE, ASSET_ROW_INCLUDE } from "@/lib/assets/include";
+import { assetLabel } from "@/lib/assets/label";
+import { assetSnapshot, HISTORY_CHANGE_LABELS, sortedMacs } from "@/lib/assets/history-keys";
+import { deleteStoredFiles } from "@/lib/uploads/storage";
 
 export async function GET(
   _req: NextRequest,
@@ -76,25 +22,21 @@ export async function GET(
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const asset = await prisma.asset.findUnique({
-    where: { id },
-    include: {
-      type: true,
-      manufacturer: true,
-      model: true,
-      supplier: true,
-      macAddresses: true,
-      customFields: true,
-      location: { select: { id: true, name: true } },
-      attachments: {
-        include: { uploadedBy: { select: { id: true, name: true } } },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  });
+  const asset = await prisma.asset.findUnique({ where: { id }, include: ASSET_DETAIL_INCLUDE });
 
-  if (!asset) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!asset) return notFoundResponse("Asset");
   return NextResponse.json(asset);
+}
+
+/** One diff entry per custom field key that was added, removed or changed. */
+function customFieldChanges(before: { key: string; value: string }[], after: { key: string; value: string }[]): FieldChange[] {
+  const fromMap = new Map(before.map((f) => [f.key, f.value]));
+  const toMap = new Map(after.map((f) => [f.key, f.value]));
+  return [...new Set([...fromMap.keys(), ...toMap.keys()])].map((key) => ({
+    label: `Custom field: ${key}`,
+    before: fromMap.get(key) ?? null,
+    after: toMap.get(key) ?? null,
+  }));
 }
 
 export async function PUT(
@@ -103,23 +45,19 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json();
-  const parsed = updateSchema.safeParse(body);
+  const body = await readJsonBody(req);
+  const parsed = updateAssetSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const { macAddresses, customFields, installationDate, invoiceDate, endOfSupportDate, ...assetData } = parsed.data;
 
-  if (assetData.supplierId) {
-    const supplier = await prisma.supplier.findUnique({ where: { id: assetData.supplierId }, select: { id: true } });
-    if (!supplier) {
-      return NextResponse.json({ error: "Unknown supplier." }, { status: 400 });
-    }
-  }
+  const supplierError = await unknownSupplierResponse(assetData.supplierId);
+  if (supplierError) return supplierError;
 
   const before = await prisma.asset.findUnique({
     where: { id },
@@ -134,54 +72,41 @@ export async function PUT(
     },
   });
 
+  if (!before) return notFoundResponse("Asset");
+
+  // Values the asset will have after this (possibly partial) update.
+  const effective = {
+    hostname: assetData.hostname !== undefined ? assetData.hostname : before.hostname,
+    serialNumber: assetData.serialNumber !== undefined ? assetData.serialNumber : before.serialNumber,
+    typeId: assetData.typeId !== undefined ? assetData.typeId : before.typeId,
+    macCount: macAddresses !== undefined ? macAddresses.length : before.macAddresses.length,
+    quantity: assetData.quantity !== undefined ? assetData.quantity : before.quantity,
+  };
+
   // Only re-validate hostname format when hostname and/or typeId are part of
   // this update — an unrelated field edit must never fail because a type's
   // pattern was tightened after the asset's hostname was originally set.
   if (assetData.hostname !== undefined || assetData.typeId !== undefined) {
-    const effectiveHostname = (
-      assetData.hostname !== undefined ? assetData.hostname : before?.hostname
-    )?.trim();
-    if (effectiveHostname) {
-      const effectiveTypeId = assetData.typeId !== undefined ? assetData.typeId : before?.typeId;
-      const assetType = effectiveTypeId
-        ? await prisma.assetType.findUnique({ where: { id: effectiveTypeId }, select: { hostnamePattern: true } })
-        : null;
-      const isValidHostname = assetType?.hostnamePattern
-        ? matchesHostnamePattern(effectiveHostname, assetType.hostnamePattern)
-        : FQDN_REGEX.test(effectiveHostname);
-      if (!isValidHostname) {
-        return NextResponse.json(
-          { error: "Hostname does not match the required format for this asset type." },
-          { status: 400 }
-        );
-      }
-    }
+    const hostnameError = await hostnameFormatResponse(effective.hostname, effective.typeId);
+    if (hostnameError) return hostnameError;
+  }
+
+  // Checked against the effective values: a hostname-only update keeps the
+  // stored MACs, and clearing the MACs must not leave a hostname without one.
+  if ((assetData.hostname !== undefined || macAddresses !== undefined) && effective.hostname && effective.macCount === 0) {
+    return NextResponse.json({ error: HOSTNAME_MAC_MESSAGE }, { status: 400 });
   }
 
   // Quantity > 1 only makes sense for bulk items with no individual identity.
-  // Re-derive the effective serial/hostname/MAC/quantity against `before` so a
-  // partial update that omits identity fields can't sneak past the check.
-  if (
+  // Checked against the effective values so a partial update that omits
+  // identity fields can't sneak past it.
+  const touchesIdentity =
     assetData.quantity !== undefined ||
     assetData.serialNumber !== undefined ||
     assetData.hostname !== undefined ||
-    macAddresses !== undefined
-  ) {
-    const effectiveSerial = (
-      assetData.serialNumber !== undefined ? assetData.serialNumber : before?.serialNumber
-    )?.trim();
-    const effectiveHostname = (
-      assetData.hostname !== undefined ? assetData.hostname : before?.hostname
-    )?.trim();
-    const effectiveMacCount = macAddresses !== undefined ? macAddresses.length : (before?.macAddresses.length ?? 0);
-    const effectiveQuantity = assetData.quantity !== undefined ? assetData.quantity : (before?.quantity ?? 1);
-    const hasIdentity = !!effectiveSerial || !!effectiveHostname || effectiveMacCount > 0;
-    if (hasIdentity && effectiveQuantity !== 1) {
-      return NextResponse.json(
-        { error: "Quantity must be 1 when a serial number, hostname, or MAC address is set." },
-        { status: 400 }
-      );
-    }
+    macAddresses !== undefined;
+  if (touchesIdentity && hasDeviceIdentity(effective) && effective.quantity !== 1) {
+    return NextResponse.json({ error: IDENTITY_QUANTITY_MESSAGE }, { status: 400 });
   }
 
   let asset;
@@ -190,18 +115,14 @@ export async function PUT(
       if (macAddresses !== undefined) {
         await tx.macAddress.deleteMany({ where: { assetId: id } });
         if (macAddresses.length > 0) {
-          await tx.macAddress.createMany({
-            data: macAddresses.filter(Boolean).map((address) => ({ assetId: id, address })),
-          });
+          await tx.macAddress.createMany({ data: macAddressRows(macAddresses).map((row) => ({ ...row, assetId: id })) });
         }
       }
 
       if (customFields !== undefined) {
         await tx.customField.deleteMany({ where: { assetId: id } });
         if (customFields.length > 0) {
-          await tx.customField.createMany({
-            data: customFields.filter((f) => f.key).map((f) => ({ assetId: id, key: f.key, value: f.value })),
-          });
+          await tx.customField.createMany({ data: customFieldRows(customFields).map((row) => ({ ...row, assetId: id })) });
         }
       }
 
@@ -209,99 +130,42 @@ export async function PUT(
         where: { id },
         data: {
           ...assetData,
-          ...(assetData.hostname !== undefined && { hostname: assetData.hostname?.trim() || null }),
-          installationDate: installationDate !== undefined
-            ? installationDate ? new Date(installationDate) : null
-            : undefined,
-          invoiceDate: invoiceDate !== undefined
-            ? invoiceDate ? new Date(invoiceDate) : null
-            : undefined,
-          endOfSupportDate: endOfSupportDate !== undefined
-            ? endOfSupportDate ? new Date(endOfSupportDate) : null
-            : undefined,
+          installationDate: toDateUpdate(installationDate),
+          invoiceDate: toDateUpdate(invoiceDate),
+          endOfSupportDate: toDateUpdate(endOfSupportDate),
         },
-        include: {
-          type: true,
-          manufacturer: true,
-          model: true,
-          supplier: true,
-          macAddresses: true,
-          customFields: true,
-          location: { select: { id: true, name: true } },
-        },
+        include: { ...ASSET_ROW_INCLUDE, supplier: true },
       });
     });
   } catch (err: unknown) {
-    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
-      return NextResponse.json(
-        { error: "This hostname is already assigned to another asset." },
-        { status: 409 }
-      );
-    }
+    if (isUniqueConstraintError(err)) return hostnameTakenResponse();
+    if (isForeignKeyError(err)) return unknownReferenceResponse();
+    // Deleted (or returned to stock) by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Asset");
     throw err;
   }
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
-  if (before) {
-    const d = parsed.data;
-    if (d.modelId !== undefined && d.modelId !== before.modelId)
-      changes["Model"] = { from: before.model?.name ?? null, to: asset.model?.name ?? null };
-    if (d.quantity !== undefined && d.quantity !== before.quantity)
-      changes["Quantity"] = { from: before.quantity, to: d.quantity };
-    if (d.serialNumber !== undefined && d.serialNumber !== before.serialNumber)
-      changes["Serial number"] = { from: before.serialNumber ?? null, to: d.serialNumber ?? null };
-    if (d.hostname !== undefined && (d.hostname?.trim() ?? null) !== before.hostname)
-      changes["Hostname"] = { from: before.hostname ?? null, to: d.hostname ?? null };
-    if (d.invoiceNumber !== undefined && d.invoiceNumber !== before.invoiceNumber)
-      changes["Invoice number"] = { from: before.invoiceNumber ?? null, to: d.invoiceNumber ?? null };
-    if (d.notes !== undefined && d.notes !== before.notes)
-      changes["Notes"] = { from: before.notes ?? null, to: d.notes ?? null };
-    if (d.vaultPath !== undefined && d.vaultPath !== before.vaultPath)
-      changes["Vault path"] = { from: before.vaultPath ?? null, to: d.vaultPath ?? null };
-    if (d.typeId !== undefined && d.typeId !== before.typeId)
-      changes["Type"] = { from: before.type?.name ?? before.typeId, to: asset.type?.name ?? d.typeId };
-    if (d.manufacturerId !== undefined && d.manufacturerId !== before.manufacturerId)
-      changes["Manufacturer"] = { from: before.manufacturer?.name ?? before.manufacturerId, to: asset.manufacturer?.name ?? d.manufacturerId };
-    if (d.locationId !== undefined && d.locationId !== before.locationId)
-      changes["Location"] = { from: before.location?.name ?? null, to: asset.location?.name ?? null };
-    if (d.ownerId !== undefined && d.ownerId !== before.ownerId)
-      changes["Owner"] = { from: before.ownerId ?? null, to: d.ownerId ?? null };
-    if (d.criticality !== undefined && d.criticality !== before.criticality)
-      changes["Criticality"] = { from: before.criticality ?? null, to: d.criticality ?? null };
-    if (d.supplierId !== undefined && d.supplierId !== before.supplierId)
-      changes["Supplier"] = { from: before.supplier?.name ?? before.supplierId ?? null, to: asset.supplier?.name ?? d.supplierId ?? null };
-    if (endOfSupportDate !== undefined) {
-      const fromDate = before.endOfSupportDate ? before.endOfSupportDate.toISOString().split("T")[0] : null;
-      if (fromDate !== endOfSupportDate)
-        changes["End of support"] = { from: fromDate, to: endOfSupportDate };
-    }
-    if (installationDate !== undefined) {
-      const fromDate = before.installationDate ? before.installationDate.toISOString().split("T")[0] : null;
-      if (fromDate !== installationDate)
-        changes["Installation date"] = { from: fromDate, to: installationDate };
-    }
-    if (invoiceDate !== undefined) {
-      const fromDate = before.invoiceDate ? before.invoiceDate.toISOString().split("T")[0] : null;
-      if (fromDate !== invoiceDate)
-        changes["Invoice date"] = { from: fromDate, to: invoiceDate };
-    }
-    if (macAddresses !== undefined) {
-      const fromMacs = [...before.macAddresses.map((m) => m.address)].sort().join(", ") || null;
-      const toMacs = [...macAddresses].sort().join(", ") || null;
-      if (fromMacs !== toMacs)
-        changes["MAC addresses"] = { from: fromMacs, to: toMacs };
-    }
-    if (customFields !== undefined) {
-      const fromMap = Object.fromEntries(before.customFields.map((f) => [f.key, f.value]));
-      const toMap = Object.fromEntries(customFields.filter((f) => f.key).map((f) => [f.key, f.value]));
-      for (const key of new Set([...Object.keys(fromMap), ...Object.keys(toMap)])) {
-        const fromVal = fromMap[key] ?? null;
-        const toVal = toMap[key] ?? null;
-        if (fromVal !== toVal)
-          changes[`Custom field: ${key}`] = { from: fromVal, to: toVal };
-      }
-    }
-  }
+  const d = parsed.data;
+  const changes = auditChanges([
+    d.modelId !== undefined && { label: HISTORY_CHANGE_LABELS.model, before: before.modelId, after: d.modelId, display: [before.model?.name, asset.model?.name] },
+    d.quantity !== undefined && { label: HISTORY_CHANGE_LABELS.quantity, before: before.quantity, after: d.quantity },
+    d.serialNumber !== undefined && { label: HISTORY_CHANGE_LABELS.serialNumber, before: before.serialNumber, after: d.serialNumber },
+    d.hostname !== undefined && { label: "Hostname", before: before.hostname, after: d.hostname },
+    d.invoiceNumber !== undefined && { label: HISTORY_CHANGE_LABELS.invoiceNumber, before: before.invoiceNumber, after: d.invoiceNumber },
+    d.notes !== undefined && { label: HISTORY_CHANGE_LABELS.notes, before: before.notes, after: d.notes },
+    d.vaultPath !== undefined && { label: "Vault path", before: before.vaultPath, after: d.vaultPath },
+    d.typeId !== undefined && { label: HISTORY_CHANGE_LABELS.type, before: before.typeId, after: d.typeId, display: [before.type?.name ?? before.typeId, asset.type?.name ?? d.typeId] },
+    d.manufacturerId !== undefined && { label: HISTORY_CHANGE_LABELS.manufacturer, before: before.manufacturerId, after: d.manufacturerId, display: [before.manufacturer?.name ?? before.manufacturerId, asset.manufacturer?.name ?? d.manufacturerId] },
+    d.locationId !== undefined && { label: HISTORY_CHANGE_LABELS.location, before: before.locationId, after: d.locationId, display: [before.location?.name, asset.location?.name] },
+    d.ownerId !== undefined && { label: "Owner", before: before.ownerId, after: d.ownerId },
+    d.criticality !== undefined && { label: "Criticality", before: before.criticality, after: d.criticality },
+    d.supplierId !== undefined && { label: "Supplier", before: before.supplierId, after: d.supplierId, display: [before.supplier?.name ?? before.supplierId, asset.supplier?.name ?? d.supplierId] },
+    endOfSupportDate !== undefined && { label: "End of support", before: toIsoDay(before.endOfSupportDate), after: endOfSupportDate || null },
+    installationDate !== undefined && { label: "Installation date", before: toIsoDay(before.installationDate), after: installationDate || null },
+    invoiceDate !== undefined && { label: HISTORY_CHANGE_LABELS.invoiceDate, before: toIsoDay(before.invoiceDate), after: invoiceDate || null },
+    macAddresses !== undefined && { label: HISTORY_CHANGE_LABELS.macAddresses, before: sortedMacs(before.macAddresses.map((m) => m.address)), after: sortedMacs(macAddresses) },
+    ...(customFields !== undefined ? customFieldChanges(before.customFields, customFields) : []),
+  ]);
 
   await logAudit({
     session,
@@ -309,7 +173,7 @@ export async function PUT(
     action: "UPDATE",
     entityType: "Asset",
     entityId: id,
-    entityName: asset.model?.name ?? asset.serialNumber ?? undefined,
+    entityName: assetLabel(asset),
     detail: Object.keys(changes).length > 0 ? { changes } : undefined,
     lineageId: asset.lineageId,
   });
@@ -323,7 +187,7 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const asset = await prisma.asset.findUnique({
@@ -335,17 +199,20 @@ export async function DELETE(
       location: { select: { name: true } },
     },
   });
-  await prisma.asset.delete({ where: { id } });
-
-  const snapshot: Record<string, string> = {};
-  if (asset) {
-    if (asset.model?.name) snapshot["Model"] = asset.model.name;
-    if (asset.serialNumber) snapshot["Serial number"] = asset.serialNumber;
-    if (asset.type?.name) snapshot["Type"] = asset.type.name;
-    if (asset.manufacturer?.name) snapshot["Manufacturer"] = asset.manufacturer.name;
-    if (asset.location?.name) snapshot["Location"] = asset.location.name;
-    if (asset.hostname) snapshot["Hostname"] = asset.hostname;
+  if (!asset) return notFoundResponse("Asset");
+  // The attachment rows cascade with the asset; their stored files are removed after it.
+  const files = await prisma.attachment.findMany({ where: { assetId: id, path: { not: null } }, select: { path: true } });
+  try {
+    await prisma.asset.delete({ where: { id } });
+  } catch (err) {
+    // Deleted (or returned to stock) by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Asset");
+    throw err;
   }
+
+  await deleteStoredFiles(files.flatMap((f) => (f.path ? [f.path] : [])));
+
+  const snapshot = assetSnapshot(asset);
 
   await logAudit({
     session,
@@ -353,9 +220,9 @@ export async function DELETE(
     action: "DELETE",
     entityType: "Asset",
     entityId: id,
-    entityName: asset?.model?.name ?? asset?.serialNumber ?? undefined,
+    entityName: assetLabel(asset),
     detail: Object.keys(snapshot).length > 0 ? { snapshot } : undefined,
-    lineageId: asset?.lineageId,
+    lineageId: asset.lineageId,
   });
   return NextResponse.json({ ok: true });
 }

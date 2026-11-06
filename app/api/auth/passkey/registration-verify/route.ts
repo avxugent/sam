@@ -11,12 +11,15 @@
  * Body: { response: RegistrationResponseJSON, label?: string }
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth, signIn } from "@/lib/auth";
+import { authIncludingPendingSteps } from "@/lib/auth";
+import { signInIncompleteResponse, sessionMismatchResponse } from "@/lib/two-factor/sign-in-steps";
+import { upgradeSession } from "@/lib/auth-session-upgrade";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { verifyRegistration, readChallengeCookie, clearChallengeCookie } from "@/lib/webauthn";
+import { verifyRegistration, readChallengeCookie, clearChallengeCookie } from "@/lib/two-factor/webauthn";
 import type { RegistrationResponseJSON } from "@simplewebauthn/server";
 import { z } from "zod";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({
   response: z.record(z.string(), z.unknown()),
@@ -24,12 +27,14 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
+  const session = await authIncludingPendingSteps();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const incomplete = await signInIncompleteResponse(session, ["2fa-setup"]);
+  if (incomplete) return incomplete;
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const challenge = await readChallengeCookie(req, session.user.id, "registration");
   if (!challenge) {
@@ -75,22 +80,14 @@ export async function POST(req: NextRequest) {
     action: "CREATE",
     entityType: "User",
     entityId: session.user.id,
-    entityName: session.user.email ?? undefined,
+    entityName: session.user.email,
     detail: { event: "Passkey registered", label },
   });
 
   // When this is a forced-setup session, re-issue a clean session so the
   // proxy no longer redirects to /login/setup-2fa. Mirrors /api/auth/2fa/enable.
-  if ((session as { needs2FASetup?: boolean }).needs2FASetup) {
-    try {
-      await signIn("credentials-2fa-verified", {
-        userId: session.user.id,
-        method: "passkey",
-        redirect: false,
-      });
-    } catch {
-      // NextAuth may throw a NEXT_REDIRECT — that is expected and fine.
-    }
+  if (session.needs2FASetup && !(await upgradeSession(session.user.id, "passkey"))) {
+    return sessionMismatchResponse();
   }
 
   const response = NextResponse.json({ ok: true });

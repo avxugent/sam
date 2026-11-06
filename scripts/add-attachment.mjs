@@ -4,21 +4,17 @@
  * Generic CLI to programmatically add a link attachment to a location or asset.
  *
  * Usage:
- *   node scripts/add-attachment.mjs --location-id <id> --url <url> --label <label>
- *   node scripts/add-attachment.mjs --asset-id <id> --url <url> --label <label>
- *   node scripts/add-attachment.mjs ... --user-id <id>  # specify uploader (default: first ADMIN)
- *   node scripts/add-attachment.mjs ... --dry-run       # preview only
+ *   node --import tsx/esm scripts/add-attachment.mjs --location-id <id> --url <url> --label <label>
+ *   node --import tsx/esm scripts/add-attachment.mjs --asset-id <id> --url <url> --label <label>
+ *   node --import tsx/esm scripts/add-attachment.mjs ... --user-id <id>  # specify uploader (default: first ADMIN)
+ *   node --import tsx/esm scripts/add-attachment.mjs ... --dry-run       # preview only
  *
  * Run from the project root so that the .env file is found automatically.
  */
 
-import { prisma } from "./_prisma.mjs";
-
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
+import "./_env.mjs";
+import { getArg } from "./_args.mjs";
+import { prisma } from "@/lib/prisma";
 
 async function main() {
   const locationId = getArg("--location-id");
@@ -44,9 +40,9 @@ async function main() {
     if (!loc) { console.error(`❌  Location ${locationId} not found`); process.exit(1); }
     console.log(`Target: location "${loc.name}" (${locationId})`);
   } else {
-    const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { model: true } });
+    const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { model: { select: { name: true } } } });
     if (!asset) { console.error(`❌  Asset ${assetId} not found`); process.exit(1); }
-    console.log(`Target: asset "${asset.model ?? assetId}" (${assetId})`);
+    console.log(`Target: asset "${asset.model?.name ?? assetId}" (${assetId})`);
   }
 
   console.log(`URL   : ${url}`);

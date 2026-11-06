@@ -76,6 +76,7 @@ See [Authentication](authentication.md) for Azure registration steps.
 |---|---|
 | `PROMETHEUS_SD_TOKEN` | Bearer token for `/api/prometheus/*` endpoints. Generate: `openssl rand -base64 32`. When blank, endpoints return 503. |
 | `EXPORT_TOKEN` | Bearer token for `/api/export/csv` (allows cron-based exports without browser session) |
+| `GRAFANA_URL` | Base URL of the Grafana instance; when set, report pages link to its Explore view. |
 
 ---
 
@@ -132,7 +133,7 @@ These live in the `app_settings` table and are managed from **Administration →
 
 | Key | Default | Description |
 |---|---|---|
-| `security.requireTwoFactor` | `false` | When `true`, every local (credentials) user without TOTP is forced into 2FA setup at next login. SSO users are unaffected (enforce MFA via Entra ID conditional access) |
+| `security.requireTwoFactor` | `false` | When `true`, every local (credentials) user with neither TOTP nor a passkey is forced into 2FA setup at next login. SSO users are unaffected (enforce MFA via Entra ID conditional access) |
 | `audit.retentionDays` | `730` | Audit log retention consumed by `scripts/purge-audit.mjs` (30–3650 days) |
 | `assets.defaultOwnerId` | — | User (e.g. a team account) assigned as owner to newly created assets when no owner is chosen |
 | `compliance.reviewWorkLogItemId` | — | The fixed work-log item that marks a location's asset list as reviewed (feeds the compliance dashboard) |

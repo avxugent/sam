@@ -25,6 +25,7 @@ import { MoveLocationDialog } from "@/components/locations/move-location-dialog"
 import { AssetTable } from "@/components/assets/asset-table";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
+import type { Attachment } from "@/components/attachments/attachment";
 import { CoverImagePicker } from "@/components/locations/cover-image-picker";
 import { LocationMap } from "@/components/locations/location-map";
 import { WorkLogList, type WorkLogEntry } from "@/components/locations/work-log-list";
@@ -44,114 +45,65 @@ import {
   Activity,
   ExternalLink,
 } from "lucide-react";
-import { renderLocationUrl } from "@/lib/hostname-template";
+import { renderLocationUrl } from "@/lib/url-templates";
+import { canEdit, isAdmin, type Role } from "@/lib/permissions";
+import type { AssetListRow } from "@/lib/assets/include";
+import { assetLabel } from "@/lib/assets/label";
+import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
+import type { LocationPageData } from "@/lib/locations/include";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Breadcrumb = { id: string; name: string };
-
-type LocationChild = {
-  id: string;
-  name: string;
-  description?: string | null;
-  fiNumber?: string | null;
-  coverImageId?: string | null;
-  inMaintenance?: boolean;
-  _count: { assets: number; children: number };
-};
-
-type Attachment = {
-  id: string;
-  attachmentType?: string;
-  filename?: string | null;
-  originalName: string;
-  mimeType?: string | null;
-  size?: number | null;
-  url?: string | null;
-  path?: string | null;
-  createdAt: Date | string;
-  uploadedBy: { id: string; name: string };
-};
-
-type Asset = {
-  id: string;
-  status: string;
-  model?: { id: string; name: string } | null;
-  serialNumber?: string | null;
-  hostname?: string | null;
-  quantity: number;
-  installationDate?: Date | string | null;
-  type?: { id: string; name: string } | null;
-  manufacturer?: { id: string; name: string } | null;
-  macAddresses: { id: string; address: string }[];
-  location?: { id: string; name: string } | null;
-  _count: { attachments: number };
-};
-
-type Location = {
-  id: string;
-  name: string;
-  description?: string | null;
-  fiNumber?: string | null;
-  address?: string | null;
-  city?: string | null;
-  country?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  coverImageId?: string | null;
-  inMaintenance?: boolean;
-  parent?: { id: string; name: string; parentId?: string | null } | null;
-  children: LocationChild[];
-  attachments: Attachment[];
-  _count: { assets: number; children: number; attachments: number };
-};
 
 export function LocationDetailClient({
   location,
   assets,
-  subtreeAssetCount = 0,
+  subtreeInstalledUnits,
   breadcrumbs,
   userRole,
   currentUserId,
-  showLocation = false,
-  defaultTab = "assets",
+  showLocation,
+  defaultTab,
   hostnameUrlTemplate,
   locationUrlTemplate,
-  macAddressUrlTemplate,
-  workLogs = [],
-  users = [],
-  workLogItems = [],
-  jiraEnabled = false,
-  jiraBaseUrl = null,
+  workLogs,
+  users,
+  workLogItems,
+  jiraBaseUrl,
 }: {
-  location: Location;
-  assets: Asset[];
-  subtreeAssetCount?: number;
+  location: Omit<LocationPageData, "attachments"> & { attachments: Attachment[] };
+  assets: AssetListRow[];
+  subtreeInstalledUnits: number;
   breadcrumbs: Breadcrumb[];
-  userRole: string;
-  currentUserId?: string;
-  showLocation?: boolean;
-  defaultTab?: string;
-  hostnameUrlTemplate?: string | null;
-  locationUrlTemplate?: string | null;
-  macAddressUrlTemplate?: string | null;
-  workLogs?: WorkLogEntry[];
-  users?: WorkLogUserOption[];
-  workLogItems?: WorkLogItemOption[];
-  jiraEnabled?: boolean;
-  jiraBaseUrl?: string | null;
+  userRole: Role;
+  currentUserId: string;
+  showLocation: boolean;
+  defaultTab: string;
+  /** "" when not configured. */
+  hostnameUrlTemplate: string;
+  /** "" when not configured. */
+  locationUrlTemplate: string;
+  workLogs: WorkLogEntry[];
+  users: WorkLogUserOption[];
+  workLogItems: WorkLogItemOption[];
+  jiraBaseUrl: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("location");
   const tCommon = useTranslations("common");
   const tNav = useTranslations("nav");
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
+  const editable = canEdit(userRole);
 
   const [moveOpen, setMoveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [cascadeConfirmed, setCascadeConfirmed] = useState(false);
   const hasSubLocations = location._count.children > 0;
+  // Deleting with sub-locations cascades through the subtree: Admin-only.
+  const canDelete = !hasSubLocations || isAdmin(userRole);
   const [attachments, setAttachments] = useState<Attachment[]>(location.attachments);
-  const [coverImageId, setCoverImageId] = useState<string | null>(location.coverImageId ?? null);
+  const [coverImageId, setCoverImageId] = useState<string | null>(location.coverImageId);
   const [mapData, setMapData] = useState({
     address: location.address,
     city: location.city,
@@ -160,23 +112,18 @@ export function LocationDetailClient({
     longitude: location.longitude,
   });
 
-  const [selfMaintenance, setSelfMaintenance] = useState(location.inMaintenance ?? false);
-  const [children, setChildren] = useState<LocationChild[]>(location.children);
+  const [selfMaintenance, setSelfMaintenance] = useState(location.inMaintenance);
+  const [children, setChildren] = useState(location.children);
   const [maintPendingId, setMaintPendingId] = useState<string | null>(null);
 
   // Toggle a room's maintenance flag. Rooms only — the caller gates on leaf
   // status; the API rejects setting it on a location with sub-locations.
   async function toggleMaintenance(targetId: string, current: boolean) {
     setMaintPendingId(targetId);
-    const res = await fetch(`/api/locations/${targetId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inMaintenance: !current }),
-    });
+    const res = await apiFetch(`/api/locations/${targetId}`, jsonBody("PUT", { inMaintenance: !current }));
     setMaintPendingId(null);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     const next = !current;
@@ -186,22 +133,19 @@ export function LocationDetailClient({
     router.refresh();
   }
 
-  const handleAttachmentUpdate = (updated: Attachment[]) => setAttachments(updated);
-
   const coverImage = attachments.find((a) => a.id === coverImageId && a.mimeType?.startsWith("image/"));
 
   async function handleDelete() {
     const url = hasSubLocations
       ? `/api/locations/${location.id}?cascade=true`
       : `/api/locations/${location.id}`;
-    const res = await fetch(url, { method: "DELETE" });
+    const res = await apiFetch(url, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json();
-      const description = err.error === "HAS_SUBLOCATIONS"
+      const description = res.error.code === "hasSublocations"
         ? t("deleteHasSubLocations")
-        : err.error === "HAS_STOCK"
+        : res.error.code === "hasStock"
         ? t("deleteHasStock")
-        : err.error;
+        : apiErrorMessage(res.error);
       toast({ title: tCommon("error"), description, variant: "destructive" });
       return;
     }
@@ -229,16 +173,15 @@ export function LocationDetailClient({
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1 text-[12px] text-[#64748b] flex-wrap">
-        <Link href="/locations" className="hover:text-[#0f172a] transition-colors">{tCommon("home")}</Link>
+      <nav className="flex items-center gap-1 text-[12px] text-muted-foreground flex-wrap">
+        <Link href="/locations" className="hover:text-foreground transition-colors">{tCommon("home")}</Link>
         {breadcrumbs.map((crumb, i) => (
           <span key={crumb.id} className="flex items-center gap-1">
             <ChevronRight className="h-3 w-3" />
             {i === breadcrumbs.length - 1 ? (
-              <span className="text-[#0f172a] font-medium">{crumb.name}</span>
+              <span className="text-foreground font-medium">{crumb.name}</span>
             ) : (
-              <Link href={`/locations/${crumb.id}`} className="hover:text-[#0f172a] transition-colors">
+              <Link href={`/locations/${crumb.id}`} className="hover:text-foreground transition-colors">
                 {crumb.name}
               </Link>
             )}
@@ -265,8 +208,8 @@ export function LocationDetailClient({
               style={{ background: "linear-gradient(135deg, #1e64c8 0%, #1a4fa0 100%)" }}
             />
             {/* Decorative circles */}
-            <div className="absolute -top-8 -right-8 w-[200px] h-[200px] rounded-full bg-white opacity-[0.05]" />
-            <div className="absolute -bottom-6 -left-6 w-[120px] h-[120px] rounded-full bg-white opacity-[0.06]" />
+            <div className="absolute -top-8 -right-8 w-[200px] h-[200px] rounded-full bg-card opacity-[0.05]" />
+            <div className="absolute -bottom-6 -left-6 w-[120px] h-[120px] rounded-full bg-card opacity-[0.06]" />
           </>
         )}
 
@@ -300,7 +243,7 @@ export function LocationDetailClient({
                 </a>
               )}
               {selfMaintenance && (
-                <span className="inline-flex items-center gap-1 font-semibold text-[11px] leading-none text-[#0f172a] bg-amber-400 border border-amber-300 px-2 py-1 rounded-[5px]">
+                <span className="inline-flex items-center gap-1 font-semibold text-[11px] leading-none text-foreground bg-amber-400 border border-amber-300 px-2 py-1 rounded-[5px]">
                   <Wrench className="h-3 w-3" />
                   {t("inMaintenance")}
                 </span>
@@ -316,7 +259,7 @@ export function LocationDetailClient({
         </div>
 
         {/* Buttons top-right */}
-        {canEdit && (
+        {editable && (
           <div className="absolute top-4 right-4 flex gap-2">
             {!hasSubLocations && (
               <Button
@@ -326,7 +269,7 @@ export function LocationDetailClient({
                 disabled={maintPendingId === location.id}
                 className={`h-8 rounded-[7px] border gap-1.5 text-[13px] backdrop-blur-[4px] ${
                   selfMaintenance
-                    ? "border-amber-300 bg-amber-400 text-[#0f172a] hover:brightness-95"
+                    ? "border-amber-300 bg-amber-400 text-foreground hover:brightness-95"
                     : "border-white/30 bg-white/15 text-white hover:bg-white/25"
                 }`}
               >
@@ -363,7 +306,7 @@ export function LocationDetailClient({
             >
               <Button
                 size="sm"
-                className="h-8 rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 gap-1.5 text-[13px]"
+                className="h-8 rounded-[7px] bg-brand-yellow text-brand-yellow-foreground font-bold hover:brightness-95 gap-1.5 text-[13px]"
               >
                 <Plus className="h-3.5 w-3.5" />
                 {tNav("addAsset")}
@@ -375,87 +318,88 @@ export function LocationDetailClient({
 
       {/* Stats bar */}
       <div className="flex items-center gap-6 flex-wrap">
-        <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
+        <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <Package className="h-4 w-4" />
-          <span>{t("directAssets", { count: location._count.assets })}</span>
+          <span>{t("directAssets", { count: location.installedUnits })}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
+        <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <FolderOpen className="h-4 w-4" />
           <span>{t("subLocations", { count: location._count.children })}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
+        <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <Paperclip className="h-4 w-4" />
           <span>{t("attachmentsCount", { count: attachments.length })}</span>
         </div>
-        {canEdit && (
+        {editable && (
           <div className="ml-auto flex gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setMoveOpen(true)}
-              className="h-8 text-[13px] rounded-[7px] border-[#e2e8f0] gap-1.5"
+              className="h-8 text-[13px] rounded-[7px] border-border gap-1.5"
             >
               <FolderInput className="h-3.5 w-3.5" />
               {t("moveLocationButton")}
             </Button>
-            <AlertDialog
-              open={deleteOpen}
-              onOpenChange={(o) => {
-                setDeleteOpen(o);
-                if (!o) setCascadeConfirmed(false);
-              }}
-            >
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 text-[#ef4444] border-[#fecaca] hover:bg-red-50 text-[13px] rounded-[7px]">
-                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                  {tCommon("delete")}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t("deleteConfirmTitle", { name: location.name })}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {hasSubLocations
-                      ? t("deleteConfirmDescriptionWithSubs", { count: location._count.children })
-                      : t("deleteConfirmDescription")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                {hasSubLocations && (
-                  <label className="flex items-start gap-2 text-sm">
-                    <Checkbox
-                      checked={cascadeConfirmed}
-                      onCheckedChange={(c) => setCascadeConfirmed(c === true)}
-                      className="mt-0.5"
-                    />
-                    <span>{t("deleteCascadeConfirm", { count: location._count.children })}</span>
-                  </label>
-                )}
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    disabled={hasSubLocations && !cascadeConfirmed}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
+            {canDelete && (
+              <AlertDialog
+                open={deleteOpen}
+                onOpenChange={(o) => {
+                  setDeleteOpen(o);
+                  if (!o) setCascadeConfirmed(false);
+                }}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-destructive border-danger-border hover:bg-red-50 text-[13px] rounded-[7px]">
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
                     {tCommon("delete")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t("deleteConfirmTitle", { name: location.name })}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {hasSubLocations
+                        ? t("deleteConfirmDescriptionWithSubs", { count: location._count.children })
+                        : t("deleteConfirmDescription")}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  {hasSubLocations && (
+                    <label className="flex items-start gap-2 text-sm">
+                      <Checkbox
+                        checked={cascadeConfirmed}
+                        onCheckedChange={(c) => setCascadeConfirmed(c === true)}
+                        className="mt-0.5"
+                      />
+                      <span>{t("deleteCascadeConfirm", { count: location._count.children })}</span>
+                    </label>
+                  )}
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      disabled={hasSubLocations && !cascadeConfirmed}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {tCommon("delete")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         )}
       </div>
 
       {location.description && (
-        <p className="text-[13px] text-[#64748b]">{location.description}</p>
+        <p className="text-[13px] text-muted-foreground">{location.description}</p>
       )}
 
-      {/* Tabs */}
       <Tabs defaultValue={defaultTab}>
-        <TabsList className="flex-wrap h-auto gap-0 border-b border-[#e2e8f0] bg-transparent rounded-none p-0">
+        <TabsList className="flex-wrap h-auto gap-0 border-b border-border bg-transparent rounded-none p-0">
           <TabsTrigger
             value="assets"
-            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             {t("tabAssets")}
             {assets.length > 0 && (
@@ -464,7 +408,7 @@ export function LocationDetailClient({
           </TabsTrigger>
           <TabsTrigger
             value="sublocations"
-            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             {t("tabSubLocations")}
             {location.children.length > 0 && (
@@ -473,14 +417,14 @@ export function LocationDetailClient({
           </TabsTrigger>
           <TabsTrigger
             value="map"
-            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             <MapPin className="h-3.5 w-3.5 mr-1" />
             {t("tabMap")}
           </TabsTrigger>
           <TabsTrigger
             value="attachments"
-            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             {t("tabAttachments")}
             {attachments.length > 0 && (
@@ -489,7 +433,7 @@ export function LocationDetailClient({
           </TabsTrigger>
           <TabsTrigger
             value="worklog"
-            className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+            className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
           >
             <Wrench className="h-3.5 w-3.5 mr-1" />
             {t("tabWorkLog")}
@@ -497,10 +441,10 @@ export function LocationDetailClient({
               <Badge variant="secondary" className="ml-2 text-xs">{workLogs.length}</Badge>
             )}
           </TabsTrigger>
-          {canEdit && (
+          {editable && (
             <TabsTrigger
               value="cover"
-              className="text-[13px] text-[#64748b] px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-[#1e64c8] data-[state=active]:text-[#1e64c8] data-[state=active]:font-semibold bg-transparent shadow-none"
+              className="text-[13px] text-muted-foreground px-[18px] py-[9px] rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold bg-transparent shadow-none"
             >
               <ImageIcon className="h-3.5 w-3.5 mr-1" />
               {t("tabCoverImage")}
@@ -508,23 +452,21 @@ export function LocationDetailClient({
           )}
         </TabsList>
 
-        {/* Assets tab */}
         <TabsContent value="assets" className="mt-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[18px] font-semibold text-[#0f172a]">
+            <h2 className="text-[18px] font-semibold text-foreground">
               {showLocation ? t("allAssetsIn", { name: location.name }) : t("assetsIn", { name: location.name })}
             </h2>
           </div>
-          <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} hostnameUrlTemplate={hostnameUrlTemplate} macAddressUrlTemplate={macAddressUrlTemplate} />
+          <AssetTable assets={assets} locationId={location.id} userRole={userRole} showLocation={showLocation} hostnameUrlTemplate={hostnameUrlTemplate} />
         </TabsContent>
 
-        {/* Sub-locations tab */}
         <TabsContent value="sublocations" className="mt-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[18px] font-semibold text-[#0f172a]">{t("subLocationsHeading")}</h2>
-            {canEdit && (
+            <h2 className="text-[18px] font-semibold text-foreground">{t("subLocationsHeading")}</h2>
+            {editable && (
               <LocationFormDialog mode="create" parentId={location.id}>
-                <Button size="sm" className="h-[34px] rounded-[7px] bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
+                <Button size="sm" className="h-[34px] rounded-[7px] bg-brand-yellow text-brand-yellow-foreground font-bold hover:brightness-95 text-[13px]">
                   <Plus className="h-4 w-4 mr-1" />
                   {tNav("addSubLocation")}
                 </Button>
@@ -532,7 +474,7 @@ export function LocationDetailClient({
             )}
           </div>
           {location.children.length === 0 ? (
-            <div className="text-center py-12 text-[#64748b] border border-[#e2e8f0] rounded-[10px] bg-white">
+            <div className="text-center py-12 text-muted-foreground border border-border rounded-[10px] bg-card">
               <FolderOpen className="h-10 w-10 mx-auto mb-3 opacity-40" />
               <p>{t("noSubLocations")}</p>
             </div>
@@ -543,37 +485,37 @@ export function LocationDetailClient({
                 return (
                   <div
                     key={child.id}
-                    className="bg-white border border-[#e2e8f0] rounded-[10px] p-[18px_20px] hover:border-[rgba(30,100,200,0.5)] transition-colors"
+                    className="bg-card border border-border rounded-[10px] p-[18px_20px] hover:border-[rgba(30,100,200,0.5)] transition-colors"
                   >
                     <Link href={`/locations/${child.id}`} className="block cursor-pointer">
                       <div className="flex items-center gap-1.5 mb-1">
-                        <MapPin className="h-3.5 w-3.5 fill-[#1e64c8] stroke-[#1e64c8] flex-shrink-0" />
-                        <span className="text-[13.5px] font-semibold text-[#0f172a]">{child.name}</span>
+                        <MapPin className="h-3.5 w-3.5 fill-primary stroke-primary flex-shrink-0" />
+                        <span className="text-[13.5px] font-semibold text-foreground">{child.name}</span>
                         {child.inMaintenance && (
-                          <span className="inline-flex items-center gap-1 font-semibold text-[10px] text-[#92400e] bg-amber-100 border border-amber-300 px-1.5 py-[1px] rounded-[4px]">
+                          <span className="inline-flex items-center gap-1 font-semibold text-[10px] text-warning-foreground bg-warning-tint border border-warning-border px-1.5 py-[1px] rounded-[4px]">
                             <Wrench className="h-2.5 w-2.5" />
                             {t("inMaintenance")}
                           </span>
                         )}
                       </div>
                       {child.fiNumber && (
-                        <p className="font-mono text-[11px] text-[#64748b] mb-2">{child.fiNumber}</p>
+                        <p className="font-mono text-[11px] text-muted-foreground mb-2">{child.fiNumber}</p>
                       )}
-                      <div className="flex gap-3 text-[12px] text-[#64748b]">
-                        <span>{t("directAssets", { count: child._count.assets })}</span>
+                      <div className="flex gap-3 text-[12px] text-muted-foreground">
+                        <span>{t("directAssets", { count: child.installedUnits })}</span>
                         <span>{t("subLocations", { count: child._count.children })}</span>
                       </div>
                     </Link>
-                    {canEdit && isRoom && (
-                      <div className="mt-2 pt-2 border-t border-[#f1f5f9]">
+                    {editable && isRoom && (
+                      <div className="mt-2 pt-2 border-t border-muted">
                         <button
                           type="button"
                           onClick={() => toggleMaintenance(child.id, !!child.inMaintenance)}
                           disabled={maintPendingId === child.id}
                           className={`inline-flex items-center gap-1 text-[12px] font-medium transition-colors ${
                             child.inMaintenance
-                              ? "text-[#92400e] hover:text-[#78350f]"
-                              : "text-[#64748b] hover:text-[#1e64c8]"
+                              ? "text-warning-foreground hover:text-warning-foreground/80"
+                              : "text-muted-foreground hover:text-primary"
                           }`}
                         >
                           <Wrench className="h-3 w-3" />
@@ -584,12 +526,11 @@ export function LocationDetailClient({
                   </div>
                 );
               })}
-              {/* Add sub-location card */}
-              {canEdit && (
+              {editable && (
                 <LocationFormDialog mode="create" parentId={location.id}>
-                  <div className="border-2 border-dashed border-[#e2e8f0] rounded-[10px] flex items-center justify-center gap-2 p-[18px_20px] cursor-pointer hover:border-[#94a3b8] transition-colors min-h-[80px]">
-                    <Plus className="h-4 w-4 text-[#94a3b8]" />
-                    <span className="text-[13px] text-[#94a3b8]">{t("addSubLocationCard")}</span>
+                  <div className="border-2 border-dashed border-border rounded-[10px] flex items-center justify-center gap-2 p-[18px_20px] cursor-pointer hover:border-subtle transition-colors min-h-[80px]">
+                    <Plus className="h-4 w-4 text-subtle" />
+                    <span className="text-[13px] text-subtle">{t("addSubLocationCard")}</span>
                   </div>
                 </LocationFormDialog>
               )}
@@ -597,7 +538,6 @@ export function LocationDetailClient({
           )}
         </TabsContent>
 
-        {/* Map & Address tab */}
         <TabsContent value="map" className="mt-4">
           <LocationMap
             locationId={location.id}
@@ -606,26 +546,24 @@ export function LocationDetailClient({
             country={mapData.country}
             latitude={mapData.latitude}
             longitude={mapData.longitude}
-            canEdit={canEdit}
+            canEdit={editable}
             onUpdate={(data) => setMapData({ ...mapData, ...data })}
           />
         </TabsContent>
 
-        {/* Attachments tab */}
         <TabsContent value="attachments" className="mt-4">
           <AttachmentGallery
             attachments={attachments}
             locationId={location.id}
-            canEdit={canEdit}
-            onUpdate={handleAttachmentUpdate}
+            canEdit={editable}
+            onUpdate={setAttachments}
           />
         </TabsContent>
 
-        {/* Work Log tab */}
         <TabsContent value="worklog" className="mt-4">
           <div className="mb-4">
-            <h2 className="text-[18px] font-semibold text-[#0f172a]">{t("workLogHeading")}</h2>
-            <p className="text-[13px] text-[#64748b] mt-1">
+            <h2 className="text-[18px] font-semibold text-foreground">{t("workLogHeading")}</h2>
+            <p className="text-[13px] text-muted-foreground mt-1">
               {t("workLogSubtitle")}
             </p>
           </div>
@@ -634,25 +572,24 @@ export function LocationDetailClient({
             entries={workLogs}
             assets={assets.map<WorkLogAssetOption>((a) => ({
               id: a.id,
-              label: [a.type?.name, a.model?.name || a.hostname || a.serialNumber, a.location?.name]
+              label: [a.type?.name, assetLabel(a), a.location?.name]
                 .filter(Boolean)
                 .join(" · "),
               typeId: a.type?.id ?? null,
             }))}
             users={users}
             items={workLogItems}
-            currentUserId={currentUserId ?? ""}
+            currentUserId={currentUserId}
             userRole={userRole}
             jiraBaseUrl={jiraBaseUrl}
           />
         </TabsContent>
 
-        {/* Cover Image tab */}
-        {canEdit && (
+        {editable && (
           <TabsContent value="cover" className="mt-4">
             <div className="mb-4">
-              <h2 className="text-[18px] font-semibold text-[#0f172a]">{t("coverImageHeading")}</h2>
-              <p className="text-[13px] text-[#64748b] mt-1">
+              <h2 className="text-[18px] font-semibold text-foreground">{t("coverImageHeading")}</h2>
+              <p className="text-[13px] text-muted-foreground mt-1">
                 {t("coverImageHelp")}
               </p>
             </div>
@@ -666,14 +603,14 @@ export function LocationDetailClient({
         )}
       </Tabs>
 
-      {canEdit && (
+      {editable && (
         <MoveLocationDialog
           open={moveOpen}
           onOpenChange={setMoveOpen}
           locationId={location.id}
           locationName={location.name}
           currentParentId={location.parent?.id ?? null}
-          assetCount={subtreeAssetCount}
+          assetCount={subtreeInstalledUnits}
         />
       )}
     </div>

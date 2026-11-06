@@ -6,13 +6,11 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Check, ImageOff, Loader2, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Attachment as GalleryAttachment } from "@/components/attachments/attachment";
+import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
-type Attachment = {
-  id: string;
-  originalName: string;
-  mimeType?: string | null;
-  size?: number | null;
-};
+type Attachment = Pick<GalleryAttachment, "id" | "originalName" | "mimeType" | "size">;
 
 type Props = {
   locationId: string;
@@ -28,8 +26,8 @@ export function CoverImagePicker({
   onUpdate,
 }: Props) {
   const t = useTranslations("coverImage");
-  const tCommon = useTranslations("common");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [selected, setSelected] = useState<string | null>(currentCoverImageId);
   const [saving, setSaving] = useState(false);
 
@@ -37,16 +35,11 @@ export function CoverImagePicker({
 
   async function handleSave(id: string | null) {
     setSaving(true);
-    const res = await fetch(`/api/locations/${locationId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ coverImageId: id }),
-    });
+    const res = await apiFetch(`/api/locations/${locationId}`, jsonBody("PUT", { coverImageId: id }));
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      showApiError(res.error);
       return;
     }
 
@@ -67,7 +60,7 @@ export function CoverImagePicker({
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Select an image attachment to use as the cover photo for this location.
+        {t("selectHint")}
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {imageAttachments.map((attachment) => {
@@ -78,6 +71,7 @@ export function CoverImagePicker({
               type="button"
               onClick={() => handleSave(isSelected ? null : attachment.id)}
               disabled={saving}
+              aria-busy={saving && isSelected}
               className={cn(
                 "relative rounded-lg overflow-hidden border-2 transition-all group aspect-video bg-muted",
                 isSelected

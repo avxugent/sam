@@ -5,13 +5,13 @@
  * to a configurable base URL. Defaults to the UGent lokalen portal.
  *
  * Usage:
- *   node scripts/add-location-links.mjs                    # process all locations with fiNumber
- *   node scripts/add-location-links.mjs --dry-run          # preview without writing
- *   node scripts/add-location-links.mjs --location-id <id> # single location
- *   node scripts/add-location-links.mjs --base-url https://custom.example.com/{fiNumber}
- *   node scripts/add-location-links.mjs --label "Custom label"
- *   node scripts/add-location-links.mjs --force            # overwrite existing link
- *   node scripts/add-location-links.mjs --user-id <id>     # specify uploader user ID
+ *   node --import tsx/esm scripts/add-location-links.mjs                    # process all locations with fiNumber
+ *   node --import tsx/esm scripts/add-location-links.mjs --dry-run          # preview without writing
+ *   node --import tsx/esm scripts/add-location-links.mjs --location-id <id> # single location
+ *   node --import tsx/esm scripts/add-location-links.mjs --base-url https://custom.example.com/{fiNumber}
+ *   node --import tsx/esm scripts/add-location-links.mjs --label "Custom label"
+ *   node --import tsx/esm scripts/add-location-links.mjs --force            # overwrite existing link
+ *   node --import tsx/esm scripts/add-location-links.mjs --user-id <id>     # specify uploader user ID
  *
  * The default base URL template is: https://lokalen.ugent.be/lokaal/{fiNumber}
  * Use {fiNumber} as the placeholder for the location's FI number.
@@ -19,15 +19,9 @@
  * Run from the project root so that the .env file is found automatically.
  */
 
-import { prisma } from "./_prisma.mjs";
-
-// ── arg parsing ───────────────────────────────────────────────────────────────
-
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
+import "./_env.mjs";
+import { getArg } from "./_args.mjs";
+import { prisma } from "@/lib/prisma";
 
 const dryRun = process.argv.includes("--dry-run");
 const force = process.argv.includes("--force");
@@ -82,7 +76,7 @@ async function main() {
   let errors = 0;
 
   for (const location of locations) {
-    const url = baseUrlTemplate.replace("{fiNumber}", location.fiNumber);
+    const url = baseUrlTemplate.replace("{fiNumber}", location.fiNumber ?? "");
 
     // Check for existing link with the same URL
     const existing = await prisma.attachment.findFirst({

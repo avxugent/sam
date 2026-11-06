@@ -9,8 +9,10 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.mts"],
-    // Use vmForks pool to handle ESM-only dependencies (jsdom, csstools, etc.)
-    pool: "vmForks",
+    // One child process per test file. The vm pools run with isolation off in Vitest 4, so files that share
+    // a worker share globals and module state: a Radix dialog left open by one file broke the next, and
+    // which files shared a worker depended on the CPU count (CI hung where 8-core machines passed).
+    pool: "forks",
     alias: {
       "@": path.resolve(__dirname, "."),
     },
@@ -32,46 +34,6 @@ export default defineConfig({
       exclude: [
         // Infrastructure / config — tested indirectly
         "lib/prisma.ts",
-        "lib/auth.ts",
-        // API routes that are covered through mocks at route level are excluded
-        // from per-file thresholds; only lib/* must meet 80%
-        "app/api/attachments/**",
-        "app/api/import/**",
-        "app/api/locations/*/assets/**",
-        "app/api/locations/*/attachments/**",
-        "app/api/manufacturers/**",
-        "app/api/models/**",
-        "app/api/prometheus/**",
-        "app/api/search/**",
-        "app/api/users/**",
-        "app/api/vault/**",
-        "app/api/auth/2fa/**",
-        "app/api/assets/by-hostname/**",
-        // Bracket dir names ([id], [...nextauth]) are read as glob char-classes,
-        // so use single-segment wildcards to match the dynamic route folders.
-        "app/api/assets/*/**",
-        "app/api/auth/*/route.ts",
-        // UI-only components without meaningful logic (pass-through wrappers)
-        "components/ui/toast.tsx",
-        "components/ui/toaster.tsx",
-        "components/ui/dropdown-menu.tsx",
-        "components/ui/alert-dialog.tsx",
-        "components/ui/separator.tsx",
-        "components/ui/tabs.tsx",
-        "components/ui/select.tsx",
-        // Complex pages with many external deps — integration tested
-        "components/layout/**",
-        "components/attachments/**",
-        "components/auth/**",
-        "components/import/**",
-        "components/search/**",
-        "components/settings/**",
-        "components/assets/asset-detail-client.tsx",
-        "components/assets/asset-table.tsx",
-        "components/assets/asset-form-dialog.tsx",
-        "components/locations/location-detail-client.tsx",
-        "components/locations/location-map.tsx",
-        "components/locations/cover-image-picker.tsx",
         "**/*.d.ts",
         "**/__tests__/**",
         "**/node_modules/**",
@@ -79,12 +41,13 @@ export default defineConfig({
     },
     testTimeout: 10000,
     include: ["**/__tests__/**/*.{test,spec}.{ts,tsx}", "**/*.{test,spec}.{ts,tsx}"],
-    exclude: ["node_modules", ".next", "coverage"],
+    // __tests__/integration needs a real database: run with `npm run test:integration`.
+    exclude: ["node_modules", ".next", "coverage", "__tests__/integration/**"],
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "."),
-      "@prisma/client": path.resolve(__dirname, "generated/prisma/client.ts"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, ".") },
+      { find: /^@prisma\/client$/, replacement: path.resolve(__dirname, "generated/prisma/client.ts") },
+    ],
   },
 });

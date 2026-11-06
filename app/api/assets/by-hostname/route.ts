@@ -10,8 +10,9 @@
  *
  * Returns:
  *   - 200: array of matching assets (may be empty, may have >1 if duplicates exist)
- *   - 400: missing hostname parameter
+ *   - 400: missing or over-long hostname parameter
  *   - 401: unauthenticated
+ *   - 503: no session and PROMETHEUS_SD_TOKEN is not configured
  *
  * Grafana Infinity datasource example:
  *
@@ -33,47 +34,27 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import {
-  resolveLocationPath,
-  buildLocationPathString,
-  findFiNumber,
-  parseFiNumber,
-} from "@/lib/location-path";
+import { sessionOrIntegrationTokenResponse } from "@/lib/tokens/session-or-integration";
+import { getLocationAncestors } from "@/lib/locations/path";
+import { locationLabelPath, findFiNumber, parseFiNumber } from "@/lib/locations/tree";
+import { toIsoDay } from "@/lib/dates";
+import { invalidInput } from "@/lib/route-helpers";
 
-/** Check either session cookie OR Bearer token */
-async function checkAuth(req: NextRequest): Promise<boolean> {
-  // Option 1: valid NextAuth session
-  const session = await auth();
-  if (session?.user) return true;
-
-  // Option 2: Prometheus bearer token (allows Grafana server-side queries)
-  const token = process.env.PROMETHEUS_SD_TOKEN;
-  if (token) {
-    const authHeader = req.headers.get("authorization") ?? "";
-    const [scheme, provided] = authHeader.split(" ");
-    if (scheme?.toLowerCase() === "bearer" && provided === token) return true;
-  }
-
-  return false;
-}
+// Same cap as an asset's hostname.
+const querySchema = z.object({
+  hostname: z.string().trim().min(1).max(255),
+});
 
 export async function GET(req: NextRequest) {
-  const authorized = await checkAuth(req);
-  if (!authorized) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // Any signed-in role, or the integration token (Grafana server-side queries).
+  const authError = await sessionOrIntegrationTokenResponse(req, () => true);
+  if (authError) return authError;
 
-  const { searchParams } = new URL(req.url);
-  const hostname = searchParams.get("hostname")?.trim();
-
-  if (!hostname) {
-    return NextResponse.json(
-      { error: "Missing required query parameter: hostname" },
-      { status: 400 }
-    );
-  }
+  const parsed = querySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams));
+  if (!parsed.success) return invalidInput(parsed.error);
+  const { hostname } = parsed.data;
 
   const assets = await prisma.asset.findMany({
     // Decommissioned assets are historical, not current inventory — excluded
@@ -102,19 +83,17 @@ export async function GET(req: NextRequest) {
   // Enrich each asset with the resolved location path
   const enriched = await Promise.all(
     assets.map(async (asset) => {
-      const ancestors = await resolveLocationPath(asset.locationId);
+      const ancestors = await getLocationAncestors(asset.locationId);
       const fiNumber = findFiNumber(ancestors);
       const fiParts = parseFiNumber(fiNumber);
-      const pathString = buildLocationPathString(ancestors);
+      const pathString = locationLabelPath(ancestors);
 
       return {
         id: asset.id,
         hostname: asset.hostname,
         model: asset.model?.name ?? null,
         serialNumber: asset.serialNumber,
-        installationDate: asset.installationDate
-          ? asset.installationDate.toISOString().split("T")[0]
-          : null,
+        installationDate: toIsoDay(asset.installationDate),
         invoiceNumber: asset.invoiceNumber,
         notes: asset.notes,
         type: asset.type,

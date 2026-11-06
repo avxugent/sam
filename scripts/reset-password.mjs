@@ -10,8 +10,9 @@
  * Run from the project root so that the .env file is found automatically.
  */
 
-import { prisma } from "./_prisma.mjs";
-import bcrypt from "bcryptjs";
+import "./_env.mjs";
+import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/passwords";
 import { createInterface } from "readline";
 
 const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -75,7 +76,7 @@ async function main() {
   console.log(`User found: ${user.name ?? email} (role: ${user.role})`);
   console.log("Hashing password…");
 
-  const passwordHash = await bcrypt.hash(password, 13);
+  const passwordHash = await hashPassword(password);
 
   await prisma.user.update({
     where: { email },

@@ -1,0 +1,103 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+/**
+ * Small shared building blocks for API route handlers, so every route reports
+ * malformed bodies, validation failures and unique-constraint conflicts the
+ * same way.
+ */
+
+/**
+ * Reads a JSON request body. A missing or malformed body yields `null`, which
+ * the caller's Zod schema then rejects with a 400 instead of the handler
+ * throwing a 500.
+ */
+export async function readJsonBody(req: Request): Promise<unknown> {
+  return req.json().catch(() => null);
+}
+
+/** Standard 400 for a failed Zod parse: `{ error, details }` with flattened field errors. */
+export function invalidInput(error: z.ZodError, message = "Invalid input") {
+  return NextResponse.json({ error: message, details: z.flattenError(error) }, { status: 400 });
+}
+
+/**
+ * Whether a Prisma error is a unique-constraint violation (P2002). Checked
+ * structurally rather than with `instanceof PrismaClientKnownRequestError`,
+ * which breaks across duplicated client bundles.
+ */
+export function isUniqueConstraintError(err: unknown): boolean {
+  return hasPrismaCode(err, "P2002");
+}
+
+/** Whether a Prisma update/delete targeted a row that does not exist (P2025). */
+export function isRecordNotFoundError(err: unknown): boolean {
+  return hasPrismaCode(err, "P2025");
+}
+
+export function isForeignKeyError(err: unknown): boolean {
+  return hasPrismaCode(err, "P2003");
+}
+
+/**
+ * The multipart body of `req`, or the 400 to send back when it is not one
+ * (a wrong content type or a truncated body would otherwise be a 500).
+ */
+export async function readFormData(req: Request): Promise<{ form: FormData } | { error: NextResponse }> {
+  try {
+    return { form: await req.formData() };
+  } catch {
+    return { error: NextResponse.json({ error: "Expected a multipart form upload." }, { status: 400 }) };
+  }
+}
+
+/** The file in form field `name`, or null when it is missing or a plain text value. */
+export function formFile(form: FormData, name: string): File | null {
+  const value = form.get(name);
+  return value === null || typeof value === "string" ? null : value;
+}
+
+/** The text in form field `name`, or null when it is missing, empty or a file. */
+export function formText(form: FormData, name: string): string | null {
+  const value = form.get(name);
+  return typeof value === "string" && value !== "" ? value : null;
+}
+
+/** 404 for the record named in the URL path, e.g. notFoundResponse("Model") -> "Model not found." */
+export function notFoundResponse(what: string): NextResponse {
+  return NextResponse.json({ error: `${what} not found.` }, { status: 404 });
+}
+
+/** 409 for a create or rename onto a name that is already taken (unique constraint). */
+export function nameTakenResponse(message = "Name already exists."): NextResponse {
+  return NextResponse.json({ error: message }, { status: 409 });
+}
+
+/**
+ * 400 for an id in the request body that names no record (a stale location,
+ * type, model, …). The record in the URL path is the 404 case; a body
+ * reference is invalid input.
+ */
+export function unknownReferenceResponse(what = "A referenced record"): NextResponse {
+  return NextResponse.json({ error: `${what} does not exist.`, code: "unknownReference" }, { status: 400 });
+}
+
+/** The Prisma error code (e.g. "P2002") of a known request error, or null. */
+export function prismaErrorCode(err: unknown): string | null {
+  return typeof err === "object" && err !== null && "code" in err && typeof err.code === "string" ? err.code : null;
+}
+
+function hasPrismaCode(err: unknown, code: string): boolean {
+  return prismaErrorCode(err) === code;
+}
+
+/** CSV file download response; never cached, since exports reflect live data. */
+export function csvDownload(csv: string, filename: string) {
+  return new NextResponse(csv, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}

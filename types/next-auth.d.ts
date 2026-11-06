@@ -1,13 +1,14 @@
 import { DefaultSession, DefaultUser } from "next-auth";
 import { DefaultJWT } from "next-auth/jwt";
+import type { Role } from "@/generated/prisma/enums";
 
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      role: string;
+      role: Role;
     } & DefaultSession["user"];
-    /** True while the user has passed password auth but not yet verified their TOTP code */
+    /** Owes a 2FA code challenge (TOTP or passkey already enrolled); enrolment itself is needs2FASetup */
     needs2FA?: boolean;
     /** True when the admin has required the user to change their password on next login */
     needsPasswordChange?: boolean;
@@ -16,21 +17,25 @@ declare module "next-auth" {
   }
 
   interface User extends DefaultUser {
-    role?: string;
-    /** Set by the Credentials authorize() when 2FA is required */
+    role?: Role;
+    /** Set by the Credentials authorize(): owes a 2FA code challenge (TOTP or passkey already enrolled) */
     needs2FA?: boolean;
     needsPasswordChange?: boolean;
     needs2FASetup?: boolean;
+    /** Second factor used by the "credentials-2fa-verified" provider */
+    method?: "totp" | "passkey";
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     id?: string;
-    role?: string;
-    /** True while 2FA verification is still pending */
+    role?: Role;
+    /** Owes a 2FA code challenge (TOTP or passkey already enrolled) */
     needs2FA?: boolean;
     needsPasswordChange?: boolean;
     needs2FASetup?: boolean;
+    /** Unix seconds of the last "user still exists" DB check */
+    dbCheck?: number;
   }
 }

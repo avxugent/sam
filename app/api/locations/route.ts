@@ -1,27 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-
-// FI number format: CC.BB.FFF.RR(R)  e.g. "14.10.100.13" or "14.10.100.013"
-// Last (room) segment may be 2 or 3 digits.
-const FI_NUMBER_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{2,3}$/;
-
-const createSchema = z.object({
-  name: z.string().min(1).max(255),
-  description: z.string().max(2000).optional(),
-  parentId: z.string().nullable().optional(),
-  fiNumber: z
-    .string()
-    .max(20)
-    .regex(FI_NUMBER_REGEX, "FI number must be in format CC.BB.FFF.RRR (e.g. 14.10.100.013)")
-    .optional()
-    .nullable(),
-  address: z.string().max(500).optional().nullable(),
-  city: z.string().max(255).optional().nullable(),
-  country: z.string().max(100).optional().nullable(),
-});
+import { canEdit } from "@/lib/permissions";
+import {
+  invalidInput,
+  isForeignKeyError,
+  isUniqueConstraintError,
+  nameTakenResponse,
+  readJsonBody,
+  unknownReferenceResponse,
+} from "@/lib/route-helpers";
+import { createLocationSchema } from "@/lib/schemas/location";
 
 export async function GET() {
   const session = await auth();
@@ -53,12 +43,12 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json();
-  const parsed = createSchema.safeParse(body);
+  const body = await readJsonBody(req);
+  const parsed = createLocationSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   let location;
@@ -75,17 +65,8 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err: unknown) {
-    if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code: string }).code === "P2002"
-    ) {
-      return NextResponse.json(
-        { error: "This FI number is already assigned to another location." },
-        { status: 409 }
-      );
-    }
+    if (isUniqueConstraintError(err)) return nameTakenResponse("This FI number is already assigned to another location.");
+    if (isForeignKeyError(err)) return unknownReferenceResponse("The parent location");
     throw err;
   }
 

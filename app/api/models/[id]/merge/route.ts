@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
-
-const schema = z.object({ targetId: z.string().min(1) });
+import { canManageCatalog } from "@/lib/permissions";
+import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/catalog/merge";
 
 export async function POST(
   req: NextRequest,
@@ -13,26 +12,12 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json().catch(() => null);
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
-
-  const { targetId } = parsed.data;
-
-  if (id === targetId) {
-    return NextResponse.json({ error: "Cannot merge a model into itself." }, { status: 400 });
-  }
-
-  const [source, target] = await Promise.all([
-    prisma.model.findUnique({ where: { id } }),
-    prisma.model.findUnique({ where: { id: targetId } }),
-  ]);
-
-  if (!source) return NextResponse.json({ error: "Source model not found." }, { status: 404 });
-  if (!target) return NextResponse.json({ error: "Target model not found." }, { status: 404 });
+  const merge = await readMergeRequest(req, id, { article: "a", name: "model" }, (mid) => prisma.model.findUnique({ where: { id: mid } }));
+  if ("error" in merge) return merge.error;
+  const { source, target, targetId } = merge;
 
   // A Model is scoped to exactly one asset type, so every asset/stock item
   // that follows it must stay in sync with that type. A cross-type merge
@@ -56,6 +41,7 @@ export async function POST(
     return { assetsMoved: assetResult.count, stockItemsMoved: stockResult.count };
   });
 
+  const counts = { assetsMoved, stockItemsMoved };
   await logAudit({
     session,
     req,
@@ -63,13 +49,8 @@ export async function POST(
     entityType: "Model",
     entityId: id,
     entityName: source.name,
-    detail: {
-      mergedInto: { id: targetId, name: target.name },
-      assetsMoved,
-      stockItemsMoved,
-      ...(retyped ? { retypedTo: target.typeId } : {}),
-    },
+    detail: mergeAuditDetail(target.name, counts, retyped ? { "Retyped to": target.typeId } : {}),
   });
 
-  return NextResponse.json({ ok: true, assetsMoved, stockItemsMoved });
+  return mergeResponse(counts);
 }

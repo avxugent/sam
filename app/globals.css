@@ -11,7 +11,7 @@
     --card-foreground: 222 84% 5%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 84% 5%;
-    --primary: 219 82% 45%;             /* #1e64c8 */
+    --primary: 215.3 73.9% 45.1%;      /* #1e64c8 */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 215 25% 27%;
@@ -23,10 +23,28 @@
     --destructive-foreground: 0 0% 100%;
     --border: 214 32% 91%;              /* #e2e8f0 */
     --input: 214 32% 91%;
-    --ring: 219 82% 45%;
+    --ring: 215.3 73.9% 45.1%;
     --radius: 0.5rem;
     --brand-yellow: #ffd200;
     --blue-tint: #e8f0fc;
+    --primary-hover: #1a56b0;           /* hover shade of the brand blue */
+    --primary-tint: #e8f0fc;            /* active / selected surface */
+    --subtle: #94a3b8;                  /* slate-400: icons, hints, placeholders */
+    --primary-tint-hover: #dbe9fb;      /* hover on a primary-tint chip/button */
+    --info-surface: #eff6ff;            /* informational callouts and badges */
+    --info-border: #bfdbfe;
+    --info-foreground: #1e40af;
+    --success-surface: #dcfce7;         /* status badges: active, created, done */
+    --success-foreground: #15803d;
+    --danger-surface: #fee2e2;          /* red badges and delete-button hovers */
+    --danger-border: #fecaca;
+    --warning-surface: #fefce8;         /* warning callouts */
+    --warning-tint: #fef3c7;            /* warning badges, hover on a warning surface */
+    --warning-border: #fde047;
+    --warning-foreground: #92400e;
+    --warning: #ca8a04;                 /* warning icons and standalone text */
+    --purple-surface: #f3e8ff;          /* admin / export badges */
+    --purple-foreground: #7e22ce;
   }
 
   .dark {
@@ -36,7 +54,7 @@
     --card-foreground: 210 40% 96%;
     --popover: 217 33% 17%;
     --popover-foreground: 210 40% 96%;
-    --primary: 219 82% 45%;             /* keep brand blue */
+    --primary: 215.3 73.9% 45.1%;      /* keep brand blue */
     --primary-foreground: 0 0% 100%;
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 96%;
@@ -48,8 +66,24 @@
     --destructive-foreground: 0 0% 100%;
     --border: 215 25% 27%;              /* #334155 slate-700 */
     --input: 215 25% 27%;
-    --ring: 219 82% 45%;
+    --ring: 215.3 73.9% 45.1%;
     --blue-tint: #172554;               /* blue-950 */
+    --primary-tint: #1e3a8a;            /* blue-900 */
+    --primary-tint-hover: #1e40af;      /* blue-800 */
+    --info-surface: #172554;            /* blue-950 */
+    --info-border: #1e3a8a;
+    --info-foreground: #93c5fd;         /* blue-300 */
+    --success-surface: #052e16;         /* green-950 */
+    --success-foreground: #86efac;      /* green-300 */
+    --danger-surface: #450a0a;          /* red-950 */
+    --danger-border: #7f1d1d;
+    --warning-surface: #1c1007;
+    --warning-tint: #422006;            /* amber-950 */
+    --warning-border: #854d0e;
+    --warning-foreground: #fcd34d;      /* amber-300 */
+    --warning: #fbbf24;                 /* amber-400 */
+    --purple-surface: #3b0764;          /* purple-950 */
+    --purple-foreground: #d8b4fe;       /* purple-300 */
   }
 }
 
@@ -86,6 +120,28 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-tint: var(--primary-tint);
+  --color-subtle: var(--subtle);
+  --color-primary-tint-hover: var(--primary-tint-hover);
+  --color-info-surface: var(--info-surface);
+  --color-info-border: var(--info-border);
+  --color-info-foreground: var(--info-foreground);
+  --color-success-surface: var(--success-surface);
+  --color-success-foreground: var(--success-foreground);
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-border: var(--danger-border);
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-tint: var(--warning-tint);
+  --color-warning-border: var(--warning-border);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning: var(--warning);
+  --color-warning-solid: #ca8a04;              /* decommission buttons (white text), both themes */
+  --color-warning-solid-hover: #a16207;
+  --color-purple-surface: var(--purple-surface);
+  --color-purple-foreground: var(--purple-foreground);
+  --color-brand-yellow: var(--brand-yellow);
+  --color-brand-yellow-foreground: #0f172a;    /* text on the yellow brand buttons, both themes */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -93,48 +149,17 @@
   --font-family-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", "Fira Mono", monospace;
 }
 
-/* ─── Dark-mode overrides for hardcoded hex colors used throughout components ─── */
-/* These cover sidebar, header, and all content pages without touching each file.  */
+/* ─── Remaining manual dark-mode overrides ─── */
+/* Colours use theme tokens that switch with the theme on their own: slate
+   greys and brand blues (text-foreground, text-muted-foreground, text-subtle,
+   bg-card, bg-muted, *-primary, bg-primary-tint, ...), danger UI
+   (*-destructive, *-danger-*), info callouts (*-info-*), status badges
+   (*-success-*, *-warning*, *-purple-*) and the yellow brand buttons
+   (bg-brand-yellow + text-brand-yellow-foreground). Use a token for anything
+   new; the rules below cover the two cases that still need one.             */
 
-/* Surfaces */
-.dark .bg-white                         { background-color: hsl(var(--card)); }
-.dark .bg-\[\#f8fafc\]                  { background-color: hsl(var(--background)); }
-.dark .bg-\[\#f1f5f9\]                  { background-color: hsl(var(--muted)); }
-/* Active-state blue: blue-900 bg + white text (14:1 contrast vs prior 2.9:1) */
-.dark .bg-\[\#e8f0fc\]                  { background-color: #1e3a8a; color: hsl(var(--foreground)); }
+/* Text on the active-state tint stays readable on its dark blue-900 surface. */
+.dark .bg-primary-tint                  { color: hsl(var(--foreground)); }
 
-/* Hover surfaces */
-.dark .hover\:bg-\[\#f8fafc\]:hover     { background-color: hsl(var(--muted)); }
-.dark .hover\:bg-\[\#e8f0fc\]:hover     { background-color: #1e3a8a; }
-/* Danger/warning button hovers: replace light bg with dark tinted bg.
-   Outline variant injects hover:text-accent-foreground (near-white);
-   near-white on dark bg gives ~15:1 contrast vs invisible on light bg. */
+/* Outline danger-button hover: replace the light red-50 with a dark red. */
 .dark .hover\:bg-red-50:hover           { background-color: #450a0a; }
-.dark .hover\:bg-\[\#fef9c3\]:hover     { background-color: #422006; } /* amber-950 */
-
-/* Text — exclude yellow-bg elements (yellow button keeps dark text for readability) */
-.dark .text-\[\#0f172a\]:not(.bg-\[\#ffd200\])  { color: hsl(var(--foreground)); }
-.dark .text-\[\#334155\]                         { color: hsl(var(--foreground)); }
-.dark .text-\[\#64748b\]                { color: hsl(var(--muted-foreground)); }
-
-/* Borders */
-.dark .border-\[\#e2e8f0\]              { border-color: hsl(var(--border)); }
-.dark .border-\[\#e8f0fc\]              { border-color: #1e3a8a; }
-.dark .border-\[\#fecaca\]              { border-color: #7f1d1d; }
-.dark .border-\[\#fde047\]              { border-color: #854d0e; } /* amber border */
-
-/* Amber/warning surfaces */
-.dark .bg-\[\#fefce8\]                  { background-color: #1c1007; }
-.dark .bg-\[\#fef9c3\]                  { background-color: #1c1007; }
-.dark .bg-\[\#fef3c7\]                  { background-color: #1c1007; }
-
-/* Amber/warning text */
-.dark .text-\[\#92400e\]                { color: #fcd34d; } /* amber-300 — readable on dark bg */
-.dark .text-\[\#ca8a04\]                { color: #fbbf24; } /* amber-400 */
-
-/* Destructive text — hardcoded red used in delete buttons */
-.dark .text-\[\#ef4444\]                { color: hsl(var(--destructive)); }
-
-/* Input backgrounds / focus rings that reference light palette */
-.dark .focus\:shadow-\[0_0_0_2px_\#e8f0fc\]:focus  { box-shadow: 0 0 0 2px #172554; }
-.dark .focus\:shadow-\[0_0_0_3px_\#e8f0fc\]:focus  { box-shadow: 0 0 0 3px #172554; }

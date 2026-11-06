@@ -1,16 +1,18 @@
 /**
  * Point-in-time JSON inventory snapshot (NIS2 evidence). Consumed by
- * GET /api/export/snapshot and mirrored by scripts/export-backup.mjs.
+ * GET /api/export/snapshot and scripts/export-backup.mjs.
  */
 import { prisma } from "@/lib/prisma";
 import { effectiveCriticality } from "@/lib/criticality";
+import { toIsoDay } from "@/lib/dates";
+import type { AssetStatus, Criticality, DisposalMethod } from "@/generated/prisma/enums";
 
 export type InventorySnapshot = {
   generatedAt: string;
   counts: { assets: number; locations: number; suppliers: number };
   assets: Array<{
     id: string;
-    status: string;
+    status: AssetStatus;
     typeName: string | null;
     manufacturerName: string | null;
     model: string | null;
@@ -22,11 +24,11 @@ export type InventorySnapshot = {
     invoiceNumber: string | null;
     invoiceDate: string | null;
     ownerId: string | null;
-    criticality: string | null;
-    effectiveCriticality: string | null;
+    criticality: Criticality | null;
+    effectiveCriticality: Criticality | null;
     endOfSupportDate: string | null;
     supplierId: string | null;
-    disposalMethod: string | null;
+    disposalMethod: DisposalMethod | null;
     decommissionedAt: string | null;
   }>;
   suppliers: Array<{
@@ -43,10 +45,6 @@ export type InventorySnapshot = {
     fiNumber: string | null;
   }>;
 };
-
-function dateStr(d: Date | null): string | null {
-  return d ? d.toISOString().slice(0, 10) : null;
-}
 
 export async function buildInventorySnapshot(): Promise<InventorySnapshot> {
   const [assets, suppliers, locations] = await Promise.all([
@@ -83,13 +81,13 @@ export async function buildInventorySnapshot(): Promise<InventorySnapshot> {
       hostname: a.hostname,
       macAddresses: a.macAddresses.map((m) => m.address),
       locationId: a.locationId,
-      installationDate: dateStr(a.installationDate),
+      installationDate: toIsoDay(a.installationDate),
       invoiceNumber: a.invoiceNumber,
-      invoiceDate: dateStr(a.invoiceDate),
+      invoiceDate: toIsoDay(a.invoiceDate),
       ownerId: a.ownerId,
       criticality: a.criticality,
       effectiveCriticality: effectiveCriticality(a.criticality, a.type?.defaultCriticality),
-      endOfSupportDate: dateStr(a.endOfSupportDate),
+      endOfSupportDate: toIsoDay(a.endOfSupportDate),
       supplierId: a.supplierId,
       disposalMethod: a.disposalMethod,
       decommissionedAt: a.decommissionedAt ? a.decommissionedAt.toISOString() : null,
@@ -98,8 +96,8 @@ export async function buildInventorySnapshot(): Promise<InventorySnapshot> {
       id: s.id,
       name: s.name,
       contractReference: s.contractReference,
-      defaultFrom: dateStr(s.defaultFrom),
-      defaultUntil: dateStr(s.defaultUntil),
+      defaultFrom: toIsoDay(s.defaultFrom),
+      defaultUntil: toIsoDay(s.defaultUntil),
     })),
     locations,
   };

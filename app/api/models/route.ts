@@ -3,24 +3,32 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { canManageCatalog } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, nameTakenResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { idSchema, MAX_ID_LENGTH } from "@/lib/schemas/ids";
 
 const createSchema = z.object({
-  typeId: z.string().min(1),
-  manufacturerId: z.string().min(1).optional().nullable(),
+  typeId: idSchema,
+  manufacturerId: idSchema.optional().nullable(),
   name: z.string().min(1).max(255),
   // Required for compliance, but intentionally not enforced here — see the
   // comment on Model.documentationUrl in schema.prisma.
-  documentationUrl: z.string().url().max(2048).nullable().optional(),
+  documentationUrl: z.url().max(2048).nullable().optional(),
+});
+
+const listQuerySchema = z.object({
+  q: z.string().max(255).optional(),
+  typeId: z.string().max(MAX_ID_LENGTH).optional(),
+  manufacturerId: z.string().max(MAX_ID_LENGTH).optional(),
 });
 
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q") || undefined;
-  const typeId = searchParams.get("typeId") || undefined;
-  const manufacturerId = searchParams.get("manufacturerId") || undefined;
+  const parsed = listQuerySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams));
+  if (!parsed.success) return invalidInput(parsed.error);
+  const { q, typeId, manufacturerId } = parsed.data;
 
   const models = await prisma.model.findMany({
     where: {
@@ -55,22 +63,22 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = createSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const { typeId, name } = parsed.data;
   const manufacturerId = parsed.data.manufacturerId || null;
   const documentationUrl = parsed.data.documentationUrl || null;
 
   const type = await prisma.assetType.findUnique({ where: { id: typeId }, select: { name: true } });
-  if (!type) return NextResponse.json({ error: "Asset type not found." }, { status: 404 });
+  if (!type) return unknownReferenceResponse("The asset type");
   let manufacturer: { name: string } | null = null;
   if (manufacturerId) {
     manufacturer = await prisma.manufacturer.findUnique({ where: { id: manufacturerId }, select: { name: true } });
-    if (!manufacturer) return NextResponse.json({ error: "Manufacturer not found." }, { status: 404 });
+    if (!manufacturer) return unknownReferenceResponse("The manufacturer");
   }
 
   // Explicit pre-check rather than relying solely on the
@@ -84,10 +92,7 @@ export async function POST(req: NextRequest) {
     where: { typeId, manufacturerId, name },
   });
   if (existing) {
-    return NextResponse.json(
-      { error: `"${existing.name}" already exists for this type/manufacturer.`, existingId: existing.id, existingName: existing.name },
-      { status: 409 }
-    );
+    return nameTakenResponse(`"${existing.name}" already exists for this type/manufacturer.`);
   }
 
   try {
@@ -102,8 +107,8 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(model, { status: 201 });
   } catch (err: unknown) {
-    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
-      return NextResponse.json({ error: `"${name}" already exists for this type/manufacturer.` }, { status: 409 });
+    if (isUniqueConstraintError(err)) {
+      return nameTakenResponse(`"${name}" already exists for this type/manufacturer.`);
     }
     throw err;
   }

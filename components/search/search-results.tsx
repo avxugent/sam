@@ -12,6 +12,8 @@ import {
   ChevronRight,
   ChevronLeft,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api-client";
+import { assetLabel } from "@/lib/assets/label";
 
 type AssetResult = {
   id: string;
@@ -81,18 +83,18 @@ function Pagination({
       <button
         onClick={() => onPage(page - 1)}
         disabled={page <= 1}
-        className="flex items-center gap-1 text-[12px] text-[#1e64c8] font-medium disabled:text-[#94a3b8] disabled:cursor-not-allowed hover:underline"
+        className="flex items-center gap-1 text-[12px] text-primary font-medium disabled:text-subtle disabled:cursor-not-allowed hover:underline"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
         {tSearch("previous")}
       </button>
-      <span className="text-[12px] text-[#64748b]">
+      <span className="text-[12px] text-muted-foreground">
         {tSearch("page")} {page} {tCommon("of")} {totalPages}
       </span>
       <button
         onClick={() => onPage(page + 1)}
         disabled={page >= totalPages}
-        className="flex items-center gap-1 text-[12px] text-[#1e64c8] font-medium disabled:text-[#94a3b8] disabled:cursor-not-allowed hover:underline"
+        className="flex items-center gap-1 text-[12px] text-primary font-medium disabled:text-subtle disabled:cursor-not-allowed hover:underline"
       >
         {tCommon("next")}
         <ChevronRight className="h-3.5 w-3.5" />
@@ -103,6 +105,7 @@ function Pagination({
 
 export function SearchResults() {
   const t = useTranslations("search");
+  const tAsset = useTranslations("asset");
   const searchParams = useSearchParams();
   const router = useRouter();
   const q = searchParams.get("q") ?? "";
@@ -112,21 +115,27 @@ export function SearchResults() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const doSearch = useCallback(async (query: string, pg: number) => {
+  const runSearch = useCallback(async (query: string, pg: number, signal: AbortSignal) => {
     if (query.length < 2) { setResults(null); return; }
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&page=${pg}`);
-      if (!res.ok) throw new Error("Search failed");
-      setResults(await res.json());
-    } catch {
-      setError("Search failed. Please try again.");
+    const res = await apiFetch<SearchResponse>(`/api/search?q=${encodeURIComponent(query)}&page=${pg}`, { signal });
+    // An aborted request was superseded by a newer query or page
+    if (signal.aborted) return;
+    if (res.ok) setResults(res.data);
+    else {
+      // Don't leave the previous query's results next to this query's error.
+      setResults(null);
+      setError(t("searchFailed"));
     }
     setLoading(false);
-  }, []);
+  }, [t]);
 
-  useEffect(() => { doSearch(q, page); }, [q, page, doSearch]);
+  useEffect(() => {
+    const controller = new AbortController();
+    runSearch(q, page, controller.signal);
+    return () => controller.abort();
+  }, [q, page, runSearch]);
 
   function goToPage(newPage: number) {
     const params = new URLSearchParams(searchParams.toString());
@@ -136,9 +145,9 @@ export function SearchResults() {
 
   if (!q) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center text-[#64748b]">
+      <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground">
         <Search className="h-12 w-12 mb-4 opacity-30" />
-        <p className="text-[18px] font-semibold text-[#0f172a]">{t("title")}</p>
+        <p className="text-[18px] font-semibold text-foreground">{t("title")}</p>
         <p className="text-[13px] mt-1">{t("noQuery")}</p>
       </div>
     );
@@ -146,7 +155,7 @@ export function SearchResults() {
 
   if (q.length < 2) {
     return (
-      <div className="text-center py-16 text-[#64748b] text-[13px]">
+      <div className="text-center py-16 text-muted-foreground text-[13px]">
         {t("tooShort")}
       </div>
     );
@@ -154,23 +163,22 @@ export function SearchResults() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      {/* Hero search bar */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-[#64748b] pointer-events-none" />
-        <div className="flex items-center h-[48px] pl-[44px] pr-4 text-[15px] bg-white border-[1.5px] border-[#1e64c8] rounded-[10px] shadow-[0_0_0_3px_#e8f0fc] text-[#0f172a]">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground pointer-events-none" />
+        <div className="flex items-center h-[48px] pl-[44px] pr-4 text-[15px] bg-card border-[1.5px] border-primary rounded-[10px] shadow-[0_0_0_3px_var(--blue-tint)] text-foreground">
           <span className="flex-1 truncate">{q}</span>
           {results && (
-            <span className="ml-3 text-[11px] text-[#64748b] bg-[#f1f5f9] px-2 py-0.5 rounded flex-shrink-0">
-              {results.total} result{results.total !== 1 ? "s" : ""}
+            <span className="ml-3 text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded flex-shrink-0">
+              {t("resultCount", { count: results.total })}
             </span>
           )}
         </div>
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center py-16 text-[#64748b] gap-2">
+        <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-[13px]">Searching…</span>
+          <span className="text-[13px]">{t("searching")}</span>
         </div>
       )}
 
@@ -179,10 +187,10 @@ export function SearchResults() {
       )}
 
       {!loading && results && results.total === 0 && (
-        <div className="text-center py-16 text-[#64748b]">
+        <div className="text-center py-16 text-muted-foreground">
           <Search className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="text-[15px] font-semibold text-[#0f172a]">{t("noResults", { query: q })}</p>
-          <p className="text-[13px] mt-1">Try different keywords or check the spelling.</p>
+          <p className="text-[15px] font-semibold text-foreground">{t("noResults", { query: q })}</p>
+          <p className="text-[13px] mt-1">{t("noResultsHint")}</p>
         </div>
       )}
 
@@ -190,46 +198,46 @@ export function SearchResults() {
         <>
           {results.assets.length > 0 && (
             <section>
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#64748b] mb-[10px]">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground mb-[10px]">
                 {t("assets")}
                 {results.totalAssets > 0 && (
-                  <span className="ml-2 font-normal normal-case tracking-normal text-[#94a3b8]">
+                  <span className="ml-2 font-normal normal-case tracking-normal text-subtle">
                     ({results.totalAssets})
                   </span>
                 )}
               </h2>
-              <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden mb-[4px]">
+              <div className="bg-card border border-border rounded-[10px] overflow-hidden mb-[4px]">
                 {results.assets.map((asset) => {
-                  const displayName = asset.model?.name || asset.hostname || asset.serialNumber || "Unnamed asset";
+                  const displayName = assetLabel(asset) ?? tAsset("unnamedAsset");
                   return (
                     <Link
                       key={asset.id}
                       href={`/locations/${asset.location.id}/assets/${asset.id}`}
-                      className="flex items-center gap-[14px] px-[18px] py-[13px] hover:bg-[#f8fafc] transition-colors border-b border-[#e2e8f0] last:border-0 group"
+                      className="flex items-center gap-[14px] px-[18px] py-[13px] hover:bg-background transition-colors border-b border-border last:border-0 group"
                     >
-                      <div className="w-[34px] h-[34px] rounded-[8px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-                        <Package className="h-4 w-4 text-[#1e64c8]" />
+                      <div className="w-[34px] h-[34px] rounded-[8px] bg-primary-tint flex items-center justify-center flex-shrink-0">
+                        <Package className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-[13.5px] font-semibold text-[#0f172a] truncate block">
+                        <span className="text-[13.5px] font-semibold text-foreground truncate block">
                           <Highlight text={displayName} query={q} />
                         </span>
-                        <span className="text-[12px] text-[#64748b] truncate block">
+                        <span className="text-[12px] text-muted-foreground truncate block">
                           {[asset.type?.name, asset.location.name].filter(Boolean).join(" · ")}
                         </span>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
                         {asset.type && (
-                          <span className="text-[11px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-2 py-0.5 rounded-[5px]">
+                          <span className="text-[11px] font-semibold bg-primary-tint text-primary px-2 py-0.5 rounded-[5px]">
                             <Highlight text={asset.type.name} query={q} />
                           </span>
                         )}
                         {asset.serialNumber && (
-                          <span className="font-mono text-[11px] text-[#64748b]">
+                          <span className="font-mono text-[11px] text-muted-foreground">
                             <Highlight text={asset.serialNumber} query={q} />
                           </span>
                         )}
-                        <ChevronRight className="h-3.5 w-3.5 text-[#64748b]" />
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
                     </Link>
                   );
@@ -241,29 +249,29 @@ export function SearchResults() {
 
           {results.locations.length > 0 && (
             <section>
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#64748b] mb-[10px]">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground mb-[10px]">
                 {t("locations")}
                 {results.totalLocations > 0 && (
-                  <span className="ml-2 font-normal normal-case tracking-normal text-[#94a3b8]">
+                  <span className="ml-2 font-normal normal-case tracking-normal text-subtle">
                     ({results.totalLocations})
                   </span>
                 )}
               </h2>
-              <div className="bg-white border border-[#e2e8f0] rounded-[10px] overflow-hidden mb-[4px]">
+              <div className="bg-card border border-border rounded-[10px] overflow-hidden mb-[4px]">
                 {results.locations.map((location) => (
                   <Link
                     key={location.id}
                     href={`/locations/${location.id}`}
-                    className="flex items-center gap-[14px] px-[18px] py-[13px] hover:bg-[#f8fafc] transition-colors border-b border-[#e2e8f0] last:border-0 group"
+                    className="flex items-center gap-[14px] px-[18px] py-[13px] hover:bg-background transition-colors border-b border-border last:border-0 group"
                   >
-                    <div className="w-[34px] h-[34px] rounded-[8px] bg-[#f1f5f9] flex items-center justify-center flex-shrink-0">
-                      <MapPin className="h-4 w-4 fill-[#1e64c8] stroke-[#1e64c8]" />
+                    <div className="w-[34px] h-[34px] rounded-[8px] bg-muted flex items-center justify-center flex-shrink-0">
+                      <MapPin className="h-4 w-4 fill-primary stroke-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-[13.5px] font-semibold text-[#0f172a] truncate block">
+                      <span className="text-[13.5px] font-semibold text-foreground truncate block">
                         <Highlight text={location.name} query={q} />
                       </span>
-                      <span className="text-[12px] text-[#64748b] truncate block">
+                      <span className="text-[12px] text-muted-foreground truncate block">
                         {[
                           t("assetsFound", { count: location._count.assets }),
                           location._count.children > 0 ? t("locationsFound", { count: location._count.children }) : null,
@@ -273,11 +281,11 @@ export function SearchResults() {
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       {location.fiNumber && (
-                        <code className="font-mono text-[11px] text-[#64748b]">
+                        <code className="font-mono text-[11px] text-muted-foreground">
                           <Highlight text={location.fiNumber} query={q} />
                         </code>
                       )}
-                      <ChevronRight className="h-3.5 w-3.5 text-[#64748b]" />
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
                   </Link>
                 ))}

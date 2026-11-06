@@ -5,6 +5,50 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.0.0-alpha.1] - 2026-11-06
+
+Pre-release for testing the `desloppify/code-health` branch (PR #1). It bundles ~190 commits of fixes, security hardening, refactoring and tests on top of 3.1.3. Published as a prerelease image tag; it never becomes `:latest`.
+
+### Breaking
+
+- **Database:** one data migration, `20261101120000_backfill_report_definition_source`, marks saved reports that predate the location report type as `"source": "asset"`. It runs with `prisma migrate deploy`. The report definition schema now requires `source`.
+- **Sign-in:** `auth()` no longer returns a session that still owes a login step (forced password change, 2FA setup or code); only the routes and pages that complete those steps see it. The 2FA upgrade-provider bypass is closed.
+- **2FA tokens** are signed with `NEXTAUTH_SECRET` alone and fail closed when it is missing.
+- **Maintenance scripts** fail on missing `DB_*` variables instead of falling back to defaults, and read `.env` with Node's own parser.
+- **API:** the CSV import preview moved to `POST /api/import/preview`; the unused session `GET`s were removed; the snapshot export requires an admin session like the CSV exports; an unknown id inside a request body is `400` with `code: "unknownReference"` everywhere (it was a 500 or 404 on some stock and write routes); deleting a location with sub-locations requires an admin.
+- **Dependencies:** `next-auth` is pinned to `5.0.0-beta.32`.
+
+### Added
+
+- Optional `GRAFANA_URL`: report pages link to the Grafana Explore view when set.
+- Warnings on CSV import for hostnames the asset form would reject; readable reasons for rejected rows.
+- Decommissioned and stock exports accept `EXPORT_TOKEN`.
+- Real-MySQL integration tests (merges, lifecycle transitions, subtree deletes) that run in CI; many component, route and lib tests, held to the 80 % coverage gate.
+
+### Changed
+
+- Shared building blocks replace copies across the code: `TotpEnrollmentForm`, `BulkActionDialog`, `useServerList`, `useApiErrorToast`, `assetLabel`, one audit change-label table, shared Prisma includes, setting groups that own their keys.
+- `lib/`, `components/admin/` and the route tests are regrouped by concern; `AGENTS.md` and `doc/sam/` match.
+- More UI text comes from `messages/en.json` and `nl.json`; hardcoded colours became theme tokens.
+- The maintenance scripts import `lib/` instead of mirroring it, have their own dependency manifest, and use `node-html-parser` instead of `jsdom`.
+- The unit suite runs in `forks` (one process per file) so test files cannot share state; it was hanging on 2-CPU runners.
+
+### Fixed
+
+- Lifecycle writes (decommission, repair, return to stock, deploy) apply only while the status or quantity just checked still holds.
+- Uploads share one policy; branding uploads get the content check; storage failures answer a logged 502 and leave no orphaned file; multi-file attachment uploads keep every file.
+- CSV export: honest scope, every report row, quote-aware headers, legacy custom fields, one escaper.
+- Vault: AppRole token caching with short leases, missing secret told apart from an outage, read failures log only the message.
+- Audit: bulk-relocate keeps lineage and names; work-log performer changes and report downloads are audited; failures are logged instead of swallowed.
+- Search aborts superseded requests; failed loads show an error instead of empty data; the sidebar tree opens to the current location.
+
+### Security
+
+- Closed the 2FA provider-upgrade bypass and gated partly signed-in sessions (see Breaking).
+- `zod` 4.6.7 and `undici` 7.30.2 (high advisories), `@typescript-eslint` 8.72.1, and a patched `minimatch` for `typescript-estree`; `npm audit --audit-level=moderate` is clean.
+
+---
+
 ## [3.1.3] - 2026-10-23
 
 ### Security

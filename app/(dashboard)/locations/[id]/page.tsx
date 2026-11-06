@@ -1,25 +1,20 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
+import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
+import { Role } from "@/lib/permissions";
 import { LocationDetailClient } from "@/components/locations/location-detail-client";
-import { getAllDescendantLocationIds } from "@/lib/location-path";
-import { isJiraConfigured } from "@/lib/jira";
+import { getAllDescendantLocationIds, locationBreadcrumbs } from "@/lib/locations/path";
+import { withInstalledQuantities } from "@/lib/locations/asset-quantities";
+import { jiraBaseUrl } from "@/lib/integrations/jira";
+import { parseLocationTab } from "@/lib/users/preferences";
+import { ASSET_LIST_INCLUDE } from "@/lib/assets/include";
+import { WORK_LOG_INCLUDE } from "@/lib/work-logs/include";
+import { toIsoDay } from "@/lib/dates";
+import { LOCATION_PAGE_INCLUDE } from "@/lib/locations/include";
+import { attachmentKind } from "@/components/attachments/attachment";
 
-async function getUrlTemplates(): Promise<{
-  hostnameUrlTemplate: string | null;
-  macAddressUrlTemplate: string | null;
-  locationUrlTemplate: string | null;
-}> {
-  const settings = await prisma.appSetting.findMany({
-    where: { key: { in: ["hostname.urlTemplate", "macAddress.urlTemplate", "location.urlTemplate"] } },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
-  return {
-    hostnameUrlTemplate: map["hostname.urlTemplate"] || null,
-    macAddressUrlTemplate: map["macAddress.urlTemplate"] || null,
-    locationUrlTemplate: map["location.urlTemplate"] || null,
-  };
-}
 
 export default async function LocationPage({
   params,
@@ -28,7 +23,7 @@ export default async function LocationPage({
 }) {
   const session = await auth();
   const { id } = await params;
-  const { hostnameUrlTemplate, macAddressUrlTemplate, locationUrlTemplate } = await getUrlTemplates();
+  const { hostnameUrlTemplate, locationUrlTemplate } = await readGeneralSettings();
 
   const userPref = session?.user?.id
     ? await prisma.user.findUnique({
@@ -40,84 +35,30 @@ export default async function LocationPage({
 
   const location = await prisma.location.findUnique({
     where: { id },
-    include: {
-      parent: { select: { id: true, name: true, parentId: true } },
-      children: {
-        include: { _count: { select: { assets: true, children: true } } },
-        orderBy: [{ order: "asc" }, { name: "asc" }],
-      },
-      attachments: {
-        include: { uploadedBy: { select: { id: true, name: true } } },
-        orderBy: { createdAt: "desc" },
-      },
-      _count: { select: { assets: true, children: true, attachments: true } },
-    },
+    include: LOCATION_PAGE_INCLUDE,
   });
 
   if (!location) notFound();
 
-  const breadcrumbs = await buildBreadcrumbs(id);
+  const breadcrumbs = await locationBreadcrumbs(id);
 
   const hasChildren = location._count.children > 0;
-  const defaultTab = hasChildren && locationDefaultTab === "sublocations" ? "sublocations" : "assets";
+  const defaultTab = hasChildren ? parseLocationTab(locationDefaultTab) : "assets";
   const locationIds = hasChildren
     ? [id, ...(await getAllDescendantLocationIds(id))]
     : [id];
 
   const assets = await prisma.asset.findMany({
     where: { locationId: { in: locationIds }, status: "INSTALLED" },
-    include: {
-      type: true,
-      manufacturer: true,
-      model: true,
-      macAddresses: true,
-      location: { select: { id: true, name: true } },
-      _count: { select: { attachments: true } },
-    },
+    include: ASSET_LIST_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
 
-  // "Total assets" counts physical units (quantity), not asset rows, so a
-  // bulk item like a box of 20 batteries counts as 20. Decommissioned assets
-  // are historical, not current inventory, so they're excluded here too.
-  const subtreeAssetQuantity = await prisma.asset.aggregate({
-    where: { locationId: { in: locationIds }, status: "INSTALLED" },
-    _sum: { quantity: true },
-  });
-  const subtreeAssetCount = subtreeAssetQuantity._sum.quantity ?? 0;
-
-  const directQuantitySums = await prisma.asset.groupBy({
-    by: ["locationId"],
-    where: { locationId: { in: [location.id, ...location.children.map((c) => c.id)] }, status: "INSTALLED" },
-    _sum: { quantity: true },
-  });
-  const directQuantityByLocationId = new Map(
-    directQuantitySums.map((r) => [r.locationId, r._sum.quantity ?? 0])
-  );
-  const locationWithQuantities = {
-    ...location,
-    _count: { ...location._count, assets: directQuantityByLocationId.get(location.id) ?? 0 },
-    children: location.children.map((c) => ({
-      ...c,
-      _count: { ...c._count, assets: directQuantityByLocationId.get(c.id) ?? 0 },
-    })),
-  };
+  const { location: locationWithQuantities, subtreeInstalledUnits } = await withInstalledQuantities(location, locationIds);
 
   const workLogs = await prisma.workLog.findMany({
     where: { locationId: id },
-    include: {
-      performedBy: { select: { id: true, name: true, email: true } },
-      item: { select: { id: true, name: true } },
-      asset: {
-        select: {
-          id: true,
-          model: { select: { name: true } },
-          serialNumber: true,
-          hostname: true,
-          type: { select: { id: true, name: true } },
-        },
-      },
-    },
+    include: WORK_LOG_INCLUDE,
     orderBy: [{ performedAt: "desc" }, { createdAt: "desc" }],
   });
 
@@ -133,20 +74,26 @@ export default async function LocationPage({
 
   return (
     <LocationDetailClient
-      location={locationWithQuantities}
+      location={{
+        ...locationWithQuantities,
+        attachments: locationWithQuantities.attachments.map((a) => ({
+          ...a,
+          attachmentType: attachmentKind(a.attachmentType),
+          createdAt: a.createdAt.toISOString(),
+        })),
+      }}
       assets={assets}
-      subtreeAssetCount={subtreeAssetCount}
+      subtreeInstalledUnits={subtreeInstalledUnits}
       breadcrumbs={breadcrumbs}
-      userRole={session?.user?.role || "VIEWER"}
+      userRole={session?.user?.role ?? Role.VIEWER}
       currentUserId={session?.user?.id ?? ""}
       showLocation={hasChildren}
       defaultTab={defaultTab}
       hostnameUrlTemplate={hostnameUrlTemplate}
-      macAddressUrlTemplate={macAddressUrlTemplate}
       locationUrlTemplate={locationUrlTemplate}
       workLogs={workLogs.map((w) => ({
         id: w.id,
-        performedAt: w.performedAt.toISOString(),
+        performedAt: toIsoDay(w.performedAt),
         description: w.description,
         jiraIssueKey: w.jiraIssueKey,
         performedBy: w.performedBy,
@@ -155,25 +102,15 @@ export default async function LocationPage({
       }))}
       users={users.map((u) => ({ id: u.id, label: u.name + (u.email ? ` (${u.email})` : "") }))}
       workLogItems={workLogItems}
-      jiraEnabled={isJiraConfigured()}
-      jiraBaseUrl={process.env.JIRA_BASE_URL ?? null}
+      jiraBaseUrl={jiraBaseUrl()}
     />
   );
-}
-
-async function buildBreadcrumbs(locationId: string): Promise<{ id: string; name: string }[]> {
-  const location = await prisma.location.findUnique({
-    where: { id: locationId },
-    select: { id: true, name: true, parentId: true },
-  });
-  if (!location) return [];
-  if (!location.parentId) return [{ id: location.id, name: location.name }];
-  const parents = await buildBreadcrumbs(location.parentId);
-  return [...parents, { id: location.id, name: location.name }];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const location = await prisma.location.findUnique({ where: { id }, select: { name: true } });
-  return { title: location ? `${location.name} – SAM` : "Location – SAM" };
+  if (location) return { title: location.name };
+  const t = await getTranslations("location");
+  return { title: t("title") };
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SearchBar } from "@/components/layout/header-search";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import {
   DropdownMenu,
@@ -15,20 +15,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import {
   LogOut,
-  Search,
-  X,
   ShieldCheck,
   Users,
   Tag,
   Factory,
   Upload,
   Monitor,
-  Loader2,
-  MapPin,
-  Package,
   KeyRound,
   Download,
   ClipboardList,
@@ -38,293 +33,60 @@ import {
   Boxes,
   Truck,
 } from "lucide-react";
+import { canManageCatalog, isAdmin, type Role } from "@/lib/permissions";
+import type { AuthProvider } from "@/lib/users/providers";
 
 type HeaderUser = {
   name?: string | null;
   email?: string | null;
-  role?: string;
-  provider?: string;
+  role?: Role;
+  provider?: AuthProvider;
   totpEnabled?: boolean;
 };
 
-type QuickResult = {
-  id: string;
-  kind: "asset" | "location";
-  title: string;
-  subtitle: string;
-  href: string;
-};
 
 type AdminNavItem = {
   href: string;
   labelKey: "users" | "assetTypes" | "manufacturers" | "suppliers" | "models" | "importCsv" | "exportCsv" | "auditLog" | "compliance" | "settings";
   icon: React.ReactNode;
-  minRole: "MAINTAINER" | "ADMIN";
+  /** The predicate that guards the page itself. */
+  allowed: (role: Role | undefined) => boolean;
 };
 
 const ADMIN_NAV: AdminNavItem[] = [
-  { href: "/admin/users", labelKey: "users", icon: <Users className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/asset-types", labelKey: "assetTypes", icon: <Tag className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/manufacturers", labelKey: "manufacturers", icon: <Factory className="h-4 w-4" />, minRole: "MAINTAINER" },
-  { href: "/admin/suppliers", labelKey: "suppliers", icon: <Truck className="h-4 w-4" />, minRole: "MAINTAINER" },
-  { href: "/admin/models", labelKey: "models", icon: <Boxes className="h-4 w-4" />, minRole: "MAINTAINER" },
-  { href: "/admin/import", labelKey: "importCsv", icon: <Upload className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/export", labelKey: "exportCsv", icon: <Download className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/audit", labelKey: "auditLog", icon: <ClipboardList className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/compliance", labelKey: "compliance", icon: <ShieldCheck className="h-4 w-4" />, minRole: "ADMIN" },
-  { href: "/admin/settings", labelKey: "settings", icon: <Settings className="h-4 w-4" />, minRole: "ADMIN" },
+  { href: "/admin/users", labelKey: "users", icon: <Users className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/asset-types", labelKey: "assetTypes", icon: <Tag className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/manufacturers", labelKey: "manufacturers", icon: <Factory className="h-4 w-4" />, allowed: canManageCatalog },
+  { href: "/admin/suppliers", labelKey: "suppliers", icon: <Truck className="h-4 w-4" />, allowed: canManageCatalog },
+  { href: "/admin/models", labelKey: "models", icon: <Boxes className="h-4 w-4" />, allowed: canManageCatalog },
+  { href: "/admin/import", labelKey: "importCsv", icon: <Upload className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/export", labelKey: "exportCsv", icon: <Download className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/audit", labelKey: "auditLog", icon: <ClipboardList className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/compliance", labelKey: "compliance", icon: <ShieldCheck className="h-4 w-4" />, allowed: isAdmin },
+  { href: "/admin/settings", labelKey: "settings", icon: <Settings className="h-4 w-4" />, allowed: isAdmin },
 ];
 
-function getInitials(name?: string | null, email?: string | null): string {
-  if (name) {
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return (email?.[0] ?? "U").toUpperCase();
-}
-
-function SearchBar() {
-  const t = useTranslations("nav");
-  const tc = useTranslations("common");
-  const tAsset = useTranslations("asset");
-  const router = useRouter();
-  const pathname = usePathname();
-  const [query, setQuery] = useState("");
-  const [quickResults, setQuickResults] = useState<QuickResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!pathname.startsWith("/search")) return;
-  }, [pathname]);
-
-  useEffect(() => {
-    function onOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onOutside);
-    return () => document.removeEventListener("mousedown", onOutside);
-  }, []);
-
-  const fetchQuick = useCallback(async (q: string) => {
-    if (q.length < 2) { setQuickResults([]); setOpen(false); return; }
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const results: QuickResult[] = [];
-
-      for (const a of (data.assets ?? []).slice(0, 4)) {
-        results.push({
-          id: a.id,
-          kind: "asset",
-          title: a.model?.name || a.hostname || a.serialNumber || tAsset("title"),
-          subtitle: [a.type?.name, a.location?.name].filter(Boolean).join(" · "),
-          href: `/locations/${a.location.id}/assets/${a.id}`,
-        });
-      }
-      for (const l of (data.locations ?? []).slice(0, 3)) {
-        results.push({
-          id: l.id,
-          kind: "location",
-          title: l.name,
-          subtitle: [l.fiNumber, l._count.assets + " assets"].filter(Boolean).join(" · "),
-          href: `/locations/${l.id}`,
-        });
-      }
-
-      setQuickResults(results);
-      setOpen(results.length > 0);
-    } finally {
-      setLoading(false);
-    }
-  }, [tAsset]);
-
-  useEffect(() => {
-    const t = setTimeout(() => fetchQuick(query), 250);
-    return () => clearTimeout(t);
-  }, [query, fetchQuick]);
-
-  // Reset highlight when results list changes
-  useEffect(() => { setActiveIndex(-1); }, [quickResults]);
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "ArrowDown" && quickResults.length > 0) {
-      e.preventDefault();
-      setOpen(true);
-      setActiveIndex((i) => (i + 1) % quickResults.length);
-      return;
-    }
-    if (e.key === "ArrowUp" && quickResults.length > 0) {
-      e.preventDefault();
-      setOpen(true);
-      setActiveIndex((i) => (i <= 0 ? quickResults.length - 1 : i - 1));
-      return;
-    }
-    if (e.key === "Enter") {
-      if (open && activeIndex >= 0 && quickResults[activeIndex]) {
-        e.preventDefault();
-        const r = quickResults[activeIndex];
-        handleSelect(r.href);
-        return;
-      }
-      if (query.trim().length >= 2) {
-        setOpen(false);
-        router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-      }
-    }
-    if (e.key === "Escape") {
-      setOpen(false);
-      setActiveIndex(-1);
-      inputRef.current?.blur();
-    }
-  }
-
-  function handleSelect(href: string) {
-    setOpen(false);
-    setQuery("");
-    router.push(href);
-  }
-
-  function handleClear() {
-    setQuery("");
-    setQuickResults([]);
-    setOpen(false);
-    inputRef.current?.focus();
-  }
-
-  const isExpanded = open && quickResults.length > 0;
-  const activeId = isExpanded && activeIndex >= 0 ? `global-search-result-${activeIndex}` : undefined;
-
-  return (
-    <div ref={containerRef} className="relative w-full max-w-md">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" aria-hidden="true" />
-        <label htmlFor="global-search" className="sr-only">{t("searchPlaceholder")}</label>
-        <input
-          ref={inputRef}
-          id="global-search"
-          type="search"
-          role="combobox"
-          aria-expanded={isExpanded}
-          aria-controls="global-search-listbox"
-          aria-autocomplete="list"
-          aria-activedescendant={activeId}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={() => { if (quickResults.length > 0) setOpen(true); }}
-          placeholder={t("searchPlaceholder")}
-          className="w-full h-[36px] pl-9 pr-8 text-[13px] bg-[#f8fafc] border border-[#e2e8f0] rounded-[8px] text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#1e64c8] focus:shadow-[0_0_0_3px_#e8f0fc] transition-shadow"
-        />
-        {query && (
-          <button
-            type="button"
-            onClick={handleClear}
-            aria-label={loading ? `${tc("search")}…` : tc("close")}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#334155]"
-          >
-            {loading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <X className="h-3.5 w-3.5" />
-            )}
-          </button>
-        )}
-      </div>
-
-      {isExpanded && (
-        <ul
-          id="global-search-listbox"
-          role="listbox"
-          aria-label="Search results"
-          className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-[#e2e8f0] rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.08)] overflow-hidden list-none m-0 p-0"
-        >
-          {quickResults.map((r, idx) => (
-            <li
-              key={r.id + r.kind}
-              id={`global-search-result-${idx}`}
-              role="option"
-              aria-selected={idx === activeIndex}
-              className={cn(
-                "flex items-start gap-3 px-3 py-2.5 cursor-pointer transition-colors",
-                idx === activeIndex ? "bg-[#e8f0fc]" : "hover:bg-[#f8fafc]"
-              )}
-              onMouseEnter={() => setActiveIndex(idx)}
-              onMouseDown={(e) => { e.preventDefault(); handleSelect(r.href); }}
-            >
-              <div
-                aria-hidden="true"
-                className={cn(
-                  "w-[34px] h-[34px] rounded-[8px] flex items-center justify-center flex-shrink-0",
-                  r.kind === "asset" ? "bg-[#e8f0fc]" : "bg-[#f1f5f9]"
-                )}
-              >
-                {r.kind === "asset" ? (
-                  <Package className="h-4 w-4 text-[#1e64c8]" />
-                ) : (
-                  <MapPin className="h-4 w-4 fill-[#1e64c8] stroke-[#1e64c8]" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[13.5px] font-semibold text-[#0f172a] truncate">{r.title}</p>
-                {r.subtitle && (
-                  <p className="text-[12px] text-[#64748b] truncate">{r.subtitle}</p>
-                )}
-              </div>
-            </li>
-          ))}
-          <li role="presentation" className="border-t border-[#e2e8f0] px-3 py-2 bg-[#f8fafc]">
-            <button
-              type="button"
-              className="text-xs text-[#1e64c8] hover:underline w-full text-left"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                setOpen(false);
-                router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-              }}
-            >
-              See all results for &quot;{query}&quot; →
-            </button>
-          </li>
-        </ul>
-      )}
-    </div>
-  );
-}
-
-export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: HeaderUser; appTitle?: string; logoUrl?: string | null }) {
+export function Header({ user, appTitle, logoUrl }: { user: HeaderUser; appTitle: string; logoUrl: string | null }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const initials = getInitials(user.name, user.email);
 
-  const visibleAdminItems = ADMIN_NAV.filter(
-    (item) => user.role === "ADMIN" || (item.minRole === "MAINTAINER" && user.role === "MAINTAINER")
-  );
-  const isAdminOrEditor = user.role === "ADMIN" || user.role === "EDITOR" || user.role === "MAINTAINER";
+  const visibleAdminItems = ADMIN_NAV.filter((item) => item.allowed(user.role));
   const isInAdmin = pathname.startsWith("/admin");
 
   return (
-    <header className="h-[56px] border-b border-[#e2e8f0] flex items-center gap-3 px-4 bg-white flex-shrink-0 z-30">
+    <header className="h-[56px] border-b border-border flex items-center gap-3 px-4 bg-card flex-shrink-0 z-30">
       {/* Logo — mobile only (sidebar is hidden on mobile) */}
       <Link href="/" className="flex items-center gap-1.5 mr-1 lg:hidden flex-shrink-0">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="h-5 w-5 object-contain flex-shrink-0" />
         ) : (
-          <Monitor className="h-5 w-5 text-[#1e64c8] flex-shrink-0" strokeWidth={2} />
+          <Monitor className="h-5 w-5 text-primary flex-shrink-0" strokeWidth={2} />
         )}
-        <span className="font-bold text-[16px] text-[#0f172a]">{appTitle}</span>
+        <span className="font-bold text-[16px] text-foreground">{appTitle}</span>
       </Link>
 
-      {/* Search bar */}
       <div className="flex-1">
         <SearchBar />
       </div>
@@ -336,7 +98,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
           size="sm"
           className={cn(
             "text-[13px] h-[34px] px-[14px] rounded-[6px] gap-1.5 hidden sm:flex",
-            pathname.startsWith("/reports") && "bg-[#e8f0fc] text-[#1e64c8]"
+            pathname.startsWith("/reports") && "bg-primary-tint text-primary"
           )}
           asChild
         >
@@ -346,7 +108,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
           </Link>
         </Button>
 
-        {isAdminOrEditor && (
+        {visibleAdminItems.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -354,8 +116,8 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
                 size="sm"
                 aria-label={t("administration")}
                 className={cn(
-                  "text-[13px] h-[34px] px-[14px] rounded-[6px] border-[#e2e8f0] gap-1.5",
-                  isInAdmin && "bg-[#e8f0fc] border-[#1e64c8] text-[#1e64c8]"
+                  "text-[13px] h-[34px] px-[14px] rounded-[6px] border-border gap-1.5",
+                  isInAdmin && "bg-primary-tint border-primary text-primary"
                 )}
               >
                 <ShieldCheck className="h-4 w-4" aria-hidden="true" />
@@ -363,7 +125,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-              <DropdownMenuLabel className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.08em]">
+              <DropdownMenuLabel className="text-[10px] font-semibold text-subtle uppercase tracking-[0.08em]">
                 {t("administration")}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -373,7 +135,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
                     href={item.href}
                     className={cn(
                       "flex items-center gap-2 cursor-pointer text-[13px]",
-                      pathname.startsWith(item.href) && "font-medium text-[#1e64c8]"
+                      pathname.startsWith(item.href) && "font-medium text-primary"
                     )}
                   >
                     {item.icon}
@@ -385,16 +147,14 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
           </DropdownMenu>
         )}
 
-        {/* Language switcher */}
         <LanguageSwitcher />
 
-        {/* Avatar + user menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              aria-label={`Account menu for ${user.name ?? user.email ?? "user"}`}
-              className="w-8 h-8 rounded-full bg-[#1e64c8] text-white text-[13px] font-semibold flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1e64c8]"
+              aria-label={t("accountMenu", { name: user.name ?? user.email ?? "" })}
+              className="w-8 h-8 rounded-full bg-primary text-white text-[13px] font-semibold flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
             >
               <span aria-hidden="true">{initials}</span>
             </button>
@@ -402,8 +162,8 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
           <DropdownMenuContent align="end" className="w-52 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
             <DropdownMenuLabel>
               <div className="text-[13px] font-medium">{user.name}</div>
-              <div className="text-[12px] text-[#64748b] font-normal">{user.email}</div>
-              <div className="text-[11px] text-[#64748b] font-normal mt-0.5">{user.role}</div>
+              <div className="text-[12px] text-muted-foreground font-normal">{user.email}</div>
+              <div className="text-[11px] text-muted-foreground font-normal mt-0.5">{user.role}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -418,7 +178,7 @@ export function Header({ user, appTitle = "SAM", logoUrl = null }: { user: Heade
                   <KeyRound className="h-4 w-4" />
                   {t("twoFactorAuth")}
                   {user.totpEnabled && (
-                    <span className="ml-auto text-xs text-green-600">On</span>
+                    <span className="ml-auto text-xs text-green-600">{t("twoFactorOn")}</span>
                   )}
                 </Link>
               </DropdownMenuItem>

@@ -1,84 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { runReport } from "@/lib/report-engine";
-import { reportDefinitionSchema } from "@/lib/report-schema";
-import { isLocationReport } from "@/lib/report-types";
-import type { ReportDefinition, ColumnKey } from "@/lib/report-types";
+import { runReport } from "@/lib/reports/engine";
+import { parseReportDefinition } from "@/lib/schemas/report";
+import { csvDownload, notFoundResponse } from "@/lib/route-helpers";
+import { generateReportCsv } from "@/lib/csv/export";
+import { logAudit } from "@/lib/audit";
 
-const COLUMN_LABELS: Record<ColumnKey, string> = {
-  model: "Model",
-  serialNumber: "Serial Number",
-  hostname: "Hostname",
-  type: "Type",
-  manufacturer: "Manufacturer",
-  location: "Location",
-  installationDate: "Installation Date",
-  invoiceDate: "Invoice Date",
-  invoiceNumber: "Invoice Number",
-  notes: "Notes",
-  lastChanged: "Last Modified",
-  supplier: "Supplier",
-  criticality: "Criticality",
-  endOfSupportDate: "End of Support",
-};
-
-function escapeCell(v: string | null | undefined): string {
-  const s = v ?? "";
-  return s.includes(",") || s.includes('"') || s.includes("\n")
-    ? `"${s.replace(/"/g, '""')}"`
-    : s;
-}
-
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const report = await prisma.report.findUnique({ where: { id } });
-  if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!report) return notFoundResponse("Report");
 
-  let definition: ReportDefinition;
-  try {
-    definition = reportDefinitionSchema.parse(JSON.parse(report.definition));
-  } catch {
-    return NextResponse.json({ error: "Report definition is invalid" }, { status: 422 });
+  const definition = parseReportDefinition(report.definition);
+  if (!definition) {
+    return NextResponse.json({ error: "Report definition is invalid." }, { status: 422 });
   }
 
-  const result = await runReport(definition);
+  // Uncapped: a download must hold every matching row, not the on-screen cap.
+  const csv = generateReportCsv(definition, await runReport(definition, { capRows: false }));
+  const filename = `${report.name.replace(/[^a-z0-9]/gi, "_")}.csv`;
 
-  let csv: string;
-  if (isLocationReport(definition) && result.source === "location") {
-    const header = ["Campus", "Building", "Room", "FI number", ...result.itemColumns.map((c) => c.name)].join(",");
-    const csvRows = result.rows.map((row) =>
-      [
-        escapeCell(row.campus),
-        escapeCell(row.building),
-        escapeCell(row.name),
-        escapeCell(row.fiNumber),
-        ...result.itemColumns.map((c) => {
-          const s = row.items[c.id];
-          if (s?.filled) return escapeCell(`Filled${s.date ? ` (${s.date})` : ""}`);
-          return escapeCell(s?.date ? `Overdue (${s.date})` : "Not filled");
-        }),
-      ].join(",")
-    );
-    csv = [header, ...csvRows].join("\n");
-  } else if (!isLocationReport(definition) && result.source === "asset") {
-    const cols = definition.columns;
-    const header = cols.map((c) => COLUMN_LABELS[c]).join(",");
-    const csvRows = result.rows.map((row) =>
-      cols.map((c) => escapeCell(row[c] as string | null)).join(",")
-    );
-    csv = [header, ...csvRows].join("\n");
-  } else {
-    csv = "";
-  }
-
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${report.name.replace(/[^a-z0-9]/gi, "_")}.csv"`,
-    },
+  await logAudit({
+    session,
+    req,
+    action: "EXPORT",
+    entityType: "Report",
+    entityId: report.id,
+    entityName: report.name,
+    detail: { filename },
   });
+
+  return csvDownload(csv, filename);
 }

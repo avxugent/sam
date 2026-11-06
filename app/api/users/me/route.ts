@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { authIncludingPendingSteps } from "@/lib/auth";
+import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import bcrypt from "bcryptjs";
+import { hashPassword } from "@/lib/passwords";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { LOCATION_TABS, THEMES } from "@/lib/users/preferences";
+import type { Prisma } from "@/generated/prisma/client";
 
 const schema = z.object({
   name: z.string().min(1).max(128).optional(),
-  currentPassword: z.string().optional(),
+  currentPassword: z.string().max(128).optional(),
   newPassword: z.string().min(8).max(128).optional(),
-  confirmPassword: z.string().optional(),
-  locationDefaultTab: z.enum(["assets", "sublocations"]).optional(),
-  theme: z.enum(["light", "dark", "system"]).optional(),
+  confirmPassword: z.string().max(128).optional(),
+  locationDefaultTab: z.enum(LOCATION_TABS).optional(),
+  theme: z.enum(THEMES).optional(),
 }).superRefine(({ newPassword, confirmPassword }, ctx) => {
   if (newPassword && newPassword !== confirmPassword) {
     ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: "Passwords do not match." });
@@ -19,26 +24,32 @@ const schema = z.object({
 });
 
 export async function GET() {
-  const session = await auth();
+  const session = await authIncludingPendingSteps();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // The forced password change is completed here; no other pending login step is.
+  const incomplete = await signInIncompleteResponse(session, ["password-change"]);
+  if (incomplete) return incomplete;
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { id: true, name: true, email: true, role: true, provider: true, locationDefaultTab: true, theme: true },
   });
-  if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
+  if (!user) return notFoundResponse("User");
 
   return NextResponse.json(user);
 }
 
-export async function PATCH(req: NextRequest) {
-  const session = await auth();
+export async function PUT(req: NextRequest) {
+  const session = await authIncludingPendingSteps();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // The forced password change is completed here; no other pending login step is.
+  const incomplete = await signInIncompleteResponse(session, ["password-change"]);
+  if (incomplete) return incomplete;
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const { name, currentPassword, newPassword, locationDefaultTab, theme } = parsed.data;
@@ -47,9 +58,9 @@ export async function PATCH(req: NextRequest) {
     where: { id: session.user.id },
     select: { passwordHash: true, provider: true },
   });
-  if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
+  if (!user) return notFoundResponse("User");
 
-  const updateData: Record<string, unknown> = {};
+  const updateData: Prisma.UserUpdateInput = {};
 
   if (name !== undefined) {
     updateData.name = name;
@@ -77,7 +88,7 @@ export async function PATCH(req: NextRequest) {
     if (!valid) {
       return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
     }
-    updateData.passwordHash = await bcrypt.hash(newPassword, 13);
+    updateData.passwordHash = await hashPassword(newPassword);
     updateData.mustChangePassword = false;
   }
 
@@ -103,7 +114,7 @@ export async function PATCH(req: NextRequest) {
       action: "UPDATE",
       entityType: "User",
       entityId: updated.id,
-      entityName: updated.email ?? undefined,
+      entityName: updated.email,
       detail: { event: auditEvents.join(", ") },
     });
   }

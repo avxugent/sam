@@ -1,10 +1,11 @@
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
-import { auth } from "@/lib/auth";
+import { authIncludingPendingSteps } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TwoFactorChallenge } from "@/components/auth/two-factor-challenge";
 
 export default async function TwoFactorPage() {
-  const session = await auth();
+  const session = await authIncludingPendingSteps();
   const hasPasskey = session?.user
     ? (await prisma.passkey.count({ where: { userId: session.user.id } })) > 0
     : false;
@@ -16,4 +17,7 @@ export default async function TwoFactorPage() {
   );
 }
 
-export const metadata = { title: "Two-Factor Authentication – SAM" };
+export async function generateMetadata() {
+  const t = await getTranslations("auth");
+  return { title: t("twoFactorTitle") };
+}

@@ -7,19 +7,23 @@
  * /api/auth/passkey/registration-verify.
  */
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { authIncludingPendingSteps } from "@/lib/auth";
+import { signInIncompleteResponse } from "@/lib/two-factor/sign-in-steps";
 import { prisma } from "@/lib/prisma";
-import { buildRegistrationOptions, setChallengeCookie } from "@/lib/webauthn";
+import { buildRegistrationOptions, setChallengeCookie } from "@/lib/two-factor/webauthn";
+import { notFoundResponse } from "@/lib/route-helpers";
 
 export async function POST() {
-  const session = await auth();
+  const session = await authIncludingPendingSteps();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const incomplete = await signInIncompleteResponse(session, ["2fa-setup"]);
+  if (incomplete) return incomplete;
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { id: true, provider: true, email: true, name: true },
   });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (!user) return notFoundResponse("User");
   if (user.provider !== "credentials") {
     return NextResponse.json(
       { error: "Passkeys are only available for local accounts." },

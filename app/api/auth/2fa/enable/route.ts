@@ -7,21 +7,26 @@
  * Body: { code: string }
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth, signIn } from "@/lib/auth";
+import { authIncludingPendingSteps } from "@/lib/auth";
+import { signInIncompleteResponse, sessionMismatchResponse } from "@/lib/two-factor/sign-in-steps";
+import { upgradeSession } from "@/lib/auth-session-upgrade";
 import { prisma } from "@/lib/prisma";
-import { verifyTotpCode } from "@/lib/totp";
+import { verifyTotpCode } from "@/lib/two-factor/totp";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
+import { invalidInput, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({ code: z.string().min(6).max(6) });
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
+  const session = await authIncludingPendingSteps();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const incomplete = await signInIncompleteResponse(session, ["2fa-setup"]);
+  if (incomplete) return incomplete;
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid code." }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid code.");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -62,22 +67,15 @@ export async function POST(req: NextRequest) {
     action: "UPDATE",
     entityType: "User",
     entityId: session.user.id,
-    entityName: session.user.email ?? undefined,
+    entityName: session.user.email,
     detail: { event: "2FA enabled" },
   });
 
   // When this is a forced-setup session (needs2FASetup=true in JWT), re-issue a
   // clean session so the proxy no longer redirects to /login/setup-2fa.
   // Mirrors what /api/auth/2fa/verify does for the needs2FA flag.
-  if ((session as { needs2FASetup?: boolean }).needs2FASetup) {
-    try {
-      await signIn("credentials-2fa-verified", {
-        userId: session.user.id,
-        redirect: false,
-      });
-    } catch {
-      // next-auth may throw NEXT_REDIRECT internally — safe to ignore.
-    }
+  if (session.needs2FASetup && !(await upgradeSession(session.user.id, "totp"))) {
+    return sessionMismatchResponse();
   }
 
   return NextResponse.json({ ok: true, message: "2FA has been enabled." });

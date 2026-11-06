@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { effectiveCriticality, CRITICALITY_VALUES } from "@/lib/criticality";
+import { effectiveCriticality, CRITICALITY_VALUES, parseCriticality } from "@/lib/criticality";
 
 describe("effectiveCriticality()", () => {
   it("per-asset override wins over the type default", () => {
@@ -20,5 +20,17 @@ describe("effectiveCriticality()", () => {
 describe("CRITICALITY_VALUES", () => {
   it("contains the four levels in ascending order", () => {
     expect(CRITICALITY_VALUES).toEqual(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
+  });
+});
+
+describe("parseCriticality()", () => {
+  it("returns the level for an enum member", () => {
+    expect(parseCriticality("HIGH")).toBe("HIGH");
+  });
+
+  it("returns null for anything else (case-sensitive)", () => {
+    expect(parseCriticality("high")).toBeNull();
+    expect(parseCriticality("URGENT")).toBeNull();
+    expect(parseCriticality("")).toBeNull();
   });
 });

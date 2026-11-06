@@ -1,0 +1,165 @@
+/**
+ * Prometheus scrape target template rendering engine.
+ *
+ * Template format: newline-separated key=value pairs where the key is a
+ * Prometheus special label (e.g. __address__, __metrics_path__, __param_*).
+ *
+ * Supported substitution variables in values:
+ *   {hostname_fqdn}   — asset.hostname verbatim
+ *   {serial}          — asset.serialNumber
+ *   {model}           — asset.model
+ *   {manufacturer}    — manufacturer name
+ *   {fi_number}       — location FI number (deepest in ancestor chain)
+ *   {vault_path}      — asset.vaultPath (a non-secret reference, NOT the secret)
+ *
+ * Credentials are never rendered into the template. The SD output carries only
+ * the {vault_path} reference; the external exporter reads the secret from Vault
+ * itself and uses it to scrape the device.
+ *
+ * Example template (Pearl recorder exporter):
+ *   __address__=https://pearlexporterdev.ugent.be
+ *   __metrics_path__=/probe
+ *   __param_target=https://{hostname_fqdn}
+ *   __param_vault_path={vault_path}
+ */
+
+export type TemplateVars = {
+  hostname_fqdn: string;
+  serial: string;
+  model: string;
+  manufacturer: string;
+  fi_number: string;
+  vault_path: string;
+};
+
+/**
+ * Substitutes all known variables into a single value string.
+ * Unknown {placeholders} are left as-is.
+ */
+function substituteValue(value: string, vars: TemplateVars): string {
+  return value
+    .replace(/\{hostname_fqdn\}/g, vars.hostname_fqdn)
+    .replace(/\{serial\}/g, vars.serial)
+    .replace(/\{model\}/g, vars.model)
+    .replace(/\{manufacturer\}/g, vars.manufacturer)
+    .replace(/\{fi_number\}/g, vars.fi_number)
+    .replace(/\{vault_path\}/g, vars.vault_path);
+}
+
+export type RenderedTemplate = {
+  /** The rendered __label__: value map */
+  labels: Record<string, string>;
+};
+
+/**
+ * Parses and renders a scrape target template into a Prometheus label map.
+ *
+ * Blank lines and lines without "=" are silently ignored.
+ * Lines starting with "#" are treated as comments.
+ *
+ * @param template   The raw template string stored on the AssetType
+ * @param vars       Asset field values for substitution
+ */
+export function renderScrapeTemplate(
+  template: string,
+  vars: TemplateVars
+): RenderedTemplate {
+  const labels: Record<string, string> = {};
+
+  for (const rawLine of template.split("\n")) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+
+    const eqIdx = line.indexOf("=");
+    if (eqIdx === -1) continue;
+
+    const key = line.slice(0, eqIdx).trim();
+    const rawValue = line.slice(eqIdx + 1); // do NOT trim — value may be a URL
+
+    if (!key) continue;
+
+    labels[key] = substituteValue(rawValue, vars);
+  }
+
+  return { labels };
+}
+
+/**
+ * Validates a template string and returns a list of any structural errors.
+ * The server-side gate for saving a template (asset types and their
+ * overrides), and the editor's live preview.
+ */
+export function validateTemplate(template: string): string[] {
+  const errors: string[] = [];
+  const seenKeys = new Set<string>();
+
+  for (const [lineNo, rawLine] of template.split("\n").entries()) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+
+    const eqIdx = line.indexOf("=");
+    if (eqIdx === -1) {
+      errors.push(`Line ${lineNo + 1}: Missing "=" separator — "${line}"`);
+      continue;
+    }
+
+    const key = line.slice(0, eqIdx).trim();
+    if (!key) {
+      errors.push(`Line ${lineNo + 1}: Empty key`);
+      continue;
+    }
+
+    if (seenKeys.has(key)) {
+      errors.push(`Line ${lineNo + 1}: Duplicate key "${key}"`);
+    }
+    seenKeys.add(key);
+  }
+
+  return errors;
+}
+
+export type ScrapeTemplateSource = {
+  scrapeTargetTemplate: string | null;
+  manufacturerTemplates: { manufacturerId: string; scrapeTargetTemplate: string }[];
+  modelTemplates: { manufacturerId: string; model: string; scrapeTargetTemplate: string }[];
+};
+
+/**
+ * Resolves the effective scrape template for an asset, most specific wins:
+ *   1. AssetTypeModelTemplate  (matches manufacturerId AND model, case/whitespace-insensitive)
+ *   2. AssetTypeManufacturerTemplate (matches manufacturerId)
+ *   3. AssetType.scrapeTargetTemplate (the type's default)
+ * Returns null if none apply.
+ */
+export function resolveScrapeTemplate(
+  type: ScrapeTemplateSource,
+  manufacturerId: string | null,
+  model: string | null
+): string | null {
+  const normalizedModel = model?.trim().toLowerCase() ?? "";
+
+  if (manufacturerId && normalizedModel) {
+    const modelOverride = type.modelTemplates.find(
+      (t) =>
+        t.manufacturerId === manufacturerId &&
+        t.model.trim().toLowerCase() === normalizedModel
+    );
+    if (modelOverride) return modelOverride.scrapeTargetTemplate;
+  }
+
+  if (manufacturerId) {
+    const manufacturerOverride = type.manufacturerTemplates.find(
+      (t) => t.manufacturerId === manufacturerId
+    );
+    if (manufacturerOverride) return manufacturerOverride.scrapeTargetTemplate;
+  }
+
+  return type.scrapeTargetTemplate;
+}
+
+const PLACEHOLDERS: (keyof TemplateVars)[] = ["hostname_fqdn", "serial", "model", "manufacturer", "fi_number", "vault_path"];
+
+/** The variable names used in the template (for the UI preview). */
+export function getUsedVariables(template: string): string[] {
+  return PLACEHOLDERS.filter((ph) => template.includes(`{${ph}}`));
+}

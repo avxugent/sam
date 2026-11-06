@@ -1,63 +1,38 @@
+import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { buildLocationPathsFromRows } from "@/lib/location-path";
-import { reportDefinitionSchema } from "@/lib/report-schema";
-import { ReportBuilder } from "@/components/reports/ReportBuilder";
-import { BarChart2, ChevronLeft } from "lucide-react";
-import Link from "next/link";
+import { loadReportBuilderOptions } from "@/lib/reports/builder-options";
+import { parseReportDefinition } from "@/lib/schemas/report";
+import { ReportBuilder } from "@/components/reports/report-builder";
+import { BarChart2 } from "lucide-react";
+import { canEdit } from "@/lib/permissions";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function EditReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
+  const t = await getTranslations("report");
   if (!session?.user) redirect("/login");
-  if (session.user.role === "VIEWER") redirect(`/reports/${id}`);
+  if (!canEdit(session.user.role)) redirect(`/reports/${id}`);
 
   const report = await prisma.report.findUnique({ where: { id } });
   if (!report) notFound();
 
-  const parsed = reportDefinitionSchema.safeParse(JSON.parse(report.definition));
-  const definition = parsed.success ? parsed.data : undefined;
+  const definition = parseReportDefinition(report.definition) ?? undefined;
 
-  const [assetTypes, manufacturers, locations, workLogItems, suppliers] = await Promise.all([
-    prisma.assetType.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.manufacturer.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.location.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, parentId: true } }),
-    prisma.workLogItem.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
-    prisma.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-  ]);
-
-  const locationPaths = buildLocationPathsFromRows(locations, " › ");
-  const locationScopeOptions = locations.map((l) => ({ id: l.id, name: locationPaths.get(l.id) ?? l.name }));
+  const options = await loadReportBuilderOptions();
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-          <BarChart2 className="h-4 w-4 text-[#1e64c8]" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <Link href={`/reports/${id}`} className="text-[12px] text-[#64748b] hover:text-[#1e64c8] flex items-center gap-0.5">
-              <ChevronLeft className="h-3 w-3" />
-              {report.name}
-            </Link>
-          </div>
-          <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">Edit Report</h1>
-        </div>
-      </div>
+      <PageHeader icon={BarChart2} title={t("editReport")} back={{ href: `/reports/${id}`, label: report.name }} />
 
       <ReportBuilder
         reportId={id}
         initialName={report.name}
         initialDescription={report.description ?? ""}
         initialDefinition={definition}
-        assetTypes={assetTypes}
-        manufacturers={manufacturers}
-        locations={locations}
-        locationScopeOptions={locationScopeOptions}
-        workLogItems={workLogItems}
-        suppliers={suppliers}
+        {...options}
       />
     </div>
   );

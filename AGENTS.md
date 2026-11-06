@@ -21,6 +21,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | Styling | tailwindcss | v4 (via `@import "tailwindcss"`) |
 | Validation | zod | v4 |
 | Forms | react-hook-form | v7 |
+| i18n | next-intl | v4 |
 
 ---
 
@@ -53,6 +54,12 @@ Configuration lives in `app/globals.css` using `@theme inline { … }` and CSS v
 ### `serverExternalPackages` replaces `experimental.serverComponentsExternalPackages`
 Currently used for `bcryptjs`. If you add native Node modules used in server components, add them here.
 
+### `overrides.postcss` in package.json is deliberate
+Next pins postcss exactly (8.5.23) while Tailwind and Vite accept newer; the `>=8.5.10` override makes npm install one shared copy (and keeps out versions with the pre-8.5.10 advisory). Remove it only if `npm ls postcss` still shows a single version afterwards.
+
+### `overrides.@typescript-eslint/typescript-estree.minimatch` is deliberate
+typescript-estree pins `minimatch@^10.2.2`, whose latest 10.x is inside the GHSA-g3hv-75wg-m249 range (7.0.0 – 11.0.0); the scoped override installs a patched 11.x for it so `npm audit --audit-level=moderate` (a CI step) passes. Drop it once typescript-estree depends on a patched minimatch itself.
+
 ### `output: "standalone"` is enabled
 The production build produces `.next/standalone/server.js`. The Dockerfile relies on this. Never set `output` to anything else.
 
@@ -62,31 +69,71 @@ The production build produces `.next/standalone/server.js`. The Dockerfile relie
 
 ```
 app/
-  (auth)/          — login page (outside dashboard layout)
+  (auth)/          — login/ and its steps (2fa, setup-2fa, change-password), outside the dashboard layout
   (dashboard)/     — protected layout: sidebar + top nav header
-    admin/         — admin sub-pages (users, asset-types, manufacturers, import)
+    admin/         — admin sub-pages (users, asset-types, manufacturers, models, suppliers, import, export, audit, compliance, settings)
     locations/     — location detail + asset detail pages
+    stock/         — stock items
+    decommissioned/ — decommissioned assets
+    in-repair/     — assets sent for repair
+    reports/       — saved report builder + viewer
+    settings/      — per-user profile (password, 2FA, passkeys)
     search/        — full-text search results
   api/             — all API route handlers
   setup/           — first-run wizard (no auth required)
+  actions/locale.ts — setLocale, the only server action: writes the NEXT_LOCALE cookie (no data, no auth check) for the header language switcher; everything else goes through API routes
+i18n/              — next-intl: locales.ts (supported locales en/nl, default, cookie name), request.ts (per-request locale from the cookie + message loading; wired in next.config.ts)
+messages/          — en.json / nl.json, nested keys per area; add every key to both files
 proxy.ts           — NextAuth session guard (replaces middleware.ts)
-lib/               — shared server utilities
-  auth.ts          — NextAuth config + ssoEnabled flag
+lib/               — shared code; modules importing next/server are route-handler helpers (server only)
+                     (root files such as criticality.ts, mac-address.ts, hostname.ts and stock-metadata.ts are cross-domain value rules shared by assets, stock, import and compliance; lib/assets/ holds only asset lifecycle code)
+  auth.ts          — NextAuth config + ssoEnabled flag; auth-session-upgrade.ts: upgradeSession(), how the 2FA routes re-issue the session after a second factor (lib/two-factor holds only primitives and never imports lib/auth)
+  permissions.ts   — role predicates (isAdmin, canManageCatalog, canEdit); client-safe
+  route-helpers.ts — readJsonBody, invalidInput, Prisma error checks, notFoundResponse / nameTakenResponse / unknownReferenceResponse, csvDownload
   prisma.ts        — PrismaClient singleton
-  vault.ts         — HashiCorp Vault KV client (native fetch, no extra deps)
-  scrape-template.ts — Prometheus scrape URL template renderer
-  location-path.ts — recursive CTE ancestor resolver
-  prometheus-auth.ts — Bearer token check for /api/prometheus/*
+  uploads/         — storage.ts: upload storage driver (local filesystem or S3) + attemptStorage / attemptStorageRead; policy.ts: attachment allowlists and size cap, content-vs-declared-type check, safeFilename
+  passwords.ts     — hashPassword / BCRYPT_COST (server; also used by scripts/reset-password.mjs)
+  app-settings.ts  — AppSetting key/value table: readSettings / writeSettings, plus typed groups (compliance, general, branding, export) that own each key, default and decoding
+  criticality.ts   — criticality levels, parseCriticality, effectiveCriticality; client-safe
+  dates.ts         — toIsoDay / formatDate; no dependencies (used by server exports and the UI)
+  users/           — preferences.ts: theme / location-tab value sets (client-safe); providers.ts: AUTH_PROVIDERS / parseAuthProvider, how an account signs in (client-safe); names.ts: names behind soft user references (owner, decommissioned/sent-for-repair by)
+  stock-metadata.ts — StockItem.metadata JSON (an asset's identity while in stock); client-safe
+  mac-address.ts   — canonical MAC address form + validation; client-safe
+  url-templates.ts — hostname / MAC / location link templates
+  utils.ts         — cn(), formatFileSize, getInitials; client-safe
+  api-client.ts    — apiFetch / jsonBody / downloadFile / saveBlob and apiErrorMessage (the error-body formatter) for client components; client-safe
+  assets/          — lifecycle rules (pure), state transitions (writes + audit), history snapshot keys and change labels (audit ↔ timeline contract), assetLabel (display name), BulkResult / BulkSkipReason of the bulk endpoints (bulk.ts, client-safe), input checks + nested rows, shared response includes, creation defaults, type icons
+  audit/           — logAudit (index), audit diffs, login-failure audit, syslog forwarding
+  branding/        — logo/favicon/background upload + serve, background mode
+  catalog/         — merge + rename-conflict protocol (merge routes, rename routes, admin merge UI)
+  compliance/      — NIS2 and hostname compliance reports
+  csv/             — CSV cell/parse core, asset CSV columns (shared by import, export and the import page), inventory export, import row parsing, import lookups, upload reading
+  inventory-snapshot.ts — JSON inventory snapshot (export route + backup script)
+  hostname.ts      — hostname pattern/FQDN rules
+  integrations/    — HashiCorp Vault KV client, read-only Jira client, Nominatim geocoding (native fetch with a 10 s timeout, never throw; lookups report found / missing / unavailable), Grafana Explore link (GRAFANA_URL)
+  locations/       — path.ts: recursive-CTE and other DB tree queries (server); tree.ts: nesting/flattening/filtering a location tree, the in-memory ancestor chain and the FI-number / path-string helpers (client-safe); include.ts: detail/page includes and LocationPageData; asset-quantities.ts: installed-unit counts for the location page
+  models/          — model clustering + name similarity
+  prometheus/      — sam_* labels, scrape template renderer, per-brand/model template overrides
+  rate-limit/      — in-memory rate limiter (index) + client IP key and 429 response (http)
+  reports/         — report engine + definition types
+  schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …), and ids.ts (idSchema / MAX_ID_LENGTH for every body or query id); no DB code
+  suppliers/       — default-window rules and conflict lookup
+  tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), session-or-token, session-or-export token
+  two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy, sign-in steps, signing key (NEXTAUTH_SECRET, fails closed)
+  stock/, work-logs/ — each only an include.ts: the relations a stock item row / a work-log entry is returned with
 components/
-  layout/          — Sidebar (locations only) + Header (search + admin + user)
+  layout/          — Sidebar (locations only) + Header (search + admin + user), theme provider and sync
   ui/              — shadcn-style primitives (Button, Input, Dialog, …)
-  assets/          — AssetFormDialog, AssetTable, AssetDetailClient
+  assets/          — AssetFormDialog, AssetTable, AssetDetailClient, decommissioned/in-repair tables
+  inventory/       — widgets shared by assets, stock and locations (location pickers, manufacturer + model autocomplete, MAC fields, bulk action dialog + results)
   locations/       — LocationFormDialog, LocationDetailClient, LocationMap, CoverImagePicker
   attachments/     — AttachmentGallery
-  settings/        — LookupListManager, AssetTypesClient, UsersClient
+  admin/           — clients for every /admin page: users and audit log at the top; catalog/ (asset types, manufacturers, models, suppliers, presets, template overrides, merge protocol UI, drilldown), settings/ (branding, general, compliance, work-log items), data/ (CSV import, export), compliance/ (hostname + NIS2 dashboards)
+  settings/        — ProfileClient (per-user settings)
+  stock/           — stock item table and dialogs
+  reports/         — report builder, viewers, list
   search/          — SearchResults
-  import/          — CsvImportClient
-  auth/            — LoginClient
+  auth/            — login, forced password change / 2FA setup, 2FA challenge, 2FA and passkey settings
 prisma/
   schema.prisma    — MySQL schema, source of truth
 ```
@@ -99,7 +146,7 @@ prisma/
 - **Required column with a non-DB-level default** (`@default(cuid())`, `@default(uuid())`) on a table that may already have rows: the raw diff Prisma generates will be a plain `NOT NULL` column add, which fails against a populated table. Run `npx prisma migrate dev --create-only` instead of accepting the auto-applied migration, then hand-edit `migration.sql` into three steps — add nullable, `UPDATE ... SET col = UUID() WHERE col IS NULL` to backfill, then `ALTER TABLE ... MODIFY col ... NOT NULL`. Worked example: `prisma/migrations/20260930120000_add_asset_lineage_and_repair_status/migration.sql`.
 - After a migration, Prisma regenerates the client automatically. If it does not, run `npx prisma generate`.
 - Never edit or delete an already-committed migration file — it's a permanent, ordered record. Fix forward with a new migration instead.
-- Raw SQL is used in two places: recursive CTE for asset counts (`lib/`) and the `getAllDescendantIds` helper. Use `prisma.$queryRaw` with tagged template literals — never string concatenation.
+- Raw SQL is used only for the recursive location-tree CTEs in `lib/locations/path.ts` (ancestors, descendants, deepest-first subtree for deletes, per-location asset totals — optionally scoped to given roots, as search does). Put new tree queries there and cover them in `__tests__/integration/locations-path.int.test.ts`. Use `prisma.$queryRaw` with tagged template literals — never string concatenation.
 - MySQL returns `COUNT(...)` as `BigInt`. Always wrap with `Number(row.count)`.
 - `prisma.$transaction` callbacks receive a `Prisma.TransactionClient` — type it explicitly to avoid TypeScript errors.
 - The `fiNumber` column on `Location` has a `@unique` constraint. Duplicate inserts return Prisma error code `P2002` — catch it and return a 409.
@@ -111,9 +158,10 @@ prisma/
 - **Session strategy**: JWT, 8-hour max age.
 - **Two providers**: `Credentials` (email + bcrypt) and optionally `MicrosoftEntraID`. Entra ID is only active when all three `AUTH_MICROSOFT_ENTRA_ID_*` env vars are set. The `ssoEnabled` boolean is exported from `lib/auth.ts` and passed to the login page server component.
 - **SSO users** have `passwordHash = null`. The `Credentials` provider rejects them. The `PUT /api/users/[id]` route rejects password changes for SSO accounts.
-- **Roles**: `ADMIN > EDITOR > VIEWER`. Viewers cannot write. Editors cannot manage users/types/manufacturers. Admins can do everything.
+- **Roles**: `ADMIN > MAINTAINER > EDITOR > VIEWER` (Prisma `Role` enum; `session.user.role` is typed as `Role`). Viewers cannot write. Editors write inventory data (locations, assets, stock, work logs, reports). Maintainers additionally manage the catalog (manufacturers, models, suppliers). Admins can do everything, including users, asset types, settings, import/export and audit. Check roles only through the predicates in `lib/permissions.ts` (`isAdmin`, `canManageCatalog`, `canEdit`) — never compare role strings inline.
 - Every API route handler performs its own auth check — do not rely solely on `proxy.ts`. The proxy is a redirect guard, not an authorization boundary.
-- The Prometheus endpoints (`/api/prometheus/*`) use Bearer token auth (`PROMETHEUS_SD_TOKEN`), not session cookies. They are exempted from the proxy session redirect. Their route handlers call `checkPrometheusAuth(req)` directly.
+- `auth()` from `lib/auth.ts` returns null for a session that still owes a login step (forced password change, 2FA setup, 2FA code; a remembered device waives the code), so every route and page sees only fully signed-in users. Only `proxy.ts` and the routes and pages that complete those steps (`/api/auth/2fa/*`, `/api/auth/passkey/*` registration/authentication, `/api/users/me`, `/login/2fa`) read the session with `authIncludingPendingSteps()`, and narrow it with `signInIncompleteResponse(session, allowedSteps)`. Never export or use NextAuth's raw `auth` elsewhere.
+- The Prometheus and Grafana endpoints (`/api/prometheus/*`, `/api/grafana/*`) use Bearer token auth (`PROMETHEUS_SD_TOKEN`), not session cookies, and `/api/assets/by-hostname` accepts either. They are exempted from the proxy session redirect, as are `/api/export/*` (admin session or `EXPORT_TOKEN`, via `adminSessionOrExportToken(req)` in `lib/tokens/session-or-export.ts`) and the public `/api/branding/*` assets (logo, favicon, background, shown on the login page); the exempt handlers authenticate themselves and reject a session that still owes a login step (`signInIncompleteResponse`) (`integrationTokenResponse(req)` from `lib/tokens/integration.ts`; `sessionOrIntegrationTokenResponse(req, sessionAllowed)` from `lib/tokens/session-or-integration.ts` where a session is also accepted).
 
 ---
 
@@ -121,18 +169,23 @@ prisma/
 
 - All handlers return `NextResponse.json(...)`.
 - Auth errors: `401` for unauthenticated, `403` for insufficient role.
-- Validation errors: `400` with `{ error: string, details?: … }`.
-- Conflict (unique constraint): `409`.
+- A helper that either yields a value or the response to send back returns `{ <value> } | { error: Response }`; callers write `if ("error" in result) return result.error;` (readCsvUpload, readFormData, readMergeRequest, attemptStorage, adminSessionOrExportToken).
+- Read request bodies with `readJsonBody(req)` (malformed JSON becomes a Zod 400, not a 500) and return Zod failures with `invalidInput(parsed.error)` — `400` with `{ error: "Invalid input", details }`.
+- Error bodies are `{ error, code?, details? }`: `error` is readable English, `code` a stable id for a case the client localizes, `details` either `string[]` or the Zod flatten object. Client components call the API through `apiFetch()` from `lib/api-client.ts` (it never throws: a network failure is `{ ok: false, status: 0 }`, a body-less 500 gives `error: {}`), show `res.error` with `useApiErrorToast()` (or `apiErrorMessage()` from `lib/api-client.ts` for inline messages), and download CSV exports with `downloadFile()`. Client code never calls `fetch` directly (pass an `AbortSignal` in the init and check `signal.aborted` for superseded requests); build JSON requests with `jsonBody(method, body)`.
+- Server pages hand dates to client components as ISO strings (`toISOString()`, or `toIsoDay()` for day-only columns) — the shape the API returns, so a client list can be replaced by an `apiFetch` result without a second type.
+- Missing records: `404` only for the record named in the URL path (`notFoundResponse("Model")` → "Model not found."); an id inside the request body that names no record is invalid input — `400` with `code: "unknownReference"` (`unknownReferenceResponse()`; catch `isForeignKeyError(err)` on writes).
+- Conflict (unique constraint): `409` (`nameTakenResponse()`, or `nameConflictResponse()` for catalog renames that can offer a merge). Detect it with `isUniqueConstraintError(err)`; never map every caught error to one status — rethrow what you don't handle.
+- `DELETE` handlers return `200` with `{ ok: true }`.
 - All write endpoints validate input with Zod before touching the database.
-- Zod schemas enforce length caps on all string fields. Do not remove them.
-- Cross-field validation (e.g. hostname → MAC required) uses `.superRefine()` — the same schema is duplicated in the form component and the API route so neither can be bypassed.
+- Zod schemas enforce length caps on all string fields, including query parameters (parse `Object.fromEntries(searchParams)` with a small schema and answer `invalidInput`). Record ids use `idSchema` / `MAX_ID_LENGTH` from `lib/schemas/ids.ts`. Do not remove them.
+- Cross-field validation (e.g. hostname → MAC required) uses `.superRefine()`. Shared schemas live in `lib/schemas/` and are imported by the API routes (and by the form when no translated messages are needed); the asset form mirrors `lib/schemas/asset.ts` with translated messages, so the server check can never be bypassed.
 
 ---
 
 ## Forms and validation
 
 - Forms use `react-hook-form` with `zodResolver`.
-- The Zod schema in the form component and its mirror in the API route must stay in sync. If you change one, change the other.
+- The Zod schema in the form component and its mirror in the API route must stay in sync. Prefer importing from `lib/schemas/`; where a form keeps its own copy (translated messages), change both.
 - Use `setValue(field, value, { shouldValidate: true })` when programmatically setting values in `Select` components so errors clear immediately.
 - Call `trigger("fieldName")` when a cross-field dependency changes (e.g. when hostname changes, re-trigger MAC validation).
 - Required fields get a visible `*` marker: `<span className="text-destructive">*</span>`.
@@ -148,16 +201,16 @@ prisma/
 - Use `cn()` from `lib/utils.ts` (a `clsx` + `tailwind-merge` wrapper) for conditional class names.
 - Icons: Lucide React only. Import from `lucide-react`.
 - All dialogs use `@radix-ui/react-dialog` via the `Dialog` wrapper in `components/ui/dialog.tsx`.
-- Toast notifications use `useToast()` from `components/ui/use-toast.ts`.
+- Toast notifications use `useToast()` from `components/ui/use-toast.ts`. A failed API call is shown with `useApiErrorToast()` (`components/ui/use-api-error-toast.ts`): the server's message, or the generic fallback when the response had none.
 
 ---
 
 ## File uploads
 
-- Files are stored on the local filesystem under `UPLOAD_DIR` (default `./uploads`).
-- The upload route validates MIME type against an allowlist and the file extension against a separate allowlist (to prevent double-extension attacks like `.jpg.php`).
+- Files go through the storage driver in `lib/uploads/storage.ts`: the local filesystem under `UPLOAD_DIR` (default `./uploads`), or an S3-compatible bucket when `STORAGE_DRIVER=s3` and `S3_BUCKET` are set.
+- Upload policy lives in `lib/uploads/policy.ts`: the attachment MIME and extension allowlists (separate, to prevent double-extension attacks like `.jpg.php`), the 50 MB cap, and `contentMatchesType()` (magic bytes / no NUL in text), which branding uploads use too.
 - All file paths are resolved with `path.resolve()` and checked against the upload root with `assertSafePath()` to prevent path traversal.
-- `originalName` is sanitised (strip `\r`, `\n`, `"`, `\`) before storing in the database.
+- `originalName` goes through `safeFilename()` (`lib/uploads/policy.ts`: `\r`, `\n`, `"`, `\` become `_`, capped at 255) before storing in the database.
 - Max upload size: 50 MB.
 - In Docker, `uploads/` is a named volume — never bake uploaded files into the image.
 
@@ -168,8 +221,8 @@ prisma/
 - `/api/prometheus/sd` — HTTP Service Discovery. Returns assets with hostnames as target groups with `sam_*` labels. If the asset type has a `scrapeTargetTemplate`, it is rendered and its `__labels__` are merged in.
 - `/api/prometheus/metrics` — Prometheus text format inventory metrics. No `prom-client` dependency — the format is built as a plain string.
 - `/api/assets/by-hostname` — Grafana Infinity datasource lookup. Accepts session cookie OR Bearer token.
-- Template syntax: newline-separated `key=value` pairs. Variables: `{hostname_fqdn}`, `{serial}`, `{model}`, `{manufacturer}`, `{fi_number}`, `{vault_<key>}`. Validated server-side via `validateTemplate()` in `lib/scrape-template.ts`.
-- Vault client (`lib/vault.ts`) uses native `fetch`. Returns `null` on any error — never throws. Vault errors must not crash the SD endpoint for all targets.
+- Template syntax: newline-separated `key=value` pairs. Variables: `{hostname_fqdn}`, `{serial}`, `{model}`, `{manufacturer}`, `{fi_number}`, `{vault_path}` (the asset's Vault path reference, never the secret itself). Validated server-side via `validateTemplate()` in `lib/prometheus/scrape-template.ts`.
+- Vault client (`lib/integrations/vault.ts`) uses native `fetch`. Never throws: `readVaultSecret()` reports `found`, `missing`, `denied` or `unavailable`. It backs the Vault path check in the asset form (`/api/vault/test`, any role that can edit assets; it returns key names, never values); the SD endpoint only passes the non-secret `{vault_path}` reference and never reads Vault.
 
 ---
 
@@ -188,7 +241,8 @@ prisma/
 
 ## Docker
 
-- The `Dockerfile` uses a four-stage multi-stage build: `deps → prisma-cli → builder → runner`.
+- The `Dockerfile` uses a four-stage multi-stage build: `deps → scripts-deps → builder → runner`. `scripts-deps` installs `scripts/package.json` (the maintenance scripts' few dependencies, pinned to the root lockfile's versions — `__tests__/scripts/manifest.test.ts` checks it) into `scripts/node_modules` for the Nomad maintenance actions; it also provides the Prisma CLI used by `prisma migrate deploy`. The runner copies `lib/` and `generated/prisma/` into `scripts/` too.
+- Maintenance scripts import shared code from `lib/` (`@/lib/...`) instead of re-implementing it; run them with `node --import tsx/esm scripts/<name>.mjs` (the npm shorthands and Nomad actions do). A new dependency of a script — or of a `lib/` module a script imports — goes into `scripts/package.json` too.
 - The runner image runs as non-root user `nextjs` (uid 1001). Do not run as root.
 - `NEXT_TELEMETRY_DISABLED=1` is set at build time and runtime.
 - The standalone output (`next.config.ts`: `output: "standalone"`) is used. The entrypoint is `node server.js`.
@@ -241,6 +295,7 @@ npm test                # run all tests once
 npm run test:watch      # watch mode
 npm run test:coverage   # run with coverage report + enforce thresholds
 npm run test:ui         # open Vitest UI in browser
+npm run test:integration # opt-in: raw SQL against a real MySQL (DB_* env), see __tests__/integration/
 ```
 
 > **Always run `npm test` after making any code change** and confirm the output shows no failures before considering the task complete. A passing test run is the minimum bar — never leave tests broken.
@@ -252,11 +307,11 @@ The project requires **Node 24** (pinned via `.nvmrc`). If `npm test` fails with
 The project enforces an 80% minimum threshold on **lines, functions, branches, and statements** for all covered files. The CI pipeline fails if coverage drops below this. Run `npm run test:coverage` before pushing.
 
 Coverage is measured on:
-- `lib/**/*.ts` — all shared utilities (excluding `lib/prisma.ts` and `lib/auth.ts`)
+- `lib/**/*.ts` — all shared utilities (excluding `lib/prisma.ts`); `lib/auth.ts` is tested by capturing the config it hands to `NextAuth()` (`__tests__/lib/auth.test.ts`)
 - `app/api/**/*.ts` — route handlers that have corresponding test files
 - `components/**/*.tsx` — UI components that have corresponding test files
 
-Coverage measurement excludes infrastructure-only files (PrismaClient singleton, NextAuth config), pass-through re-exports, and complex UI-only components that are tested functionally rather than by line coverage.
+Coverage measurement excludes infrastructure-only files (the PrismaClient singleton), pass-through re-exports, and complex UI-only components that are tested functionally rather than by line coverage.
 
 ### Test file location
 

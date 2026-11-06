@@ -30,25 +30,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Hash } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
+import { FI_NUMBER_REGEX } from "@/lib/schemas/location";
+import { parseFiNumber } from "@/lib/locations/tree";
+import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
-// FI number: CC.BB.FFF.RR(R)  e.g. "14.10.100.13" or "14.10.100.013"
-// Last (room) segment may be 2 or 3 digits.
-const FI_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{2,3}$/;
+type LocationFormTranslator = ReturnType<typeof useTranslations<"locationForm">>;
 
-const schema = z.object({
-  name: z.string().min(1, "Name is required").max(255),
-  description: z.string().max(2000).optional(),
-  fiNumber: z
-    .string()
-    .regex(FI_REGEX, "Format: CC.BB.FFF.RRR (e.g. 14.10.100.013)")
-    .optional()
-    .or(z.literal("")),
-  address: z.string().max(500).optional(),
-  city: z.string().max(255).optional(),
-  country: z.string().max(100).optional(),
-});
+/** Client mirror of lib/schemas/location.ts with translated messages. */
+function buildLocationFormSchema(t: LocationFormTranslator) {
+  return z.object({
+    name: z.string().min(1, t("errNameRequired")).max(255),
+    description: z.string().max(2000).optional(),
+    fiNumber: z.string().regex(FI_NUMBER_REGEX, t("errFiNumberFormat")).optional().or(z.literal("")),
+    address: z.string().max(500).optional(),
+    city: z.string().max(255).optional(),
+    country: z.string().max(100).optional(),
+  });
+}
 
-type FormData = z.infer<typeof schema>;
+type LocationFormValues = z.infer<ReturnType<typeof buildLocationFormSchema>>;
 
 /**
  * Auto-inserts dots as the user types: 14 → 14. → 14.10 → 14.10. → ...
@@ -70,16 +71,6 @@ function autoFormatFiNumber(raw: string): string {
   return segments.join(".");
 }
 
-/**
- * Decodes an FI number into human-readable segment labels.
- * Returns null if the number is not fully formed.
- */
-function parseFiNumber(fi: string): { campus: string; building: string; floor: string; room: string } | null {
-  if (!FI_REGEX.test(fi)) return null;
-  const [campus, building, floor, room] = fi.split(".");
-  return { campus, building, floor, room };
-}
-
 type Props = {
   mode: "create" | "edit";
   parentId?: string | null;
@@ -96,6 +87,18 @@ type Props = {
   onSuccess?: () => void;
 };
 
+/** The form's starting values: the location being edited, or an empty one. */
+function formDefaults(initialData: Props["initialData"]): LocationFormValues {
+  return {
+    name: initialData?.name || "",
+    description: initialData?.description || "",
+    fiNumber: initialData?.fiNumber || "",
+    address: initialData?.address || "",
+    city: initialData?.city || "",
+    country: initialData?.country || "",
+  };
+}
+
 export function LocationFormDialog({
   mode,
   parentId,
@@ -106,8 +109,8 @@ export function LocationFormDialog({
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [open, setOpen] = useState(false);
-  const [fiRaw, setFiRaw] = useState(initialData?.fiNumber || "");
   const [mergeTarget, setMergeTarget] = useState<{ id: string; name: string } | null>(null);
   const [merging, setMerging] = useState(false);
   const t = useTranslations("locationForm");
@@ -115,14 +118,7 @@ export function LocationFormDialog({
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
 
-  const validationSchema = useMemo(() => z.object({
-    name: z.string().min(1, t("errNameRequired")).max(255),
-    description: z.string().max(2000).optional(),
-    fiNumber: z.string().regex(FI_REGEX, t("errFiNumberFormat")).optional().or(z.literal("")),
-    address: z.string().max(500).optional(),
-    city: z.string().max(255).optional(),
-    country: z.string().max(100).optional(),
-  }), [t]);
+  const validationSchema = useMemo(() => buildLocationFormSchema(t), [t]);
 
   const {
     register,
@@ -131,16 +127,9 @@ export function LocationFormDialog({
     setValue,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
+  } = useForm<LocationFormValues>({
     resolver: zodResolver(validationSchema),
-    defaultValues: {
-      name: initialData?.name || "",
-      description: initialData?.description || "",
-      fiNumber: initialData?.fiNumber || "",
-      address: initialData?.address || "",
-      city: initialData?.city || "",
-      country: initialData?.country || "",
-    },
+    defaultValues: formDefaults(initialData),
   });
 
   const fiValue = useWatch({ control, name: "fiNumber" }) ?? "";
@@ -148,11 +137,10 @@ export function LocationFormDialog({
 
   function handleFiInput(e: React.ChangeEvent<HTMLInputElement>) {
     const formatted = autoFormatFiNumber(e.target.value);
-    setFiRaw(formatted);
     setValue("fiNumber", formatted, { shouldValidate: true });
   }
 
-  async function onSubmit(data: FormData) {
+  async function onSubmit(data: LocationFormValues) {
     const url =
       mode === "create" ? "/api/locations" : `/api/locations/${locationId}`;
     const method = mode === "create" ? "POST" : "PUT";
@@ -163,31 +151,22 @@ export function LocationFormDialog({
       fiNumber: data.fiNumber || null,
     };
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await apiFetch(url, jsonBody(method, payload));
 
     if (!res.ok) {
-      const err = await res.json();
       // Renaming onto an existing sibling name — offer to merge instead of
       // creating a duplicate.
-      if (err.error === "LOCATION_NAME_EXISTS" && err.targetId) {
-        setMergeTarget({ id: err.targetId, name: err.targetName });
+      const { code, existingId, existingName } = res.error;
+      if (code === "locationNameExists" && typeof existingId === "string") {
+        setMergeTarget({ id: existingId, name: String(existingName ?? "") });
         return;
       }
-      toast({
-        title: tCommon("error"),
-        description: err.error || tCommon("somethingWentWrong"),
-        variant: "destructive",
-      });
+      showApiError(res.error);
       return;
     }
 
     toast({ title: mode === "create" ? tLoc("locationCreated") : tLoc("locationUpdated") });
     setOpen(false);
-    setFiRaw("");
     reset();
     router.refresh();
     onSuccess?.();
@@ -196,20 +175,11 @@ export function LocationFormDialog({
   async function handleMerge() {
     if (!mergeTarget) return;
     setMerging(true);
-    const res = await fetch(`/api/locations/${locationId}/merge`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetId: mergeTarget.id }),
-    });
+    const res = await apiFetch(`/api/locations/${locationId}/merge`, jsonBody("POST", { targetId: mergeTarget.id }));
     setMerging(false);
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({
-        title: tCommon("error"),
-        description: err.error || tCommon("somethingWentWrong"),
-        variant: "destructive",
-      });
+      showApiError(res.error);
       return;
     }
 
@@ -217,7 +187,6 @@ export function LocationFormDialog({
     toast({ title: tLoc("locationMerged") });
     setMergeTarget(null);
     setOpen(false);
-    setFiRaw("");
     reset();
     router.push(`/locations/${targetId}`);
     router.refresh();
@@ -228,15 +197,7 @@ export function LocationFormDialog({
     setOpen(v);
     if (v) {
       // Reset form to initial values when reopening
-      reset({
-        name: initialData?.name || "",
-        description: initialData?.description || "",
-        fiNumber: initialData?.fiNumber || "",
-        address: initialData?.address || "",
-        city: initialData?.city || "",
-        country: initialData?.country || "",
-      });
-      setFiRaw(initialData?.fiNumber || "");
+      reset(formDefaults(initialData));
     }
   }
 
@@ -251,7 +212,6 @@ export function LocationFormDialog({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Name */}
           <div className="space-y-1.5">
             <Label htmlFor="loc-name">
               {tField("name")} <span aria-hidden="true" className="text-destructive">*</span>
@@ -269,7 +229,6 @@ export function LocationFormDialog({
             )}
           </div>
 
-          {/* Description */}
           <div className="space-y-1.5">
             <Label htmlFor="loc-desc">{tField("description")}</Label>
             <Textarea
@@ -280,7 +239,6 @@ export function LocationFormDialog({
             />
           </div>
 
-          {/* FI Number */}
           <div className="space-y-1.5">
             <Label htmlFor="loc-fi" className="flex items-center gap-1.5">
               <Hash className="h-3.5 w-3.5 text-muted-foreground" />
@@ -291,7 +249,7 @@ export function LocationFormDialog({
             </Label>
             <Input
               id="loc-fi"
-              value={fiRaw}
+              value={fiValue}
               onChange={handleFiInput}
               placeholder={t("fiNumberPlaceholder")}
               className="font-mono"
@@ -323,14 +281,13 @@ export function LocationFormDialog({
                 </span>
               </div>
             )}
-            {!parsedFi && fiRaw.length > 0 && !errors.fiNumber && (
+            {!parsedFi && fiValue.length > 0 && !errors.fiNumber && (
               <p className="text-xs text-muted-foreground">
                 {t("fiNumberTypingHint")}
               </p>
             )}
           </div>
 
-          {/* Address section */}
           <div className="pt-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               {tField("address")} ({tCommon("optional")})
@@ -394,7 +351,7 @@ export function LocationFormDialog({
               void handleMerge();
             }}
             disabled={merging}
-            className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+            className="bg-primary hover:bg-primary-hover text-white"
           >
             {merging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {tLoc("mergeButton")}

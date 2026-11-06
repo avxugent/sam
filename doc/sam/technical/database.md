@@ -128,7 +128,7 @@ Hierarchical tree of physical spaces (campus, building, floor, room, …).
 
 `fiNumber` has a `@unique` constraint. Duplicate inserts return Prisma error `P2002` → API returns 409.
 
-Ancestor path resolution uses a recursive CTE query in `lib/location-path.ts`.
+Ancestor path resolution uses a recursive CTE query in `lib/locations/path.ts`.
 
 ---
 
@@ -175,7 +175,7 @@ Fixed lookup table for the Asset/StockItem "model" field — replaces the former
 
 `(typeId, manufacturerId, name)` has a `@@unique` constraint, scoped rather than a bare unique on `name` — the same model name can legitimately recur under different type/manufacturer combinations. Known limitation: MySQL unique indexes treat multiple `NULL`s as distinct, so two manufacturer-less models with the same `(typeId, name)` don't collide at the DB level — the API pre-checks this explicitly, and the admin merge feature cleans up any residual duplicates (including punctuation/spacing variants, which a straight uniqueness check can't catch).
 
-Merging two Models (`POST /api/models/[id]/merge`) reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source — this fixes a gap the equivalent `Manufacturer` merge route still has, where only `Asset` rows are reassigned.
+Merging two Models (`POST /api/models/[id]/merge`) reassigns **both** `Asset.modelId` and `StockItem.modelId` from the source to the target, then deletes the source. Merging an `AssetType` or a `Manufacturer` moves the source's models onto the target with `reassignModels()` (`lib/models/reassign.ts`); a model whose `(typeId, manufacturerId, name)` already exists under the target is folded into that model (its assets and stock repointed, the source model deleted). The `Manufacturer` merge also reassigns `StockItem.manufacturerId` — the `SET NULL` foreign keys would otherwise silently strip the brand.
 
 ### AssetTypeManufacturerTemplate
 
@@ -271,7 +271,7 @@ A hostname implies a MAC address is required (enforced via `superRefine()` in bo
 
 #### Asset history
 
-`Asset.lineageId` and `StockItem.lineageId` are copied forward on every conversion route (return-to-stock, deploy-from-stock), and stamped onto the corresponding `AuditLog.lineageId`. A single physical item's full history — across its hops between the `assets` and `stock_items` tables — is `SELECT * FROM audit_logs WHERE lineageId = ? ORDER BY timestamp`, exposed via `GET /api/assets/[id]/history`. A brand-new asset or stock item gets a fresh `lineageId`; a full single-unit deploy of a stock item (the only case where the new asset is genuinely "the same physical item") carries the stock item's `lineageId` forward instead. Rows predating this field, and audit rows for other entity types, have `lineageId = null` — run `scripts/backfill-lineage-ids.mjs` once after adding the column to assign existing rows a distinct id.
+`Asset.lineageId` and `StockItem.lineageId` are copied forward on every conversion route (return-to-stock, deploy-from-stock), and stamped onto the corresponding `AuditLog.lineageId`. A single physical item's full history — across its hops between the `assets` and `stock_items` tables — is `SELECT * FROM audit_logs WHERE lineageId = ? ORDER BY timestamp`, exposed via `GET /api/assets/[id]/history`. A brand-new asset or stock item gets a fresh `lineageId`; a full single-unit deploy of a stock item (the only case where the new asset is genuinely "the same physical item") carries the stock item's `lineageId` forward instead. The migration that added the column backfilled every existing asset and stock item with a distinct `lineageId`; only audit rows written before it, and audit rows for other entity types, have `lineageId = null`.
 
 ---
 
@@ -365,7 +365,7 @@ User-defined custom reports.
 | `id` | string (cuid) | Primary key |
 | `name` | string | Display name |
 | `description` | string? | Optional description |
-| `definition` | JSON | Query definition (schema in `lib/report-schema.ts`) |
+| `definition` | JSON | Query definition (schema in `lib/schemas/report.ts`) |
 | `createdById` | string? | FK to User (soft ref — not a DB constraint) |
 
 ---

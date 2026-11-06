@@ -20,10 +20,16 @@ import { Plus, Search, Pencil, Trash2, Wrench, Package } from "lucide-react";
 import { WorkLogFormDialog, type WorkLogAssetOption, type WorkLogUserOption, type WorkLogItemOption } from "@/components/locations/work-log-form-dialog";
 import { JiraIssueBadge } from "@/components/locations/jira-issue-badge";
 import { useTranslations } from "next-intl";
-import { formatDate } from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
+import { canEdit, canModifyWorkLog, type Role } from "@/lib/permissions";
+import { assetLabel } from "@/lib/assets/label";
+import { apiFetch } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 export type WorkLogEntry = {
   id: string;
+  /** The day the work was done, YYYY-MM-DD. */
   performedAt: string;
   description: string;
   jiraIssueKey: string | null;
@@ -45,22 +51,13 @@ type Props = {
   users: WorkLogUserOption[];
   items: WorkLogItemOption[];
   currentUserId: string;
-  userRole: string;
+  userRole: Role;
   jiraBaseUrl: string | null;
 };
 
-function getInitials(name: string | null | undefined, email: string): string {
-  if (name) {
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return (email[0] ?? "U").toUpperCase();
-}
-
-function assetLabel(asset: WorkLogEntry["asset"]): string {
+function assetDisplayName(asset: WorkLogEntry["asset"]): string {
   if (!asset) return "";
-  return asset.model?.name || asset.hostname || asset.serialNumber || "Asset";
+  return assetLabel(asset) ?? "Asset";
 }
 
 export function WorkLogList({
@@ -77,6 +74,7 @@ export function WorkLogList({
   const tCommon = useTranslations("common");
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [entries, setEntries] = useState<WorkLogEntry[]>(initialEntries);
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -86,8 +84,7 @@ export function WorkLogList({
   // once and new entries don't appear until a manual page reload.
   useEffect(() => { setEntries(initialEntries); }, [initialEntries]);
 
-  const canCreate = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
-  const isAdmin = userRole === "ADMIN";
+  const canCreate = canEdit(userRole);
 
   const filtered = entries.filter((e) => {
     if (!search) return true;
@@ -97,15 +94,14 @@ export function WorkLogList({
       e.performedBy.name?.toLowerCase().includes(q) ||
       e.jiraIssueKey?.toLowerCase().includes(q) ||
       e.item?.name.toLowerCase().includes(q) ||
-      assetLabel(e.asset).toLowerCase().includes(q)
+      assetDisplayName(e.asset).toLowerCase().includes(q)
     );
   });
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/work-logs/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/work-logs/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== id));
@@ -114,12 +110,11 @@ export function WorkLogList({
   }
 
   function canModify(entry: WorkLogEntry): boolean {
-    return isAdmin || entry.performedBy.id === currentUserId;
+    return canModifyWorkLog(userRole, currentUserId, entry.performedBy.id);
   }
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -141,7 +136,7 @@ export function WorkLogList({
             items={items}
             currentUserId={currentUserId}
           >
-            <Button size="sm" className="h-[36px] gap-1.5 bg-[#ffd200] text-[#0f172a] font-bold hover:brightness-95 text-[13px]">
+            <Button size="sm" className="h-[36px] gap-1.5 bg-brand-yellow text-brand-yellow-foreground font-bold hover:brightness-95 text-[13px]">
               <Plus className="h-4 w-4" />
               {t("addEntry")}
             </Button>
@@ -149,33 +144,32 @@ export function WorkLogList({
         )}
       </div>
 
-      {/* Empty state */}
       {entries.length === 0 ? (
-        <div className="text-center py-12 border border-[#e2e8f0] rounded-[10px] bg-white">
-          <Wrench className="h-10 w-10 mx-auto mb-3 text-[#94a3b8] opacity-60" />
-          <p className="text-[14px] text-[#64748b] mb-1">{t("noEntries")}</p>
-          <p className="text-[12px] text-[#94a3b8]">
+        <div className="text-center py-12 border border-border rounded-[10px] bg-card">
+          <Wrench className="h-10 w-10 mx-auto mb-3 text-subtle opacity-60" />
+          <p className="text-[14px] text-muted-foreground mb-1">{t("noEntries")}</p>
+          <p className="text-[12px] text-subtle">
             {canCreate ? t("noEntriesHint") : t("noEntriesViewerHint")}
           </p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-10 border border-[#e2e8f0] rounded-[10px] bg-white">
-          <p className="text-[13px] text-[#64748b]">{t("noSearchResults")}</p>
+        <div className="text-center py-10 border border-border rounded-[10px] bg-card">
+          <p className="text-[13px] text-muted-foreground">{t("noSearchResults")}</p>
         </div>
       ) : (
         <div className="space-y-2">
           {filtered.map((entry) => {
             const initials = getInitials(entry.performedBy.name, entry.performedBy.email);
-            const assetText = assetLabel(entry.asset);
+            const assetText = assetDisplayName(entry.asset);
             return (
               <div
                 key={entry.id}
-                className="bg-white border border-[#e2e8f0] rounded-[10px] p-4 hover:border-[#cbd5e1] transition-colors"
+                className="bg-card border border-border rounded-[10px] p-4 hover:border-subtle transition-colors"
               >
                 <div className="flex items-start gap-3">
                   {/* Avatar — name appears as text below, so the avatar is decorative */}
                   <div
-                    className="w-9 h-9 rounded-full bg-[#1e64c8] text-white text-[12px] font-semibold flex items-center justify-center flex-shrink-0"
+                    className="w-9 h-9 rounded-full bg-primary text-white text-[12px] font-semibold flex items-center justify-center flex-shrink-0"
                     aria-hidden="true"
                   >
                     {initials}
@@ -184,30 +178,30 @@ export function WorkLogList({
                   <div className="flex-1 min-w-0">
                     {/* Top row: name, date, asset, JIRA */}
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-[13px] font-semibold text-[#0f172a]">
+                      <span className="text-[13px] font-semibold text-foreground">
                         {entry.performedBy.name}
                       </span>
-                      <span className="text-[12px] text-[#64748b]">•</span>
-                      <span className="text-[12px] text-[#64748b]">{formatDate(entry.performedAt)}</span>
+                      <span className="text-[12px] text-muted-foreground">•</span>
+                      <span className="text-[12px] text-muted-foreground">{formatDate(entry.performedAt)}</span>
 
                       {entry.item && (
-                        <span className="inline-flex items-center text-[10px] font-semibold bg-[#fef3c7] text-[#92400e] px-1.5 py-0.5 rounded-[4px]">
+                        <span className="inline-flex items-center text-[10px] font-semibold bg-warning-tint text-warning-foreground px-1.5 py-0.5 rounded-[4px]">
                           {entry.item.name}
                         </span>
                       )}
 
                       {entry.asset && (
                         <>
-                          <span className="text-[12px] text-[#64748b]">•</span>
+                          <span className="text-[12px] text-muted-foreground">•</span>
                           <Link
                             href={`/locations/${locationId}/assets/${entry.asset.id}`}
-                            className="inline-flex items-center gap-1 text-[12px] text-[#1e64c8] hover:underline"
+                            className="inline-flex items-center gap-1 text-[12px] text-primary hover:underline"
                           >
                             <Package className="h-3 w-3" />
                             {assetText}
                           </Link>
                           {entry.asset.type && (
-                            <span className="inline-flex items-center text-[10px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-1.5 py-0 rounded-[4px]">
+                            <span className="inline-flex items-center text-[10px] font-semibold bg-primary-tint text-primary px-1.5 py-0 rounded-[4px]">
                               {entry.asset.type.name}
                             </span>
                           )}
@@ -219,15 +213,13 @@ export function WorkLogList({
                       )}
                     </div>
 
-                    {/* Description */}
                     {entry.description && (
-                      <p className="text-[13px] text-[#334155] whitespace-pre-wrap break-words">
+                      <p className="text-[13px] text-secondary-foreground whitespace-pre-wrap break-words">
                         {entry.description}
                       </p>
                     )}
                   </div>
 
-                  {/* Actions */}
                   {canModify(entry) && (
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <WorkLogFormDialog
@@ -238,7 +230,7 @@ export function WorkLogList({
                           assetId: entry.asset?.id ?? null,
                           itemId: entry.item?.id ?? null,
                           performedById: entry.performedBy.id,
-                          performedAt: entry.performedAt.split("T")[0],
+                          performedAt: entry.performedAt,
                           description: entry.description,
                           jiraIssueKey: entry.jiraIssueKey,
                         }}
@@ -254,7 +246,7 @@ export function WorkLogList({
                           className="h-[28px] w-[28px]"
                           title={t("editEntry")}
                         >
-                          <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
+                          <Pencil className="h-3.5 w-3.5 text-primary" />
                         </Button>
                       </WorkLogFormDialog>
 
@@ -262,7 +254,7 @@ export function WorkLogList({
                         variant="ghost"
                         size="icon"
                         aria-label={`${t("deleteEntry")} by ${entry.performedBy.name}`}
-                        className="h-[28px] w-[28px] text-[#94a3b8] hover:text-destructive"
+                        className="h-[28px] w-[28px] text-subtle hover:text-destructive"
                         title={t("deleteEntry")}
                         onClick={() => setDeleteId(entry.id)}
                       >

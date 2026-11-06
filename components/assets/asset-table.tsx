@@ -12,9 +12,9 @@ import { BulkDecommissionDialog } from "@/components/assets/bulk-decommission-di
 import { BulkReturnToStockDialog } from "@/components/assets/bulk-return-to-stock-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
-import { formatDate } from "@/lib/utils";
-import { Search, Package, Pencil, Trash2, ChevronUp, ChevronDown, ExternalLink, Download, ChevronLeft, ChevronRight } from "lucide-react";
-import { renderHostnameUrl } from "@/lib/hostname-template";
+import { formatDate, toIsoDay } from "@/lib/dates";
+import { Search, Package, Pencil, Trash2, ExternalLink, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { renderHostnameUrl } from "@/lib/url-templates";
 import {
   Select,
   SelectContent,
@@ -22,32 +22,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { canEdit, type Role } from "@/lib/permissions";
+import type { AssetListRow } from "@/lib/assets/include";
+import { assetLabel } from "@/lib/assets/label";
+import { saveBlob } from "@/lib/api-client";
+import { escapeCsvCell } from "@/lib/csv/core";
+import { SortableTh } from "@/components/ui/sortable-th";
+import { paginate, useRowSelection, useTableSort } from "@/components/ui/use-row-selection";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
-type Asset = {
-  id: string;
-  status: string;
-  model?: { id: string; name: string } | null;
-  serialNumber?: string | null;
-  hostname?: string | null;
-  quantity: number;
-  installationDate?: Date | string | null;
-  type?: { id: string; name: string } | null;
-  manufacturer?: { id: string; name: string } | null;
-  macAddresses: { id: string; address: string }[];
-  _count: { attachments: number };
-  location?: { id: string; name: string } | null;
+const SORT_KEYS = {
+  type: (a: AssetListRow) => a.type?.name ?? "",
+  manufacturer: (a: AssetListRow) => a.manufacturer?.name ?? "",
+  model: (a: AssetListRow) => a.model?.name ?? "",
+  serialNumber: (a: AssetListRow) => a.serialNumber ?? "",
+  hostname: (a: AssetListRow) => a.hostname ?? "",
+  installationDate: (a: AssetListRow) => String(a.installationDate ?? ""),
+  location: (a: AssetListRow) => a.location.name,
 };
+type SortCol = keyof typeof SORT_KEYS;
 
-type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "hostname" | "installationDate" | "location";
-
-function escapeCell(v: string | null | undefined): string {
-  const s = v ?? "";
-  return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-function exportToCsv(assets: Asset[], filename: string, headers: string[]) {
+function exportToCsv(assets: AssetListRow[], filename: string, headers: string[]) {
   const rows = assets.map((a) => [
     a.type?.name,
     a.manufacturer?.name,
@@ -56,48 +52,12 @@ function exportToCsv(assets: Asset[], filename: string, headers: string[]) {
     a.hostname,
     a.macAddresses.map((m) => m.address).join("; "),
     String(a.quantity),
-    a.location?.name,
-    a.installationDate ? new Date(a.installationDate).toLocaleDateString("sv-SE") : null,
-  ].map(escapeCell).join(","));
-  const csv = [headers.join(","), ...rows].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function SortIcon({ active, dir }: { col: string; active: boolean; dir: "asc" | "desc" }) {
-  if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
-  return dir === "asc"
-    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
-    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
-}
-
-function Th({ col, label, sortCol, sortDir, onSort }: {
-  col: SortCol; label: string;
-  sortCol: SortCol | null; sortDir: "asc" | "desc";
-  onSort: (col: SortCol) => void;
-}) {
-  const active = sortCol === col;
-  const ariaSort: "ascending" | "descending" | "none" = active
-    ? sortDir === "asc" ? "ascending" : "descending"
-    : "none";
-  return (
-    <th scope="col" aria-sort={ariaSort} className="text-left text-[12px] font-medium text-[#64748b] whitespace-nowrap">
-      <button
-        type="button"
-        onClick={() => onSort(col)}
-        className="w-full text-left px-4 py-[10px] inline-flex items-center gap-1 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e64c8] rounded-sm"
-        aria-label={`Sort by ${label}${active ? `, currently ${sortDir === "asc" ? "ascending" : "descending"}` : ""}`}
-      >
-        <span className={active ? "text-[#1e64c8]" : ""}>{label}</span>
-        <SortIcon col={col} active={active} dir={sortDir} />
-      </button>
-    </th>
-  );
+    a.location.name,
+    toIsoDay(a.installationDate),
+  ].map((cell) => escapeCsvCell(cell)).join(";"));
+  // Same ';' delimiter and line endings as the server-side CSV exports.
+  const csv = [headers.map((h) => escapeCsvCell(h)).join(";"), ...rows].join("\r\n");
+  saveBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), filename);
 }
 
 export function AssetTable({
@@ -107,12 +67,12 @@ export function AssetTable({
   showLocation = false,
   hostnameUrlTemplate,
 }: {
-  assets: Asset[];
+  assets: AssetListRow[];
   locationId: string;
-  userRole: string;
+  userRole: Role;
   showLocation?: boolean;
-  hostnameUrlTemplate?: string | null;
-  macAddressUrlTemplate?: string | null;
+  /** "" or omitted when not configured. */
+  hostnameUrlTemplate?: string;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -122,14 +82,12 @@ export function AssetTable({
   const tDecom = useTranslations("decommissioned");
   const [assets, setAssets] = useState(initialAssets);
   const [search, setSearch] = useState("");
-  const [sortCol, setSortCol] = useState<SortCol | null>("type");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const { selected, setSelected, toggleAll, toggleRow: toggleSelectRow, allSelectedIn, someSelectedIn } = useRowSelection();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDecommissionOpen, setBulkDecommissionOpen] = useState(false);
   const [bulkReturnToStockOpen, setBulkReturnToStockOpen] = useState(false);
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
+  const editable = canEdit(userRole);
 
   // Sync local state when the parent re-fetches (e.g. after router.refresh()
   // from AssetFormDialog). Without this, useState's initializer runs only
@@ -137,15 +95,9 @@ export function AssetTable({
   useEffect(() => {
     setAssets(initialAssets);
     setSelected((prev) => new Set([...prev].filter((id) => initialAssets.some((a) => a.id === id))));
-  }, [initialAssets]);
+  }, [initialAssets, setSelected]);
 
-  function handleSort(col: SortCol) {
-    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortCol(col); setSortDir("asc"); }
-    setPage(1);
-  }
-
-  useEffect(() => { setPage(1); setSelected(new Set()); }, [search]);
+  useEffect(() => { setPage(1); setSelected(new Set()); }, [search, setSelected]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -160,50 +112,22 @@ export function AssetTable({
     );
   }, [assets, search]);
 
-  const sorted = useMemo(() => {
-    if (!sortCol) return filtered;
-    return [...filtered].sort((a, b) => {
-      let av = "";
-      let bv = "";
-      if (sortCol === "type") { av = a.type?.name ?? ""; bv = b.type?.name ?? ""; }
-      else if (sortCol === "manufacturer") { av = a.manufacturer?.name ?? ""; bv = b.manufacturer?.name ?? ""; }
-      else if (sortCol === "model") { av = a.model?.name ?? ""; bv = b.model?.name ?? ""; }
-      else if (sortCol === "serialNumber") { av = a.serialNumber ?? ""; bv = b.serialNumber ?? ""; }
-      else if (sortCol === "hostname") { av = a.hostname ?? ""; bv = b.hostname ?? ""; }
-      else if (sortCol === "installationDate") { av = String(a.installationDate ?? ""); bv = String(b.installationDate ?? ""); }
-      else if (sortCol === "location") { av = a.location?.name ?? ""; bv = b.location?.name ?? ""; }
-      return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
-    });
-  }, [filtered, sortCol, sortDir]);
+  const { sortCol, sortDir, handleSort: toggleSort, sorted } = useTableSort(filtered, SORT_KEYS, "type");
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const paginated = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
+  function handleSort(col: SortCol) {
+    toggleSort(col);
+    setPage(1);
+  }
+
+  const { totalPages, safePage, pageRows: paginated } = paginate(sorted, page, pageSize);
 
   function handleRemoved(id: string) {
     setAssets((prev) => prev.filter((a) => a.id !== id));
     router.refresh();
   }
 
-  function toggleSelectAll() {
-    setSelected((prev) =>
-      filtered.length > 0 && filtered.every((a) => prev.has(a.id))
-        ? new Set()
-        : new Set(filtered.map((a) => a.id))
-    );
-  }
-
-  function toggleSelectRow(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  const allFilteredSelected = filtered.length > 0 && filtered.every((a) => selected.has(a.id));
-  const someFilteredSelected = !allFilteredSelected && filtered.some((a) => selected.has(a.id));
+  const allFilteredSelected = allSelectedIn(filtered);
+  const someFilteredSelected = someSelectedIn(filtered);
 
   function handleBulkComplete(
     action: "decommission" | "returnToStock",
@@ -227,14 +151,14 @@ export function AssetTable({
 
   if (assets.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground border border-[#e2e8f0] rounded-[10px] bg-white">
+      <div className="text-center py-12 text-muted-foreground border border-border rounded-[10px] bg-card">
         <Package className="h-10 w-10 mx-auto mb-3 opacity-40" />
         <p>{t("noAssetsInLocation")}</p>
       </div>
     );
   }
 
-  const colSpan = (showLocation ? 8 : 7) + (canEdit ? 1 : 0);
+  const colSpan = (showLocation ? 8 : 7) + (editable ? 1 : 0);
 
   return (
     <div className="space-y-3">
@@ -262,19 +186,19 @@ export function AssetTable({
         </Button>
       </div>
 
-      {canEdit && selected.size > 0 && (
-        <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-[#e8f0fc] text-[12.5px] text-[#1e64c8]">
+      {editable && selected.size > 0 && (
+        <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-primary-tint text-[12.5px] text-primary">
           <span className="font-medium">{t("itemsSelected", { count: selected.size })}</span>
           <Button
             size="sm"
-            className="h-7 bg-[#ca8a04] hover:bg-[#a16207] text-white"
+            className="h-7 bg-warning-solid hover:bg-warning-solid-hover text-white"
             onClick={() => setBulkDecommissionOpen(true)}
           >
             {tDecom("decommissionAsset")}
           </Button>
           <Button
             size="sm"
-            className="h-7 bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+            className="h-7 bg-primary hover:bg-primary-hover text-white"
             onClick={() => setBulkReturnToStockOpen(true)}
           >
             {t("returnToStock")}
@@ -282,7 +206,7 @@ export function AssetTable({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-[#1e64c8] hover:bg-[#dbe9fb]"
+            className="h-7 text-primary hover:bg-primary-tint-hover"
             onClick={() => setSelected(new Set())}
           >
             {t("clearSelection")}
@@ -290,28 +214,28 @@ export function AssetTable({
         </div>
       )}
 
-      <div className="rounded-[10px] border border-[#e2e8f0] overflow-hidden bg-white">
+      <div className="rounded-[10px] border border-border overflow-hidden bg-card">
         <table className="w-full text-[13px]">
           <caption className="sr-only">{t("assetCount", { count: sorted.length })}</caption>
           <thead>
-            <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
-              {canEdit && (
+            <tr className="border-b border-border bg-background">
+              {editable && (
                 <th scope="col" className="w-[36px] px-4 py-[10px]">
                   <Checkbox
                     checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
-                    onCheckedChange={toggleSelectAll}
+                    onCheckedChange={() => toggleAll(filtered)}
                     aria-label={t("selectAllRows")}
                   />
                 </th>
               )}
-              <Th col="type" label={tField("type")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="manufacturer" label={tField("manufacturer")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="model" label={tField("model")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="serialNumber" label={tField("serialNumber")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <Th col="hostname" label={tField("hostname")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              {showLocation && <Th col="location" label={tField("location")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />}
-              <Th col="installationDate" label={tField("installed")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-[#64748b]">{tCommon("actions")}</th>
+              <SortableTh col="type" label={tField("type")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="manufacturer" label={tField("manufacturer")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="model" label={tField("model")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="serialNumber" label={tField("serialNumber")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <SortableTh col="hostname" label={tField("hostname")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              {showLocation && <SortableTh col="location" label={tField("location")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />}
+              <SortableTh col="installationDate" label={tField("installed")} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <th scope="col" className="text-right px-4 py-[10px] text-[12px] font-medium text-muted-foreground">{tCommon("actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -323,57 +247,58 @@ export function AssetTable({
               </tr>
             ) : (
               paginated.map((asset) => {
-                const assetLocationId = asset.location?.id ?? locationId;
+                const assetLocationId = asset.location.id;
                 const assetHref = `/locations/${assetLocationId}/assets/${asset.id}`;
+                const name = assetLabel(asset) ?? asset.id;
                 return (
                 <tr
                   key={asset.id}
                   role="link"
                   tabIndex={0}
-                  aria-label={`Open asset ${asset.model?.name || asset.hostname || asset.serialNumber || "details"}`}
-                  className="border-b border-[#e2e8f0] last:border-0 hover:bg-[#f8fafc] transition-colors duration-75 cursor-pointer focus-visible:outline-none focus-visible:bg-[#e8f0fc]"
+                  aria-label={t("openAssetNamed", { name })}
+                  className="border-b border-border last:border-0 hover:bg-background transition-colors duration-75 cursor-pointer focus-visible:outline-none focus-visible:bg-primary-tint"
                   onClick={() => router.push(assetHref)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") { e.preventDefault(); router.push(assetHref); }
                   }}
                 >
-                  {canEdit && (
+                  {editable && (
                     <td className="px-4 py-[11px]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selected.has(asset.id)}
                         onCheckedChange={() => toggleSelectRow(asset.id)}
-                        aria-label={t("selectRow", { name: asset.model?.name || asset.hostname || asset.serialNumber || asset.id })}
+                        aria-label={t("selectRow", { name })}
                       />
                     </td>
                   )}
                   <td className="px-4 py-[11px]">
                     {asset.type ? (
-                      <span className="inline-flex items-center text-[11px] font-semibold bg-[#e8f0fc] text-[#1e64c8] px-2 py-0.5 rounded-[5px]">
+                      <span className="inline-flex items-center text-[11px] font-semibold bg-primary-tint text-primary px-2 py-0.5 rounded-[5px]">
                         {asset.type.name}
                       </span>
                     ) : (
-                      <span className="text-[#64748b]">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-[11px] text-[#64748b]">
+                  <td className="px-4 py-[11px] text-muted-foreground">
                     {asset.manufacturer?.name || "—"}
                   </td>
-                  <td className="px-4 py-[11px] font-medium text-[#0f172a]">
-                    {asset.model?.name || <span className="text-[#64748b] font-normal italic">{t("noModel")}</span>}
+                  <td className="px-4 py-[11px] font-medium text-foreground">
+                    {asset.model?.name || <span className="text-muted-foreground font-normal italic">{t("noModel")}</span>}
                     {asset.quantity > 1 && (
-                      <span className="ml-1.5 text-[11px] font-normal text-[#64748b]">×{asset.quantity}</span>
+                      <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">×{asset.quantity}</span>
                     )}
                   </td>
-                  <td className="px-4 py-[11px] text-[#64748b] font-mono text-[11.5px]">
+                  <td className="px-4 py-[11px] text-muted-foreground font-mono text-[11.5px]">
                     {asset.serialNumber || "—"}
                   </td>
-                  <td className="px-4 py-[11px] text-[#64748b] font-mono text-[11.5px]">
+                  <td className="px-4 py-[11px] text-muted-foreground font-mono text-[11.5px]">
                     {asset.hostname && hostnameUrlTemplate ? (
                       <a
                         href={renderHostnameUrl(hostnameUrlTemplate, asset)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="hover:text-[#1e64c8] underline inline-flex items-center gap-1"
+                        className="hover:text-primary underline inline-flex items-center gap-1"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {asset.hostname}
@@ -384,20 +309,20 @@ export function AssetTable({
                     )}
                   </td>
                   {showLocation && (
-                    <td className="px-4 py-[11px] text-[#64748b]" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-[11px] text-muted-foreground" onClick={(e) => e.stopPropagation()}>
                       {asset.location ? (
-                        <Link href={`/locations/${asset.location.id}`} className="hover:text-[#1e64c8]">
+                        <Link href={`/locations/${asset.location.id}`} className="hover:text-primary">
                           {asset.location.name}
                         </Link>
                       ) : "—"}
                     </td>
                   )}
-                  <td className="px-4 py-[11px] text-[#64748b] text-[12px]">
+                  <td className="px-4 py-[11px] text-muted-foreground text-[12px]">
                     {formatDate(asset.installationDate)}
                   </td>
                   <td className="px-4 py-[11px]" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
-                      {canEdit && (
+                      {editable && (
                         <>
                           <AssetFormDialog
                             mode="edit"
@@ -408,23 +333,23 @@ export function AssetTable({
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label={`Edit asset ${asset.model?.name || asset.hostname || asset.serialNumber || asset.id}`}
-                              className="h-[30px] w-[30px] border border-[#e2e8f0] rounded-md bg-[#f8fafc] hover:bg-white"
+                              aria-label={t("editAssetNamed", { name })}
+                              className="h-[30px] w-[30px] border border-border rounded-md bg-background hover:bg-card"
                             >
-                              <Pencil className="h-3.5 w-3.5 text-[#1e64c8]" />
+                              <Pencil className="h-3.5 w-3.5 text-primary" />
                             </Button>
                           </AssetFormDialog>
 
                           <RemoveAssetDialog
                             assetId={asset.id}
-                            assetName={asset.model?.name || asset.hostname || asset.serialNumber || asset.id}
+                            assetName={name}
                             assetStatus={asset.status}
                             onRemoved={() => handleRemoved(asset.id)}
                           >
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label={`Remove asset ${asset.model?.name || asset.hostname || asset.serialNumber || asset.id}`}
+                              aria-label={t("removeAssetNamed", { name })}
                               className="h-[30px] w-[30px] text-destructive hover:text-destructive hover:bg-red-50"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -442,7 +367,7 @@ export function AssetTable({
         </table>
       </div>
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <p className="text-[12px] text-[#64748b]">
+        <p className="text-[12px] text-muted-foreground">
           {sorted.length === 0 ? (
             <>0 {tCommon("of")} {t("assetCount", { count: assets.length })}</>
           ) : (
@@ -456,7 +381,7 @@ export function AssetTable({
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-[12px] text-[#64748b]">{t("rowsPerPage")}</span>
+            <span className="text-[12px] text-muted-foreground">{t("rowsPerPage")}</span>
             <Select
               value={String(pageSize)}
               onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}
@@ -472,11 +397,11 @@ export function AssetTable({
             </Select>
           </div>
 
-          <nav className="flex items-center gap-1" aria-label="Pagination">
+          <nav className="flex items-center gap-1" aria-label={tCommon("pagination")}>
             <Button
               variant="outline"
               size="icon"
-              aria-label="Previous page"
+              aria-label={tCommon("previousPage")}
               className="h-[30px] w-[30px]"
               disabled={safePage <= 1}
               onClick={() => setPage((p) => p - 1)}
@@ -493,13 +418,13 @@ export function AssetTable({
               }, [])
               .map((p, i) =>
                 p === "…" ? (
-                  <span key={`ellipsis-${i}`} className="text-[12px] text-[#94a3b8] px-1" aria-hidden="true">…</span>
+                  <span key={`ellipsis-${i}`} className="text-[12px] text-subtle px-1" aria-hidden="true">…</span>
                 ) : (
                   <Button
                     key={p}
                     variant={p === safePage ? "default" : "outline"}
                     size="icon"
-                    aria-label={`Go to page ${p}`}
+                    aria-label={tCommon("goToPage", { page: p })}
                     aria-current={p === safePage ? "page" : undefined}
                     className="h-[30px] w-[30px] text-[12px]"
                     onClick={() => setPage(p as number)}
@@ -512,7 +437,7 @@ export function AssetTable({
             <Button
               variant="outline"
               size="icon"
-              aria-label="Next page"
+              aria-label={tCommon("nextPage")}
               className="h-[30px] w-[30px]"
               disabled={safePage >= totalPages}
               onClick={() => setPage((p) => p + 1)}

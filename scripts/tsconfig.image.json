@@ -1,0 +1,8 @@
+{
+  "//": "Used by tsx in the production image only (TSX_TSCONFIG_PATH in the Dockerfile), where lib/ and generated/ are copied into scripts/. In the repo, the root tsconfig.json maps @/* instead.",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}

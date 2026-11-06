@@ -6,13 +6,16 @@ import { StockItemTable } from "@/components/stock/stock-item-table";
 import { StockItemFormDialog } from "@/components/stock/stock-item-form-dialog";
 import { StockLocationFilter } from "@/components/stock/stock-location-filter";
 import { Button } from "@/components/ui/button";
-import { buildLocationPathsFromRows } from "@/lib/location-path";
+import { locationBreadcrumbsFromRows } from "@/lib/locations/path";
+import { canEdit, Role } from "@/lib/permissions";
+import { PageHeader } from "@/components/layout/page-header";
+import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/stock/include";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const t = await getTranslations("stock");
-  return { title: `${t("title")} – SAM` };
+  return { title: t("title") };
 }
 
 export default async function StockPage({
@@ -23,8 +26,8 @@ export default async function StockPage({
   const { typeId, locationId } = await searchParams;
 
   const session = await auth();
-  const userRole = session?.user?.role ?? "VIEWER";
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
+  const userRole = session?.user?.role ?? Role.VIEWER;
+  const editable = canEdit(userRole);
 
   const t = await getTranslations("stock");
 
@@ -34,7 +37,7 @@ export default async function StockPage({
         ...(typeId ? { typeId } : {}),
         ...(locationId ? { locationId } : {}),
       },
-      include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
+      include: STOCK_ITEM_ROW_INCLUDE,
       orderBy: { createdAt: "desc" },
     }),
     typeId
@@ -51,7 +54,7 @@ export default async function StockPage({
   ]);
 
   const stockLocationIds = new Set(stockLocationRows.map((r) => r.locationId!));
-  const locationBreadcrumbMap = buildLocationPathsFromRows(allLocations, " › ");
+  const locationBreadcrumbMap = locationBreadcrumbsFromRows(allLocations);
   const locationBreadcrumbs = Object.fromEntries(locationBreadcrumbMap);
   const locationOptions = allLocations
     .filter((l) => stockLocationIds.has(l.id))
@@ -66,23 +69,16 @@ export default async function StockPage({
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-[9px] bg-[#e8f0fc] flex items-center justify-center flex-shrink-0">
-            <Package className="h-4 w-4 text-[#1e64c8]" />
-          </div>
-          <div>
-            <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">{title}</h1>
-            <p className="text-[13px] text-[#64748b] mt-0.5">
-              {allItems.length} {itemsLabel}
-              {allItems.length > 0 && ` · ${totalUnits} ${unitsLabel} ${t("totalSuffix")}`}
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Package}
+          title={title}
+          subtitle={`${allItems.length} ${itemsLabel}${allItems.length > 0 ? ` · ${totalUnits} ${unitsLabel} ${t("totalSuffix")}` : ""}`}
+        />
         <div className="flex items-center gap-2">
           <StockLocationFilter locations={locationOptions} />
-          {canEdit && (
+          {editable && (
             <StockItemFormDialog mode="create">
-              <Button size="sm" className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white flex items-center gap-1.5">
+              <Button size="sm" className="bg-primary hover:bg-primary-hover text-white flex items-center gap-1.5">
                 <Plus className="h-3.5 w-3.5" />
                 {t("addItem")}
               </Button>
@@ -93,7 +89,7 @@ export default async function StockPage({
 
       <StockItemTable
         key={`${typeId ?? "all"}-${locationId ?? "all"}`}
-        items={allItems}
+        items={allItems.map((i) => ({ ...i, invoiceDate: i.invoiceDate?.toISOString() ?? null }))}
         userRole={userRole}
         locationBreadcrumbs={locationBreadcrumbs}
       />

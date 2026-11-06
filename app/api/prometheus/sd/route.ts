@@ -18,8 +18,8 @@
  * asset's Vault path as a non-secret reference via {vault_path}; the external
  * exporter reads the secret from Vault itself and uses it to scrape the device.
  *
- * Authentication: Bearer token via PROMETHEUS_SD_TOKEN env var, or an active
- * admin session cookie (so admins can browse the endpoint directly).
+ * Authentication: Bearer token via PROMETHEUS_SD_TOKEN env var, or a fully
+ * signed-in admin session cookie (so admins can browse the endpoint directly).
  *
  * ──────────────────────────────────────────────────────────────────────────────
  * Prometheus scrape_configs example (exporter-based devices):
@@ -48,19 +48,18 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { checkPrometheusAuth } from "@/lib/prometheus-auth";
-import { auth } from "@/lib/auth";
-import {
-  resolveLocationPath,
-  parseFiNumber,
-  buildLocationPathString,
-  findFiNumber,
-} from "@/lib/location-path";
+import { sessionOrIntegrationTokenResponse } from "@/lib/tokens/session-or-integration";
+import { ancestorChain } from "@/lib/locations/tree";
+import { MONITORED_ASSET_WHERE, samAssetLabels } from "@/lib/prometheus/labels";
 import {
   renderScrapeTemplate,
   resolveScrapeTemplate,
   type TemplateVars,
-} from "@/lib/scrape-template";
+} from "@/lib/prometheus/scrape-template";
+import { isAdmin } from "@/lib/permissions";
+
+// Labels emitted even when empty; other sam_* labels only when known.
+const ALWAYS_PRESENT = new Set(["sam_hostname", "sam_location_path", "sam_location_name"]);
 
 // Prometheus label values: allow printable ASCII, replace control chars
 function safeLabel(value: string | null | undefined): string {
@@ -69,59 +68,41 @@ function safeLabel(value: string | null | undefined): string {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  const isAdmin = session?.user?.role === "ADMIN";
-  if (!isAdmin) {
-    const authError = checkPrometheusAuth(req);
-    if (authError) return authError;
-  }
+  const authError = await sessionOrIntegrationTokenResponse(req, isAdmin);
+  if (authError) return authError;
 
-  // Fetch all assets that have a hostname
-  const assets = await prisma.asset.findMany({
-    where: { hostname: { not: null }, status: "INSTALLED" },
-    select: {
-      id: true,
-      hostname: true,
-      model: { select: { name: true } },
-      serialNumber: true,
-      vaultPath: true,
-      locationId: true,
-      manufacturerId: true,
-      location: { select: { inMaintenance: true } },
-      type: {
-        select: {
-          name: true,
-          scrapeTargetTemplate: true,
-          prometheusExposed: true,
-          manufacturerTemplates: {
-            select: { manufacturerId: true, scrapeTargetTemplate: true },
-          },
-          modelTemplates: {
-            select: { manufacturerId: true, model: true, scrapeTargetTemplate: true },
+  const [assets, locations] = await Promise.all([
+    prisma.asset.findMany({
+      where: MONITORED_ASSET_WHERE,
+      select: {
+        id: true,
+        hostname: true,
+        model: { select: { name: true } },
+        serialNumber: true,
+        vaultPath: true,
+        locationId: true,
+        manufacturerId: true,
+        location: { select: { inMaintenance: true } },
+        type: {
+          select: {
+            name: true,
+            scrapeTargetTemplate: true,
+            manufacturerTemplates: {
+              select: { manufacturerId: true, scrapeTargetTemplate: true },
+            },
+            modelTemplates: {
+              select: { manufacturerId: true, model: true, scrapeTargetTemplate: true },
+            },
           },
         },
+        manufacturer: { select: { name: true } },
       },
-      manufacturer: { select: { name: true } },
-    },
-    orderBy: { hostname: "asc" },
-  });
-
-  // ── Caches (keyed by id/path) to avoid redundant lookups ──────────────────
-
-  // locationId → resolved ancestor array
-  const locationPathCache = new Map<
-    string,
-    Awaited<ReturnType<typeof resolveLocationPath>>
-  >();
-
-  async function getLocationPath(locationId: string) {
-    if (!locationPathCache.has(locationId)) {
-      locationPathCache.set(locationId, await resolveLocationPath(locationId));
-    }
-    return locationPathCache.get(locationId)!;
-  }
-
-  // ── Build target groups ────────────────────────────────────────────────────
+      orderBy: { hostname: "asc" },
+    }),
+    // One query for the whole tree; each asset's ancestor chain is walked in memory.
+    prisma.location.findMany({ select: { id: true, name: true, fiNumber: true, parentId: true } }),
+  ]);
+  const locationsById = new Map(locations.map((l) => [l.id, l]));
 
   type TargetGroup = {
     targets: string[];
@@ -131,39 +112,18 @@ export async function GET(req: NextRequest) {
   const groups: TargetGroup[] = [];
 
   for (const asset of assets) {
-    if (!asset.hostname) continue;
-    if (asset.type && !asset.type.prometheusExposed) continue;
+    if (!asset.hostname) continue; // excluded by the query; narrows the type
     // Room in maintenance — its assets are not scrape targets.
-    if (asset.location?.inMaintenance) continue;
+    if (asset.location.inMaintenance) continue;
 
-    // Resolve location metadata
-    const ancestors = await getLocationPath(asset.locationId);
-    const fiNumber = findFiNumber(ancestors);
-    const fiParts = parseFiNumber(fiNumber);
-    const locationPath = buildLocationPathString(ancestors);
-    const roomName =
-      ancestors.length > 0 ? ancestors[ancestors.length - 1].name : "";
+    const ancestors = ancestorChain(asset.locationId, locationsById);
+    const samLabels = samAssetLabels({ ...asset, hostname: asset.hostname }, ancestors);
+    const labels: Record<string, string> = Object.fromEntries(
+      Object.entries(samLabels)
+        .map(([key, value]) => [key, safeLabel(value)])
+        .filter(([key, value]) => value || ALWAYS_PRESENT.has(key))
+    );
 
-    // Core SAM metadata labels (always included)
-    const labels: Record<string, string> = {
-      sam_hostname: safeLabel(asset.hostname),
-      sam_location_path: safeLabel(locationPath),
-      sam_location_name: safeLabel(roomName),
-    };
-
-    if (fiNumber) labels.sam_fi_number = fiNumber;
-    if (fiParts) {
-      labels.sam_campus = fiParts.campus;
-      labels.sam_building = fiParts.building;
-      labels.sam_floor = fiParts.floor;
-      labels.sam_room = fiParts.room;
-    }
-    if (asset.type?.name) labels.sam_asset_type = safeLabel(asset.type.name);
-    if (asset.manufacturer?.name)
-      labels.sam_manufacturer = safeLabel(asset.manufacturer.name);
-    if (asset.model?.name) labels.sam_model = safeLabel(asset.model.name);
-
-    // ── Scrape target template ───────────────────────────────────────────────
     // Most specific override wins: model+manufacturer → manufacturer → type default.
     const template = asset.type
       ? resolveScrapeTemplate(asset.type, asset.manufacturerId, asset.model?.name ?? null)
@@ -177,11 +137,10 @@ export async function GET(req: NextRequest) {
         serial: asset.serialNumber ?? "",
         model: asset.model?.name ?? "",
         manufacturer: asset.manufacturer?.name ?? "",
-        fi_number: fiNumber ?? "",
+        fi_number: samLabels.sam_fi_number,
         vault_path: asset.vaultPath ?? "",
       };
 
-      // Render the template and merge __labels__ into the target group labels
       const { labels: templateLabels } = renderScrapeTemplate(template, vars);
       Object.assign(labels, templateLabels);
     }
@@ -209,7 +168,6 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(groups, {
     headers: {
-      "Content-Type": "application/json",
       "Cache-Control": "no-store",
       "X-SAM-Target-Count": String(groups.length),
     },

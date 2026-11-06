@@ -22,14 +22,18 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SELECT_NONE,
 } from "@/components/ui/select";
 import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
-import { createWorkLogSchema } from "@/lib/work-log-schema";
+import { JIRA_KEY_REGEX, createWorkLogSchema } from "@/lib/schemas/work-log";
 import { z } from "zod";
+import { toIsoDay } from "@/lib/dates";
+import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
-type FormData = z.infer<typeof createWorkLogSchema>;
+type WorkLogFormValues = z.infer<typeof createWorkLogSchema>;
 
 export type WorkLogAssetOption = {
   id: string;
@@ -70,11 +74,8 @@ type Props = {
   onSuccess?: () => void;
 };
 
-const NO_ASSET = "__none__";
-const NO_ITEM = "__none__";
-
 function todayIsoDate(): string {
-  return new Date().toISOString().split("T")[0];
+  return toIsoDay(new Date());
 }
 
 export function WorkLogFormDialog({
@@ -93,7 +94,6 @@ export function WorkLogFormDialog({
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
 
-  const JIRA_KEY_REGEX = /^[A-Z][A-Z0-9_]+-\d+$/;
   const validationSchema = useMemo(() => z.object({
     assetId: z.string().min(1).optional().nullable(),
     itemId: z.string().min(1).optional().nullable(),
@@ -103,12 +103,13 @@ export function WorkLogFormDialog({
     jiraIssueKey: z.string().regex(JIRA_KEY_REGEX, t("errJiraKeyFormat")).optional().nullable().or(z.literal("")),
   }).superRefine((data, ctx) => {
     if (!data.itemId && !data.description?.trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["description"], message: t("errDescriptionRequired") });
+      ctx.addIssue({ code: "custom", path: ["description"], message: t("errDescriptionRequired") });
     }
   }), [t]);
 
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [open, setOpen] = useState(false);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetsLoading, setPresetsLoading] = useState(false);
@@ -120,7 +121,7 @@ export function WorkLogFormDialog({
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
+  } = useForm<WorkLogFormValues>({
     resolver: zodResolver(validationSchema),
     defaultValues: {
       assetId: initialData?.assetId ?? null,
@@ -137,7 +138,6 @@ export function WorkLogFormDialog({
   const itemIdValue = watch("itemId");
   const descriptionValue = watch("description");
 
-  // Fetch presets when an asset (with a type) is selected
   useEffect(() => {
     if (!assetIdValue) {
       setPresets([]);
@@ -149,10 +149,10 @@ export function WorkLogFormDialog({
       return;
     }
     setPresetsLoading(true);
-    fetch(`/api/asset-types/${asset.typeId}/presets`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setPresets(Array.isArray(data) ? data : []))
-      .finally(() => setPresetsLoading(false));
+    apiFetch<Preset[]>(`/api/asset-types/${asset.typeId}/presets`).then((res) => {
+      setPresets(res.ok ? res.data : []);
+      setPresetsLoading(false);
+    });
   }, [assetIdValue, assets]);
 
   function applyPreset(preset: Preset) {
@@ -162,7 +162,7 @@ export function WorkLogFormDialog({
     setValue("description", next, { shouldValidate: true });
   }
 
-  async function onSubmit(data: FormData) {
+  async function onSubmit(data: WorkLogFormValues) {
     const url =
       mode === "create"
         ? `/api/locations/${locationId}/work-logs`
@@ -171,27 +171,18 @@ export function WorkLogFormDialog({
 
     const payload = {
       ...data,
-      assetId: data.assetId === NO_ASSET ? null : data.assetId || null,
-      itemId: data.itemId === NO_ITEM ? null : data.itemId || null,
+      assetId: data.assetId === SELECT_NONE ? null : data.assetId || null,
+      itemId: data.itemId === SELECT_NONE ? null : data.itemId || null,
       // Send null (not "") so an item-only entry passes the API's non-empty
       // description rule.
       description: data.description?.trim() ? data.description : null,
       jiraIssueKey: data.jiraIssueKey ? data.jiraIssueKey : null,
     };
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await apiFetch(url, jsonBody(method, payload));
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast({
-        title: tCommon("error"),
-        description: err.error || tCommon("somethingWentWrong"),
-        variant: "destructive",
-      });
+      showApiError(res.error);
       return;
     }
 
@@ -224,18 +215,17 @@ export function WorkLogFormDialog({
           <DialogTitle>{mode === "create" ? t("addEntry") : t("editEntry")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Asset (optional) */}
           <div className="space-y-1.5">
             <Label htmlFor="wl-asset">{t("asset")} <span className="text-xs text-muted-foreground">({tCommon("optional")})</span></Label>
             <Select
-              value={assetIdValue ?? NO_ASSET}
-              onValueChange={(v) => setValue("assetId", v === NO_ASSET ? null : v, { shouldValidate: true })}
+              value={assetIdValue ?? SELECT_NONE}
+              onValueChange={(v) => v && setValue("assetId", v === SELECT_NONE ? null : v, { shouldValidate: true })}
             >
               <SelectTrigger id="wl-asset">
                 <SelectValue placeholder={t("noSpecificAsset")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_ASSET}>— {t("noAsset")} —</SelectItem>
+                <SelectItem value={SELECT_NONE}>— {t("noAsset")} —</SelectItem>
                 {assets.map((a) => (
                   <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>
                 ))}
@@ -243,19 +233,18 @@ export function WorkLogFormDialog({
             </Select>
           </div>
 
-          {/* Work log item (optional) */}
           {items.length > 0 && (
             <div className="space-y-1.5">
               <Label htmlFor="wl-item">{t("item")} <span className="text-xs text-muted-foreground">({tCommon("optional")})</span></Label>
               <Select
-                value={itemIdValue ?? NO_ITEM}
-                onValueChange={(v) => setValue("itemId", v === NO_ITEM ? null : v, { shouldValidate: true })}
+                value={itemIdValue ?? SELECT_NONE}
+                onValueChange={(v) => v && setValue("itemId", v === SELECT_NONE ? null : v, { shouldValidate: true })}
               >
                 <SelectTrigger id="wl-item">
                   <SelectValue placeholder={t("noItem")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_ITEM}>— {t("noItem")} —</SelectItem>
+                  <SelectItem value={SELECT_NONE}>— {t("noItem")} —</SelectItem>
                   {items.map((it) => (
                     <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>
                   ))}
@@ -264,7 +253,6 @@ export function WorkLogFormDialog({
             </div>
           )}
 
-          {/* Date + performed-by */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="wl-date">
@@ -288,7 +276,7 @@ export function WorkLogFormDialog({
               </Label>
               <Select
                 value={watch("performedById") ?? currentUserId}
-                onValueChange={(v) => setValue("performedById", v, { shouldValidate: true })}
+                onValueChange={(v) => v && setValue("performedById", v, { shouldValidate: true })}
               >
                 <SelectTrigger id="wl-user" aria-required="true">
                   <SelectValue />
@@ -302,7 +290,6 @@ export function WorkLogFormDialog({
             </div>
           </div>
 
-          {/* Preset chips */}
           {presets.length > 0 && (
             <div className="rounded-md border bg-muted/30 p-2.5 space-y-1.5">
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -315,7 +302,7 @@ export function WorkLogFormDialog({
                     key={p.id}
                     type="button"
                     onClick={() => applyPreset(p)}
-                    className="px-2.5 py-1 text-[12px] rounded-full bg-white border border-[#e2e8f0] text-[#334155] hover:border-[#1e64c8] hover:text-[#1e64c8] transition-colors"
+                    className="px-2.5 py-1 text-[12px] rounded-full bg-card border border-border text-secondary-foreground hover:border-primary hover:text-primary transition-colors"
                     title={p.description ?? p.name}
                   >
                     {p.name}
@@ -331,7 +318,6 @@ export function WorkLogFormDialog({
             </p>
           )}
 
-          {/* Description */}
           <div className="space-y-1.5">
             <Label htmlFor="wl-desc">
               {tField("description")}{" "}
@@ -355,7 +341,6 @@ export function WorkLogFormDialog({
             )}
           </div>
 
-          {/* JIRA key (optional) */}
           <div className="space-y-1.5">
             <Label htmlFor="wl-jira">
               {t("jiraIssueKey")} <span className="text-xs text-muted-foreground">({tCommon("optional")})</span>

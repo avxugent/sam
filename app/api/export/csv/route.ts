@@ -1,20 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { generateExportCsv } from "@/lib/csv-export";
+import type { NextRequest } from "next/server";
+import { adminSessionOrExportToken } from "@/lib/tokens/session-or-export";
+import { generateActiveAssetsCsv } from "@/lib/csv/export";
 import { logAudit } from "@/lib/audit";
-import { checkExportToken } from "@/lib/export-token";
+import { toIsoDay } from "@/lib/dates";
+import { csvDownload } from "@/lib/route-helpers";
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  const hasToken = checkExportToken(req);
+  const access = await adminSessionOrExportToken(req);
+  if ("error" in access) return access.error;
+  const { session } = access;
 
-  if (!session?.user && !hasToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const csv = await generateActiveAssetsCsv();
 
-  const csv = await generateExportCsv();
-
-  const date = new Date().toISOString().slice(0, 10);
+  const date = toIsoDay(new Date());
   const filename = `sam-export-${date}.csv`;
 
   await logAudit({
@@ -25,11 +23,5 @@ export async function GET(req: NextRequest) {
     detail: { filename },
   });
 
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`,
-      "Cache-Control": "no-store",
-    },
-  });
+  return csvDownload(csv, filename);
 }

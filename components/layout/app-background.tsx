@@ -1,5 +1,7 @@
 "use client";
 
+import type { BackgroundMode } from "@/lib/branding/background-mode";
+
 // Diagonal repeating "TESTING" watermark rendered as an inline SVG data-URL.
 // Using a pattern tile of 360×200 rotated -40° so the text runs diagonally.
 const TESTING_SVG = encodeURIComponent(
@@ -9,7 +11,7 @@ const TESTING_SVG = encodeURIComponent(
     `</svg>`
 );
 
-const PRESETS: Record<string, React.CSSProperties> = {
+const PRESETS: Record<Exclude<BackgroundMode, "" | "custom">, React.CSSProperties> = {
   "preset:testing": {
     backgroundImage: `url("data:image/svg+xml;utf8,${TESTING_SVG}")`,
     backgroundRepeat: "repeat",
@@ -20,14 +22,11 @@ const PRESETS: Record<string, React.CSSProperties> = {
 export function AppBackground({
   backgroundMode,
 }: {
-  backgroundMode: string;
+  backgroundMode: BackgroundMode;
 }) {
   if (!backgroundMode) return null;
 
   const isCustom = backgroundMode === "custom";
-  const presetStyle = PRESETS[backgroundMode];
-
-  if (!isCustom && !presetStyle) return null;
 
   return (
     <div
@@ -44,7 +43,7 @@ export function AppBackground({
               backgroundSize: "auto",
               backgroundPosition: "center",
             }
-          : presetStyle),
+          : PRESETS[backgroundMode]),
       }}
     />
   );

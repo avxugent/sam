@@ -2,11 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { SuppliersClient } from "@/components/settings/suppliers-client";
+import { SuppliersClient } from "@/components/admin/catalog/suppliers-client";
+import { canManageCatalog } from "@/lib/permissions";
 
 export default async function SuppliersPage() {
   const session = await auth();
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER")) redirect("/");
+  if (!session?.user || !canManageCatalog(session.user.role)) redirect("/");
 
   const t = await getTranslations("suppliers");
 
@@ -23,9 +24,18 @@ export default async function SuppliersPage() {
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p className="text-muted-foreground mt-1">{t("subtitle")}</p>
       </div>
-      <SuppliersClient initialSuppliers={suppliers} />
+      <SuppliersClient
+        initialSuppliers={suppliers.map((s) => ({
+          ...s,
+          defaultFrom: s.defaultFrom?.toISOString() ?? null,
+          defaultUntil: s.defaultUntil?.toISOString() ?? null,
+        }))}
+      />
     </div>
   );
 }
 
-export const metadata = { title: "Suppliers – SAM Admin" };
+export async function generateMetadata() {
+  const t = await getTranslations("suppliers");
+  return { title: t("title") };
+}

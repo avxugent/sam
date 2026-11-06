@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
-import { validateTemplate } from "@/lib/scrape-template";
-import { logAudit } from "@/lib/audit";
-
-const updateSchema = z.object({
-  scrapeTargetTemplate: z.string().min(1).max(10000),
-});
+import { isAdmin } from "@/lib/permissions";
+import { deleteTemplateOverride, manufacturerTemplates, updateTemplateOverride } from "@/lib/prometheus/template-overrides";
 
 export async function PUT(
   req: NextRequest,
@@ -15,49 +9,10 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const existing = await prisma.assetTypeManufacturerTemplate.findUnique({
-    where: { id },
-    include: { type: { select: { name: true } }, manufacturer: { select: { name: true } } },
-  });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  const body = await req.json().catch(() => null);
-  const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
-  }
-
-  const templateErrors = validateTemplate(parsed.data.scrapeTargetTemplate);
-  if (templateErrors.length > 0) {
-    return NextResponse.json(
-      { error: "Template syntax error", details: templateErrors },
-      { status: 400 }
-    );
-  }
-
-  const updated = await prisma.assetTypeManufacturerTemplate.update({
-    where: { id },
-    data: { scrapeTargetTemplate: parsed.data.scrapeTargetTemplate },
-  });
-
-  await logAudit({
-    session,
-    req,
-    action: "UPDATE",
-    entityType: "AssetTypeManufacturerTemplate",
-    entityId: id,
-    entityName: `${existing.type.name} / ${existing.manufacturer.name}`,
-  });
-
-  return NextResponse.json({
-    id: updated.id,
-    manufacturerId: updated.manufacturerId,
-    manufacturerName: existing.manufacturer.name,
-    scrapeTargetTemplate: updated.scrapeTargetTemplate,
-  });
+  return updateTemplateOverride(req, session, manufacturerTemplates, id);
 }
 
 export async function DELETE(
@@ -66,24 +21,8 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const existing = await prisma.assetTypeManufacturerTemplate.findUnique({
-    where: { id },
-    include: { type: { select: { name: true } }, manufacturer: { select: { name: true } } },
-  });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  await prisma.assetTypeManufacturerTemplate.delete({ where: { id } });
-  await logAudit({
-    session,
-    req,
-    action: "DELETE",
-    entityType: "AssetTypeManufacturerTemplate",
-    entityId: id,
-    entityName: `${existing.type.name} / ${existing.manufacturer.name}`,
-  });
-
-  return new NextResponse(null, { status: 204 });
+  return deleteTemplateOverride(req, session, manufacturerTemplates, id);
 }

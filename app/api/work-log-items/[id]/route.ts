@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { updateWorkLogItemSchema } from "@/lib/work-log-item-schema";
+import { updateWorkLogItemSchema } from "@/lib/schemas/work-log-item";
+import { isAdmin } from "@/lib/permissions";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 export async function PUT(
   req: NextRequest,
@@ -10,24 +12,24 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = updateWorkLogItemSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const current = await prisma.workLogItem.findUnique({ where: { id }, select: { name: true } });
-  if (!current) return NextResponse.json({ error: "Work log item not found." }, { status: 404 });
+  if (!current) return notFoundResponse("Work log item");
 
   try {
     const item = await prisma.workLogItem.update({
       where: { id },
       data: {
-        ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
-        ...(parsed.data.description !== undefined ? { description: parsed.data.description ?? null } : {}),
+        name: parsed.data.name,
+        description: parsed.data.description,
       },
     });
     await logAudit({
@@ -42,8 +44,15 @@ export async function PUT(
         : undefined,
     });
     return NextResponse.json(item);
-  } catch {
-    return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+  } catch (err) {
+    // Races with a concurrent delete.
+    if (isRecordNotFoundError(err)) {
+      return notFoundResponse("Work log item");
+    }
+    if (isUniqueConstraintError(err)) {
+      return nameTakenResponse();
+    }
+    throw err;
   }
 }
 
@@ -53,14 +62,20 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const item = await prisma.workLogItem.findUnique({ where: { id }, select: { name: true } });
-  if (!item) return NextResponse.json({ error: "Work log item not found." }, { status: 404 });
+  if (!item) return notFoundResponse("Work log item");
 
   // onDelete: SetNull clears itemId on any work logs that referenced this item.
-  await prisma.workLogItem.delete({ where: { id } });
+  try {
+    await prisma.workLogItem.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Work log item");
+    throw err;
+  }
   await logAudit({
     session,
     req,

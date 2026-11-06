@@ -80,10 +80,10 @@ Four-stage multi-stage build:
 
 | Stage | Purpose |
 |---|---|
-| `deps` | Install npm dependencies |
-| `prisma-cli` | Install Prisma CLI |
-| `builder` | Build the Next.js app (`next build`) |
-| `runner` | Final image — copies standalone output only |
+| `deps` | Install all npm dependencies (dev + prod) for the build |
+| `scripts-deps` | Install `scripts/package.json` — only the maintenance scripts' dependencies, pinned to the root lockfile — into `scripts/node_modules`; also the source of the Prisma CLI (`prisma migrate deploy`) |
+| `builder` | Build the Next.js app (`next build`) and generate the Prisma client |
+| `runner` | Final image — standalone output, `scripts/` with its `node_modules` plus copies of `lib/` and the generated Prisma client (the scripts import them), and the Prisma schema/config |
 
 The entrypoint is `node .next/standalone/server.js` (enabled by `output: "standalone"` in `next.config.ts`).
 

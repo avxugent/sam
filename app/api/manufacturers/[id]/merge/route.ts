@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
-
-const schema = z.object({ targetId: z.string().min(1) });
+import { canManageCatalog } from "@/lib/permissions";
+import { mergeAuditDetail, mergeResponse, readMergeRequest } from "@/lib/catalog/merge";
+import { reassignModels } from "@/lib/models/reassign";
 
 export async function POST(
   req: NextRequest,
@@ -13,28 +13,14 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN" && session.user.role !== "MAINTAINER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canManageCatalog(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json().catch(() => null);
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  const merge = await readMergeRequest(req, id, { article: "a", name: "manufacturer" }, (mid) => prisma.manufacturer.findUnique({ where: { id: mid } }));
+  if ("error" in merge) return merge.error;
+  const { source, target, targetId } = merge;
 
-  const { targetId } = parsed.data;
-
-  if (id === targetId) {
-    return NextResponse.json({ error: "Cannot merge a manufacturer into itself." }, { status: 400 });
-  }
-
-  const [source, target] = await Promise.all([
-    prisma.manufacturer.findUnique({ where: { id } }),
-    prisma.manufacturer.findUnique({ where: { id: targetId } }),
-  ]);
-
-  if (!source) return NextResponse.json({ error: "Source manufacturer not found." }, { status: 404 });
-  if (!target) return NextResponse.json({ error: "Target manufacturer not found." }, { status: 404 });
-
-  const movedCount = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  const counts = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Reassign scrape template overrides from source to target. Where both
     // manufacturers have an override for the same asset type, the unique
     // (typeId, manufacturerId) constraint would collide — keep the target's
@@ -60,8 +46,15 @@ export async function POST(
       where: { manufacturerId: id },
       data: { manufacturerId: targetId },
     });
+    // Stock and models reference the manufacturer with ON DELETE SET NULL —
+    // move them too, or deleting the source silently strips their brand.
+    const stockResult = await tx.stockItem.updateMany({
+      where: { manufacturerId: id },
+      data: { manufacturerId: targetId },
+    });
+    const models = await reassignModels(tx, { manufacturerId: id }, { manufacturerId: targetId });
     await tx.manufacturer.delete({ where: { id } });
-    return result.count;
+    return { assetsMoved: result.count, stockItemsMoved: stockResult.count, ...models };
   });
 
   await logAudit({
@@ -71,11 +64,8 @@ export async function POST(
     entityType: "Manufacturer",
     entityId: id,
     entityName: source.name,
-    detail: {
-      mergedInto: { id: targetId, name: target.name },
-      assetsMoved: movedCount,
-    },
+    detail: mergeAuditDetail(target.name, counts),
   });
 
-  return NextResponse.json({ ok: true, movedCount });
+  return mergeResponse(counts);
 }

@@ -10,37 +10,31 @@
  * purged, no matter how old — run scripts/forward-audit.mjs first.
  *
  * Usage:
- *   node scripts/purge-audit.mjs               # purge expired rows
- *   node scripts/purge-audit.mjs --batch 5000  # delete up to N rows per run (default 10000)
- *   node scripts/purge-audit.mjs --dry-run     # report what would be deleted
+ *   node --import tsx/esm scripts/purge-audit.mjs               # purge expired rows
+ *   node --import tsx/esm scripts/purge-audit.mjs --batch 5000  # delete up to N rows per run (default 10000)
+ *   node --import tsx/esm scripts/purge-audit.mjs --dry-run     # report what would be deleted
  *
  * Run from the project root so .env is found automatically.
  */
 
-import { prisma } from "./_prisma.mjs";
-
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
+import "./_env.mjs";
+import { getArg } from "./_args.mjs";
+import { prisma } from "@/lib/prisma";
+import { readComplianceSetting } from "@/lib/app-settings";
+import { isSyslogConfigured } from "@/lib/audit/syslog";
 
 const dryRun = process.argv.includes("--dry-run");
 const batchSize = parseInt(getArg("--batch", "10000"), 10) || 10000;
 
 async function main() {
-  const setting = await prisma.appSetting.findUnique({
-    where: { key: "audit.retentionDays" },
-  });
-  const retentionDays = parseInt(setting?.value ?? "730", 10);
-  if (isNaN(retentionDays) || retentionDays < 1) {
-    console.error(`Invalid audit.retentionDays value: ${setting?.value}. Aborting.`);
+  const retentionDays = await readComplianceSetting("auditRetentionDays");
+  if (retentionDays < 1) {
+    console.error(`Invalid audit.retentionDays value: ${retentionDays}. Aborting.`);
     process.exit(2);
   }
 
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-  // Mirrors isSyslogConfigured() in lib/syslog.ts
-  const syslogConfigured = !!process.env.SYSLOG_HOST;
+  const syslogConfigured = isSyslogConfigured();
 
   const where = {
     timestamp: { lt: cutoff },

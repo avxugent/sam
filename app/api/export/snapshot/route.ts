@@ -2,26 +2,23 @@
  * GET /api/export/snapshot
  *
  * Point-in-time JSON inventory snapshot (assets incl. NIS2 fields, suppliers,
- * locations). Auth: session OR EXPORT_TOKEN Bearer (same pattern as
+ * locations). Auth: ADMIN session OR EXPORT_TOKEN Bearer (same pattern as
  * /api/export/csv) so an external cron can archive dated snapshots.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { adminSessionOrExportToken } from "@/lib/tokens/session-or-export";
 import { buildInventorySnapshot } from "@/lib/inventory-snapshot";
-import { checkExportToken } from "@/lib/export-token";
 import { logAudit } from "@/lib/audit";
+import { toIsoDay } from "@/lib/dates";
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  const hasToken = checkExportToken(req);
-
-  if (!session?.user && !hasToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const access = await adminSessionOrExportToken(req);
+  if ("error" in access) return access.error;
+  const { session } = access;
 
   const snapshot = await buildInventorySnapshot();
 
-  const date = new Date().toISOString().slice(0, 10);
+  const date = toIsoDay(new Date());
   const filename = `sam-inventory-${date}.json`;
 
   await logAudit({

@@ -1,26 +1,22 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AppBackground } from "@/components/layout/app-background";
-import { prisma } from "@/lib/prisma";
+import { readBrandingSettings } from "@/lib/app-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.appSetting.findMany({
-    where: { key: { in: ["app.title", "branding.faviconStorageKey"] } },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
-  const appTitle = map["app.title"] || "SAM";
-  const hasFavicon = !!map["branding.faviconStorageKey"];
+  const { appTitle, hasFavicon } = await readBrandingSettings();
+  const t = await getTranslations("common");
 
   return {
     title: {
       default: `${appTitle} – Simple Asset Management`,
       template: `%s – ${appTitle}`,
     },
-    description: "Manage AV hardware assets across your facilities",
+    description: t("appDescription"),
     ...(hasFavicon
       ? { icons: [{ rel: "icon", url: "/api/branding/favicon" }] }
       : {}),
@@ -38,15 +34,11 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
 
-  const bgSetting = await prisma.appSetting.findUnique({
-    where: { key: "branding.backgroundMode" },
-  });
-  const backgroundMode = bgSetting?.value ?? "";
+  const { backgroundMode } = await readBrandingSettings();
 
   return (
     <html lang={locale} translate="no" className="h-full" suppressHydrationWarning>
       <body className="h-full antialiased">
-        {/* eslint-disable-next-line @next/next/no-before-interactive-script-outside-document */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <ThemeProvider>
           <NextIntlClientProvider locale={locale} messages={messages}>

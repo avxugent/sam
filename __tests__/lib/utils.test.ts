@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cn, formatDate, formatFileSize } from "@/lib/utils";
+import { cn, formatFileSize, getInitials } from "@/lib/utils";
 
 describe("cn()", () => {
   it("merges class names", () => {
@@ -24,31 +24,6 @@ describe("cn()", () => {
   });
 });
 
-describe("formatDate()", () => {
-  it("formats a Date object", () => {
-    const d = new Date("2024-01-15");
-    expect(formatDate(d)).toMatch(/15/);
-    expect(formatDate(d)).toMatch(/Jan/);
-    expect(formatDate(d)).toMatch(/2024/);
-  });
-
-  it("formats an ISO date string", () => {
-    expect(formatDate("2023-06-01")).toMatch(/2023/);
-  });
-
-  it("returns em-dash for null", () => {
-    expect(formatDate(null)).toBe("—");
-  });
-
-  it("returns em-dash for undefined", () => {
-    expect(formatDate(undefined)).toBe("—");
-  });
-
-  it("returns em-dash for empty string", () => {
-    expect(formatDate("")).toBe("—");
-  });
-});
-
 describe("formatFileSize()", () => {
   it("formats bytes", () => {
     expect(formatFileSize(512)).toBe("512 B");
@@ -68,5 +43,18 @@ describe("formatFileSize()", () => {
 
   it("formats 0 bytes", () => {
     expect(formatFileSize(0)).toBe("0 B");
+  });
+});
+
+describe("getInitials()", () => {
+  it.each([
+    ["Ada Lovelace", null, "AL"],
+    ["Grace Brewster Hopper", null, "GH"],
+    ["plato", null, "PL"],
+    [null, "zed@x.com", "Z"],
+    ["   ", "bob@x.com", "B"],
+    [undefined, undefined, "U"],
+  ])("%s / %s → %s", (name, email, expected) => {
+    expect(getInitials(name, email)).toBe(expected);
   });
 });

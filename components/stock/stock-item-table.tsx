@@ -36,6 +36,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { canEdit, type Role } from "@/lib/permissions";
+import { SortableTh } from "@/components/ui/sortable-th";
+import { toIsoDay } from "@/lib/dates";
+import { stockMetadataMacs } from "@/lib/stock-metadata";
+import { paginate, useRowSelection, useTableSort } from "@/components/ui/use-row-selection";
+import { apiFetch } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
@@ -48,7 +55,7 @@ export type StockItem = {
   serialNumber: string | null;
   quantity: number;
   invoiceNumber: string | null;
-  invoiceDate: Date | string | null;
+  invoiceDate: string | null;
   notes: string | null;
   locationId: string | null;
   reservedForLocationId: string | null;
@@ -58,44 +65,14 @@ export type StockItem = {
   location: { id: string; name: string } | null;
 };
 
-// The MAC addresses stored in the item's metadata blob, if any.
-function macsFromMetadata(metadata: string | null): string[] {
-  if (!metadata) return [];
-  try {
-    const meta = JSON.parse(metadata) as { macAddresses?: { address: string }[] };
-    return meta.macAddresses?.map((m) => m.address) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-type SortCol = "type" | "manufacturer" | "model" | "serialNumber" | "quantity";
-
-function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
-  if (!active) return <ChevronUp className="h-2.5 w-2.5 opacity-30" />;
-  return dir === "asc"
-    ? <ChevronUp className="h-2.5 w-2.5 text-[#1e64c8]" />
-    : <ChevronDown className="h-2.5 w-2.5 text-[#1e64c8]" />;
-}
-
-function Th({ col, label, sortCol, sortDir, onSort }: {
-  col: SortCol; label: string;
-  sortCol: SortCol; sortDir: "asc" | "desc";
-  onSort: (col: SortCol) => void;
-}) {
-  return (
-    <th className="px-3 py-2.5 text-left">
-      <button
-        type="button"
-        onClick={() => onSort(col)}
-        className="flex items-center gap-1 text-[11px] font-semibold text-[#64748b] uppercase tracking-wide hover:text-[#0f172a] transition-colors"
-      >
-        {label}
-        <SortIcon active={sortCol === col} dir={sortDir} />
-      </button>
-    </th>
-  );
-}
+const SORT_KEYS = {
+  type: (i: StockItem) => i.type.name,
+  manufacturer: (i: StockItem) => i.manufacturer?.name ?? "",
+  model: (i: StockItem) => i.model?.name ?? "",
+  serialNumber: (i: StockItem) => i.serialNumber ?? "",
+  quantity: (i: StockItem) => i.quantity,
+};
+type SortCol = keyof typeof SORT_KEYS;
 
 export function StockItemTable({
   items: initialItems,
@@ -103,35 +80,28 @@ export function StockItemTable({
   locationBreadcrumbs = {},
 }: {
   items: StockItem[];
-  userRole: string;
+  userRole: Role;
   locationBreadcrumbs?: Record<string, string>;
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("stock");
   const tCommon = useTranslations("common");
   const [items, setItems] = useState(initialItems);
   const [query, setQuery] = useState("");
-  const [sortCol, setSortCol] = useState<SortCol>("type");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
+  const { selected, setSelected, toggleAll, toggleRow: toggleSelectRow, allSelectedIn, someSelectedIn } = useRowSelection();
   const [page, setPage] = useState(1);
   const [deployItem, setDeployItem] = useState<StockItem | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkRelocateOpen, setBulkRelocateOpen] = useState(false);
 
-  const canEdit = userRole === "ADMIN" || userRole === "EDITOR" || userRole === "MAINTAINER";
+  const editable = canEdit(userRole);
 
   useEffect(() => {
     setItems(initialItems);
     setSelected((prev) => new Set([...prev].filter((id) => initialItems.some((i) => i.id === id))));
-  }, [initialItems]);
-
-  function toggleSort(col: SortCol) {
-    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortCol(col); setSortDir("asc"); }
-    setPage(1);
-  }
+  }, [initialItems, setSelected]);
 
   const filtered = useMemo(() => {
     const ql = query.toLowerCase();
@@ -144,47 +114,22 @@ export function StockItemTable({
     );
   }, [items, query]);
 
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      let va = "", vb = "";
-      if (sortCol === "type") { va = a.type.name; vb = b.type.name; }
-      else if (sortCol === "manufacturer") { va = a.manufacturer?.name ?? ""; vb = b.manufacturer?.name ?? ""; }
-      else if (sortCol === "model") { va = a.model?.name ?? ""; vb = b.model?.name ?? ""; }
-      else if (sortCol === "serialNumber") { va = a.serialNumber ?? ""; vb = b.serialNumber ?? ""; }
-      else if (sortCol === "quantity") return sortDir === "asc" ? a.quantity - b.quantity : b.quantity - a.quantity;
-      return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
-    });
-  }, [filtered, sortCol, sortDir]);
+  const { sortCol, sortDir, handleSort, sorted } = useTableSort(filtered, SORT_KEYS, "type");
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const paginated = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
-
-  function toggleSelectAll() {
-    setSelected((prev) =>
-      filtered.length > 0 && filtered.every((i) => prev.has(i.id))
-        ? new Set()
-        : new Set(filtered.map((i) => i.id))
-    );
+  function toggleSort(col: SortCol) {
+    handleSort(col);
+    setPage(1);
   }
 
-  function toggleSelectRow(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
+  const { totalPages, safePage, pageRows: paginated } = paginate(sorted, page, pageSize);
 
-  const allFilteredSelected = filtered.length > 0 && filtered.every((i) => selected.has(i.id));
-  const someFilteredSelected = !allFilteredSelected && filtered.some((i) => selected.has(i.id));
+  const allFilteredSelected = allSelectedIn(filtered);
+  const someFilteredSelected = someSelectedIn(filtered);
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/stock/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/stock/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      showApiError(res.error);
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));
@@ -194,10 +139,9 @@ export function StockItemTable({
 
   return (
     <div className="space-y-3">
-      {/* Search */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-subtle" />
           <Input
             placeholder={t("searchStock")}
             value={query}
@@ -205,18 +149,18 @@ export function StockItemTable({
             className="pl-8 h-8 text-[13px]"
           />
         </div>
-        <span className="text-[12px] text-[#94a3b8] ml-auto">
+        <span className="text-[12px] text-subtle ml-auto">
           {filtered.length} {filtered.length !== 1 ? t("items") : t("item")}
         </span>
       </div>
 
       {/* Bulk actions toolbar */}
-      {canEdit && selected.size > 0 && (
-        <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-[#e8f0fc] text-[12.5px] text-[#1e64c8]">
+      {editable && selected.size > 0 && (
+        <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-primary-tint text-[12.5px] text-primary">
           <span className="font-medium">{t("itemsSelected", { count: selected.size })}</span>
           <Button
             size="sm"
-            className="h-7 bg-[#1e64c8] hover:bg-[#1a56b0] text-white"
+            className="h-7 bg-primary hover:bg-primary-hover text-white"
             onClick={() => setBulkRelocateOpen(true)}
           >
             {t("relocateSelected")}
@@ -224,7 +168,7 @@ export function StockItemTable({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-[#1e64c8] hover:bg-[#dbe9fb]"
+            className="h-7 text-primary hover:bg-primary-tint-hover"
             onClick={() => setSelected(new Set())}
           >
             {t("clearSelection")}
@@ -232,42 +176,41 @@ export function StockItemTable({
         </div>
       )}
 
-      {/* Table */}
-      <div className="border border-[#e2e8f0] rounded-[10px] overflow-hidden">
+      <div className="border border-border rounded-[10px] overflow-hidden">
         <table className="w-full text-[13px]">
-          <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
+          <thead className="bg-background border-b border-border">
             <tr>
-              {canEdit && (
+              {editable && (
                 <th className="px-3 py-2.5 w-[36px]">
                   <Checkbox
                     checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
-                    onCheckedChange={toggleSelectAll}
+                    onCheckedChange={() => toggleAll(filtered)}
                     aria-label={t("selectAllRows")}
                   />
                 </th>
               )}
-              <Th col="type" label={t("type")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
-              <Th col="manufacturer" label={t("manufacturer")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
-              <Th col="model" label={t("model")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
-              <Th col="serialNumber" label={t("serial")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
-              <Th col="quantity" label={t("qty")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">
+              <SortableTh variant="compact" col="type" label={t("type")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh variant="compact" col="manufacturer" label={t("manufacturer")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh variant="compact" col="model" label={t("model")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh variant="compact" col="serialNumber" label={t("serial")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh variant="compact" col="quantity" label={t("qty")} sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} />
+              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                 {t("location")}
               </th>
-              {canEdit && <th className="px-3 py-2.5 w-[100px]" />}
+              {editable && <th className="px-3 py-2.5 w-[100px]" />}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#f1f5f9]">
+          <tbody className="divide-y divide-muted">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={canEdit ? 8 : 6} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">
+                <td colSpan={editable ? 8 : 6} className="px-3 py-8 text-center text-[13px] text-subtle">
                   {t("noStockItems")}
                 </td>
               </tr>
             ) : (
               paginated.map((item) => (
-                <tr key={item.id} className="hover:bg-[#f8fafc] transition-colors">
-                  {canEdit && (
+                <tr key={item.id} className="hover:bg-background transition-colors">
+                  {editable && (
                     <td className="px-3 py-2.5">
                       <Checkbox
                         checked={selected.has(item.id)}
@@ -277,32 +220,32 @@ export function StockItemTable({
                     </td>
                   )}
                   <td className="px-3 py-2.5">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#e8f0fc] text-[#1e64c8] text-[11px] font-medium">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-tint text-primary text-[11px] font-medium">
                       {item.type.name}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 text-[#64748b]">{item.manufacturer?.name ?? "—"}</td>
-                  <td className="px-3 py-2.5 font-medium text-[#0f172a]">{item.model?.name ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{item.manufacturer?.name ?? "—"}</td>
+                  <td className="px-3 py-2.5 font-medium text-foreground">{item.model?.name ?? "—"}</td>
                   <td className="px-3 py-2.5">
                     {item.serialNumber
-                      ? <span className="font-mono text-[11.5px] text-[#64748b]">{item.serialNumber}</span>
-                      : <span className="text-[#cbd5e1]">—</span>}
+                      ? <span className="font-mono text-[11.5px] text-muted-foreground">{item.serialNumber}</span>
+                      : <span className="text-subtle">—</span>}
                   </td>
-                  <td className="px-3 py-2.5 text-[#64748b]">
-                    {item.serialNumber ? "—" : <span className="font-medium text-[#0f172a]">×{item.quantity}</span>}
+                  <td className="px-3 py-2.5 text-muted-foreground">
+                    {item.serialNumber ? "—" : <span className="font-medium text-foreground">×{item.quantity}</span>}
                   </td>
-                  <td className="px-3 py-2.5 text-[#64748b] text-[12.5px]">
+                  <td className="px-3 py-2.5 text-muted-foreground text-[12.5px]">
                     {item.locationId
                       ? locationBreadcrumbs[item.locationId] ?? item.location?.name ?? "—"
-                      : <span className="text-[#cbd5e1]">{t("unassigned")}</span>}
+                      : <span className="text-subtle">{t("unassigned")}</span>}
                   </td>
-                  {canEdit && (
+                  {editable && (
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1 justify-end">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-[#1e64c8] hover:bg-[#e8f0fc]"
+                          className="h-7 w-7 p-0 text-primary hover:bg-primary-tint"
                           title={t("deployTo")}
                           onClick={() => setDeployItem(item)}
                         >
@@ -326,20 +269,20 @@ export function StockItemTable({
                               : null,
                             invoiceNumber: item.invoiceNumber ?? null,
                             invoiceDate: item.invoiceDate
-                              ? new Date(item.invoiceDate).toISOString().slice(0, 10)
+                              ? toIsoDay(item.invoiceDate)
                               : null,
-                            macAddresses: macsFromMetadata(item.metadata),
+                            macAddresses: stockMetadataMacs(item.metadata),
                           } satisfies StockItemInitialData}
                           onSuccess={() => router.refresh()}
                         >
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-[#f1f5f9]">
-                            <Pencil className="h-3.5 w-3.5 text-[#64748b]" />
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-muted">
+                            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                           </Button>
                         </StockItemFormDialog>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-[#fee2e2]">
-                              <Trash2 className="h-3.5 w-3.5 text-[#ef4444]" />
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-danger-surface">
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -353,7 +296,7 @@ export function StockItemTable({
                               <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleDelete(item.id)}
-                                className="bg-[#ef4444] hover:bg-[#dc2626] text-white"
+                                className="bg-destructive hover:bg-destructive/90 text-white"
                               >
                                 {tCommon("delete")}
                               </AlertDialogAction>
@@ -372,7 +315,7 @@ export function StockItemTable({
 
       {/* Pagination */}
       {sorted.length > pageSize && (
-        <div className="flex items-center justify-between text-[12px] text-[#64748b]">
+        <div className="flex items-center justify-between text-[12px] text-muted-foreground">
           <div className="flex items-center gap-2">
             <span>{t("rowsPerPage")}</span>
             <Select
@@ -401,7 +344,6 @@ export function StockItemTable({
         </div>
       )}
 
-      {/* Deploy dialog */}
       {deployItem && (
         <DeployStockDialog
           open={!!deployItem}
@@ -413,7 +355,6 @@ export function StockItemTable({
         />
       )}
 
-      {/* Bulk relocate dialog */}
       <BulkRelocateDialog
         open={bulkRelocateOpen}
         onOpenChange={setBulkRelocateOpen}

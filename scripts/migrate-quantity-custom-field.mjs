@@ -13,9 +13,10 @@
  * The source custom field row is deleted once handled (applied or flagged)
  * so the script is idempotent — a second run finds nothing left to do.
  *
- * Usage: node scripts/migrate-quantity-custom-field.mjs [--dry-run]
+ * Usage: node --import tsx/esm scripts/migrate-quantity-custom-field.mjs [--dry-run]
  */
-import { prisma } from "./_prisma.mjs";
+import "./_env.mjs";
+import { prisma } from "@/lib/prisma";
 
 const dryRun = process.argv.includes("--dry-run");
 
@@ -27,7 +28,7 @@ const customFields = await prisma.customField.findMany({
     asset: {
       select: {
         id: true,
-        model: true,
+        model: { select: { name: true } },
         serialNumber: true,
         hostname: true,
         quantity: true,
@@ -46,7 +47,7 @@ const flagged = [];
 
 for (const f of quantityFields) {
   const asset = f.asset;
-  const label = asset.model ?? asset.id;
+  const label = asset.model?.name ?? asset.id;
   const hasIdentity = !!asset.serialNumber || !!asset.hostname || asset.macAddresses.length > 0;
   const match = f.value.trim().match(/^(\d+)$/);
   const parsed = match ? parseInt(match[1], 10) : null;

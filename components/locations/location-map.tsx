@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, MapPin, Search, Save, ExternalLink } from "lucide-react";
+import { apiFetch, jsonBody, apiErrorMessage } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
 type Props = {
   locationId: string;
@@ -54,6 +56,7 @@ export function LocationMap({
   const tCommon = useTranslations("common");
   const tField = useTranslations("field");
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const [address, setAddress] = useState(initAddress || "");
   const [city, setCity] = useState(initCity || "");
   const [country, setCountry] = useState(initCountry || "");
@@ -73,17 +76,21 @@ export function LocationMap({
     }
     setSearching(true);
     setSearchResults([]);
-    try {
-      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
-      const data: NominatimResult[] = await res.json();
-      setSearchResults(data);
-      if (data.length === 0) {
-        toast({ title: "No results found", description: "Try a more specific address." });
-      }
-    } catch {
-      toast({ title: tCommon("error"), description: "Could not reach geocoding service.", variant: "destructive" });
-    }
+    const res = await apiFetch<NominatimResult[]>(`/api/geocode?q=${encodeURIComponent(query)}`);
     setSearching(false);
+    if (!res.ok || !Array.isArray(res.data)) {
+      const unavailable = !res.ok && res.error.code === "geocodeUnavailable";
+      toast({
+        title: tCommon("error"),
+        description: unavailable ? t("geocodeFailed") : apiErrorMessage(res.ok ? {} : res.error, t("geocodeFailed")),
+        variant: "destructive",
+      });
+      return;
+    }
+    setSearchResults(res.data);
+    if (res.data.length === 0) {
+      toast({ title: t("geocodeNoResults"), description: t("geocodeNoResultsHint") });
+    }
   }
 
   function applyResult(result: NominatimResult) {
@@ -103,22 +110,17 @@ export function LocationMap({
 
   async function handleSave() {
     setSaving(true);
-    const res = await fetch(`/api/locations/${locationId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const res = await apiFetch(`/api/locations/${locationId}`, jsonBody("PUT", {
         address: address || null,
         city: city || null,
         country: country || null,
         latitude: lat,
         longitude: lng,
-      }),
-    });
+      }));
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      showApiError(res.error);
       return;
     }
 
@@ -137,7 +139,6 @@ export function LocationMap({
 
   return (
     <div className="space-y-5">
-      {/* Address form */}
       {canEdit ? (
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -145,7 +146,7 @@ export function LocationMap({
             <Input
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="e.g. Grote Markt 1"
+              placeholder={t("addressPlaceholder")}
               onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
             />
           </div>
@@ -155,7 +156,7 @@ export function LocationMap({
               <Input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g. Ghent"
+                placeholder={t("cityPlaceholder")}
               />
             </div>
             <div className="space-y-1.5">
@@ -163,7 +164,7 @@ export function LocationMap({
               <Input
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                placeholder="e.g. Belgium"
+                placeholder={t("countryPlaceholder")}
               />
             </div>
           </div>
@@ -195,11 +196,10 @@ export function LocationMap({
             </Button>
           </div>
 
-          {/* Geocode results */}
           {searchResults.length > 0 && (
             <div className="border rounded-lg divide-y overflow-hidden">
               <p className="px-3 py-2 text-xs font-medium text-muted-foreground bg-muted/50">
-                Select a result to pin on map
+                {t("pickGeocodeResult")}
               </p>
               {searchResults.map((r, i) => (
                 <button
@@ -230,7 +230,6 @@ export function LocationMap({
         )
       )}
 
-      {/* Coordinate display */}
       {hasCoords && (
         <div className="text-xs text-muted-foreground flex items-center gap-2">
           <MapPin className="h-3.5 w-3.5" />
@@ -244,7 +243,7 @@ export function LocationMap({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-primary hover:underline ml-1"
             >
-              Open in OpenStreetMap
+              {t("openInOsm")}
               <ExternalLink className="h-3 w-3" />
             </a>
           )}
@@ -259,7 +258,7 @@ export function LocationMap({
             width="100%"
             height="100%"
             style={{ border: 0 }}
-            title="Location map"
+            title={t("mapFrameTitle")}
             loading="lazy"
             referrerPolicy="no-referrer"
           />

@@ -52,9 +52,9 @@ model User {
   mustChangePassword Boolean   @default(false) // cleared after user successfully changes password
   twoFactorRequired  Boolean   @default(false) // stays set; forces 2FA setup on next login
   // UI preference: which tab opens first when navigating to a location with sub-locations
-  locationDefaultTab String    @default("assets") // "assets" | "sublocations"
+  locationDefaultTab String    @default("assets") // LOCATION_TABS in lib/users/preferences.ts
   // UI preference: colour scheme
-  theme              String    @default("light") // "light" | "dark" | "system"
+  theme              String    @default("light") // THEMES in lib/users/preferences.ts
   lastLoginAt        DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -276,7 +276,7 @@ model Asset {
   // Stable identity that survives Asset <-> StockItem conversions
   // (return-to-stock, deploy-from-stock). Fresh on brand-new creation;
   // explicitly copied forward on every conversion route so AuditLog.lineageId
-  // can reconstruct full history across table hops. See lib/asset-lifecycle.ts.
+  // can reconstruct full history across table hops. See lib/assets/lifecycle-rules.ts.
   lineageId            String          @default(cuid())
   locationId           String
   typeId               String?
@@ -396,8 +396,8 @@ model AuditLog {
   timestamp   DateTime  @default(now())
   userId      String?
   userEmail   String?
-  action      String // CREATE | UPDATE | DELETE | IMPORT | EXPORT
-  entityType  String // Asset | Location | User | AssetType | Manufacturer | Attachment
+  action      String // AuditAction in lib/audit/index.ts
+  entityType  String // AuditEntityType in lib/audit/index.ts
   entityId    String?
   entityName  String?
   detail      String?   @db.Text // JSON

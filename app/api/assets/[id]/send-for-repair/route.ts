@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { logAudit } from "@/lib/audit";
-import { AssetLifecycleError, assertRepairable, buildSendForRepairUpdateData } from "@/lib/asset-lifecycle";
+import { repairViolation } from "@/lib/assets/lifecycle-rules";
+import { REPAIR_SELECT, lifecycleViolationResponse, sendAssetForRepair, statusChangedResponse } from "@/lib/assets/transitions";
+import { canEdit } from "@/lib/permissions";
+import { invalidInput, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 const schema = z.object({
   note: z.string().max(500).optional().nullable(),
@@ -15,47 +17,22 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const existing = await prisma.asset.findUnique({
-    where: { id },
-    select: { model: { select: { name: true } }, status: true, lineageId: true },
-  });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  try {
-    assertRepairable(existing);
-  } catch (err) {
-    if (err instanceof AssetLifecycleError) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
-    }
-    throw err;
-  }
+  const existing = await prisma.asset.findUnique({ where: { id }, select: REPAIR_SELECT });
+  if (!existing) return notFoundResponse("Asset");
+  const violation = lifecycleViolationResponse(repairViolation(existing));
+  if (violation) return violation;
 
-  const body = await req.json().catch(() => ({}));
-  const parsed = schema.safeParse(body);
+  // The note is optional, so an empty or missing body is fine.
+  const parsed = schema.safeParse((await readJsonBody(req)) ?? {});
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
-  const asset = await prisma.asset.update({
-    where: { id },
-    data: buildSendForRepairUpdateData({
-      note: parsed.data.note ?? null,
-      actorId: session.user.id,
-    }),
-  });
-
-  await logAudit({
-    session,
-    req,
-    action: "UPDATE",
-    entityType: "Asset",
-    entityId: id,
-    entityName: existing.model?.name ?? undefined,
-    detail: { status: "IN_REPAIR", note: parsed.data.note },
-    lineageId: existing.lineageId,
-  });
+  const asset = await sendAssetForRepair(req, session, existing, { note: parsed.data.note });
+  if (!asset) return statusChangedResponse();
 
   return NextResponse.json(asset);
 }

@@ -10,26 +10,20 @@
  * IP) are left untouched and reported as "unresolved".
  *
  * Usage:
- *   node scripts/resolve-ip-hostnames.mjs                  # resolve all IP hostnames
- *   node scripts/resolve-ip-hostnames.mjs --dry-run        # preview, no writes
- *   node scripts/resolve-ip-hostnames.mjs --asset-id <id>  # single asset
- *   node scripts/resolve-ip-hostnames.mjs --dns-server 10.0.0.1   # override resolver(s), comma-separated
- *   node scripts/resolve-ip-hostnames.mjs --timeout 8000   # per-lookup timeout in ms (default 5000)
+ *   node --import tsx/esm scripts/resolve-ip-hostnames.mjs                  # resolve all IP hostnames
+ *   node --import tsx/esm scripts/resolve-ip-hostnames.mjs --dry-run        # preview, no writes
+ *   node --import tsx/esm scripts/resolve-ip-hostnames.mjs --asset-id <id>  # single asset
+ *   node --import tsx/esm scripts/resolve-ip-hostnames.mjs --dns-server 10.0.0.1   # override resolver(s), comma-separated
+ *   node --import tsx/esm scripts/resolve-ip-hostnames.mjs --timeout 8000   # per-lookup timeout in ms (default 5000)
  *
  * Run from the project root so that the .env file is found automatically.
  */
 
 import { isIP } from "node:net";
 import dns from "node:dns/promises";
-import { prisma } from "./_prisma.mjs";
-
-// ── arg parsing ───────────────────────────────────────────────────────────────
-
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
+import "./_env.mjs";
+import { getArg } from "./_args.mjs";
+import { prisma } from "@/lib/prisma";
 
 const dryRun = process.argv.includes("--dry-run");
 const singleAssetId = getArg("--asset-id");
@@ -84,7 +78,7 @@ async function main() {
   });
 
   // Keep only assets whose hostname is a bare IP address.
-  const ipAssets = assets.filter((a) => isIP(a.hostname) !== 0);
+  const ipAssets = assets.filter((a) => isIP(a.hostname ?? "") !== 0);
 
   if (ipAssets.length === 0) {
     console.log("No assets with an IP address in the hostname field.");

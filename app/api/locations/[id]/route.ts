@@ -1,32 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { getAllDescendantLocationIds } from "@/lib/location-path";
-
-// FI number format: CC.BB.FFF.RR(R)  e.g. "14.10.100.13" or "14.10.100.013"
-// Last (room) segment may be 2 or 3 digits.
-const FI_NUMBER_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{2,3}$/;
-
-const updateSchema = z.object({
-  name: z.string().min(1).max(255).optional(),
-  description: z.string().max(2000).optional().nullable(),
-  parentId: z.string().nullable().optional(),
-  fiNumber: z
-    .string()
-    .max(20)
-    .regex(FI_NUMBER_REGEX, "FI number must be in format CC.BB.FFF.RRR (e.g. 14.10.100.013)")
-    .optional()
-    .nullable(),
-  address: z.string().max(500).optional().nullable(),
-  city: z.string().max(255).optional().nullable(),
-  country: z.string().max(100).optional().nullable(),
-  latitude: z.number().min(-90).max(90).optional().nullable(),
-  longitude: z.number().min(-180).max(180).optional().nullable(),
-  coverImageId: z.string().optional().nullable(),
-  inMaintenance: z.boolean().optional(),
-});
+import { auditChanges } from "@/lib/audit/diff";
+import { getAllDescendantLocationIds, getSubtreeIdsDeepestFirst } from "@/lib/locations/path";
+import { canEdit, isAdmin } from "@/lib/permissions";
+import { deleteStoredFiles } from "@/lib/uploads/storage";
+import { invalidInput, isForeignKeyError, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { updateLocationSchema } from "@/lib/schemas/location";
+import { LOCATION_DETAIL_INCLUDE } from "@/lib/locations/include";
 
 export async function GET(
   _req: NextRequest,
@@ -38,19 +20,10 @@ export async function GET(
   const { id } = await params;
   const location = await prisma.location.findUnique({
     where: { id },
-    include: {
-      parent: { select: { id: true, name: true, parentId: true } },
-      children: {
-        include: {
-          _count: { select: { assets: true, children: true } },
-        },
-        orderBy: [{ order: "asc" }, { name: "asc" }],
-      },
-      _count: { select: { assets: true, children: true, attachments: true } },
-    },
+    include: LOCATION_DETAIL_INCLUDE,
   });
 
-  if (!location) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!location) return notFoundResponse("Location");
   return NextResponse.json(location);
 }
 
@@ -60,14 +33,20 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json();
-  const parsed = updateSchema.safeParse(body);
+  const body = await readJsonBody(req);
+  const parsed = updateLocationSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
+
+  const before = await prisma.location.findUnique({
+    where: { id },
+    include: { parent: { select: { name: true } } },
+  });
+  if (!before) return notFoundResponse("Location");
 
   // Validate coverImageId: must be an image attachment belonging to this location
   if (parsed.data.coverImageId) {
@@ -108,12 +87,7 @@ export async function PUT(
       where: { id: newParentId },
       select: { id: true },
     });
-    if (!target) {
-      return NextResponse.json(
-        { error: "Target location does not exist." },
-        { status: 400 }
-      );
-    }
+    if (!target) return unknownReferenceResponse("Target location");
     const descendants = await getAllDescendantLocationIds(id);
     if (descendants.includes(newParentId)) {
       return NextResponse.json(
@@ -123,14 +97,9 @@ export async function PUT(
     }
   }
 
-  const before = await prisma.location.findUnique({
-    where: { id },
-    include: { parent: { select: { name: true } } },
-  });
-
   // Detect a name collision with a sibling (same parent). Rather than silently
   // creating a duplicate, signal the client so it can offer to merge instead.
-  if (before && parsed.data.name !== undefined && parsed.data.name !== before.name) {
+  if (parsed.data.name !== undefined && parsed.data.name !== before.name) {
     const effectiveParentId =
       parsed.data.parentId !== undefined ? parsed.data.parentId : before.parentId;
     const duplicate = await prisma.location.findFirst({
@@ -139,7 +108,12 @@ export async function PUT(
     });
     if (duplicate) {
       return NextResponse.json(
-        { error: "LOCATION_NAME_EXISTS", targetId: duplicate.id, targetName: duplicate.name },
+        {
+          error: "A sibling location already has this name.",
+          code: "locationNameExists",
+          existingId: duplicate.id,
+          existingName: duplicate.name,
+        },
         { status: 409 }
       );
     }
@@ -153,45 +127,27 @@ export async function PUT(
       include: { parent: { select: { name: true } } },
     });
   } catch (err: unknown) {
-    // P2002 = unique constraint violation (duplicate fiNumber)
-    if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code: string }).code === "P2002"
-    ) {
-      return NextResponse.json(
-        { error: "This FI number is already assigned to another location." },
-        { status: 409 }
-      );
-    }
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Location");
+    // The new parent was deleted since the check above.
+    if (isForeignKeyError(err)) return unknownReferenceResponse("Target location");
+    if (isUniqueConstraintError(err)) return nameTakenResponse("This FI number is already assigned to another location.");
     throw err;
   }
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
-  if (before) {
-    const d = parsed.data;
-    if (d.name !== undefined && d.name !== before.name)
-      changes["Name"] = { from: before.name, to: d.name };
-    if (d.description !== undefined && d.description !== before.description)
-      changes["Description"] = { from: before.description ?? null, to: d.description ?? null };
-    if (d.fiNumber !== undefined && d.fiNumber !== before.fiNumber)
-      changes["FI number"] = { from: before.fiNumber ?? null, to: d.fiNumber ?? null };
-    if (d.address !== undefined && d.address !== before.address)
-      changes["Address"] = { from: before.address ?? null, to: d.address ?? null };
-    if (d.city !== undefined && d.city !== before.city)
-      changes["City"] = { from: before.city ?? null, to: d.city ?? null };
-    if (d.country !== undefined && d.country !== before.country)
-      changes["Country"] = { from: before.country ?? null, to: d.country ?? null };
-    if (d.parentId !== undefined && d.parentId !== before.parentId)
-      changes["Parent"] = { from: before.parent?.name ?? null, to: location.parent?.name ?? null };
-    if (d.latitude !== undefined && d.latitude !== before.latitude)
-      changes["Latitude"] = { from: before.latitude ?? null, to: d.latitude ?? null };
-    if (d.longitude !== undefined && d.longitude !== before.longitude)
-      changes["Longitude"] = { from: before.longitude ?? null, to: d.longitude ?? null };
-    if (d.inMaintenance !== undefined && d.inMaintenance !== before.inMaintenance)
-      changes["In maintenance"] = { from: before.inMaintenance, to: d.inMaintenance };
-  }
+  const d = parsed.data;
+  const changes = auditChanges([
+        d.name !== undefined && { label: "Name", before: before.name, after: d.name },
+        d.description !== undefined && { label: "Description", before: before.description, after: d.description },
+        d.fiNumber !== undefined && { label: "FI number", before: before.fiNumber, after: d.fiNumber },
+        d.address !== undefined && { label: "Address", before: before.address, after: d.address },
+        d.city !== undefined && { label: "City", before: before.city, after: d.city },
+        d.country !== undefined && { label: "Country", before: before.country, after: d.country },
+        d.parentId !== undefined && { label: "Parent", before: before.parentId, after: d.parentId, display: [before.parent?.name, location.parent?.name] },
+        d.latitude !== undefined && { label: "Latitude", before: before.latitude, after: d.latitude },
+        d.longitude !== undefined && { label: "Longitude", before: before.longitude, after: d.longitude },
+        d.inMaintenance !== undefined && { label: "In maintenance", before: before.inMaintenance, after: d.inMaintenance },
+      ]);
 
   await logAudit({
     session,
@@ -212,16 +168,27 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
 
   const cascade = req.nextUrl.searchParams.get("cascade") === "true";
 
+  const loc = await prisma.location.findUnique({
+    where: { id },
+    select: { name: true, fiNumber: true, address: true, city: true, country: true },
+  });
+  if (!loc) return notFoundResponse("Location");
+
   const childCount = await prisma.location.count({ where: { parentId: id } });
+  // Cascading takes the whole subtree with its assets, so it is Admin-only;
+  // a leaf location stays deletable by any editor.
+  if (childCount > 0 && !isAdmin(session.user.role)) {
+    return NextResponse.json({ error: "Only admins can delete a location with sub-locations." }, { status: 403 });
+  }
   if (childCount > 0 && !cascade) {
     return NextResponse.json(
-      { error: "HAS_SUBLOCATIONS" },
+      { error: "This location has sub-locations; confirm deleting them too.", code: "hasSublocations" },
       { status: 400 }
     );
   }
@@ -230,49 +197,54 @@ export async function DELETE(
   // whole subtree when cascading) so this returns a friendly error instead of
   // an unhandled FK constraint failure mid-transaction below.
   const descendantIds = childCount > 0 ? await getAllDescendantLocationIds(id) : [];
+  const locationIds = [id, ...descendantIds];
   const stockCount = await prisma.stockItem.count({
-    where: { locationId: { in: [id, ...descendantIds] } },
+    where: { locationId: { in: locationIds } },
   });
   if (stockCount > 0) {
     return NextResponse.json(
-      { error: "HAS_STOCK" },
+      { error: "Stock items are still stored at this location or below it.", code: "hasStock" },
       { status: 400 }
     );
   }
 
-  const loc = await prisma.location.findUnique({
-    where: { id },
-    select: { name: true, fiNumber: true, address: true, city: true, country: true },
+  // The attachment rows cascade with their location or asset, so read the
+  // stored files' paths now and remove the files once the rows are gone.
+  const assetCount = await prisma.asset.count({ where: { locationId: { in: locationIds } } });
+  const files = await prisma.attachment.findMany({
+    where: {
+      path: { not: null },
+      OR: [{ locationId: { in: locationIds } }, { asset: { locationId: { in: locationIds } } }],
+    },
+    select: { path: true },
   });
 
-  if (childCount > 0) {
-    // Delete the whole subtree. The Location → parent relation is onDelete:
-    // Restrict, so descendants must be removed deepest-first. Assets,
-    // attachments and work logs cascade per location automatically.
-    const subtree = await prisma.$queryRaw<{ id: string; depth: number }[]>`
-      WITH RECURSIVE loc_tree AS (
-        SELECT id, 0 AS depth FROM locations WHERE id = ${id}
-        UNION ALL
-        SELECT l.id, lt.depth + 1 FROM locations l
-        INNER JOIN loc_tree lt ON l.parentId = lt.id
-      )
-      SELECT id, depth FROM loc_tree ORDER BY depth DESC
-    `;
-    await prisma.$transaction(
-      subtree.map((row) => prisma.location.delete({ where: { id: row.id } }))
-    );
-  } else {
-    await prisma.location.delete({ where: { id } });
+  try {
+    if (childCount > 0) {
+      // Delete the whole subtree. The Location → parent relation is onDelete:
+      // Restrict, so descendants must be removed deepest-first. Assets,
+      // attachments and work logs cascade per location automatically.
+      const subtree = await getSubtreeIdsDeepestFirst(id);
+      await prisma.$transaction(subtree.map((locationId) => prisma.location.delete({ where: { id: locationId } })));
+    } else {
+      await prisma.location.delete({ where: { id } });
+    }
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Location");
+    throw err;
   }
+  await deleteStoredFiles(files.flatMap((f) => (f.path ? [f.path] : [])));
 
-  const snapshot: Record<string, string> = {};
-  if (loc) {
-    if (loc.name) snapshot["Name"] = loc.name;
-    if (loc.fiNumber) snapshot["FI number"] = loc.fiNumber;
-    if (loc.address) snapshot["Address"] = loc.address;
-    if (loc.city) snapshot["City"] = loc.city;
-    if (loc.country) snapshot["Country"] = loc.country;
-  }
+  const snapshot = Object.fromEntries(
+    Object.entries({
+      "Name": loc.name,
+      "FI number": loc.fiNumber,
+      "Address": loc.address,
+      "City": loc.city,
+      "Country": loc.country,
+    }).filter(([, v]) => v)
+  );
 
   await logAudit({
     session,
@@ -280,8 +252,11 @@ export async function DELETE(
     action: "DELETE",
     entityType: "Location",
     entityId: id,
-    entityName: loc?.name,
-    detail: Object.keys(snapshot).length > 0 ? { snapshot } : undefined,
+    entityName: loc.name,
+    detail: {
+      snapshot,
+      ...(childCount > 0 && { cascade: { locations: locationIds.length, assets: assetCount } }),
+    },
   });
   return NextResponse.json({ ok: true });
 }

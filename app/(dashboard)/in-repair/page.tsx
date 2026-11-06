@@ -1,13 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { Wrench } from "lucide-react";
-import { InRepairTable } from "@/components/stock/in-repair-table";
+import { InRepairTable } from "@/components/assets/in-repair-table";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const t = await getTranslations("repair");
-  return { title: `${t("title")} – SAM` };
+  return { title: t("title") };
 }
 
 export default async function InRepairPage() {
@@ -31,19 +32,9 @@ export default async function InRepairPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-[9px] bg-[#eff6ff] flex items-center justify-center flex-shrink-0">
-          <Wrench className="h-4 w-4 text-[#1e40af]" />
-        </div>
-        <div>
-          <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">{t("title")}</h1>
-          <p className="text-[13px] text-[#64748b] mt-0.5">
-            {t("subtitle", { count: assets.length })}
-          </p>
-        </div>
-      </div>
+      <PageHeader icon={Wrench} tone="info" title={t("title")} subtitle={t("subtitle", { count: assets.length })} />
 
-      <InRepairTable assets={assets} />
+      <InRepairTable assets={assets.map((a) => ({ ...a, repairStartedAt: a.repairStartedAt?.toISOString() ?? null }))} />
     </div>
   );
 }

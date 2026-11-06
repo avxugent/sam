@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, type PathValue } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -23,85 +23,51 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SELECT_NONE,
 } from "@/components/ui/select";
-import { ModelAutocomplete } from "@/components/model-autocomplete";
+import { ModelAutocomplete } from "@/components/inventory/model-autocomplete";
 import { cn } from "@/lib/utils";
-import { matchesHostnamePattern } from "@/lib/hostname-pattern";
-import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
-import { isWindowActive } from "@/lib/supplier-window";
+import { toIsoDay } from "@/lib/dates";
+import { isHostnameCompliant } from "@/lib/hostname";
+import { normalizeMacAddress } from "@/lib/mac-address";
+import { isWindowActive } from "@/lib/suppliers/window";
 import { CRITICALITY_VALUES } from "@/lib/criticality";
 import { Loader2, Plus, Trash2, KeyRound, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
+import { MacAddressFields } from "@/components/inventory/mac-address-fields";
+import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
+import { ManufacturerAutocomplete } from "@/components/inventory/manufacturer-autocomplete";
+import { Criticality } from "@/generated/prisma/enums";
+import { apiFetch, jsonBody } from "@/lib/api-client";
+import { hasDeviceIdentity } from "@/lib/schemas/asset";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
+import type { AssetDetailData } from "@/components/assets/asset-detail-data";
 
-// ── Validation helpers ──────────────────────────────────────────────────────
 
-/**
- * RFC-1123 FQDN: labels separated by dots, each 1-63 chars, only alphanum + hyphen,
- * must not start or end with a hyphen, at least two labels required.
- * Examples: rectest001.ugent.be  projector-room101.example.com
- */
-const FQDN_REGEX =
-  /^(?!-)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: Criticality | null };
 
-const macAddressSchema = z.object({
-  address: z
-    .string()
-    .min(1, "MAC address is required")
-    .refine(
-      (v) => normalizeMacAddress(v) !== null,
-      "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)"
-    ),
-});
-
-const schema = z
-  .object({
-    typeId: z.string().min(1, "Type is required"),
-    manufacturerId: z.string().min(1, "Manufacturer is required"),
-    modelId: z.string().min(1, "Model is required"),
-    serialNumber: z.string().max(100).optional(),
-    hostname: z
-      .string()
-      .max(255)
-      .optional()
-      .refine(
-        (v) => !v || v.trim() === "" || FQDN_REGEX.test(v.trim()),
-        "Hostname must be a fully qualified domain name (e.g. device.example.com)"
-      ),
-    quantity: z.number().int().min(1, "Quantity must be at least 1"),
-    installationDate: z.string().optional(),
-    invoiceNumber: z.string().max(100).optional(),
-    invoiceDate: z.string().optional(),
-    notes: z.string().max(5000).optional(),
-    vaultPath: z.string().max(500).optional(),
-    ownerId: z.string().max(64).optional(),
-    criticality: z.string().max(20).optional(),
-    endOfSupportDate: z.string().optional(),
-    supplierId: z.string().max(64).optional(),
-    macAddresses: z.array(macAddressSchema),
-    customFields: z.array(z.object({ key: z.string(), value: z.string() })),
-  })
-  .superRefine((data, ctx) => {
-    const hostnameSet = !!data.hostname?.trim();
-    const hasValidMac = data.macAddresses.some(
-      (m) => normalizeMacAddress(m.address.trim()) !== null
-    );
-
-    // Rule: if hostname is filled, at least one MAC is required
-    if (hostnameSet && !hasValidMac) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["macAddresses"],
-        message:
-          "At least one MAC address is required when a hostname is set.",
-      });
-    }
-  });
-
-type FormData = z.infer<typeof schema>;
-
-type AssetType = { id: string; name: string; hostnamePattern?: string | null; defaultCriticality?: string | null };
-type Manufacturer = { id: string; name: string };
+/** The fields of GET /api/assets/[id] (ASSET_DETAIL_INCLUDE) the edit form loads. */
+type EditedAsset = Pick<
+  AssetDetailData,
+  | "typeId"
+  | "manufacturerId"
+  | "modelId"
+  | "serialNumber"
+  | "hostname"
+  | "quantity"
+  | "installationDate"
+  | "invoiceNumber"
+  | "invoiceDate"
+  | "notes"
+  | "vaultPath"
+  | "ownerId"
+  | "criticality"
+  | "endOfSupportDate"
+  | "supplierId"
+  | "macAddresses"
+  | "customFields"
+>;
 type Supplier = {
   id: string;
   name: string;
@@ -110,10 +76,97 @@ type Supplier = {
 };
 type UserLite = { id: string; name: string };
 
+/** /api/vault/test failure codes, each with its own assetForm message. */
+const VAULT_TEST_ERROR_CODES = ["vaultNotConfigured", "vaultSecretMissing", "vaultDenied", "vaultUnavailable"] as const;
+
 type VaultTestResult = {
   ok: boolean;
   message: string;
   keys?: string[];
+};
+
+type AssetFormTranslator = ReturnType<typeof useTranslations<"assetForm">>;
+
+/** MAC rows with any text: a typed (even not yet valid) MAC already makes the asset one device. */
+function filledMacCount(macAddresses: { address: string }[]): number {
+  return macAddresses.filter((m) => m.address.trim() !== "").length;
+}
+
+/** Client mirror of lib/schemas/asset.ts, with translated messages and the selected type's hostname pattern. */
+function buildAssetFormSchema(t: AssetFormTranslator, assetTypes: AssetType[]) {
+  const macSchema = z.object({
+    address: z.string().min(1, t("errMacRequired")).refine(
+      (v) => normalizeMacAddress(v) !== null,
+      t("errMacInvalid")
+    ),
+  });
+  return z.object({
+    typeId: z.string().min(1, t("errTypeRequired")),
+    manufacturerId: z.string().min(1, t("errManufacturerRequired")),
+    modelId: z.string().min(1, t("errModelRequired")),
+    serialNumber: z.string().max(100).optional(),
+    hostname: z.string().max(255).optional(),
+    // An emptied number input gives NaN: show the same message, not Zod's default.
+    quantity: z.number({ error: t("errQuantityMin") }).int().min(1, t("errQuantityMin")).max(9999),
+    installationDate: z.string().optional(),
+    invoiceNumber: z.string().max(100).optional(),
+    invoiceDate: z.string().optional(),
+    notes: z.string().max(5000).optional(),
+    vaultPath: z.string().max(500).optional(),
+    ownerId: z.string().max(64).optional(),
+    // "" is the "inherit from type" choice.
+    criticality: z.union([z.enum(Criticality), z.literal("")]).optional(),
+    endOfSupportDate: z.string().optional(),
+    supplierId: z.string().max(64).optional(),
+    macAddresses: z.array(macSchema),
+    customFields: z.array(z.object({ key: z.string(), value: z.string() })),
+  }).superRefine((data, ctx) => {
+    const hostnameTrimmed = data.hostname?.trim();
+    const hostnameSet = !!hostnameTrimmed;
+    const hasValidMac = data.macAddresses.some(
+      (m) => normalizeMacAddress(m.address.trim()) !== null
+    );
+    if (hostnameSet && !hasValidMac) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["macAddresses"],
+        message: t("errMacRequiredForHostname"),
+      });
+    }
+    if (hostnameSet) {
+      const selectedType = assetTypes.find((at) => at.id === data.typeId);
+      const pattern = selectedType?.hostnamePattern;
+      if (!isHostnameCompliant(hostnameTrimmed!, pattern)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["hostname"],
+          message: pattern
+            ? t("errHostnamePattern", { typeName: selectedType?.name ?? "" })
+            : t("errHostnameFqdn"),
+        });
+      }
+    }
+    if (hasDeviceIdentity({ ...data, macCount: filledMacCount(data.macAddresses) }) && data.quantity !== 1) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["quantity"],
+        message: t("errQuantityIdentity"),
+      });
+    }
+  });
+}
+
+type AssetFormValues = z.infer<ReturnType<typeof buildAssetFormSchema>>;
+
+/** A blank form: the defaults, and what create mode and a successful save reset to. */
+const EMPTY_ASSET_FORM: Partial<AssetFormValues> = {
+  typeId: "",
+  manufacturerId: "",
+  modelId: "",
+  quantity: 1,
+  macAddresses: [],
+  customFields: [],
+  vaultPath: "",
 };
 
 type Props = {
@@ -127,6 +180,7 @@ type Props = {
 export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const showApiError = useApiErrorToast();
   const t = useTranslations("assetForm");
   const tField = useTranslations("field");
   const tCommon = useTranslations("common");
@@ -134,80 +188,12 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
 
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
-  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [usersLite, setUsersLite] = useState<UserLite[]>([]);
-  const [manufacturerSearch, setManufacturerSearch] = useState("");
-  const [showManufacturerDropdown, setShowManufacturerDropdown] = useState(false);
   const [vaultTestResult, setVaultTestResult] = useState<VaultTestResult | null>(null);
   const [vaultTesting, setVaultTesting] = useState(false);
-  // See the manufacturer-scoping effect below for what this guards against.
-  const isInitialManufacturerLoadRef = useRef(true);
 
-  const validationSchema = useMemo(() => {
-    const macSchema = z.object({
-      address: z.string().min(1, t("errMacRequired")).refine(
-        (v) => normalizeMacAddress(v) !== null,
-        t("errMacInvalid")
-      ),
-    });
-    return z.object({
-      typeId: z.string().min(1, t("errTypeRequired")),
-      manufacturerId: z.string().min(1, t("errManufacturerRequired")),
-      modelId: z.string().min(1, t("errModelRequired")),
-      serialNumber: z.string().max(100).optional(),
-      hostname: z.string().max(255).optional(),
-      quantity: z.number().int().min(1, t("errQuantityMin")),
-      installationDate: z.string().optional(),
-      invoiceNumber: z.string().max(100).optional(),
-      invoiceDate: z.string().optional(),
-      notes: z.string().max(5000).optional(),
-      vaultPath: z.string().max(500).optional(),
-      ownerId: z.string().max(64).optional(),
-      criticality: z.string().max(20).optional(),
-      endOfSupportDate: z.string().optional(),
-      supplierId: z.string().max(64).optional(),
-      macAddresses: z.array(macSchema),
-      customFields: z.array(z.object({ key: z.string(), value: z.string() })),
-    }).superRefine((data, ctx) => {
-      const hostnameTrimmed = data.hostname?.trim();
-      const hostnameSet = !!hostnameTrimmed;
-      const hasValidMac = data.macAddresses.some(
-        (m) => normalizeMacAddress(m.address.trim()) !== null
-      );
-      if (hostnameSet && !hasValidMac) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["macAddresses"],
-          message: t("errMacRequiredForHostname"),
-        });
-      }
-      if (hostnameSet) {
-        const selectedType = assetTypes.find((at) => at.id === data.typeId);
-        const pattern = selectedType?.hostnamePattern;
-        const isValid = pattern
-          ? matchesHostnamePattern(hostnameTrimmed!, pattern)
-          : FQDN_REGEX.test(hostnameTrimmed!);
-        if (!isValid) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["hostname"],
-            message: pattern
-              ? t("errHostnamePattern", { typeName: selectedType?.name ?? "" })
-              : t("errHostnameFqdn"),
-          });
-        }
-      }
-      const hasIdentity = !!data.serialNumber?.trim() || hostnameSet || hasValidMac;
-      if (hasIdentity && data.quantity !== 1) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["quantity"],
-          message: t("errQuantityIdentity"),
-        });
-      }
-    });
-  }, [t, assetTypes]);
+  const validationSchema = useMemo(() => buildAssetFormSchema(t, assetTypes), [t, assetTypes]);
 
   const {
     register,
@@ -217,18 +203,25 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     trigger,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
+  } = useForm<AssetFormValues>({
     resolver: zodResolver(validationSchema),
-    defaultValues: {
-      typeId: "",
-      manufacturerId: "",
-      modelId: "",
-      quantity: 1,
-      macAddresses: [],
-      customFields: [],
-      vaultPath: "",
-    },
+    defaultValues: EMPTY_ASSET_FORM,
   });
+
+  /**
+   * onValueChange for a Select whose "clear" option is `sentinel`. Radix can
+   * fire onValueChange("") on its own — e.g. when an option list finishes
+   * loading after fetchAsset()'s reset() already set the value. No SelectItem
+   * ever has value="", so a raw "" is that internal noise, not a user pick:
+   * ignore it rather than silently wiping the field. Item values are the
+   * field's own option values, hence the cast.
+   */
+  function pickSelect<K extends "ownerId" | "supplierId" | "criticality">(field: K, sentinel: string) {
+    return (v: string) => {
+      if (v === "") return;
+      setValue(field, (v === sentinel ? "" : v) as PathValue<AssetFormValues, K>, { shouldValidate: true });
+    };
+  }
 
   const { fields: macFields, append: appendMac, remove: removeMac } = useFieldArray({
     control,
@@ -256,35 +249,36 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
   }, [hostnameValue, macFields.length, trigger]);
 
   // Lock quantity to 1 as soon as the asset gains an individual identity
-  const hasIdentityValue =
-    !!serialNumberValue?.trim() ||
-    !!hostnameValue?.trim() ||
-    macValues.some((m) => m.address.trim() !== "");
+  // (same rule as the validation above and the API).
+  const macCount = filledMacCount(macValues);
+  const hasIdentity = hasDeviceIdentity({ serialNumber: serialNumberValue, hostname: hostnameValue, macCount });
   useEffect(() => {
-    if (hasIdentityValue) setValue("quantity", 1, { shouldValidate: true });
-  }, [hasIdentityValue, setValue]);
+    if (hasIdentity) setValue("quantity", 1, { shouldValidate: true });
+  }, [hasIdentity, setValue]);
 
   const fetchDropdowns = useCallback(async () => {
     const [typesRes, suppliersRes, usersRes] = await Promise.all([
-      fetch("/api/asset-types"),
-      fetch("/api/suppliers"),
-      fetch("/api/users/lite"),
+      apiFetch<AssetType[]>("/api/asset-types"),
+      apiFetch<Supplier[]>("/api/suppliers"),
+      apiFetch<UserLite[]>("/api/users/lite"),
     ]);
-    if (typesRes.ok) setAssetTypes(await typesRes.json());
-    let fetchedSuppliers: Supplier[] = [];
-    if (suppliersRes.ok) {
-      fetchedSuppliers = await suppliersRes.json();
-      setSuppliers(fetchedSuppliers);
-    }
-    if (usersRes.ok) setUsersLite(await usersRes.json());
+    const failed = [typesRes, suppliersRes, usersRes].find((res) => !res.ok);
+    if (failed && !failed.ok) showApiError(failed.error);
+    if (typesRes.ok) setAssetTypes(typesRes.data);
+    const fetchedSuppliers = suppliersRes.ok ? suppliersRes.data : [];
+    if (suppliersRes.ok) setSuppliers(fetchedSuppliers);
+    if (usersRes.ok) setUsersLite(usersRes.data);
     return fetchedSuppliers;
-  }, []);
+  }, [showApiError]);
 
   const fetchAsset = useCallback(async () => {
     if (mode !== "edit" || !assetId) return;
-    const res = await fetch(`/api/assets/${assetId}`);
-    if (!res.ok) return;
-    const asset = await res.json();
+    const res = await apiFetch<EditedAsset>(`/api/assets/${assetId}`);
+    if (!res.ok) {
+      showApiError(res.error);
+      return;
+    }
+    const asset = res.data;
     reset({
       typeId: asset.typeId || "",
       manufacturerId: asset.manufacturerId || "",
@@ -292,33 +286,22 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       serialNumber: asset.serialNumber || "",
       hostname: asset.hostname || "",
       quantity: asset.quantity ?? 1,
-      installationDate: asset.installationDate
-        ? new Date(asset.installationDate).toISOString().split("T")[0]
-        : "",
+      installationDate: toIsoDay(asset.installationDate) ?? "",
       invoiceNumber: asset.invoiceNumber || "",
-      invoiceDate: asset.invoiceDate
-        ? new Date(asset.invoiceDate).toISOString().split("T")[0]
-        : "",
+      invoiceDate: toIsoDay(asset.invoiceDate) ?? "",
       notes: asset.notes || "",
       vaultPath: asset.vaultPath || "",
       ownerId: asset.ownerId || "",
       criticality: asset.criticality || "",
-      endOfSupportDate: asset.endOfSupportDate
-        ? new Date(asset.endOfSupportDate).toISOString().split("T")[0]
-        : "",
+      endOfSupportDate: toIsoDay(asset.endOfSupportDate) ?? "",
       supplierId: asset.supplierId || "",
-      macAddresses: asset.macAddresses.map((m: { address: string }) => ({
-        address: m.address,
-      })),
-      customFields: asset.customFields.map(
-        (f: { key: string; value: string }) => ({ key: f.key, value: f.value })
-      ),
+      macAddresses: asset.macAddresses.map((m) => ({ address: m.address })),
+      customFields: asset.customFields.map((f) => ({ key: f.key, value: f.value })),
     });
-  }, [mode, assetId, reset]);
+  }, [mode, assetId, reset, showApiError]);
 
   useEffect(() => {
     if (open) {
-      isInitialManufacturerLoadRef.current = true;
       const dropdowns = fetchDropdowns();
       if (mode === "edit") {
         fetchAsset();
@@ -326,7 +309,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         // Clear any values left over from a previous (e.g. cancelled) entry —
         // the form component stays mounted across open/close, so create mode
         // must reset explicitly rather than relying on defaultValues.
-        reset({ typeId: "", manufacturerId: "", modelId: "", quantity: 1, macAddresses: [], customFields: [], vaultPath: "" });
+        reset(EMPTY_ASSET_FORM);
         // Pre-select the supplier whose default window covers today (the API
         // would apply the same default; showing it keeps the form honest).
         dropdowns.then((fetched) => {
@@ -338,64 +321,38 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
     }
   }, [open, fetchDropdowns, fetchAsset, mode, reset, setValue]);
 
-  // Manufacturer options are scoped to the selected asset type (only
-  // manufacturers with at least one Model under that type) — refetched
-  // whenever typeId changes. The very first fetch after opening the dialog
-  // (including the one triggered once edit-mode's fetchAsset() applies the
-  // asset's own typeId) never clears the current selection, even if that
-  // manufacturer happens to have no Model yet for this type; only a genuine
-  // later type change by the user clears a selection that's no longer valid.
-  useEffect(() => {
-    if (!open) return;
-    (async () => {
-      const params = new URLSearchParams();
-      if (typeIdValue) params.set("typeId", typeIdValue);
-      const res = await fetch(`/api/manufacturers?${params}`);
-      if (!res.ok) return;
-      const list: Manufacturer[] = await res.json();
-      setManufacturers(list);
-      if (
-        !isInitialManufacturerLoadRef.current &&
-        manufacturerIdValue &&
-        !list.some((m) => m.id === manufacturerIdValue)
-      ) {
-        setValue("manufacturerId", "", { shouldValidate: false });
-        setValue("modelId", "", { shouldValidate: false });
-      }
-      isInitialManufacturerLoadRef.current = false;
-    })();
-  }, [typeIdValue, open, manufacturerIdValue, setValue]);
-
-  // Sync manufacturer display name when manufacturerId or manufacturers list changes (handles edit mode)
-  useEffect(() => {
-    const m = manufacturers.find((m) => m.id === manufacturerIdValue);
-    setManufacturerSearch(m ? m.name : "");
-  }, [manufacturerIdValue, manufacturers]);
+  const manufacturers = useTypeScopedManufacturers({
+    open,
+    typeId: typeIdValue,
+    manufacturerId: manufacturerIdValue,
+    onSelectionInvalid: () => {
+      setValue("manufacturerId", "", { shouldValidate: false });
+      setValue("modelId", "", { shouldValidate: false });
+    },
+  });
 
   async function handleTestVault() {
     const path = vaultPathValue?.trim();
     if (!path) return;
     setVaultTesting(true);
     setVaultTestResult(null);
-    try {
-      const res = await fetch(`/api/vault/test?path=${encodeURIComponent(path)}`);
-      const data = await res.json();
-      setVaultTestResult({
-        ok: data.ok === true,
-        message: data.message || data.error || t("vaultUnknown"),
-        keys: data.keys,
-      });
-    } catch {
-      setVaultTestResult({ ok: false, message: t("vaultNetworkError") });
-    }
+    const res = await apiFetch<{ message?: string; keys?: string[] }>(`/api/vault/test?path=${encodeURIComponent(path)}`);
     setVaultTesting(false);
+    if (res.ok) {
+      setVaultTestResult({ ok: true, message: res.data.message || t("vaultUnknown"), keys: res.data.keys });
+    } else {
+      const code = VAULT_TEST_ERROR_CODES.find((c) => c === res.error.code);
+      setVaultTestResult({
+        ok: false,
+        // status 0: the request never reached the server
+        message: res.status === 0 ? t("vaultNetworkError") : code ? t(code) : res.error.error || t("vaultUnknown"),
+      });
+    }
   }
 
-  async function onSubmit(data: FormData) {
+  async function onSubmit(data: AssetFormValues) {
     const payload = {
       ...data,
-      typeId: data.typeId || null,
-      manufacturerId: data.manufacturerId || null,
       hostname: data.hostname?.trim() || null,
       vaultPath: data.vaultPath?.trim() || null,
       // Empty on create = "use default" (owner setting / supplier window) —
@@ -418,37 +375,24 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         : `/api/assets/${assetId}`;
     const method = mode === "create" ? "POST" : "PUT";
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await apiFetch(url, jsonBody(method, payload));
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({
-        title: tCommon("error"),
-        description: err.error || tCommon("somethingWentWrong"),
-        variant: "destructive",
-      });
+      showApiError(res.error);
       return;
     }
 
     toast({ title: mode === "create" ? tAsset("assetCreated") : tAsset("assetUpdated") });
     setOpen(false);
-    reset({ typeId: "", manufacturerId: "", modelId: "", quantity: 1, macAddresses: [], customFields: [], vaultPath: "" });
+    reset(EMPTY_ASSET_FORM);
     router.refresh();
     onSuccess?.();
   }
 
-  const filteredManufacturers = manufacturers.filter((m) =>
-    m.name.toLowerCase().includes(manufacturerSearch.toLowerCase())
-  );
-
   // Derived state for contextual hints
   const hostnameSet = !!hostnameValue?.trim();
-  const hasAnyMac = macValues.some((m) => m.address.trim() !== "");
-  const selectedTypePattern = assetTypes.find((at) => at.id === typeIdValue)?.hostnamePattern;
+  const selectedType = assetTypes.find((at) => at.id === typeIdValue);
+  const selectedTypePattern = selectedType?.hostnamePattern;
 
   // Cross-field error for mac addresses (from superRefine)
   const macCrossError = errors.macAddresses?.root?.message
@@ -465,23 +409,14 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
 
-            {/* Type — required */}
             <div className="space-y-1.5">
               <Label htmlFor="asset-type">
                 {tField("type")} <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
               <Select
                 value={typeIdValue || ""}
-                onValueChange={(v) => {
-                  // Radix can fire onValueChange("") on its own — e.g. when the
-                  // asset types list finishes loading after this field's value
-                  // was already set by fetchAsset()'s reset(). No SelectItem
-                  // ever has value="" (the clear option is "_none"), so a raw
-                  // "" here is always that internal noise, not a user pick —
-                  // ignore it rather than silently wiping the field.
-                  if (v === "") return;
-                  setValue("typeId", v === "_none" ? "" : v, { shouldValidate: true });
-                }}
+                // Ignores the "" Radix can fire on its own (see pickSelect).
+                onValueChange={(v) => v && setValue("typeId", v, { shouldValidate: true })}
               >
                 <SelectTrigger
                   id="asset-type"
@@ -493,7 +428,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                   <SelectValue placeholder={t("selectType")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">{t("noneType")}</SelectItem>
                   {assetTypes.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name}
@@ -506,63 +440,27 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               )}
             </div>
 
-            {/* Manufacturer — required, with autocomplete */}
             <div className="space-y-1.5 relative">
               <Label htmlFor="asset-manufacturer">
                 {tField("manufacturer")} <span aria-hidden="true" className="text-destructive">*</span>
               </Label>
-              <Input
+              <ManufacturerAutocomplete
                 id="asset-manufacturer"
                 aria-required="true"
                 aria-invalid={!!errors.manufacturerId}
                 aria-describedby={errors.manufacturerId ? "asset-manufacturer-err" : undefined}
-                value={manufacturerSearch}
-                onChange={(e) => {
-                  setManufacturerSearch(e.target.value);
-                  setShowManufacturerDropdown(true);
-                  setValue("manufacturerId", "", { shouldValidate: false });
-                }}
-                onFocus={() => setShowManufacturerDropdown(true)}
-                onBlur={() => setTimeout(() => setShowManufacturerDropdown(false), 200)}
+                value={manufacturerIdValue}
+                options={manufacturers}
                 placeholder={t("selectManufacturer")}
-                autoComplete="off"
-                className={cn(errors.manufacturerId && "border-destructive")}
+                error={!!errors.manufacturerId}
+                noneLabel={t("noneManufacturer")}
+                onChange={(id, picked) => setValue("manufacturerId", id, { shouldValidate: picked })}
               />
               {errors.manufacturerId && (
                 <p id="asset-manufacturer-err" className="text-xs text-destructive">{errors.manufacturerId.message}</p>
               )}
-              {showManufacturerDropdown && (
-                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md overflow-hidden max-h-48 overflow-y-auto">
-                  <button
-                    type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent text-muted-foreground"
-                    onMouseDown={() => {
-                      setValue("manufacturerId", "", { shouldValidate: true });
-                      setManufacturerSearch("");
-                      setShowManufacturerDropdown(false);
-                    }}
-                  >
-                    {t("noneManufacturer")}
-                  </button>
-                  {filteredManufacturers.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
-                      onMouseDown={() => {
-                        setValue("manufacturerId", m.id, { shouldValidate: true });
-                        setManufacturerSearch(m.name);
-                        setShowManufacturerDropdown(false);
-                      }}
-                    >
-                      {m.name}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* Model — required, with autocomplete */}
             <div className="space-y-1.5 relative col-span-2">
               <Label htmlFor="model">
                 {tField("model")} <span aria-hidden="true" className="text-destructive">*</span>
@@ -594,7 +492,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               )}
             </div>
 
-            {/* Serial number */}
             <div className="space-y-1.5">
               <Label htmlFor="serialNumber">{tField("serialNumber")}</Label>
               <Input
@@ -615,7 +512,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                 aria-invalid={!!errors.quantity}
                 aria-describedby={errors.quantity ? "quantity-err" : "quantity-hint"}
                 {...register("quantity", { valueAsNumber: true })}
-                disabled={hasIdentityValue}
+                disabled={hasIdentity}
                 className={cn(errors.quantity && "border-destructive")}
               />
               {errors.quantity ? (
@@ -653,7 +550,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               )}
             </div>
 
-            {/* Installation date */}
             <div className="space-y-1.5">
               <Label htmlFor="installationDate">{tField("installationDate")}</Label>
               <Input
@@ -663,7 +559,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               />
             </div>
 
-            {/* Invoice number */}
             <div className="space-y-1.5">
               <Label htmlFor="invoiceNumber">{tField("invoiceNumber")}</Label>
               <Input
@@ -673,28 +568,22 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               />
             </div>
 
-            {/* Invoice date */}
             <div className="space-y-1.5">
               <Label htmlFor="invoiceDate">{tField("invoiceDate")}</Label>
               <Input id="invoiceDate" type="date" {...register("invoiceDate")} />
             </div>
 
-            {/* Owner */}
             <div className="space-y-1.5">
               <Label htmlFor="asset-owner">{tField("owner")}</Label>
               <Select
-                value={ownerIdValue || "_none"}
-                onValueChange={(v) => {
-                  // See the Type select above — Radix can spuriously fire "".
-                  if (v === "") return;
-                  setValue("ownerId", v === "_none" ? "" : v, { shouldValidate: true });
-                }}
+                value={ownerIdValue || SELECT_NONE}
+                onValueChange={pickSelect("ownerId", SELECT_NONE)}
               >
                 <SelectTrigger id="asset-owner">
                   <SelectValue placeholder={t("ownerDefault")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">{t("ownerDefault")}</SelectItem>
+                  <SelectItem value={SELECT_NONE}>{t("ownerDefault")}</SelectItem>
                   {usersLite.map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                   ))}
@@ -702,22 +591,17 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               </Select>
             </div>
 
-            {/* Supplier */}
             <div className="space-y-1.5">
               <Label htmlFor="asset-supplier">{tField("supplier")}</Label>
               <Select
-                value={supplierIdValue || "_none"}
-                onValueChange={(v) => {
-                  // See the Type select above — Radix can spuriously fire "".
-                  if (v === "") return;
-                  setValue("supplierId", v === "_none" ? "" : v, { shouldValidate: true });
-                }}
+                value={supplierIdValue || SELECT_NONE}
+                onValueChange={pickSelect("supplierId", SELECT_NONE)}
               >
                 <SelectTrigger id="asset-supplier">
                   <SelectValue placeholder={t("noneSupplier")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">{t("noneSupplier")}</SelectItem>
+                  <SelectItem value={SELECT_NONE}>{t("noneSupplier")}</SelectItem>
                   {suppliers.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
@@ -725,28 +609,20 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               </Select>
             </div>
 
-            {/* Criticality */}
             <div className="space-y-1.5">
               <Label htmlFor="asset-criticality">{tField("criticality")}</Label>
               <Select
                 value={criticalityValue || "_inherit"}
-                onValueChange={(v) => {
-                  // See the Type select above — Radix can spuriously fire "".
-                  if (v === "") return;
-                  setValue("criticality", v === "_inherit" ? "" : v, { shouldValidate: true });
-                }}
+                onValueChange={pickSelect("criticality", "_inherit")}
               >
                 <SelectTrigger id="asset-criticality">
                   <SelectValue placeholder={t("criticalityInherit")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_inherit">
-                    {(() => {
-                      const typeDefault = assetTypes.find((at) => at.id === typeIdValue)?.defaultCriticality;
-                      return typeDefault
-                        ? t("criticalityInheritWith", { level: tCommon(`criticality.${typeDefault}`) })
-                        : t("criticalityInherit");
-                    })()}
+                    {selectedType?.defaultCriticality
+                      ? t("criticalityInheritWith", { level: tCommon(`criticality.${selectedType.defaultCriticality}`) })
+                      : t("criticalityInherit")}
                   </SelectItem>
                   {CRITICALITY_VALUES.map((level) => (
                     <SelectItem key={level} value={level}>{tCommon(`criticality.${level}`)}</SelectItem>
@@ -755,86 +631,23 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
               </Select>
             </div>
 
-            {/* End of support */}
             <div className="space-y-1.5">
               <Label htmlFor="endOfSupportDate">{tField("endOfSupport")}</Label>
               <Input id="endOfSupportDate" type="date" {...register("endOfSupportDate")} />
             </div>
           </div>
 
-          {/* MAC Addresses */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>
-                  {tField("macAddresses")}
-                  {hostnameSet && !hasAnyMac && (
-                    <span className="ml-1.5 text-destructive text-xs">*</span>
-                  )}
-                </Label>
-                {hostnameSet && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {tAsset("macHelpText")}
-                  </p>
-                )}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => appendMac({ address: "" })}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                {t("addMacAddress")}
-              </Button>
-            </div>
+          <MacAddressFields
+            fields={macFields}
+            register={register}
+            errors={errors.macAddresses}
+            onAdd={() => appendMac({ address: "" })}
+            onRemove={removeMac}
+            required={hostnameSet && macCount === 0}
+            helpText={hostnameSet ? tAsset("macHelpText") : undefined}
+            listError={macCrossError}
+          />
 
-            {macFields.map((field, i) => (
-              <div key={field.id} className="flex gap-2">
-                <Input
-                  {...register(`macAddresses.${i}.address`, {
-                    onChange: (e) => {
-                      e.target.value = formatMacInputValue(e.target.value);
-                    },
-                  })}
-                  aria-label={`${tField("macAddress")} ${i + 1}`}
-                  aria-invalid={!!errors.macAddresses?.[i]?.address}
-                  aria-describedby={errors.macAddresses?.[i]?.address ? `mac-err-${i}` : undefined}
-                  placeholder={t("macPlaceholder")}
-                  className={cn(
-                    "font-mono",
-                    errors.macAddresses?.[i]?.address && "border-destructive"
-                  )}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t("removeMacAriaLabel", { n: i + 1 })}
-                  onClick={() => removeMac(i)}
-                  className="text-destructive hover:text-destructive flex-shrink-0"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-
-            {/* Per-entry MAC format errors */}
-            {macFields.map((field, i) =>
-              errors.macAddresses?.[i]?.address ? (
-                <p key={`mac-err-${field.id}`} id={`mac-err-${i}`} className="text-xs text-destructive -mt-1">
-                  {t("macLabel", { n: i + 1 })}: {errors.macAddresses[i]?.address?.message}
-                </p>
-              ) : null
-            )}
-
-            {/* Cross-field error: hostname set but no MAC */}
-            {macCrossError && (
-              <p className="text-xs text-destructive">{macCrossError}</p>
-            )}
-          </div>
-
-          {/* Notes */}
           <div className="space-y-1.5">
             <Label htmlFor="notes">{tField("notes")}</Label>
             <Textarea
@@ -845,7 +658,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             />
           </div>
 
-          {/* Custom fields */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>{tField("customFields")}</Label>
@@ -876,6 +688,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
                   variant="ghost"
                   size="icon"
                   onClick={() => removeCf(i)}
+                  aria-label={tCommon("remove")}
                   className="text-destructive hover:text-destructive flex-shrink-0"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -884,7 +697,6 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             ))}
           </div>
 
-          {/* Vault credentials path */}
           <div className="rounded-md border bg-muted/30 p-3 space-y-2">
             <div className="flex items-center gap-1.5">
               <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />

@@ -53,6 +53,8 @@ Additional columns not listed above are imported as **custom fields** on the ass
 
 > MAC addresses are normalized to `AA:BB:CC:DD:EE:FF` on import regardless of the source format (no separator, hyphens, lowercase, Cisco dot-grouping). A value that can't be normalized (wrong digit count, non-hex characters) is imported as-is and listed in the results as an error for manual review.
 
+> An `IP_HOSTNAME` that the asset form would reject — one that doesn't match the asset type's hostname format, or one on a row without a MAC address — is also imported as-is and listed in the results; the hostname compliance report ([Administration → Compliance Dashboard](administration.md#compliance-dashboard)) lists such hostnames for cleanup.
+
 > Requires Editor or Admin role.
 
 ---
@@ -82,8 +84,8 @@ Click **Download decommissioned CSV**. Contains only assets that have been **dec
 
 Click **Download stock CSV**. Contains the current stock inventory (items not yet deployed to a location): type, brand, model, serial, quantity, the location it is reserved for (if any), MAC address, notes, and invoice details.
 
-> All three exports require Admin role. The active-assets export can also be fetched with a configured export API token; the decommissioned and stock exports require an admin session.
+> All three exports require Admin role, or can be fetched with a configured export API token.
 
 ### Inventory snapshot (JSON)
 
-`GET /api/export/snapshot` returns a point-in-time JSON snapshot of the full inventory (assets with owner, criticality, end-of-support, supplier and disposal fields; suppliers; locations) — the audit-friendly "inventory as of date X" artifact. It accepts a session or the export API token, so it can be archived on a schedule. The nightly backup script writes the same snapshot alongside the CSV plus a manifest with SHA-256 checksums — see the technical [Scripts](../technical/scripts.md) page.
+`GET /api/export/snapshot` returns a point-in-time JSON snapshot of the full inventory (assets with owner, criticality, end-of-support, supplier and disposal fields; suppliers; locations) — the audit-friendly "inventory as of date X" artifact. It accepts an admin session or the export API token, so it can be archived on a schedule. The nightly backup script writes the same snapshot alongside the CSV plus a manifest with SHA-256 checksums — see the technical [Scripts](../technical/scripts.md) page.

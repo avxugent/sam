@@ -41,6 +41,9 @@
     "or": "of",
     "and": "en",
     "home": "Start",
+    "pageNotFound": "Pagina niet gevonden",
+    "pageNotFoundBody": "De pagina die je zoekt bestaat niet.",
+    "appDescription": "Beheer AV-hardware in al je gebouwen",
     "somethingWentWrong": "Er is iets misgegaan.",
     "unexpectedError": "Er is een onverwachte fout opgetreden. Probeer het opnieuw.",
     "tryAgain": "Opnieuw proberen",
@@ -49,7 +52,18 @@
       "MEDIUM": "Middel",
       "HIGH": "Hoog",
       "CRITICAL": "Kritiek"
-    }
+    },
+    "renameItem": "{name} hernoemen",
+    "deleteItem": "{name} verwijderen",
+    "saveName": "Naam opslaan",
+    "cancelRename": "Hernoemen annuleren",
+    "loadLocationsFailed": "Locaties laden mislukt",
+    "pagination": "Paginering",
+    "previousPage": "Vorige pagina",
+    "nextPage": "Volgende pagina",
+    "goToPage": "Ga naar pagina {page}",
+    "mergeSummary": "{assets, plural, =1 {# asset} other {# assets}} en {stock, plural, =1 {# voorraaditem} other {# voorraaditems}} verplaatst.",
+    "continue": "Doorgaan"
   },
   "nav": {
     "locations": "Locaties",
@@ -65,6 +79,9 @@
     "noLocationsYet": "Nog geen locaties",
     "expandStock": "Voorraad uitklappen",
     "collapseStock": "Voorraad inklappen",
+    "expandLocation": "{name} uitklappen",
+    "collapseLocation": "{name} inklappen",
+    "clearLocationFilter": "Locatiefilter wissen",
     "addAsset": "Asset toevoegen",
     "addStockItem": "Voorraaditem toevoegen",
     "addSubLocation": "Sublocatie toevoegen",
@@ -85,6 +102,9 @@
     "searchPlaceholder": "Zoek assets, locaties, serienummers…",
     "skipToMainContent": "Naar hoofdinhoud",
     "seeAllResultsFor": "Alle resultaten voor \"{query}\" →",
+    "searchResults": "Zoekresultaten",
+    "accountMenu": "Accountmenu voor {name}",
+    "twoFactorOn": "Aan",
     "suppliers": "Leveranciers"
   },
   "language": {
@@ -196,10 +216,15 @@
     "clearSelection": "Selectie wissen",
     "selectAllRows": "Alles selecteren",
     "selectRow": "Selecteer {name}",
+    "openAssetNamed": "Asset {name} openen",
+    "editAssetNamed": "Asset {name} bewerken",
+    "removeAssetNamed": "Asset {name} verwijderen",
     "bulkReturnToStockConfirmTitle": "{count} assets terugzetten naar stock?",
     "bulkReturnToStockConfirmDescription": "Dit verwijdert de geselecteerde assets en plaatst ze terug in de stockinventaris. Asset-specifieke gegevens (hostnaam, MAC-adressen, aangepaste velden, bijlagen) gaan permanent verloren. Assets die niet kunnen worden teruggezet (al buiten dienst, geen type/model) worden overgeslagen en vermeld.",
     "bulkReturnToStockResultsTitle": "Resultaat terugzetten naar stock",
-    "bulkReturnToStockSuccessToast": "{count, plural, =1 {# asset teruggezet naar stock} other {# assets teruggezet naar stock}}"
+    "bulkReturnToStockSuccessToast": "{count, plural, =1 {# asset teruggezet naar stock} other {# assets teruggezet naar stock}}",
+    "noAssetsFound": "Geen assets gevonden",
+    "drilldownCaption": "Assets: {name}"
   },
   "assetForm": {
     "createTitle": "Asset aanmaken",
@@ -212,9 +237,6 @@
     "serialPlaceholder": "SN-XXXX",
     "hostnamePlaceholder": "device.example.com",
     "invoicePlaceholder": "INV-XXXX",
-    "macPlaceholder": "AA:BB:CC:DD:EE:FF",
-    "addMacAddress": "MAC-adres toevoegen",
-    "removeMacAddress": "Verwijderen",
     "addCustomField": "Veld toevoegen",
     "fieldNamePlaceholder": "Veldnaam",
     "fieldValuePlaceholder": "Waarde",
@@ -228,12 +250,13 @@
     "createSubmit": "Asset aanmaken",
     "updateSubmit": "Wijzigingen opslaan",
     "hostnameHint": "Moet een volledig gekwalificeerde domeinnaam zijn",
-    "noneType": "— Selecteer een type —",
     "noneManufacturer": "— Selecteer een fabrikant —",
     "vaultUnknown": "Onbekend resultaat",
     "vaultNetworkError": "Verzoek mislukt — controleer uw netwerk.",
-    "macLabel": "MAC {n}:",
-    "removeMacAriaLabel": "MAC-adres {n} verwijderen",
+    "vaultNotConfigured": "Vault is niet geconfigureerd op deze server.",
+    "vaultSecretMissing": "Geen secret gevonden op dit pad.",
+    "vaultDenied": "Vault weigert de toegang tot dit pad. Controleer het beleid van het token.",
+    "vaultUnavailable": "Vault is niet bereikbaar, of het aanmelden is mislukt.",
     "errTypeRequired": "Type is verplicht",
     "errManufacturerRequired": "Fabrikant is verplicht",
     "errModelRequired": "Model is verplicht",
@@ -305,7 +328,17 @@
     "mergeButton": "Samenvoegen",
     "locationMerged": "Locaties samengevoegd",
     "monitoring": "Monitoring",
-    "deleteHasStock": "Kan een locatie met voorraad niet verwijderen. Verplaats of ontkoppel de voorraad eerst."
+    "deleteHasStock": "Kan een locatie met voorraad niet verwijderen. Verplaats of ontkoppel de voorraad eerst.",
+    "assetCount": "{count} {count, plural, =1 {asset} other {assets}}",
+    "geocodeNoResults": "Geen resultaten gevonden",
+    "geocodeNoResultsHint": "Probeer een specifieker adres.",
+    "geocodeFailed": "De geocodeerdienst is niet bereikbaar.",
+    "addressPlaceholder": "bijv. Grote Markt 1",
+    "cityPlaceholder": "bijv. Gent",
+    "countryPlaceholder": "bijv. België",
+    "pickGeocodeResult": "Kies een resultaat om op de kaart te plaatsen",
+    "openInOsm": "Openen in OpenStreetMap",
+    "mapFrameTitle": "Kaart van de locatie"
   },
   "locationForm": {
     "createTitle": "Locatie toevoegen",
@@ -367,13 +400,9 @@
     "errTypeRequired": "Type is verplicht",
     "errModelRequired": "Model is verplicht",
     "errQuantityMin": "Hoeveelheid moet minimaal 1 zijn",
-    "errQuantitySerial": "Hoeveelheid moet 1 zijn als er een serienummer is ingesteld.",
+    "errQuantityIdentity": "Hoeveelheid moet 1 zijn als er een serienummer of MAC-adres is ingesteld.",
     "errMacInvalid": "Ongeldig MAC-adres (verwacht AA:BB:CC:DD:EE:FF)",
     "errMacRequired": "MAC-adres is verplicht",
-    "addMacAddress": "MAC-adres toevoegen",
-    "macPlaceholder": "AA:BB:CC:DD:EE:FF",
-    "macLabel": "MAC {n}:",
-    "removeMacAriaLabel": "MAC-adres {n} verwijderen",
     "location": "Opslaglocatie",
     "unassigned": "Niet toegewezen",
     "selectLocation": "Opslaglocatie selecteren…",
@@ -433,7 +462,8 @@
       "ALREADY_DECOMMISSIONED": "Al buiten dienst",
       "MISSING_TYPE": "Geen asset type",
       "MISSING_MODEL": "Geen model",
-      "NOT_FOUND": "Niet meer gevonden"
+      "NOT_FOUND": "Niet meer gevonden",
+      "STATUS_CHANGED": "Intussen door iemand anders gewijzigd"
     }
   },
   "repair": {
@@ -507,7 +537,6 @@
     "twoFactorBack": "Terug naar aanmelden",
     "twoFactorSetupTitle": "Tweestapsverificatie instellen",
     "twoFactorSetupSubtitle": "Scan de QR-code met uw authenticator-app en voer de 6-cijferige code in om te bevestigen",
-    "twoFactorSetupSecret": "Of voer deze code handmatig in",
     "twoFactorSetupConfirm": "2FA inschakelen",
     "twoFactorEnabled": "Tweestapsverificatie ingeschakeld",
     "twoFactorDisabled": "Tweestapsverificatie uitgeschakeld",
@@ -557,7 +586,33 @@
     "passkeyNeverUsed": "Nooit gebruikt",
     "passkeyRemove": "Verwijderen",
     "passkeyRemoveConfirmTitle": "Deze passkey verwijderen?",
-    "passkeyRemoveConfirmDescription": "U kunt hiermee niet meer inloggen met deze passkey."
+    "passkeyRemoveConfirmDescription": "U kunt hiermee niet meer inloggen met deze passkey.",
+    "passkeyRemoveStepUpCodeOrPasskey": "Bevestig met de huidige code uit uw authenticator-app, of met een van uw passkeys.",
+    "passkeyRemoveStepUpPasskey": "Bevestig met een van uw passkeys.",
+    "passkeyRemoveWithPasskey": "Bevestigen met een passkey",
+    "twoFactorSsoManaged": "Tweestapsverificatie wordt beheerd door de Microsoft-identiteitsprovider van uw organisatie en kan hier niet worden ingesteld.",
+    "twoFactorSettingsTitle": "Tweestapsverificatie",
+    "twoFactorBadgeEnabled": "Ingeschakeld",
+    "twoFactorBadgeDisabled": "Niet ingeschakeld",
+    "twoFactorActiveDescription": "Uw account is beveiligd met een TOTP-authenticator-app. Bij elke aanmelding is een 6-cijferige code uit uw app nodig.",
+    "twoFactorReconfigureTitle": "Authenticator opnieuw instellen",
+    "twoFactorReconfigureHelp": "Gebruik dit als u een nieuwe telefoon hebt of de QR-code opnieuw moet scannen. Uw huidige tweestapsverificatie blijft actief tot u de nieuwe instelling bevestigt.",
+    "twoFactorReconfigureButton": "Nieuwe authenticator instellen",
+    "twoFactorDisableTitle": "2FA uitschakelen",
+    "twoFactorDisableHelp": "Voer uw huidige 6-cijferige code in om te bevestigen dat u tweestapsverificatie wilt uitschakelen.",
+    "twoFactorDisableConfirmTitle": "Tweestapsverificatie uitschakelen?",
+    "twoFactorDisableConfirmDescription": "Hierdoor wordt uw account minder goed beveiligd. Voer uw huidige 6-cijferige code in om te bevestigen.",
+    "twoFactorCurrentCode": "Huidige code",
+    "twoFactorNowActiveTitle": "Tweestapsverificatie is nu actief",
+    "twoFactorNowActiveDescription": "Telkens als u zich met uw wachtwoord aanmeldt, wordt u om een 6-cijferige code uit uw authenticator-app gevraagd.",
+    "twoFactorBackToSettings": "Terug naar instellingen",
+    "twoFactorQrAlt": "TOTP-QR-code",
+    "twoFactorManualKey": "Sleutel voor handmatige invoer:",
+    "twoFactorManualKeyParams": "Type: tijdgebaseerd · Periode: 30s · Cijfers: 6",
+    "twoFactorEnterAppCode": "Voer de code in die uw app toont",
+    "twoFactorNotEnabledDescription": "Voeg een extra beveiligingslaag toe. Na uw wachtwoord wordt u om een 6-cijferige code uit een authenticator-app gevraagd.",
+    "currentPasswordRequired": "Huidig wachtwoord is verplicht.",
+    "confirmPasswordRequired": "Bevestig uw nieuwe wachtwoord."
   },
   "audit": {
     "title": "Audit-log",
@@ -606,7 +661,13 @@
     "rolesViewer": "Viewer",
     "providerCredentials": "E-mail & wachtwoord",
     "providerEntra": "Microsoft Entra ID",
-    "exportCsv": "Exporteer CSV"
+    "exportCsv": "Exporteer CSV",
+    "twoFactorDisabledFor": "2FA uitgeschakeld voor {name}",
+    "securityOptions": "Beveiligingsopties",
+    "you": "(u)",
+    "ssoPasswordNotice": "Deze gebruiker meldt zich aan via Microsoft SSO — het wachtwoord kan hier niet worden gewijzigd.",
+    "disable2faTitle": "2FA uitschakelen voor {name}?",
+    "disable2faDescription": "Deze beheerdersoverride schakelt tweestapsverificatie voor deze gebruiker uit zonder hun TOTP-code. Gebruik dit als iemand geen toegang meer heeft tot de authenticator-app."
   },
   "assetTypes": {
     "title": "Asset-types",
@@ -665,7 +726,17 @@
     "noModelOverridesYet": "Nog geen model-overrides",
     "modelOverrideAdded": "Model-override toegevoegd",
     "modelOverrideUpdated": "Model-override bijgewerkt",
-    "modelOverrideDeleted": "Model-override verwijderd"
+    "modelOverrideDeleted": "Model-override verwijderd",
+    "viewAssetsOfType": "{count} {count, plural, =1 {asset} other {assets}} van type {name} bekijken",
+    "editOverrideFor": "Override voor {name} bewerken",
+    "deleteOverrideFor": "Override voor {name} verwijderen",
+    "deletePresetNamed": "Preset {name} verwijderen",
+    "emptyList": "Nog geen asset-types",
+    "scrapeConfigured": "Scrape ingesteld",
+    "presetsHelp": "Snelkeuzetaken voor het werklog wanneer een asset van dit type geselecteerd is (bijv. \"Filter reinigen\", \"Lamp vervangen\").",
+    "loadingPresets": "Presets laden…",
+    "noPresets": "Nog geen presets",
+    "addPreset": "Preset toevoegen"
   },
   "manufacturers": {
     "title": "Fabrikanten",
@@ -685,7 +756,12 @@
     "manufacturerUpdated": "Fabrikant bijgewerkt",
     "manufacturerDeleted": "Fabrikant verwijderd",
     "manufacturerMerged": "Fabrikanten samengevoegd",
-    "addNewManufacturer": "Nieuwe fabrikant toevoegen..."
+    "addNewManufacturer": "Nieuwe fabrikant toevoegen...",
+    "viewAssetsFrom": "{count} {count, plural, =1 {asset} other {assets}} van {name} bekijken",
+    "emptyList": "Nog geen fabrikanten",
+    "deleteNamedTitle": "\"{name}\" verwijderen?",
+    "inUseDescription": "Deze fabrikant wordt gebruikt door {count, plural, =1 {# asset} other {# assets}}. Wijs ze eerst opnieuw toe.",
+    "assetCount": "{count, plural, =1 {# asset} other {# assets}}"
   },
   "models": {
     "title": "Modellen",
@@ -716,7 +792,10 @@
     "possibleDuplicates": "Mogelijke duplicaten",
     "possibleDuplicatesSubtitle": "Schrijfwijzen die op elkaar lijken — controleer en voeg samen indien het hetzelfde model is.",
     "noDuplicatesFound": "Geen mogelijke duplicaten gevonden.",
-    "mergeButton": "Samenvoegen"
+    "mergeButton": "Samenvoegen",
+    "inUseDescription": "Dit model wordt gebruikt door {assets, plural, =1 {# asset} other {# assets}} en {stockItems, plural, =1 {# voorraaditem} other {# voorraaditems}}. Wijs ze eerst opnieuw toe of voeg ze samen.",
+    "usageAssets": "Assets ({count})",
+    "usageStock": "Voorraad ({count})"
   },
   "import": {
     "title": "CSV importeren",
@@ -758,7 +837,28 @@
     "errorsCount": "{count} {count, plural, =1 {fout} other {fouten}}",
     "importAnother": "Ander bestand importeren",
     "goToLocations": "Naar locaties",
-    "previewRowCount": "CSV-voorbeeld, eerste {n} rijen"
+    "previewRowCount": "CSV-voorbeeld, eerste {n} rijen",
+    "columnGuide": {
+      "CAMPUS": "Locatie — niveau 1 (campus)",
+      "GEBOUW": "Locatie — niveau 2 (gebouw)",
+      "LOKAAL": "Locatie — niveau 3 (lokaal) *verplicht*",
+      "FI NUMMER": "FI-nummer → opgeslagen op de lokaallocatie (CC.BB.FFF.RRR)",
+      "TYPE": "Assettype (automatisch aangemaakt)",
+      "BRAND": "Fabrikant (automatisch aangemaakt)",
+      "MODEL": "Model",
+      "SERIAL": "Serienummer",
+      "QUANTITY": "Aantal (genegeerd wanneer een serienummer, hostnaam of MAC-adres is ingevuld)",
+      "MAC": "MAC-adres(sen)",
+      "IP_HOSTNAME": "Hostnaam",
+      "INSTALL_DATE": "Installatiedatum",
+      "Factuurdatum": "Factuurdatum",
+      "Factuurnummer": "Factuurnummer",
+      "OWNER": "Eigenaar (gekoppeld via e-mailadres; geen match → standaardeigenaar)",
+      "CRITICALITY": "Kriticiteit (LOW / MEDIUM / HIGH / CRITICAL)",
+      "END_OF_SUPPORT": "Einde-ondersteuningsdatum",
+      "SUPPLIER": "Leverancier (automatisch aangemaakt)",
+      "customField": "Extra veld: {key}"
+    }
   },
   "export": {
     "title": "CSV exporteren",
@@ -767,7 +867,18 @@
     "downloadDecommissioned": "Buiten dienst gestelde CSV downloaden",
     "downloadStock": "Voorraad-CSV downloaden",
     "includeDecommissioned": "Buiten dienst gestelde assets meenemen",
-    "exportComplete": "Export gedownload"
+    "exportComplete": "Export gedownload",
+    "scheduleSaved": "Planningsinstellingen opgeslagen",
+    "scheduleTitle": "Automatisch back-upschema",
+    "scheduleIntro": "SAM heeft geen ingebouwde planner. Stel een externe cronjob of Docker-croncontainer in die het export-endpoint volgens een schema aanroept.",
+    "scheduleCron": "Schema (cron-expressie)",
+    "scheduleCronExample": "Voorbeeld: <code>0 2 * * *</code> = elke nacht om 02:00",
+    "scheduleOutputDir": "Uitvoermap (op de server)",
+    "scheduleShowActive": "Schema als actief tonen in de documentatie",
+    "setupInstructions": "Installatie-instructies",
+    "setupOptionHttp": "Optie 1 — HTTP via cron (stel <code>EXPORT_TOKEN</code> in uw .env in):",
+    "setupOptionCli": "Optie 2 — CLI-script (werkt rechtstreeks op de database):",
+    "saveSchedule": "Schema-instellingen opslaan"
   },
   "compliance": {
     "title": "Hostnaam-compliance",
@@ -803,7 +914,7 @@
     "nis2ReviewNotConfigured": "Configureer een controle-werklogitem in de compliance-instellingen om dit op te volgen.",
     "nis2ConfigureLink": "Open instellingen",
     "nis2UsersWithout2fa": "Lokale gebruikers zonder 2FA",
-    "nis2UsersWithout2faHelp": "Lokale accounts zonder TOTP-tweestapsverificatie.",
+    "nis2UsersWithout2faHelp": "Lokale accounts zonder tweede factor: geen TOTP en geen passkey.",
     "nis2UsersWithout2faForced": "Globale 2FA-verplichting staat aan — deze gebruikers moeten bij volgende login inschrijven.",
     "nis2ManageUsersLink": "Beheer gebruikers",
     "nis2AuditBacklog": "Audit-doorstuurachterstand",
@@ -883,7 +994,14 @@
     "complianceReviewItemHelp": "Het werklogitem dat de assetlijst van een locatie als gecontroleerd markeert (gebruikt door het compliance-dashboard).",
     "complianceReviewPeriod": "Controleperiode (maanden)",
     "complianceReviewPeriodHelp": "Locaties zonder het controle-item binnen deze periode worden gemarkeerd op het compliance-dashboard.",
-    "complianceReviewPeriodInvalid": "Controleperiode moet tussen 1 en 120 maanden liggen."
+    "complianceReviewPeriodInvalid": "Controleperiode moet tussen 1 en 120 maanden liggen.",
+    "noLogoUploaded": "Geen logo geüpload",
+    "noFaviconUploaded": "Geen favicon geüpload",
+    "noBackgroundUploaded": "Geen achtergrondafbeelding geüpload",
+    "profilePageSubtitle": "Beheer uw weergavenaam en wachtwoord.",
+    "twoFactorPageTitle": "Tweestapsverificatie",
+    "twoFactorPageSubtitle": "Beveilig uw account met een tijdgebaseerd eenmalig wachtwoord (TOTP) of een passkey.",
+    "profileSaved": "Profiel opgeslagen"
   },
   "report": {
     "title": "Rapporten",
@@ -966,7 +1084,10 @@
     "overdue": "Laatst gedaan buiten het tijdsvenster",
     "locationScope": "Locatiebereik",
     "locationScopeHelp": "Beperk het rapport tot specifieke campussen, gebouwen of ruimtes. Laat leeg om alle locaties op te nemen.",
-    "removeScopeLocation": "{name} verwijderen uit bereik"
+    "removeScopeLocation": "{name} verwijderen uit bereik",
+    "savedCount": "{count} {count, plural, =1 {opgeslagen rapport} other {opgeslagen rapporten}}",
+    "newSubtitle": "Stel filters, groepering en kolommen in",
+    "invalidDefinition": "De rapportdefinitie is ongeldig. Bewerk dit rapport en sla het opnieuw op."
   },
   "workLog": {
     "title": "Werklog",
@@ -979,6 +1100,8 @@
     "asset": "Asset",
     "noAsset": "Locatie-brede werkzaamheden",
     "jiraIssueKey": "JIRA-issue-key",
+    "jiraIssueNotFound": "Issue niet gevonden",
+    "jiraUnavailable": "JIRA niet bereikbaar",
     "noEntries": "Nog geen werklog-vermeldingen",
     "entryCreated": "Werklog-vermelding toegevoegd",
     "entryUpdated": "Werklog-vermelding bijgewerkt",
@@ -1028,7 +1151,14 @@
     "attachmentUpdated": "Bijlage bijgewerkt",
     "previewAlt": "Voorbeeld van {name}",
     "openFullSize": "Volledig formaat openen",
-    "noPreview": "Geen voorbeeld beschikbaar"
+    "noPreview": "Geen voorbeeld beschikbaar",
+    "dropFiles": "Sleep bestanden hierheen, of <browse>blader</browse>",
+    "allowedFilesHint": "Afbeeldingen, PDF, Word, Excel, CSV — max. 50 MB",
+    "downloadNamed": "{name} downloaden",
+    "editNamed": "Bijlage {name} bewerken",
+    "deleteAttachmentNamed": "Bijlage {name} verwijderen",
+    "deleteLinkNamed": "Link {name} verwijderen",
+    "deleteConfirmDescription": "\"{name}\" wordt definitief verwijderd."
   },
   "setup": {
     "title": "Welkom bij SAM",
@@ -1041,7 +1171,8 @@
     "submitting": "Account aanmaken…",
     "complete": "Setup voltooid. Meld u hieronder aan.",
     "alreadySetup": "Setup is al voltooid. U kunt zich aanmelden.",
-    "goToLogin": "Naar aanmelden"
+    "goToLogin": "Naar aanmelden",
+    "failed": "De installatie is mislukt."
   },
   "search": {
     "title": "Zoeken",
@@ -1055,7 +1186,11 @@
     "locations": "Locaties",
     "results": "Zoekresultaten",
     "previous": "Vorige",
-    "page": "Pagina"
+    "page": "Pagina",
+    "searching": "Zoeken…",
+    "noResultsHint": "Probeer andere zoektermen of controleer de spelling.",
+    "searchFailed": "Zoeken mislukt. Probeer het opnieuw.",
+    "resultCount": "{count, plural, one {# resultaat} other {# resultaten}}"
   },
   "coverImage": {
     "title": "Hoofdfoto",
@@ -1063,7 +1198,8 @@
     "useThis": "Als hoofdfoto gebruiken",
     "currentCover": "Huidige hoofdfoto",
     "removeCover": "Hoofdfoto verwijderen",
-    "saved": "Hoofdfoto bijgewerkt"
+    "saved": "Hoofdfoto bijgewerkt",
+    "selectHint": "Kies een afbeelding uit de bijlagen om als hoofdfoto voor deze locatie te gebruiken."
   },
   "suppliers": {
     "title": "Leveranciers",
@@ -1088,5 +1224,76 @@
     "deleted": "Leverancier verwijderd",
     "deleteConfirmTitle": "Leverancier verwijderen?",
     "deleteConfirmDescription": "Dit kan alleen als geen assets deze leverancier gebruiken."
+  },
+  "macAddressFields": {
+    "add": "MAC-adres toevoegen",
+    "placeholder": "AA:BB:CC:DD:EE:FF",
+    "entryLabel": "MAC {n}:",
+    "removeAriaLabel": "MAC-adres {n} verwijderen"
+  },
+  "adminPages": {
+    "users": {
+      "title": "Gebruikers",
+      "subtitle": "Beheer gebruikersaccounts en hun rollen."
+    },
+    "assetTypes": {
+      "title": "Asset-types",
+      "subtitle": "Beheer asset-types en configureer Prometheus-scrapetemplates voor monitoring via exporters."
+    },
+    "manufacturers": {
+      "title": "Fabrikanten",
+      "subtitle": "Beheer de lijst van hardwarefabrikanten."
+    },
+    "models": {
+      "title": "Modellen",
+      "subtitle": "Vaste lijst van hardwaremodellen, per asset-type en fabrikant."
+    },
+    "import": {
+      "title": "Importeren uit CSV",
+      "subtitle": "Importeer assets uit een CSV-export. Locaties, asset-types en fabrikanten worden automatisch aangemaakt als ze nog niet bestaan."
+    },
+    "export": {
+      "title": "CSV exporteren",
+      "subtitle": "Download een volledige CSV-export of stel automatische back-ups in."
+    },
+    "audit": {
+      "title": "Audit-log",
+      "subtitle": "Alle beheeracties voor NIS2-compliance. De laatste 500 items worden getoond."
+    },
+    "settings": {
+      "title": "Instellingen",
+      "subtitle": "Algemene configuratie van de applicatie."
+    },
+    "workLogItems": {
+      "title": "Werklog-items",
+      "subtitle": "Vaste werklog-items die technici kunnen kiezen in het werklog van een locatie (bv. \"Assetlijst nakijken\"). Volg en rapporteer welke locaties elk item ingevuld hebben."
+    }
+  },
+  "workLogItems": {
+    "added": "Werklog-item toegevoegd",
+    "updated": "Werklog-item bijgewerkt",
+    "deleted": "Werklog-item verwijderd",
+    "namePlaceholder": "Naam van het item, bv. Assetlijst nakijken",
+    "descriptionPlaceholder": "Optionele beschrijving",
+    "empty": "Nog geen werklog-items",
+    "entryCount": "{count} {count, plural, =1 {invoer} other {invoeren}}",
+    "editAriaLabel": "{name} bewerken",
+    "deleteAriaLabel": "{name} verwijderen",
+    "deleteTitle": "\"{name}\" verwijderen?",
+    "deleteUsed": "Dit item wordt gebruikt door {count} {count, plural, =1 {werklog-invoer} other {werklog-invoeren}}. Bij verwijderen blijven die invoeren bestaan, maar wordt het item eruit gewist.",
+    "deleteUnused": "Dit werklog-item wordt definitief verwijderd."
+  },
+  "scrapeTemplate": {
+    "formatTitle": "Templateformaat",
+    "formatHelp": "Eén <code>key=value</code>-paar per regel. Sleutels worden Prometheus-<code>__labels__</code>.",
+    "variablesTitle": "Beschikbare variabelen:",
+    "varHostname": "Hostname van de asset zoals opgeslagen",
+    "varSerial": "Serienummer",
+    "varModel": "Model",
+    "varManufacturer": "Fabrikant",
+    "varFiNumber": "FI-nummer (14.10.100.013)",
+    "varVaultPath": "Verwijzing naar het Vault-pad (niet het geheim)",
+    "exampleLabel": "Pearl-voorbeeld:",
+    "syntaxValid": "Templatesyntaxis is geldig"
   }
 }

@@ -1,0 +1,146 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops)),
+    appSetting: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+  },
+}));
+vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+const putObject = vi.fn();
+const deleteObject = vi.fn();
+const getObject = vi.fn();
+vi.mock("@/lib/uploads/storage", async () => ({
+  ...(await vi.importActual<typeof import("@/lib/uploads/storage")>("@/lib/uploads/storage")),
+  getStorageDriver: () => ({ getObject, putObject, deleteObject }),
+  StorageNotFoundError: class extends Error {},
+}));
+
+import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/audit";
+import { removeBrandingAsset, serveBrandingAsset, uploadBrandingAsset } from "@/lib/branding/assets";
+
+const session = { user: { id: "u1", role: "ADMIN" } } as never;
+
+// jsdom's File does not survive a real multipart round-trip, so stub formData().
+// Leading bytes that make the content match its declared type.
+const SIGNATURES: Record<string, number[]> = {
+  "image/png": [0x89, 0x50, 0x4e, 0x47],
+  "image/jpeg": [0xff, 0xd8, 0xff, 0xe0],
+  "image/webp": [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50],
+};
+
+function uploadReq(file: { type: string; size: number; bytes?: number[] } | null) {
+  const fake = file && {
+    type: file.type,
+    arrayBuffer: async () => {
+      const bytes = new Uint8Array(file.size);
+      bytes.set((file.bytes ?? SIGNATURES[file.type] ?? []).slice(0, file.size));
+      return bytes.buffer;
+    },
+  };
+  return { formData: async () => ({ get: () => fake }) } as unknown as Request;
+}
+
+beforeEach(() => vi.clearAllMocks());
+
+describe("uploadBrandingAsset()", () => {
+  it("400 when no file is sent", async () => {
+    const res = await uploadBrandingAsset(uploadReq(null), session, "logo");
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "No file provided." });
+  });
+
+  it("400 for a MIME type outside the asset allowlist", async () => {
+    const res = await uploadBrandingAsset(uploadReq({ type: "image/jpeg", size: 10 }), session, "favicon");
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Invalid file type. Allowed: ICO, PNG, SVG");
+  });
+
+  it("400 when the file exceeds the asset size limit", async () => {
+    const res = await uploadBrandingAsset(uploadReq({ type: "image/png", size: 1024 * 1024 + 1 }), session, "favicon");
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("File too large. Maximum size is 1 MB");
+    expect(putObject).not.toHaveBeenCalled();
+  });
+
+  it("stores the file, records settings and audits", async () => {
+    const res = await uploadBrandingAsset(uploadReq({ type: "image/webp", size: 16 }), session, "logo");
+    expect(res.status).toBe(200);
+    expect(putObject).toHaveBeenCalledWith("branding/logo", expect.any(Buffer), "image/webp");
+    const keys = vi.mocked(prisma.appSetting.upsert).mock.calls.map(([arg]) => arg.where.key);
+    expect(keys).toEqual(["branding.logoStorageKey", "branding.logoContentType"]);
+    expect(vi.mocked(logAudit).mock.calls[0][0].detail).toEqual({ event: "Logo uploaded", contentType: "image/webp" });
+  });
+
+  it("also switches the background mode to custom for the background asset", async () => {
+    await uploadBrandingAsset(uploadReq({ type: "image/png", size: 10 }), session, "background");
+    const upserts = vi.mocked(prisma.appSetting.upsert).mock.calls.map(([arg]) => [arg.where.key, arg.update.value]);
+    expect(upserts).toContainEqual(["branding.backgroundMode", "custom"]);
+  });
+});
+
+describe("storage failures", () => {
+  it("upload: 502 and no settings written", async () => {
+    putObject.mockRejectedValueOnce(new Error("disk full"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await uploadBrandingAsset(uploadReq({ type: "image/webp", size: 16 }), session, "logo");
+    expect(res.status).toBe(502);
+    expect(prisma.appSetting.upsert).not.toHaveBeenCalled();
+  });
+
+  it("remove: 502 and the settings are kept for a retry", async () => {
+    deleteObject.mockRejectedValueOnce(new Error("S3 down"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await removeBrandingAsset(new Request("http://x"), session, "logo");
+    expect(res.status).toBe(502);
+    expect(prisma.appSetting.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("removeBrandingAsset()", () => {
+  it("deletes the object and every related setting", async () => {
+    const res = await removeBrandingAsset(new Request("http://x"), session, "background");
+    expect(res.status).toBe(200);
+    expect(deleteObject).toHaveBeenCalledWith("branding/background");
+    expect(prisma.appSetting.deleteMany).toHaveBeenCalledWith({
+      where: { key: { in: ["branding.backgroundStorageKey", "branding.backgroundContentType", "branding.backgroundMode"] } },
+    });
+    expect(vi.mocked(logAudit).mock.calls[0][0].detail).toEqual({ event: "Background image removed" });
+  });
+});
+
+describe("uploadBrandingAsset() content check", () => {
+  it("rejects a file whose content does not match its declared type", async () => {
+    const res = await uploadBrandingAsset(uploadReq({ type: "image/png", size: 16, bytes: [0x3c, 0x68, 0x74, 0x6d] }), session, "logo");
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/does not match/);
+    expect(putObject).not.toHaveBeenCalled();
+  });
+});
+
+describe("serveBrandingAsset()", () => {
+  beforeEach(() => {
+    vi.mocked(prisma.appSetting.findMany).mockResolvedValue([
+      { key: "branding.logoStorageKey", value: "branding/logo" },
+      { key: "branding.logoContentType", value: "image/png" },
+    ] as never);
+  });
+
+  it("streams the stored file with its content type", async () => {
+    getObject.mockResolvedValueOnce(Buffer.from("PNG"));
+    const res = await serveBrandingAsset("logo");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/png");
+  });
+
+  it("answers a logged, coded 502 when storage fails", async () => {
+    getObject.mockRejectedValueOnce(new Error("S3 down"));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await serveBrandingAsset("logo");
+    expect(res.status).toBe(502);
+    expect((await res.json()).code).toBe("storageUnavailable");
+    expect(errSpy).toHaveBeenCalledWith("[storage] Logo read failed", expect.any(Error));
+    errSpy.mockRestore();
+  });
+});

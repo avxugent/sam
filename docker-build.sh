@@ -76,11 +76,6 @@ fi
 
 docker buildx build \
   --platform linux/amd64 \
-  --build-arg DB_HOST=localhost \
-  --build-arg DB_PORT=3306 \
-  --build-arg DB_NAME=samdb \
-  --build-arg DB_USER=sam \
-  --build-arg DB_PASSWORD=build \
   --build-arg NEXTAUTH_SECRET=build-time-placeholder-not-used-at-runtime \
   --build-arg NEXTAUTH_URL=http://localhost:3000 \
   --build-arg NEXT_TELEMETRY_DISABLED=1 \

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
+import { isAdmin } from "@/lib/permissions";
+import { reinstateViolation } from "@/lib/assets/lifecycle-rules";
+import { REPAIR_SELECT, lifecycleViolationResponse, reinstateAsset, statusChangedResponse } from "@/lib/assets/transitions";
+import { notFoundResponse } from "@/lib/route-helpers";
 
 export async function POST(
   req: NextRequest,
@@ -9,39 +12,16 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const existing = await prisma.asset.findUnique({
-    where: { id },
-    select: { model: { select: { name: true } }, status: true, lineageId: true },
-  });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (existing.status !== "DECOMMISSIONED") {
-    return NextResponse.json({ error: "Asset is not decommissioned." }, { status: 400 });
-  }
+  const existing = await prisma.asset.findUnique({ where: { id }, select: REPAIR_SELECT });
+  if (!existing) return notFoundResponse("Asset");
+  const violation = lifecycleViolationResponse(reinstateViolation(existing));
+  if (violation) return violation;
 
-  const asset = await prisma.asset.update({
-    where: { id },
-    data: {
-      status: "INSTALLED",
-      decommissionedAt: null,
-      decommissionNote: null,
-      disposalMethod: null,
-      decommissionedById: null,
-    },
-  });
-
-  await logAudit({
-    session,
-    req,
-    action: "UPDATE",
-    entityType: "Asset",
-    entityId: id,
-    entityName: existing.model?.name ?? undefined,
-    detail: { status: "INSTALLED" },
-    lineageId: existing.lineageId,
-  });
+  const asset = await reinstateAsset(req, session, existing);
+  if (!asset) return statusChangedResponse();
 
   return NextResponse.json(asset);
 }

@@ -1,14 +1,15 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { computeHostnameCompliance } from "@/lib/hostname-compliance";
-import { computeNis2Compliance } from "@/lib/nis2-compliance";
-import { HostnameComplianceClient } from "@/components/compliance/hostname-compliance-client";
-import { Nis2DashboardClient } from "@/components/compliance/nis2-dashboard-client";
+import { computeHostnameCompliance } from "@/lib/compliance/hostname-report";
+import { computeNis2Compliance } from "@/lib/compliance/nis2";
+import { HostnameComplianceClient } from "@/components/admin/compliance/hostname-compliance-client";
+import { Nis2DashboardClient } from "@/components/admin/compliance/nis2-dashboard-client";
+import { isAdmin } from "@/lib/permissions";
 
 export default async function CompliancePage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/");
+  if (!session?.user || !isAdmin(session.user.role)) redirect("/");
 
   const t = await getTranslations("compliance");
   const [nis2Result, hostnameResult] = await Promise.all([
@@ -25,7 +26,7 @@ export default async function CompliancePage() {
       <Nis2DashboardClient result={nis2Result} />
       <div>
         <div className="mb-4">
-          <h2 className="text-[16px] font-bold text-[#0f172a]">{t("hostnameSectionTitle")}</h2>
+          <h2 className="text-[16px] font-bold text-foreground">{t("hostnameSectionTitle")}</h2>
         </div>
         <HostnameComplianceClient result={hostnameResult} />
       </div>
@@ -33,4 +34,7 @@ export default async function CompliancePage() {
   );
 }
 
-export const metadata = { title: "Compliance – SAM Admin" };
+export async function generateMetadata() {
+  const t = await getTranslations("nav");
+  return { title: t("compliance") };
+}

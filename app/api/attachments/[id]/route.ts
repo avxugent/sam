@@ -2,19 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { getStorageDriver, StorageNotFoundError } from "@/lib/storage";
+import { auditChanges } from "@/lib/audit/diff";
+import { attemptStorage, attemptStorageRead, getStorageDriver } from "@/lib/uploads/storage";
+import { safeFilename } from "@/lib/uploads/policy";
 import { z } from "zod";
+import { canEdit } from "@/lib/permissions";
+import { invalidInput, isRecordNotFoundError, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 const updateSchema = z.object({
   displayName: z.string().max(255).nullable().optional(),
   description: z.string().max(2000).nullable().optional(),
-  url: z.string().url().max(2048).nullable().optional(),
+  url: z.url().max(2048).nullable().optional(),
 });
-
-/** Strip characters that could break HTTP headers or cause path traversal */
-function safeFilename(name: string): string {
-  return name.replace(/[\r\n\\"]/g, "_").slice(0, 255);
-}
 
 /**
  * Build a RFC 6266-compliant Content-Disposition header value.
@@ -26,43 +25,50 @@ function contentDispositionHeader(disposition: "inline" | "attachment", filename
   return `${disposition}; filename="${filename}"; filename*=UTF-8''${encoded}`;
 }
 
-export async function PATCH(
+export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const attachment = await prisma.attachment.findUnique({ where: { id } });
-  if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!attachment) return notFoundResponse("Attachment");
 
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
   if (parsed.data.url !== undefined && attachment.attachmentType !== "link") {
     return NextResponse.json({ error: "Cannot set URL on file attachments." }, { status: 400 });
   }
 
-  const updated = await prisma.attachment.update({
-    where: { id },
-    data: {
-      displayName: parsed.data.displayName ?? null,
-      description: parsed.data.description ?? null,
-      ...(parsed.data.url !== undefined && { url: parsed.data.url }),
-    },
-    include: { uploadedBy: { select: { id: true, name: true } } },
-  });
+  let updated;
+  try {
+    updated = await prisma.attachment.update({
+      where: { id },
+      // Partial update: omitted fields keep their value, null clears them.
+      data: {
+        ...(parsed.data.displayName !== undefined && { displayName: parsed.data.displayName }),
+        ...(parsed.data.description !== undefined && { description: parsed.data.description }),
+        ...(parsed.data.url !== undefined && { url: parsed.data.url }),
+      },
+      include: { uploadedBy: { select: { id: true, name: true } } },
+    });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Attachment");
+    throw err;
+  }
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
-  if (parsed.data.displayName !== undefined && parsed.data.displayName !== attachment.displayName)
-    changes["Display name"] = { from: attachment.displayName ?? null, to: parsed.data.displayName ?? null };
-  if (parsed.data.description !== undefined && parsed.data.description !== attachment.description)
-    changes["Description"] = { from: attachment.description ?? null, to: parsed.data.description ?? null };
-  if (parsed.data.url !== undefined && parsed.data.url !== attachment.url)
-    changes["URL"] = { from: attachment.url ?? null, to: parsed.data.url ?? null };
+  const d = parsed.data;
+  const changes = auditChanges([
+    d.displayName !== undefined && { label: "Display name", before: attachment.displayName, after: d.displayName },
+    d.description !== undefined && { label: "Description", before: attachment.description, after: d.description },
+    d.url !== undefined && { label: "URL", before: attachment.url, after: d.url },
+  ]);
 
   await logAudit({
     session,
@@ -83,21 +89,32 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const attachment = await prisma.attachment.findUnique({ where: { id } });
-  if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!attachment) return notFoundResponse("Attachment");
 
   if (attachment.attachmentType !== "link" && attachment.path) {
-    try {
-      await getStorageDriver().deleteObject(attachment.path);
-    } catch {
-      // File may already be gone — continue with DB cleanup
-    }
+    // Drivers already treat a missing file as deleted. Any other storage
+    // failure keeps the row, so the delete can be retried instead of leaving
+    // an orphaned file nothing points at.
+    const path = attachment.path;
+    const removed = await attemptStorage(
+      "attachment delete",
+      "Could not delete the stored file. The attachment was kept; please try again.",
+      () => getStorageDriver().deleteObject(path)
+    );
+    if ("error" in removed) return removed.error;
   }
 
-  await prisma.attachment.delete({ where: { id } });
+  try {
+    await prisma.attachment.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Attachment");
+    throw err;
+  }
   await logAudit({
     session,
     req,
@@ -118,7 +135,7 @@ export async function GET(
 
   const { id } = await params;
   const attachment = await prisma.attachment.findUnique({ where: { id } });
-  if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!attachment) return notFoundResponse("Attachment");
 
   // Link attachments: redirect to the stored URL
   if (attachment.attachmentType === "link" && attachment.url) {
@@ -129,15 +146,13 @@ export async function GET(
     return NextResponse.json({ error: "Attachment has no stored content." }, { status: 404 });
   }
 
-  let buffer: Buffer;
-  try {
-    buffer = await getStorageDriver().getObject(attachment.path);
-  } catch (err) {
-    if (err instanceof StorageNotFoundError) {
-      return NextResponse.json({ error: "File not found." }, { status: 404 });
-    }
-    return NextResponse.json({ error: "Failed to read file." }, { status: 500 });
-  }
+  const path = attachment.path;
+  const read = await attemptStorageRead("attachment read", "Could not read the stored file. Please try again.", () =>
+    getStorageDriver().getObject(path)
+  );
+  if ("error" in read) return read.error;
+  const buffer = read.value;
+  if (!buffer) return notFoundResponse("File");
 
   const safeName = safeFilename(attachment.originalName);
   // SVG files can execute scripts when rendered inline — always force download

@@ -47,6 +47,7 @@ jobs:
       # docker/metadata-action generates tags for both registries:
       #   - branch push  → :main / :latest + :sha-<sha>
       #   - version tag  → :v1.2.3 + :1.2.3 + :1.2 + :latest + :sha-<sha>
+#   - prerelease tag (v1.2.3-alpha.1) → :v1.2.3-alpha.1 + :1.2.3-alpha.1 + :sha-<sha>, never :latest
       #   - PR           → :pr-42  (built but NOT pushed)
       - name: Extract Docker metadata
         id: meta
@@ -62,8 +63,8 @@ jobs:
             type=semver,pattern={{version}}
             # major.minor from tag (e.g. v1.2.3 → 1.2)
             type=semver,pattern={{major}}.{{minor}}
-            # 'latest' on every release tag push
-            type=raw,value=latest
+            # 'latest' on release tag pushes, not on prereleases (v4.0.0-alpha.1)
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
             # short commit SHA for traceability (always added)
             type=sha,prefix=sha-,format=short
 
@@ -80,13 +81,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-          # Build-time environment variables (dummy values — no real DB needed)
+          # Build-time environment variables (placeholders — no DB needed)
           build-args: |
-            DB_HOST=localhost
-            DB_PORT=3306
-            DB_NAME=samdb
-            DB_USER=sam
-            DB_PASSWORD=build
             NEXTAUTH_SECRET=build-time-placeholder-not-used-at-runtime
             NEXTAUTH_URL=http://localhost:3000
             NEXT_TELEMETRY_DISABLED=1

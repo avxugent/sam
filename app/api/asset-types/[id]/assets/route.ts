@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { assetListStatusFilter } from "@/lib/assets/list-status";
+import { CATALOG_DRILLDOWN_SELECT } from "@/lib/assets/include";
 
 export async function GET(
   req: NextRequest,
@@ -11,29 +13,12 @@ export async function GET(
 
   const { id } = await params;
 
-  // Active assets only by default. `?status=DECOMMISSIONED` lists decommissioned
-  // ones; `?status=all` lists both. (Returned-to-stock assets are deleted, not
-  // decommissioned, so they never appear here.)
-  const statusParam = new URL(req.url).searchParams.get("status");
-  const statusFilter =
-    statusParam === "all"
-      ? {}
-      : statusParam === "DECOMMISSIONED"
-        ? { status: "DECOMMISSIONED" as const }
-        : { status: "INSTALLED" as const };
+  const statusFilter = assetListStatusFilter(new URL(req.url).searchParams.get("status"));
+  if ("error" in statusFilter) return statusFilter.error;
 
   const assets = await prisma.asset.findMany({
-    where: { typeId: id, ...statusFilter },
-    select: {
-      id: true,
-      model: { select: { name: true } },
-      serialNumber: true,
-      hostname: true,
-      installationDate: true,
-      location: { select: { id: true, name: true } },
-      manufacturer: { select: { name: true } },
-      macAddresses: { select: { id: true, address: true } },
-    },
+    where: { typeId: id, ...statusFilter.where },
+    select: CATALOG_DRILLDOWN_SELECT,
     orderBy: [{ location: { name: "asc" } }, { createdAt: "desc" }],
   });
 

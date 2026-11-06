@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { createWorkLogItemSchema } from "@/lib/work-log-item-schema";
+import { createWorkLogItemSchema } from "@/lib/schemas/work-log-item";
+import { isAdmin } from "@/lib/permissions";
+import { invalidInput, isUniqueConstraintError, nameTakenResponse, readJsonBody } from "@/lib/route-helpers";
 
 export async function GET() {
   const session = await auth();
@@ -18,17 +20,19 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = createWorkLogItemSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   try {
     const item = await prisma.workLogItem.create({
       data: { name: parsed.data.name, description: parsed.data.description ?? null },
+      // Same shape as a GET list item, so the client can insert it as-is.
+      include: { _count: { select: { workLogs: true } } },
     });
     await logAudit({
       session,
@@ -39,7 +43,10 @@ export async function POST(req: NextRequest) {
       entityName: item.name,
     });
     return NextResponse.json(item, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Name already exists." }, { status: 409 });
+  } catch (err) {
+    if (isUniqueConstraintError(err)) {
+      return nameTakenResponse();
+    }
+    throw err;
   }
 }

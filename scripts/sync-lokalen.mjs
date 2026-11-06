@@ -16,22 +16,24 @@
  * Use --force to re-download images even when images already exist.
  *
  * Usage:
- *   node scripts/sync-lokalen.mjs                           # all locations
- *   node scripts/sync-lokalen.mjs --dry-run                 # preview, no writes
- *   node scripts/sync-lokalen.mjs --fi-number 14.10.100.013 # single location
- *   node scripts/sync-lokalen.mjs --skip-images             # metadata only
- *   node scripts/sync-lokalen.mjs --force                   # re-download existing images
- *   node scripts/sync-lokalen.mjs --user-id <id>            # attachment owner (default: first ADMIN)
- *   node scripts/sync-lokalen.mjs --debug                   # dump raw HTML + selector matches
+ *   node --import tsx/esm scripts/sync-lokalen.mjs                           # all locations
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --dry-run                 # preview, no writes
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --fi-number 14.10.100.013 # single location
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --skip-images             # metadata only
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --force                   # re-download existing images
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --user-id <id>            # attachment owner (default: first ADMIN)
+ *   node --import tsx/esm scripts/sync-lokalen.mjs --debug                   # dump raw HTML + selector matches
  *
  * Run from the project root so that the .env file is found automatically.
  */
 
-import { prisma } from "./_prisma.mjs";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { JSDOM } from "jsdom";
-import { mkdir, writeFile } from "fs/promises";
-import { resolve, dirname, basename } from "path";
+import "./_env.mjs";
+import { getArg } from "./_args.mjs";
+import { prisma } from "@/lib/prisma";
+import { getStorageDriver } from "@/lib/uploads/storage";
+import { safeFilename } from "@/lib/uploads/policy";
+import { parse } from "node-html-parser";
+import { basename } from "path";
 import { randomUUID } from "crypto";
 
 // ── Field label → value mapping ──────────────────────────────────────────────
@@ -51,13 +53,6 @@ const RATE_LIMIT_MS = 150;
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
 const MIME_TO_EXT = { "image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp" };
 
-// ── arg parsing ──────────────────────────────────────────────────────────────
-function getArg(flag, defaultValue = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1) return defaultValue;
-  return process.argv[idx + 1] ?? defaultValue;
-}
-
 const dryRun      = process.argv.includes("--dry-run");
 const debug       = process.argv.includes("--debug");
 const skipImages  = process.argv.includes("--skip-images");
@@ -66,42 +61,8 @@ const fiNumberArg = getArg("--fi-number");
 const userIdArg   = getArg("--user-id");
 
 // ── storage ──────────────────────────────────────────────────────────────────
-const useS3 = process.env.STORAGE_DRIVER === "s3" && !!process.env.S3_BUCKET;
-
-let s3 = null;
-if (useS3) {
-  const endpoint = process.env.S3_ENDPOINT;
-  if (endpoint) {
-    try { new URL(endpoint); } catch {
-      console.error(`❌  S3_ENDPOINT="${endpoint}" is not a valid URL. Add the protocol, e.g. https://${endpoint}`);
-      process.exit(1);
-    }
-  }
-  s3 = new S3Client({
-    region: process.env.S3_REGION || "us-east-1",
-    ...(endpoint ? { endpoint }                                                             : {}),
-    ...(process.env.S3_FORCE_PATH_STYLE === "true" ? { forcePathStyle: true }             : {}),
-  });
-}
-
-async function putObject(key, buffer, contentType) {
-  if (useS3) {
-    await s3.send(new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET,
-      Key: key,
-      Body: buffer,
-      ContentType: contentType,
-      ContentLength: buffer.length,
-      ServerSideEncryption: "AES256",
-    }));
-  } else {
-    const uploadRoot = resolve(process.cwd(), process.env.UPLOAD_DIR || "./uploads");
-    const fullPath   = resolve(uploadRoot, key);
-    if (!fullPath.startsWith(uploadRoot + "/")) throw new Error(`Path traversal detected: ${key}`);
-    await mkdir(dirname(fullPath), { recursive: true });
-    await writeFile(fullPath, buffer);
-  }
-}
+// Same driver (and so the same bucket or upload directory) as uploads made in the app.
+const storage = getStorageDriver();
 
 // ── HTTP with cookie jar ─────────────────────────────────────────────────────
 // lokalen.ugent.be (Apache Wicket) sets JSESSIONID on first request and
@@ -190,14 +151,14 @@ function extractFormField(document, labelText) {
   return null;
 }
 
+/** @returns {string[]} */
 function extractImageUrls(document, pageUrl) {
   return [...document.querySelectorAll("img")]
-    .map(img => {
+    .flatMap((img) => {
       const src = img.getAttribute("src");
-      if (!src || !IMAGE_SRC_PATTERN.test(src)) return null;
-      try { return new URL(src, pageUrl).href; } catch { return null; }
+      if (!src || !IMAGE_SRC_PATTERN.test(src)) return [];
+      try { return [new URL(src, pageUrl).href]; } catch { return []; }
     })
-    .filter(Boolean)
     .filter((url, i, arr) => arr.indexOf(url) === i);
 }
 
@@ -238,7 +199,7 @@ async function main() {
   console.log(`  Dry run     : ${dryRun ? "YES (no changes will be made)" : "no"}`);
   console.log(`  Skip images : ${skipImages}`);
   console.log(`  Force       : ${force}`);
-  console.log(`  Storage     : ${useS3 ? "S3" : "local"}`);
+  console.log(`  Storage     : ${storage.name === "s3" ? "S3" : "local"}`);
   if (fiNumberArg) console.log(`  FI number   : ${fiNumberArg}`);
   console.log("");
 
@@ -253,8 +214,7 @@ async function main() {
     console.log(`  Uploader    : ${admin.email} (${admin.id})\n`);
   }
 
-  const where = { fiNumber: { not: null } };
-  if (fiNumberArg) where.fiNumber = fiNumberArg;
+  const where = fiNumberArg ? { fiNumber: fiNumberArg } : { fiNumber: { not: null } };
 
   const locations = await prisma.location.findMany({
     where,
@@ -292,7 +252,8 @@ async function main() {
       continue;
     }
 
-    const { document } = new JSDOM(html, { url: pageUrl }).window;
+    // Script and style bodies stay text; everything else (noscript, pre) is parsed as markup, as a browser DOM would.
+    const document = parse(html, { blockTextElements: { script: true, style: true } });
 
     if (debug) {
       console.log("\n    ── RAW HTML (first 3000 chars) ──────────────────────────────────");
@@ -473,9 +434,9 @@ async function main() {
             const uuid         = randomUUID();
             const filename     = `${uuid}${ext}`;
             const relativePath = `locations/${location.id}/${filename}`;
-            const originalName = basename(new URL(imgUrl).pathname).replace(/[\r\n"\\]/g, "") || filename;
+            const originalName = safeFilename(basename(new URL(imgUrl).pathname)) || filename;
 
-            await putObject(relativePath, imgBuffer, imgContentType);
+            await storage.putObject(relativePath, imgBuffer, imgContentType);
 
             const attachment = await prisma.attachment.create({
               data: {
@@ -487,7 +448,8 @@ async function main() {
                 path: relativePath,
                 description: imgUrl,
                 locationId: location.id,
-                uploadedById,
+                // Set above whenever images are downloaded (not --skip-images, not --dry-run).
+                uploadedById: /** @type {string} */ (uploadedById),
               },
             });
 

@@ -1,0 +1,11 @@
+{
+  "//": "Type-checks the plain-JS maintenance scripts against the lib/ code and Prisma types they import (npm run typecheck:scripts, run in CI), so a schema change that breaks a script fails the build. Implicit any is allowed: the point is catching wrong fields and nullability, not annotating every helper.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "checkJs": true,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "incremental": false
+  },
+  "include": ["next-env.d.ts", "types/**/*.d.ts", "scripts/**/*.mjs"]
+}

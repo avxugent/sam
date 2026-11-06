@@ -2,13 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { ArchiveX } from "lucide-react";
-import { DecommissionedTable } from "@/components/stock/decommissioned-table";
+import { DecommissionedTable } from "@/components/assets/decommissioned-table";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const t = await getTranslations("decommissioned");
-  return { title: `${t("title")} – SAM` };
+  return { title: t("title") };
 }
 
 export default async function DecommissionedPage() {
@@ -35,19 +36,12 @@ export default async function DecommissionedPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-[9px] bg-[#f1f5f9] flex items-center justify-center flex-shrink-0">
-          <ArchiveX className="h-4 w-4 text-[#64748b]" />
-        </div>
-        <div>
-          <h1 className="text-[22px] font-bold text-[#0f172a] tracking-[-0.01em]">{t("title")}</h1>
-          <p className="text-[13px] text-[#64748b] mt-0.5">
-            {t("subtitle", { count: assets.length })}
-          </p>
-        </div>
-      </div>
+      <PageHeader icon={ArchiveX} tone="neutral" title={t("title")} subtitle={t("subtitle", { count: assets.length })} />
 
-      <DecommissionedTable assets={assets} userRole={userRole} />
+      <DecommissionedTable
+        assets={assets.map((a) => ({ ...a, decommissionedAt: a.decommissionedAt?.toISOString() ?? null }))}
+        userRole={userRole}
+      />
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 /**
  * Canonical MAC address form: AA:BB:CC:DD:EE:FF (uppercase, colon-separated).
  * Accepts any of the legacy input shapes (no separator, hyphen, dot-grouped,
@@ -21,3 +23,22 @@ export function formatMacInputValue(raw: string): string {
   const hex = raw.replace(/[^0-9A-Fa-f]/g, "").slice(0, 12).toUpperCase();
   return hex.match(/.{1,2}/g)?.join(":") ?? "";
 }
+
+export const MAX_MAC_ADDRESSES = 20;
+
+/**
+ * API-side Zod field: accepts any recoverable MAC shape and normalizes it to
+ * AA:BB:CC:DD:EE:FF — the same rule the CSV import applies, so manually
+ * created or edited assets and stock items can't reintroduce mixed formats.
+ */
+export const macAddressField = z.string().transform((v, ctx) => {
+  const normalized = normalizeMacAddress(v);
+  if (normalized === null) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
+    });
+    return z.NEVER;
+  }
+  return normalized;
+});

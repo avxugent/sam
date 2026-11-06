@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkPrometheusAuth } from "@/lib/prometheus-auth";
+import { integrationTokenResponse } from "@/lib/tokens/integration";
 
 export async function GET(req: NextRequest) {
-  const authError = checkPrometheusAuth(req);
+  const authError = integrationTokenResponse(req);
   if (authError) return authError;
   return NextResponse.json({ status: "ok" });
 }

@@ -32,3 +32,4 @@ CLAUDE.md
 # Docker files themselves
 Dockerfile*
 docker-compose*
+scripts/node_modules

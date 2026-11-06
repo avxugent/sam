@@ -1,58 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { normalizeMacAddress } from "@/lib/mac-address";
+import { canEdit } from "@/lib/permissions";
+import { invalidInput, readJsonBody, unknownReferenceResponse, isForeignKeyError } from "@/lib/route-helpers";
+import { serializeStockMetadata } from "@/lib/stock-metadata";
+import { createStockItemSchema } from "@/lib/schemas/stock";
+import { z } from "zod";
+import { MAX_ID_LENGTH } from "@/lib/schemas/ids";
+import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/stock/include";
 
-const MAX_MAC_ADDRESSES = 20;
-
-// Accepts any recoverable MAC shape and normalizes it to AA:BB:CC:DD:EE:FF,
-// mirroring the asset API so stock and asset MAC handling stay identical.
-const macAddressField = z.string().transform((v, ctx) => {
-  const normalized = normalizeMacAddress(v);
-  if (normalized === null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
-    });
-    return z.NEVER;
-  }
-  return normalized;
+const querySchema = z.object({
+  typeId: z.string().max(MAX_ID_LENGTH).optional(),
+  locationId: z.string().max(MAX_ID_LENGTH).optional(),
+  q: z.string().max(200).optional(),
 });
-
-const createSchema = z
-  .object({
-    typeId: z.string().min(1, "Type is required"),
-    manufacturerId: z.string().min(1).optional().nullable(),
-    modelId: z.string().min(1, "Model is required"),
-    serialNumber: z.string().max(100).optional().nullable(),
-    quantity: z.number().int().min(1).default(1),
-    notes: z.string().max(5000).optional().nullable(),
-    locationId: z.string().optional().nullable(),
-    reservedForLocationId: z.string().optional().nullable(),
-    invoiceNumber: z.string().max(100).optional().nullable(),
-    invoiceDate: z.string().optional().nullable(),
-    macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.serialNumber && data.quantity > 1) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["quantity"],
-        message: "Quantity must be 1 when a serial number is set.",
-      });
-    }
-  });
 
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const typeId = searchParams.get("typeId");
-  const locationId = searchParams.get("locationId");
-  const q = searchParams.get("q");
+  const parsedQuery = querySchema.safeParse(Object.fromEntries(searchParams));
+  if (!parsedQuery.success) return invalidInput(parsedQuery.error);
+  const { typeId, locationId, q } = parsedQuery.data;
 
   const items = await prisma.stockItem.findMany({
     where: {
@@ -83,16 +54,18 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json();
-  const parsed = createSchema.safeParse(body);
+  const body = await readJsonBody(req);
+  const parsed = createStockItemSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const { invoiceDate, macAddresses, ...rest } = parsed.data;
-  const item = await prisma.stockItem.create({
+  let item;
+  try {
+    item = await prisma.stockItem.create({
     data: {
       ...rest,
       manufacturerId: rest.manufacturerId ?? null,
@@ -102,12 +75,14 @@ export async function POST(req: NextRequest) {
       reservedForLocationId: rest.reservedForLocationId ?? null,
       invoiceNumber: rest.invoiceNumber ?? null,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : null,
-      metadata: macAddresses?.length
-        ? JSON.stringify({ macAddresses: macAddresses.map((address) => ({ address })) })
-        : null,
+      metadata: serializeStockMetadata({ macAddresses: macAddresses?.map((address) => ({ address })) }),
     },
-    include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
-  });
+    include: STOCK_ITEM_ROW_INCLUDE,
+    });
+  } catch (err) {
+    if (isForeignKeyError(err)) return unknownReferenceResponse();
+    throw err;
+  }
 
   await logAudit({
     session,

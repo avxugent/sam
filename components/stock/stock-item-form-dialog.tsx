@@ -1,37 +1,31 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
-import { ModelAutocomplete } from "@/components/model-autocomplete";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { ModelAutocomplete } from "@/components/inventory/model-autocomplete";
 import { cn } from "@/lib/utils";
-import { normalizeMacAddress, formatMacInputValue } from "@/lib/mac-address";
-import { Loader2, MapPin, Search, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { normalizeMacAddress } from "@/lib/mac-address";
+import { hasDeviceIdentity } from "@/lib/schemas/asset";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { MacAddressFields } from "@/components/inventory/mac-address-fields";
+import { useTypeScopedManufacturers } from "@/components/inventory/use-type-scoped-manufacturers";
+import { StockLocationPicker } from "@/components/inventory/stock-location-picker";
+import { useLocationOptions } from "@/components/inventory/use-location-options";
+import { apiFetch, jsonBody } from "@/lib/api-client";
+import { useApiErrorToast } from "@/components/ui/use-api-error-toast";
 
-type FormData = {
+type StockItemFormValues = {
   typeId: string;
   manufacturerId?: string;
   modelId: string;
@@ -45,32 +39,6 @@ type FormData = {
 };
 
 type AssetType = { id: string; name: string };
-type Manufacturer = { id: string; name: string };
-
-type LocationNode = {
-  id: string;
-  name: string;
-  parentId: string | null;
-  children?: LocationNode[];
-  _count?: { stockItems: number };
-};
-
-type FlatLocation = { id: string; name: string; breadcrumb: string; hasStock: boolean };
-
-function flattenLocations(nodes: LocationNode[], ancestors: string[] = []): FlatLocation[] {
-  const result: FlatLocation[] = [];
-  for (const node of nodes) {
-    const path = [...ancestors, node.name];
-    result.push({
-      id: node.id,
-      name: node.name,
-      breadcrumb: path.join(" › "),
-      hasStock: (node._count?.stockItems ?? 0) > 0,
-    });
-    if (node.children?.length) result.push(...flattenLocations(node.children, path));
-  }
-  return result;
-}
 
 export type StockItemInitialData = {
   typeId: string;
@@ -96,14 +64,11 @@ type Props = {
   onSuccess?: () => void;
 };
 
-export function StockItemFormDialog({ mode, itemId, initialData, children, onSuccess }: Props) {
-  const router = useRouter();
-  const { toast } = useToast();
-  const t = useTranslations("stock");
-  const tCommon = useTranslations("common");
-  const tField = useTranslations("field");
+type StockFormTranslator = ReturnType<typeof useTranslations<"stock">>;
 
-  const validationSchema = useMemo(() => z.object({
+/** Client mirror of lib/schemas/stock.ts, with translated messages. */
+function buildStockFormSchema(t: StockFormTranslator) {
+  return z.object({
     typeId: z.string().min(1, t("errTypeRequired")),
     manufacturerId: z.string().optional(),
     modelId: z.string().min(1, t("errModelRequired")),
@@ -120,28 +85,46 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
       ),
     })),
   }).superRefine((data, ctx) => {
-    if (data.serialNumber?.trim() && data.quantity > 1) {
+    if (hasDeviceIdentity({ serialNumber: data.serialNumber, macCount: data.macAddresses.length }) && data.quantity > 1) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["quantity"],
-        message: t("errQuantitySerial"),
+        message: t("errQuantityIdentity"),
       });
     }
-  }), [t]);
+  });
+}
 
-  const [mounted, setMounted] = useState(false);
+/** The form's starting values: the item being edited, or an empty new item. */
+function formDefaults(initialData: StockItemInitialData | undefined): StockItemFormValues {
+  return {
+    quantity: initialData?.quantity ?? 1,
+    typeId: initialData?.typeId ?? "",
+    manufacturerId: initialData?.manufacturerId ?? "",
+    modelId: initialData?.modelId ?? "",
+    serialNumber: initialData?.serialNumber ?? "",
+    notes: initialData?.notes ?? "",
+    locationId: initialData?.locationId ?? "",
+    invoiceNumber: initialData?.invoiceNumber ?? "",
+    invoiceDate: initialData?.invoiceDate ?? "",
+    macAddresses: initialData?.macAddresses.map((address) => ({ address })) ?? [],
+  };
+}
+
+export function StockItemFormDialog({ mode, itemId, initialData, children, onSuccess }: Props) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const showApiError = useApiErrorToast();
+  const t = useTranslations("stock");
+  const tCommon = useTranslations("common");
+  const tField = useTranslations("field");
+
+  const validationSchema = useMemo(() => buildStockFormSchema(t), [t]);
+
   const [open, setOpen] = useState(false);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
-  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
-  const [locations, setLocations] = useState<FlatLocation[]>([]);
-  const [locationQuery, setLocationQuery] = useState("");
-  const [showAllLocations, setShowAllLocations] = useState(false);
+  const { locations } = useLocationOptions(open);
   // Initialised synchronously from prop so the value is ready before any fetch completes
-  const [selectedTypeId, setSelectedTypeId] = useState(initialData?.typeId ?? "");
-  const [selectedMfgId, setSelectedMfgId] = useState(initialData?.manufacturerId ?? "");
-  const [selectedLocationId, setSelectedLocationId] = useState(initialData?.locationId ?? "");
-  // See the manufacturer-scoping effect below for what this guards against.
-  const isInitialManufacturerLoadRef = useRef(true);
 
   const {
     register,
@@ -151,20 +134,9 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     trigger,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
+  } = useForm<StockItemFormValues>({
     resolver: zodResolver(validationSchema),
-    defaultValues: {
-      quantity: initialData?.quantity ?? 1,
-      typeId: initialData?.typeId ?? "",
-      manufacturerId: initialData?.manufacturerId ?? "",
-      modelId: initialData?.modelId ?? "",
-      serialNumber: initialData?.serialNumber ?? "",
-      notes: initialData?.notes ?? "",
-      locationId: initialData?.locationId ?? "",
-      invoiceNumber: initialData?.invoiceNumber ?? "",
-      invoiceDate: initialData?.invoiceDate ?? "",
-      macAddresses: initialData?.macAddresses.map((address) => ({ address })) ?? [],
-    },
+    defaultValues: formDefaults(initialData),
   });
 
   const { fields: macFields, append: appendMac, remove: removeMac } = useFieldArray({
@@ -173,78 +145,48 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
   });
 
   const serialNumber = useWatch({ control, name: "serialNumber" });
+  // The form owns these; the pickers read them back.
+  const selectedTypeId = useWatch({ control, name: "typeId" }) ?? "";
+  const selectedMfgId = useWatch({ control, name: "manufacturerId" }) ?? "";
+  const selectedLocationId = useWatch({ control, name: "locationId" }) ?? "";
   const modelIdValue = useWatch({ control, name: "modelId" });
 
-  useEffect(() => { setMounted(true); }, []);
-
-  // Lock quantity to 1 when serial is set
   useEffect(() => {
     if (serialNumber?.trim()) {
       setValue("quantity", 1, { shouldValidate: true });
     }
   }, [serialNumber, setValue]);
 
-  // Fetch dropdown options when dialog opens
   useEffect(() => {
     if (!open) return;
-    isInitialManufacturerLoadRef.current = true;
-    Promise.all([
-      fetch("/api/asset-types").then((r) => r.json()),
-      fetch("/api/locations").then((r) => r.json()),
-    ]).then(([types, locTree]) => {
-      setAssetTypes(types as AssetType[]);
-      setLocations(flattenLocations(locTree as LocationNode[]));
+    apiFetch<AssetType[]>("/api/asset-types").then((res) => {
+      if (res.ok) setAssetTypes(res.data);
+      else showApiError(res.error);
     });
-  }, [open]);
+  }, [open, showApiError]);
 
-  // Manufacturer options are scoped to the selected asset type (only
-  // manufacturers with at least one Model under that type) — refetched
-  // whenever the type changes. The very first fetch after opening the dialog
-  // never clears the current selection, even if that manufacturer happens to
-  // have no Model yet for this type; only a genuine later type change by the
-  // user clears a selection that's no longer valid.
-  useEffect(() => {
-    if (!open) return;
-    (async () => {
-      const params = new URLSearchParams();
-      if (selectedTypeId) params.set("typeId", selectedTypeId);
-      const res = await fetch(`/api/manufacturers?${params}`);
-      if (!res.ok) return;
-      const list: Manufacturer[] = await res.json();
-      setManufacturers(list);
-      if (
-        !isInitialManufacturerLoadRef.current &&
-        selectedMfgId &&
-        !list.some((m) => m.id === selectedMfgId)
-      ) {
-        setSelectedMfgId("");
-        setValue("manufacturerId", "", { shouldValidate: false });
-        setValue("modelId", "", { shouldValidate: false });
-      }
-      isInitialManufacturerLoadRef.current = false;
-    })();
-  }, [selectedTypeId, open, selectedMfgId, setValue]);
+  const manufacturers = useTypeScopedManufacturers({
+    open,
+    typeId: selectedTypeId,
+    manufacturerId: selectedMfgId,
+    onSelectionInvalid: () => {
+      setValue("manufacturerId", "", { shouldValidate: false });
+      setValue("modelId", "", { shouldValidate: false });
+    },
+  });
 
   function handleClose() {
     setOpen(false);
     if (mode === "create") {
-      reset({ quantity: 1, typeId: "", manufacturerId: "", modelId: "", serialNumber: "", notes: "", locationId: "", invoiceNumber: "", invoiceDate: "", macAddresses: [] });
-      setSelectedTypeId("");
-      setSelectedMfgId("");
-      setSelectedLocationId("");
-      setLocationQuery("");
-      setShowAllLocations(false);
+      reset(formDefaults(undefined));
     }
   }
 
-  async function onSubmit(data: FormData) {
+  async function onSubmit(data: StockItemFormValues) {
     const url = mode === "create" ? "/api/stock" : `/api/stock/${itemId}`;
     const method = mode === "create" ? "POST" : "PUT";
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const res = await apiFetch(url, jsonBody(method, {
         ...data,
         manufacturerId: data.manufacturerId || null,
         serialNumber: data.serialNumber || null,
@@ -253,12 +195,10 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
         invoiceNumber: data.invoiceNumber || null,
         invoiceDate: data.invoiceDate || null,
         macAddresses: data.macAddresses.map((m) => m.address.trim()).filter(Boolean),
-      }),
-    });
+      }));
 
     if (!res.ok) {
-      const err = await res.json();
-      toast({ title: tCommon("error"), description: err.error, variant: "destructive" });
+      showApiError(res.error);
       return;
     }
 
@@ -279,12 +219,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
     ? locations.find((l) => l.id === selectedLocationId)?.breadcrumb ?? initialData?.locationBreadcrumb ?? t("selectLocation")
     : t("unassigned");
 
-  const filteredLocations = locations
-    .filter((l) => showAllLocations || l.hasStock || l.id === selectedLocationId)
-    .filter((l) => l.breadcrumb.toLowerCase().includes(locationQuery.toLowerCase()));
-
-  if (!mounted) return <>{children}</>;
-
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -294,13 +228,11 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
-          {/* Type */}
           <div className="space-y-1">
             <Label htmlFor="typeId">{tField("type")} <span className="text-destructive">*</span></Label>
             <Select
               value={selectedTypeId}
               onValueChange={(v) => {
-                setSelectedTypeId(v);
                 setValue("typeId", v, { shouldValidate: true });
               }}
             >
@@ -318,13 +250,11 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             {errors.typeId && <p className="text-xs text-destructive">{errors.typeId.message}</p>}
           </div>
 
-          {/* Manufacturer */}
           <div className="space-y-1">
             <Label htmlFor="manufacturerId">{tField("manufacturer")}</Label>
             <Select
               value={selectedMfgId}
               onValueChange={(v) => {
-                setSelectedMfgId(v);
                 setValue("manufacturerId", v, { shouldValidate: true });
               }}
             >
@@ -341,7 +271,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             </Select>
           </div>
 
-          {/* Model */}
           <div className="space-y-1 relative">
             <Label htmlFor="model">{tField("model")} <span className="text-destructive">*</span></Label>
             <ModelAutocomplete
@@ -358,76 +287,21 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             {errors.modelId && <p className="text-xs text-destructive">{errors.modelId.message}</p>}
           </div>
 
-          {/* Storage location */}
           <div className="space-y-1">
-            <Label htmlFor="locationSearch">{t("location")}</Label>
-            <p className="text-[12px] text-[#64748b]">{locationLabel}</p>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94a3b8]" />
-              <Input
-                id="locationSearch"
-                placeholder={t("selectLocation")}
-                value={locationQuery}
-                onChange={(e) => setLocationQuery(e.target.value)}
-                className="pl-8 h-9 text-[13px]"
-              />
-            </div>
-            <label htmlFor="showAllLocations" className="flex items-center gap-1.5 text-[12px] text-[#64748b] cursor-pointer">
-              <Checkbox
-                id="showAllLocations"
-                checked={showAllLocations}
-                onCheckedChange={(v) => setShowAllLocations(v === true)}
-              />
-              {t("showAllLocations")}
-            </label>
-            <div className="border border-[#e2e8f0] rounded-[8px] overflow-y-auto max-h-36">
-              <ul className="divide-y divide-[#f1f5f9]">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedLocationId("");
-                      setValue("locationId", "", { shouldValidate: true });
-                    }}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-[12.5px] transition-colors",
-                      !selectedLocationId ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#64748b]"
-                    )}
-                  >
-                    {t("unassigned")}
-                  </button>
-                </li>
-                {filteredLocations.map((loc) => {
-                  const parts = loc.breadcrumb.split(" › ");
-                  const isSelected = selectedLocationId === loc.id;
-                  return (
-                    <li key={loc.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedLocationId(loc.id);
-                          setValue("locationId", loc.id, { shouldValidate: true });
-                        }}
-                        className={cn(
-                          "w-full text-left px-3 py-2 flex items-center gap-1.5 transition-colors",
-                          isSelected ? "bg-[#e8f0fc] text-[#1e64c8]" : "hover:bg-[#f8fafc] text-[#0f172a]"
-                        )}
-                      >
-                        <MapPin className={cn("h-3 w-3 flex-shrink-0", isSelected ? "text-[#1e64c8]" : "text-[#94a3b8]")} />
-                        <span className="flex items-center gap-1 text-[12.5px] flex-wrap">
-                          {parts.map((part, i) => (
-                            <span key={i} className="flex items-center gap-1">
-                              {i > 0 && <ChevronRight className="h-2.5 w-2.5 opacity-40" />}
-                              <span className={i === parts.length - 1 ? "font-medium" : "text-[#64748b]"}>{part}</span>
-                            </span>
-                          ))}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+            <Label htmlFor="stock-item-location-search">{t("location")}</Label>
+            <p className="text-[12px] text-muted-foreground">{locationLabel}</p>
+            <StockLocationPicker
+              locations={locations}
+              selectedId={selectedLocationId}
+              onSelect={(locationId) => {
+                setValue("locationId", locationId, { shouldValidate: true });
+              }}
+              placeholder={t("selectLocation")}
+              showAllLabel={t("showAllLocations")}
+              unassignedLabel={t("unassigned")}
+              idPrefix="stock-item"
+              listClassName="max-h-36"
+            />
           </div>
 
           {/* Serial + Quantity row */}
@@ -460,63 +334,14 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             </div>
           </div>
 
-          {/* MAC addresses */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>{tField("macAddresses")}</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => appendMac({ address: "" })}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                {t("addMacAddress")}
-              </Button>
-            </div>
+          <MacAddressFields
+            fields={macFields}
+            register={register}
+            errors={errors.macAddresses}
+            onAdd={() => appendMac({ address: "" })}
+            onRemove={removeMac}
+          />
 
-            {macFields.map((field, i) => (
-              <div key={field.id} className="flex gap-2">
-                <Input
-                  {...register(`macAddresses.${i}.address`, {
-                    onChange: (e) => {
-                      e.target.value = formatMacInputValue(e.target.value);
-                    },
-                  })}
-                  aria-label={`${tField("macAddress")} ${i + 1}`}
-                  aria-invalid={!!errors.macAddresses?.[i]?.address}
-                  aria-describedby={errors.macAddresses?.[i]?.address ? `mac-err-${i}` : undefined}
-                  placeholder={t("macPlaceholder")}
-                  autoComplete="off"
-                  className={cn(
-                    "font-mono text-[12.5px]",
-                    errors.macAddresses?.[i]?.address && "border-destructive"
-                  )}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t("removeMacAriaLabel", { n: i + 1 })}
-                  onClick={() => removeMac(i)}
-                  className="text-destructive hover:text-destructive flex-shrink-0"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-
-            {/* Per-entry MAC format errors */}
-            {macFields.map((field, i) =>
-              errors.macAddresses?.[i]?.address ? (
-                <p key={`mac-err-${field.id}`} id={`mac-err-${i}`} className="text-xs text-destructive -mt-1">
-                  {t("macLabel", { n: i + 1 })} {errors.macAddresses[i]?.address?.message}
-                </p>
-              ) : null
-            )}
-          </div>
-
-          {/* Invoice */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="invoiceNumber">{tField("invoiceNumber")}</Label>
@@ -528,7 +353,6 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             </div>
           </div>
 
-          {/* Notes */}
           <div className="space-y-1">
             <Label htmlFor="notes">{tField("notes")}</Label>
             <Textarea id="notes" {...register("notes")} rows={3} />
@@ -538,7 +362,7 @@ export function StockItemFormDialog({ mode, itemId, initialData, children, onSuc
             <Button type="button" variant="outline" size="sm" onClick={handleClose} disabled={isSubmitting}>
               {tCommon("cancel")}
             </Button>
-            <Button type="submit" size="sm" disabled={isSubmitting} className="bg-[#1e64c8] hover:bg-[#1a56b0] text-white">
+            <Button type="submit" size="sm" disabled={isSubmitting} className="bg-primary hover:bg-primary-hover text-white">
               {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
               {mode === "create" ? t("createSubmit") : t("updateSubmit")}
             </Button>

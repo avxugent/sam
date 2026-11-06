@@ -13,6 +13,7 @@ SAM uses **NextAuth v5** with a **JWT session strategy** (no database sessions).
 
 - **Strategy**: JWT
 - **Max age**: 8 hours (`maxAge: 8 * 60 * 60`)
+- **Re-check**: every 5 minutes the `jwt` callback re-reads the user: a deleted account loses its session, and a role change (e.g. a demotion) takes effect within 5 minutes instead of at the next sign-in.
 - Sessions are verified on every authenticated request
 
 ---
@@ -67,19 +68,25 @@ Two second-factor methods are supported, either of which satisfies the same `nee
 
 Both paths converge on the same internal NextAuth `credentials-2fa-verified` provider (`lib/auth.ts`), which re-issues a clean session without the `needs2FA` claim — `proxy.ts` and the `jwt`/`session` callbacks don't need to know which method was used.
 
+The route handlers reach that provider only through `upgradeSession()` (`lib/auth-session-upgrade.ts`). Like every NextAuth credentials provider it is also reachable over HTTP at `/api/auth/callback/credentials-2fa-verified`, so it never trusts a bare `userId`: `authorize` requires a 60-second, server-signed upgrade proof (`lib/two-factor/upgrade-proof.ts`, HS256 with `NEXTAUTH_SECRET`, its own audience so a remember-device token cannot stand in) that `upgradeSession()` mints and that never leaves the server. If the provider refuses (e.g. the account was deleted or became SSO-only since login), the verify/enable routes answer `401` instead of reporting success.
+
+### Partly signed-in sessions
+
+A session can still owe a login step: `needsPasswordChange`, `needs2FASetup`, or `needs2FA` (waived on a browser with a valid remember-device cookie). `pendingSignInStep()` (`lib/two-factor/sign-in-steps.ts`) decides which. `auth()` in `lib/auth.ts`, the session read every route handler and page uses, returns `null` for such a session, so nothing can act on a half-finished sign-in even where the proxy does not redirect (the proxy-exempt `/api/export/*`, `/api/assets/by-hostname` and Prometheus SD treat it as no session: HTTP 401, or the Bearer-token check). Only `proxy.ts` (redirects) and the routes and pages that complete a step — `/api/auth/2fa/*`, `/api/auth/passkey/*` registration and authentication, `/api/users/me` (the forced password change) and `/login/2fa` — read the session with `authIncludingPendingSteps()`, and they call `signInIncompleteResponse(session, allowed)` to answer `403` unless the pending step is one they complete; the 2FA setup/enable and passkey registration routes allow `"2fa-setup"`, `/api/users/me` allows `"password-change"`.
+
 ### Admin enforcement
 
-Admins can set `twoFactorRequired = true` on any user. On their next login, `isTwoFactorSetupRequired()` (`lib/two-factor-policy.ts`) checks whether they already have TOTP enabled **or** at least one registered passkey; if neither, they're redirected through `/login/setup-2fa`, where they can set up either method.
+Admins can set `twoFactorRequired = true` on any user. On their next login, `isTwoFactorSetupRequired()` (`lib/two-factor/policy.ts`) checks whether they already have TOTP enabled **or** at least one registered passkey; if neither, they're redirected through `/login/setup-2fa`, where they can set up either method.
 
 ### Remember device
 
-After a successful TOTP or passkey challenge, users can opt to "remember this device" for 30 days. This sets a signed JWT cookie (`sam_2fa_rm`, `lib/remember-device.ts`) — the proxy reads it and skips the 2FA challenge for that browser.
+After a successful TOTP or passkey challenge, users can opt to "remember this device" for 30 days. This sets a signed JWT cookie (`sam_2fa_rm`, `lib/two-factor/remember-device.ts`) — the proxy reads it and skips the 2FA challenge for that browser.
 
 ### Passkeys (WebAuthn)
 
 Hand-rolled with `@simplewebauthn/server`/`@simplewebauthn/browser` — **no NextAuth Adapter or WebAuthn provider is used** (this project's auth is JWT-strategy only, per the project conventions; NextAuth's built-in `Passkey`/`WebAuthn` provider requires a database Adapter, which is out of scope here). Credentials are stored in the `Passkey` model (`prisma/schema.prisma`), keyed by `userId`.
 
-Registration and authentication each need a server-generated challenge to round-trip between a browser prompt and its verification. Since this app has no server-side session/cache store beyond JWT + cookies, the challenge rides in a short-lived (5 minute), signed, single-use `sam_webauthn_challenge` cookie (`lib/webauthn.ts`), scoped to a `userId` and a `purpose` (`"registration"` or `"authentication"`) so one can't be replayed against the other endpoint.
+Registration and authentication each need a server-generated challenge to round-trip between a browser prompt and its verification. Since this app has no server-side session/cache store beyond JWT + cookies, the challenge rides in a short-lived (5 minute), signed, single-use `sam_webauthn_challenge` cookie (`lib/two-factor/webauthn.ts`), scoped to a `userId` and a `purpose` (`"registration"` or `"authentication"`) so one can't be replayed against the other endpoint.
 
 API routes, all under `app/api/auth/passkey/`:
 
@@ -89,8 +96,12 @@ API routes, all under `app/api/auth/passkey/`:
 | `POST registration-verify` | Verify the registration response, persist the `Passkey`; re-signs in via `credentials-2fa-verified` if this was a forced-setup session |
 | `POST authentication-options` | Login-time: generate authentication options scoped to the pending user's registered passkeys |
 | `POST authentication-verify` | Login-time: verify the assertion, bump the credential's counter, sign in via `credentials-2fa-verified` (same mechanism as TOTP) |
-| `GET list` | List the current user's passkeys (label, device type, timestamps — never the credential ID, public key, or counter) |
-| `DELETE [id]` | Remove one of the current user's passkeys |
+| `POST confirmation-options` | Signed-in: generate authentication options to confirm a sensitive change (removing a passkey) with an existing passkey |
+| `DELETE [id]` | Remove one of the current user's passkeys; needs a fresh second-factor confirmation (see below) |
+
+**Step-up rule:** removing a passkey and disabling TOTP both require proof of a second factor held right now — the current TOTP code in `{ code }`, or a WebAuthn assertion in `{ response }` for the options from `confirmation-options` (`lib/two-factor/step-up.ts`). A session alone is not enough.
+
+The settings page reads the user's passkeys directly with Prisma (label, device type, timestamps — never the credential ID, public key, or counter); there is no list route.
 
 ---
 
@@ -100,10 +111,10 @@ API routes, all under `app/api/auth/passkey/`:
 |---|---|
 | **ADMIN** | Everything: manage users, settings, asset types, manufacturers, suppliers, models, audit log, import, CSV export |
 | **MAINTAINER** | Everything EDITOR can do, plus manage manufacturers, suppliers, and models (catalog upkeep without full admin rights) |
-| **EDITOR** | Create/edit/delete locations, assets, attachments; manage work logs |
+| **EDITOR** | Create/edit/delete locations (deleting one with sub-locations is Admin-only), assets, attachments; manage work logs |
 | **VIEWER** | Read-only access to all data |
 
-Role hierarchy for permission checks: `ADMIN > MAINTAINER > EDITOR > VIEWER`.
+Role hierarchy for permission checks: `ADMIN > MAINTAINER > EDITOR > VIEWER`. Code checks roles only through the predicates in `lib/permissions.ts`: `canEdit` (EDITOR and up), `canManageCatalog` (MAINTAINER and up) and `isAdmin`.
 
 ### What each role can and cannot do
 
@@ -138,7 +149,7 @@ All authenticated routes are guarded by `proxy.ts` at the project root (Next.js 
 
 The proxy:
 1. Allows public routes: `/login`, `/api/auth/*`, `/api/setup`, `/setup`
-2. Allows Prometheus endpoints: `/api/prometheus/*`, `/api/assets/by-hostname` (Bearer token auth)
+2. Lets token-authenticated endpoints through to their handlers: `/api/prometheus/*`, `/api/grafana/*`, `/api/assets/by-hostname`, `/api/export/*` and the public `/api/branding/*` assets
 3. Redirects unauthenticated requests to `/login`
 4. Redirects to `/login/change-password` when `mustChangePassword = true`
 5. Redirects to `/login/setup-2fa` when `twoFactorRequired = true` and 2FA not yet configured
@@ -150,16 +161,16 @@ The proxy:
 
 ## Prometheus Endpoints
 
-`/api/prometheus/*` and `/api/assets/by-hostname` use **Bearer token** authentication instead of sessions:
+`/api/prometheus/*` and `/api/grafana/*` use **Bearer token** authentication instead of sessions; `/api/assets/by-hostname` (any role) and `/api/prometheus/sd` (admins, to browse it directly) also accept a session:
 
 ```http
 Authorization: Bearer <PROMETHEUS_SD_TOKEN>
 ```
 
-These endpoints are exempted from the session proxy and must call `checkPrometheusAuth(req)` directly in their route handlers.
+These endpoints are exempted from the session proxy and must authenticate in their route handlers — `integrationTokenResponse(req)` (`lib/tokens/integration.ts`, constant-time via `hasBearerToken`) for the token-only routes, and `sessionOrIntegrationTokenResponse(req, sessionAllowed)` (`lib/tokens/session-or-integration.ts`) for by-hostname and SD, which accepts a fully signed-in session with an allowed role and otherwise applies the token check.
 
 If `PROMETHEUS_SD_TOKEN` is not set, the endpoints return HTTP 503.
 
 ## Export Endpoints
 
-`/api/export/*` accept a session **or** `Bearer EXPORT_TOKEN` (checked via `checkExportToken(req)` in each handler) so external tooling can pull exports. They are likewise exempted from the session proxy; without valid credentials the handlers return HTTP 401.
+`/api/export/*` accept an ADMIN session **or** `Bearer EXPORT_TOKEN` (checked by `adminSessionOrExportToken(req)` in each handler) so external tooling can pull exports. They are likewise exempted from the session proxy; without valid credentials the handlers return HTTP 401. A session that has not finished signing in (see [Partly signed-in sessions](#partly-signed-in-sessions)) counts as no session (HTTP 401).

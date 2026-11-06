@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { updatePresetSchema } from "@/lib/work-log-schema";
+import { updatePresetSchema } from "@/lib/schemas/work-log";
+import { isAdmin } from "@/lib/permissions";
+import { invalidInput, isRecordNotFoundError, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
 
 export async function PUT(
   req: NextRequest,
@@ -10,25 +12,32 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const existing = await prisma.maintenancePreset.findUnique({ where: { id } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return notFoundResponse("Preset");
 
-  const body = await req.json().catch(() => null);
+  const body = await readJsonBody(req);
   const parsed = updatePresetSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
-  const updated = await prisma.maintenancePreset.update({
-    where: { id },
-    data: {
-      ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
-      ...(parsed.data.description !== undefined ? { description: parsed.data.description ?? null } : {}),
-    },
-  });
+  let updated;
+  try {
+    updated = await prisma.maintenancePreset.update({
+      where: { id },
+      data: {
+        name: parsed.data.name,
+        description: parsed.data.description,
+      },
+    });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Preset");
+    throw err;
+  }
 
   await logAudit({
     session,
@@ -48,13 +57,19 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const existing = await prisma.maintenancePreset.findUnique({ where: { id } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return notFoundResponse("Preset");
 
-  await prisma.maintenancePreset.delete({ where: { id } });
+  try {
+    await prisma.maintenancePreset.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Preset");
+    throw err;
+  }
   await logAudit({
     session,
     req,
@@ -64,5 +79,5 @@ export async function DELETE(
     entityName: existing.name,
   });
 
-  return new NextResponse(null, { status: 204 });
+  return NextResponse.json({ ok: true });
 }

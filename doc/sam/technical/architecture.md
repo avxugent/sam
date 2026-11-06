@@ -19,6 +19,7 @@ sync_to_confluence: true
 | Styling | Tailwind CSS | v4 |
 | Validation | Zod | v4 |
 | Forms | react-hook-form | v7 |
+| i18n | next-intl | v4 |
 | Icons | lucide-react | latest |
 | UI primitives | hand-written shadcn-style | — |
 | Test runner | Vitest | latest |
@@ -31,64 +32,21 @@ sync_to_confluence: true
 
 ```
 SAMproject/
-├── app/                      # Next.js app directory
-│   ├── (auth)/               # Unauthenticated pages (login, setup-2fa, …)
-│   ├── (dashboard)/          # Authenticated layout (sidebar + header)
-│   │   ├── locations/        # Location browser and detail pages
-│   │   ├── admin/            # Admin-only pages
-│   │   ├── settings/         # User settings
-│   │   ├── stock/            # Stock management
-│   │   ├── reports/          # Report builder
-│   │   └── …
-│   ├── api/                  # REST API route handlers
-│   │   ├── assets/
-│   │   ├── locations/
-│   │   ├── prometheus/
-│   │   ├── grafana/
-│   │   └── …
-│   ├── setup/                # First-run wizard (no auth)
-│   ├── globals.css           # Tailwind v4 config + CSS variables
-│   └── layout.tsx            # Root layout
-├── components/
-│   ├── ui/                   # Reusable UI primitives (Button, Dialog, Input, …)
-│   ├── layout/               # Sidebar, Header, mobile nav
-│   ├── assets/               # Asset form, table, detail
-│   ├── locations/            # Location form, detail, map
-│   ├── attachments/          # Attachment gallery
-│   ├── auth/                 # Login, 2FA, password reset forms
-│   ├── settings/             # User/type/manufacturer management
-│   ├── stock/                # Stock management
-│   ├── reports/              # Report builder/viewer
-│   └── import/               # CSV import wizard
-├── lib/                      # Shared server utilities
-│   ├── auth.ts               # NextAuth config + ssoEnabled flag
-│   ├── prisma.ts             # PrismaClient singleton
-│   ├── audit.ts              # Audit log writer + syslog forwarder
-│   ├── permissions.ts        # Role helper functions
-│   ├── vault.ts              # HashiCorp Vault client
-│   ├── scrape-template.ts    # Prometheus label template renderer
-│   ├── storage.ts            # File upload abstraction (local/S3)
-│   ├── location-path.ts      # Recursive CTE ancestor resolver
-│   ├── report-engine.ts      # Report query executor
-│   ├── email.ts              # SMTP client
-│   ├── jira.ts               # JIRA API client
-│   ├── syslog.ts             # RFC 5424 syslog client
-│   ├── totp.ts               # TOTP helper (speakeasy)
-│   ├── rate-limit.ts         # In-memory rate limiter
-│   └── utils.ts              # cn() utility (clsx + tailwind-merge)
-├── prisma/
-│   └── schema.prisma         # MySQL schema (source of truth)
-├── __tests__/                # Test files mirroring source structure
-│   ├── lib/
-│   ├── api/
-│   └── components/
-├── scripts/                  # Maintenance scripts (cron, export, audit forwarding)
-├── proxy.ts                  # NextAuth session guard (replaces middleware.ts)
-├── next.config.ts            # Security headers, standalone output
-├── docker-compose.yml        # Production stack
-├── docker-compose.dev.yml    # Dev MySQL only
-└── Dockerfile                # Multi-stage production build
+├── app/            # App Router: (auth)/ login pages, (dashboard)/ protected pages, api/ route handlers,
+│                   # setup/ first-run wizard, actions/ the locale server action
+├── components/     # React components by feature; ui/ holds the hand-written primitives
+├── lib/            # Shared code (modules importing next/server are server-only route helpers)
+├── i18n/           # next-intl setup: supported locales + per-request config
+├── messages/       # Translations: en.json, nl.json
+├── prisma/         # schema.prisma (source of truth) + committed migrations
+├── scripts/        # Maintenance scripts (backup export, audit purge/forwarding, password reset, data fixes)
+├── __tests__/      # Tests mirroring the source layout (lib/, api/, components/)
+├── proxy.ts        # NextAuth session guard (replaces middleware.ts)
+├── next.config.ts  # Security headers, standalone output, next-intl plugin
+└── Dockerfile      # Multi-stage production build
 ```
+
+The per-module list (what each `lib/` module and `components/` folder owns) is kept in one place: the *Project architecture* section of `AGENTS.md` at the repository root.
 
 ---
 
@@ -105,8 +63,9 @@ This project uses Next.js 16, where `middleware.ts` is replaced by `proxy.ts` at
 - Redirecting unauthenticated requests to `/login`
 - Forcing password change, 2FA setup, and 2FA challenge flows
 - Exempting public routes (`/login`, `/setup`, `/api/auth`, `/api/setup`)
-- Exempting Prometheus endpoints (they use Bearer token auth)
+- Exempting Prometheus and Grafana endpoints (`/api/prometheus/*`, `/api/grafana/*`) and `/api/assets/by-hostname` (Bearer token auth; by-hostname also accepts a session)
 - Exempting export endpoints (`/api/export/*` — session or Bearer `EXPORT_TOKEN`, checked in the handlers)
+- Exempting the public branding assets (`/api/branding/*` — logo, favicon and background shown on the login page)
 
 > The proxy is a **redirect guard only** — not an authorization boundary. Every API route performs its own auth and role check.
 
@@ -136,7 +95,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 ### Validation Strategy
 
-Zod schemas are **mirrored** in both the form component and the API route handler. This prevents bypass via direct API calls. When a schema changes, both copies must be updated together.
+Shared Zod schemas live in `lib/schemas/` and are imported by both the API route handlers and the forms, so the server check can never be bypassed by a direct API call. The asset form keeps a translated mirror of `lib/schemas/asset.ts`; when that schema changes, update both.
 
 Cross-field validation uses `.superRefine()`. Example: hostname → MAC address required.
 
@@ -150,13 +109,17 @@ Design tokens are CSS custom properties on `:root`. Primary color: `#1e64c8` (UG
 
 UI primitives in `components/ui/` are hand-written shadcn-style components. Do **not** run `npx shadcn` — it will overwrite with incompatible versions.
 
+### Internationalisation
+
+UI text comes from `next-intl`. `i18n/locales.ts` lists the supported locales (`en`, `nl`; default `en`) and the `NEXT_LOCALE` cookie name; `i18n/request.ts` picks the locale from that cookie per request and loads `messages/<locale>.json`. The message files use nested keys per area (`common`, `assets`, …); components read them with `useTranslations` / `getTranslations`. Add a key to `en.json` and `nl.json` together.
+
+The language switcher in the header calls `setLocale` in `app/actions/locale.ts` — the codebase's only server action, and the one exception to "client code talks to API routes through `apiFetch`". It writes only the locale cookie and revalidates the layout; it touches no data, so it has no auth check.
+
 ### Database
 
-Prisma ORM with MySQL 8. Raw SQL is only used in two places:
-1. Recursive CTE for location ancestor path resolution (`lib/location-path.ts`)
-2. `getAllDescendantIds` for cascading location queries
+Prisma ORM with MySQL 8. Raw SQL is used only for the recursive location-tree CTEs in `lib/locations/path.ts`: ancestor paths, descendant IDs, the deepest-first subtree used by the location delete, and per-location asset totals (for the whole tree, or scoped to the locations a search matched). They are exercised against a real MySQL by `npm run test:integration`.
 
-Both use `prisma.$queryRaw` with tagged template literals. Never use string concatenation in SQL.
+All of it uses `prisma.$queryRaw` with tagged template literals. Never use string concatenation in SQL.
 
 MySQL returns `COUNT(*)` as `BigInt` — always wrap with `Number(row.count)`.
 
@@ -165,7 +128,7 @@ MySQL returns `COUNT(*)` as `BigInt` — always wrap with `Number(row.count)`.
 Uploads are handled via the native `formData()` API — no `multer`. The upload pipeline:
 1. Validates MIME type against an allowlist
 2. Validates file extension (separately, to block `.jpg.php` double-extension attacks)
-3. Sanitizes `originalName` (strips `\r`, `\n`, `"`, `\`)
+3. `safeFilename()` replaces `\r`, `\n`, `"` and `\` in `originalName` with `_` and caps it at 255 characters
 4. Resolves storage path with `path.resolve()` + `assertSafePath()` (path traversal protection)
 5. Stores on local disk or S3 depending on `STORAGE_DRIVER`
 

@@ -41,6 +41,9 @@
     "or": "or",
     "and": "and",
     "home": "Home",
+    "pageNotFound": "Page not found",
+    "pageNotFoundBody": "The page you are looking for does not exist.",
+    "appDescription": "Manage AV hardware assets across your facilities",
     "somethingWentWrong": "Something went wrong.",
     "unexpectedError": "An unexpected error occurred. Please try again.",
     "tryAgain": "Try again",
@@ -49,7 +52,18 @@
       "MEDIUM": "Medium",
       "HIGH": "High",
       "CRITICAL": "Critical"
-    }
+    },
+    "renameItem": "Rename {name}",
+    "deleteItem": "Delete {name}",
+    "saveName": "Save name",
+    "cancelRename": "Cancel rename",
+    "loadLocationsFailed": "Failed to load locations",
+    "pagination": "Pagination",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "goToPage": "Go to page {page}",
+    "mergeSummary": "{assets, plural, =1 {# asset} other {# assets}} and {stock, plural, =1 {# stock item} other {# stock items}} moved.",
+    "continue": "Continue"
   },
   "nav": {
     "locations": "Locations",
@@ -65,6 +79,9 @@
     "noLocationsYet": "No locations yet",
     "expandStock": "Expand stock",
     "collapseStock": "Collapse stock",
+    "expandLocation": "Expand {name}",
+    "collapseLocation": "Collapse {name}",
+    "clearLocationFilter": "Clear location filter",
     "addAsset": "Add Asset",
     "addStockItem": "Add stock item",
     "addSubLocation": "Add Sub-location",
@@ -85,6 +102,9 @@
     "searchPlaceholder": "Search assets, locations, serial numbers…",
     "skipToMainContent": "Skip to main content",
     "seeAllResultsFor": "See all results for \"{query}\" →",
+    "searchResults": "Search results",
+    "accountMenu": "Account menu for {name}",
+    "twoFactorOn": "On",
     "suppliers": "Suppliers"
   },
   "language": {
@@ -196,10 +216,15 @@
     "clearSelection": "Clear selection",
     "selectAllRows": "Select all rows",
     "selectRow": "Select {name}",
+    "openAssetNamed": "Open asset {name}",
+    "editAssetNamed": "Edit asset {name}",
+    "removeAssetNamed": "Remove asset {name}",
     "bulkReturnToStockConfirmTitle": "Return {count} assets to stock?",
     "bulkReturnToStockConfirmDescription": "This will delete the selected assets and add them back to the stock inventory. Asset-specific data (hostname, MAC addresses, custom fields, attachments) will be permanently lost. Assets that can't be returned (already decommissioned, missing type/model) are skipped and listed.",
     "bulkReturnToStockResultsTitle": "Return to stock results",
-    "bulkReturnToStockSuccessToast": "{count, plural, =1 {# asset returned to stock} other {# assets returned to stock}}"
+    "bulkReturnToStockSuccessToast": "{count, plural, =1 {# asset returned to stock} other {# assets returned to stock}}",
+    "noAssetsFound": "No assets found",
+    "drilldownCaption": "Assets: {name}"
   },
   "assetForm": {
     "createTitle": "Create asset",
@@ -212,9 +237,6 @@
     "serialPlaceholder": "SN-XXXX",
     "hostnamePlaceholder": "device.example.com",
     "invoicePlaceholder": "INV-XXXX",
-    "macPlaceholder": "AA:BB:CC:DD:EE:FF",
-    "addMacAddress": "Add MAC address",
-    "removeMacAddress": "Remove",
     "addCustomField": "Add custom field",
     "fieldNamePlaceholder": "Field name",
     "fieldValuePlaceholder": "Value",
@@ -228,12 +250,13 @@
     "createSubmit": "Create asset",
     "updateSubmit": "Save changes",
     "hostnameHint": "Must be a fully qualified domain name",
-    "noneType": "— Select a type —",
     "noneManufacturer": "— Select a manufacturer —",
     "vaultUnknown": "Unknown result",
     "vaultNetworkError": "Request failed — check your network.",
-    "macLabel": "MAC {n}:",
-    "removeMacAriaLabel": "Remove MAC address {n}",
+    "vaultNotConfigured": "Vault is not configured on this server.",
+    "vaultSecretMissing": "No secret found at this path.",
+    "vaultDenied": "Vault refused access to this path. Check the token's policy.",
+    "vaultUnavailable": "Vault could not be reached, or the login failed.",
     "errTypeRequired": "Type is required",
     "errManufacturerRequired": "Manufacturer is required",
     "errModelRequired": "Model is required",
@@ -305,7 +328,17 @@
     "mergeButton": "Merge",
     "locationMerged": "Locations merged",
     "monitoring": "Monitoring",
-    "deleteHasStock": "Cannot delete a location that still holds stock. Move or unassign the stock first."
+    "deleteHasStock": "Cannot delete a location that still holds stock. Move or unassign the stock first.",
+    "assetCount": "{count} {count, plural, =1 {asset} other {assets}}",
+    "geocodeNoResults": "No results found",
+    "geocodeNoResultsHint": "Try a more specific address.",
+    "geocodeFailed": "Could not reach the geocoding service.",
+    "addressPlaceholder": "e.g. Grote Markt 1",
+    "cityPlaceholder": "e.g. Ghent",
+    "countryPlaceholder": "e.g. Belgium",
+    "pickGeocodeResult": "Select a result to pin on map",
+    "openInOsm": "Open in OpenStreetMap",
+    "mapFrameTitle": "Location map"
   },
   "locationForm": {
     "createTitle": "Add location",
@@ -367,13 +400,9 @@
     "errTypeRequired": "Type is required",
     "errModelRequired": "Model is required",
     "errQuantityMin": "Quantity must be at least 1",
-    "errQuantitySerial": "Quantity must be 1 when a serial number is set.",
+    "errQuantityIdentity": "Quantity must be 1 when a serial number or MAC address is set.",
     "errMacInvalid": "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
     "errMacRequired": "MAC address is required",
-    "addMacAddress": "Add MAC address",
-    "macPlaceholder": "AA:BB:CC:DD:EE:FF",
-    "macLabel": "MAC {n}:",
-    "removeMacAriaLabel": "Remove MAC address {n}",
     "location": "Storage location",
     "unassigned": "Unassigned",
     "selectLocation": "Select storage location…",
@@ -433,7 +462,8 @@
       "ALREADY_DECOMMISSIONED": "Already decommissioned",
       "MISSING_TYPE": "Missing asset type",
       "MISSING_MODEL": "Missing model",
-      "NOT_FOUND": "No longer found"
+      "NOT_FOUND": "No longer found",
+      "STATUS_CHANGED": "Changed by someone else meanwhile"
     }
   },
   "repair": {
@@ -507,7 +537,6 @@
     "twoFactorBack": "Back to sign in",
     "twoFactorSetupTitle": "Set up two-factor authentication",
     "twoFactorSetupSubtitle": "Scan the QR code with your authenticator app, then enter the 6-digit code to confirm",
-    "twoFactorSetupSecret": "Or enter this code manually",
     "twoFactorSetupConfirm": "Enable 2FA",
     "twoFactorEnabled": "Two-factor authentication enabled",
     "twoFactorDisabled": "Two-factor authentication disabled",
@@ -557,7 +586,33 @@
     "passkeyNeverUsed": "Never used",
     "passkeyRemove": "Remove",
     "passkeyRemoveConfirmTitle": "Remove this passkey?",
-    "passkeyRemoveConfirmDescription": "You will no longer be able to sign in with this passkey."
+    "passkeyRemoveConfirmDescription": "You will no longer be able to sign in with this passkey.",
+    "passkeyRemoveStepUpCodeOrPasskey": "Confirm with the current code from your authenticator app, or with one of your passkeys.",
+    "passkeyRemoveStepUpPasskey": "Confirm with one of your passkeys.",
+    "passkeyRemoveWithPasskey": "Confirm with a passkey",
+    "twoFactorSsoManaged": "Two-factor authentication is managed by your organisation's Microsoft identity provider. It cannot be configured here.",
+    "twoFactorSettingsTitle": "Two-Factor Authentication",
+    "twoFactorBadgeEnabled": "Enabled",
+    "twoFactorBadgeDisabled": "Not enabled",
+    "twoFactorActiveDescription": "Your account is secured with a TOTP authenticator app. Each login requires a 6-digit code from your app.",
+    "twoFactorReconfigureTitle": "Reconfigure authenticator",
+    "twoFactorReconfigureHelp": "Use this if you got a new phone or need to re-scan the QR code. Your current 2FA will remain active until you verify the new setup.",
+    "twoFactorReconfigureButton": "Set up a new authenticator",
+    "twoFactorDisableTitle": "Disable 2FA",
+    "twoFactorDisableHelp": "Enter your current 6-digit code to confirm you want to disable two-factor authentication.",
+    "twoFactorDisableConfirmTitle": "Disable two-factor authentication?",
+    "twoFactorDisableConfirmDescription": "This will make your account less secure. Enter your current 6-digit code to confirm.",
+    "twoFactorCurrentCode": "Current code",
+    "twoFactorNowActiveTitle": "2FA is now active",
+    "twoFactorNowActiveDescription": "Every time you sign in with your password, you will be asked for a 6-digit code from your authenticator app.",
+    "twoFactorBackToSettings": "Back to settings",
+    "twoFactorQrAlt": "TOTP QR code",
+    "twoFactorManualKey": "Manual entry key:",
+    "twoFactorManualKeyParams": "Type: Time-based · Period: 30s · Digits: 6",
+    "twoFactorEnterAppCode": "Enter the code shown in your app",
+    "twoFactorNotEnabledDescription": "Add an extra layer of security. After entering your password, you will be asked for a 6-digit code from an authenticator app.",
+    "currentPasswordRequired": "Current password is required.",
+    "confirmPasswordRequired": "Please confirm your new password."
   },
   "audit": {
     "title": "Audit Log",
@@ -606,7 +661,13 @@
     "rolesViewer": "Viewer",
     "providerCredentials": "Email & password",
     "providerEntra": "Microsoft Entra ID",
-    "exportCsv": "Export CSV"
+    "exportCsv": "Export CSV",
+    "twoFactorDisabledFor": "2FA disabled for {name}",
+    "securityOptions": "Security options",
+    "you": "(you)",
+    "ssoPasswordNotice": "This user authenticates via Microsoft SSO — password cannot be changed here.",
+    "disable2faTitle": "Disable 2FA for {name}?",
+    "disable2faDescription": "This admin override disables two-factor authentication for this user without requiring their TOTP code. Use this when a user has lost access to their authenticator app."
   },
   "assetTypes": {
     "title": "Asset Types",
@@ -665,7 +726,17 @@
     "noModelOverridesYet": "No model overrides yet",
     "modelOverrideAdded": "Model override added",
     "modelOverrideUpdated": "Model override updated",
-    "modelOverrideDeleted": "Model override removed"
+    "modelOverrideDeleted": "Model override removed",
+    "viewAssetsOfType": "View {count} {count, plural, =1 {asset} other {assets}} of type {name}",
+    "editOverrideFor": "Edit override for {name}",
+    "deleteOverrideFor": "Delete override for {name}",
+    "deletePresetNamed": "Delete preset {name}",
+    "emptyList": "No asset types yet",
+    "scrapeConfigured": "Scrape configured",
+    "presetsHelp": "Quick-pick task names for the work log when an asset of this type is selected (e.g. \"Clean filter\", \"Replace lamp\").",
+    "loadingPresets": "Loading presets…",
+    "noPresets": "No presets yet",
+    "addPreset": "Add preset"
   },
   "manufacturers": {
     "title": "Manufacturers",
@@ -685,7 +756,12 @@
     "manufacturerUpdated": "Manufacturer updated",
     "manufacturerDeleted": "Manufacturer deleted",
     "manufacturerMerged": "Manufacturers merged",
-    "addNewManufacturer": "Add new manufacturer..."
+    "addNewManufacturer": "Add new manufacturer...",
+    "viewAssetsFrom": "View {count} {count, plural, =1 {asset} other {assets}} from {name}",
+    "emptyList": "No manufacturers yet",
+    "deleteNamedTitle": "Delete \"{name}\"?",
+    "inUseDescription": "This manufacturer is used by {count, plural, =1 {# asset} other {# assets}}. Reassign them before deleting.",
+    "assetCount": "{count, plural, =1 {# asset} other {# assets}}"
   },
   "models": {
     "title": "Models",
@@ -716,7 +792,10 @@
     "possibleDuplicates": "Possible duplicates",
     "possibleDuplicatesSubtitle": "Spellings that look similar — review and merge if they're the same model.",
     "noDuplicatesFound": "No possible duplicates found.",
-    "mergeButton": "Merge"
+    "mergeButton": "Merge",
+    "inUseDescription": "This model is used by {assets, plural, =1 {# asset} other {# assets}} and {stockItems, plural, =1 {# stock item} other {# stock items}}. Reassign or merge them first.",
+    "usageAssets": "Assets ({count})",
+    "usageStock": "Stock ({count})"
   },
   "import": {
     "title": "Import CSV",
@@ -758,7 +837,28 @@
     "errorsCount": "{count} {count, plural, =1 {error} other {errors}}",
     "importAnother": "Import another file",
     "goToLocations": "Go to locations",
-    "previewRowCount": "CSV preview, first {n} rows"
+    "previewRowCount": "CSV preview, first {n} rows",
+    "columnGuide": {
+      "CAMPUS": "Location — Level 1 (Campus)",
+      "GEBOUW": "Location — Level 2 (Building)",
+      "LOKAAL": "Location — Level 3 (Room) *required*",
+      "FI NUMMER": "FI Number → stored on the room location (CC.BB.FFF.RRR)",
+      "TYPE": "Asset Type (auto-created)",
+      "BRAND": "Manufacturer (auto-created)",
+      "MODEL": "Model",
+      "SERIAL": "Serial Number",
+      "QUANTITY": "Quantity (ignored when a serial number, hostname, or MAC address is set)",
+      "MAC": "MAC Address(es)",
+      "IP_HOSTNAME": "Hostname",
+      "INSTALL_DATE": "Installation Date",
+      "Factuurdatum": "Invoice Date",
+      "Factuurnummer": "Invoice Number",
+      "OWNER": "Owner (matched by user email; unmatched → default owner)",
+      "CRITICALITY": "Criticality (LOW / MEDIUM / HIGH / CRITICAL)",
+      "END_OF_SUPPORT": "End-of-support date",
+      "SUPPLIER": "Supplier (auto-created)",
+      "customField": "Custom Field: {key}"
+    }
   },
   "export": {
     "title": "Export CSV",
@@ -767,7 +867,18 @@
     "downloadDecommissioned": "Download decommissioned CSV",
     "downloadStock": "Download stock CSV",
     "includeDecommissioned": "Include decommissioned assets",
-    "exportComplete": "Export downloaded"
+    "exportComplete": "Export downloaded",
+    "scheduleSaved": "Schedule settings saved",
+    "scheduleTitle": "Automated backup schedule",
+    "scheduleIntro": "SAM does not run a built-in scheduler. Configure an external cron job or Docker cron container to call the export endpoint on a schedule.",
+    "scheduleCron": "Schedule (cron expression)",
+    "scheduleCronExample": "Example: <code>0 2 * * *</code> = every night at 02:00",
+    "scheduleOutputDir": "Output directory (on the server)",
+    "scheduleShowActive": "Show schedule as active in documentation",
+    "setupInstructions": "Setup instructions",
+    "setupOptionHttp": "Option 1 — HTTP via cron (set <code>EXPORT_TOKEN</code> in your .env):",
+    "setupOptionCli": "Option 2 — CLI script (runs directly against the database):",
+    "saveSchedule": "Save schedule settings"
   },
   "compliance": {
     "title": "Hostname compliance",
@@ -803,7 +914,7 @@
     "nis2ReviewNotConfigured": "Configure a review work-log item in the compliance settings to track this.",
     "nis2ConfigureLink": "Open settings",
     "nis2UsersWithout2fa": "Local users without 2FA",
-    "nis2UsersWithout2faHelp": "Credentials accounts without TOTP two-factor enabled.",
+    "nis2UsersWithout2faHelp": "Credentials accounts with no second factor: neither TOTP nor a passkey.",
     "nis2UsersWithout2faForced": "Global 2FA requirement is on — these users are forced to enrol at next login.",
     "nis2ManageUsersLink": "Manage users",
     "nis2AuditBacklog": "Audit forwarding backlog",
@@ -883,7 +994,14 @@
     "complianceReviewItemHelp": "The work log item that marks a location's asset list as reviewed (used by the compliance dashboard).",
     "complianceReviewPeriod": "Review period (months)",
     "complianceReviewPeriodHelp": "Locations without the review item within this period are flagged on the compliance dashboard.",
-    "complianceReviewPeriodInvalid": "Review period must be between 1 and 120 months."
+    "complianceReviewPeriodInvalid": "Review period must be between 1 and 120 months.",
+    "noLogoUploaded": "No logo uploaded",
+    "noFaviconUploaded": "No favicon uploaded",
+    "noBackgroundUploaded": "No background image uploaded",
+    "profilePageSubtitle": "Manage your display name and password.",
+    "twoFactorPageTitle": "Two-Factor Authentication",
+    "twoFactorPageSubtitle": "Secure your account with a time-based one-time password (TOTP) or a passkey.",
+    "profileSaved": "Profile saved"
   },
   "report": {
     "title": "Reports",
@@ -966,7 +1084,10 @@
     "overdue": "Last done outside the time window",
     "locationScope": "Location scope",
     "locationScopeHelp": "Limit the report to specific campuses, buildings, or rooms. Leave empty to include all locations.",
-    "removeScopeLocation": "Remove {name} from scope"
+    "removeScopeLocation": "Remove {name} from scope",
+    "savedCount": "{count} saved {count, plural, =1 {report} other {reports}}",
+    "newSubtitle": "Define filters, grouping, and columns",
+    "invalidDefinition": "Report definition is invalid. Please edit and re-save this report."
   },
   "workLog": {
     "title": "Work Log",
@@ -979,6 +1100,8 @@
     "asset": "Asset",
     "noAsset": "Location-wide work",
     "jiraIssueKey": "JIRA issue key",
+    "jiraIssueNotFound": "Issue not found",
+    "jiraUnavailable": "JIRA unavailable",
     "noEntries": "No work log entries yet",
     "entryCreated": "Work log entry added",
     "entryUpdated": "Work log entry updated",
@@ -1028,7 +1151,14 @@
     "attachmentUpdated": "Attachment updated",
     "previewAlt": "Preview of {name}",
     "openFullSize": "Open full size",
-    "noPreview": "No preview available"
+    "noPreview": "No preview available",
+    "dropFiles": "Drag & drop files here, or <browse>browse</browse>",
+    "allowedFilesHint": "Images, PDF, Word, Excel, CSV — max 50 MB",
+    "downloadNamed": "Download {name}",
+    "editNamed": "Edit attachment {name}",
+    "deleteAttachmentNamed": "Delete attachment {name}",
+    "deleteLinkNamed": "Delete link {name}",
+    "deleteConfirmDescription": "\"{name}\" will be permanently deleted."
   },
   "setup": {
     "title": "Welcome to SAM",
@@ -1041,7 +1171,8 @@
     "submitting": "Creating account…",
     "complete": "Setup complete. Sign in below.",
     "alreadySetup": "Setup already complete. You can sign in.",
-    "goToLogin": "Go to sign-in"
+    "goToLogin": "Go to sign-in",
+    "failed": "Setup failed."
   },
   "search": {
     "title": "Search",
@@ -1055,7 +1186,11 @@
     "locations": "Locations",
     "results": "Search results",
     "previous": "Previous",
-    "page": "Page"
+    "page": "Page",
+    "searching": "Searching…",
+    "noResultsHint": "Try different keywords or check the spelling.",
+    "searchFailed": "Search failed. Please try again.",
+    "resultCount": "{count, plural, one {# result} other {# results}}"
   },
   "coverImage": {
     "title": "Cover image",
@@ -1063,7 +1198,8 @@
     "useThis": "Use as cover",
     "currentCover": "Current cover",
     "removeCover": "Remove cover",
-    "saved": "Cover image updated"
+    "saved": "Cover image updated",
+    "selectHint": "Select an image attachment to use as the cover photo for this location."
   },
   "suppliers": {
     "title": "Suppliers",
@@ -1088,5 +1224,76 @@
     "deleted": "Supplier deleted",
     "deleteConfirmTitle": "Delete supplier?",
     "deleteConfirmDescription": "This is only allowed if no assets use this supplier."
+  },
+  "macAddressFields": {
+    "add": "Add MAC address",
+    "placeholder": "AA:BB:CC:DD:EE:FF",
+    "entryLabel": "MAC {n}:",
+    "removeAriaLabel": "Remove MAC address {n}"
+  },
+  "adminPages": {
+    "users": {
+      "title": "Users",
+      "subtitle": "Manage user accounts and their roles."
+    },
+    "assetTypes": {
+      "title": "Asset Types",
+      "subtitle": "Manage asset types and configure Prometheus scrape templates for exporter-based monitoring."
+    },
+    "manufacturers": {
+      "title": "Manufacturers",
+      "subtitle": "Manage the list of hardware manufacturers."
+    },
+    "models": {
+      "title": "Models",
+      "subtitle": "Fixed list of hardware models, scoped by asset type and manufacturer."
+    },
+    "import": {
+      "title": "Import from CSV",
+      "subtitle": "Import assets from a legacy CSV export. Locations, asset types and manufacturers are created automatically if they don't exist yet."
+    },
+    "export": {
+      "title": "Export CSV",
+      "subtitle": "Download a full CSV export or configure automated backups."
+    },
+    "audit": {
+      "title": "Audit Log",
+      "subtitle": "All administrative actions for NIS2 compliance. Showing last 500 entries."
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "General application configuration."
+    },
+    "workLogItems": {
+      "title": "Work log items",
+      "subtitle": "Fixed work log items technicians can select on a location's work log (e.g. \"Review asset list\"). Track and report which locations have each item filled in."
+    }
+  },
+  "workLogItems": {
+    "added": "Work log item added",
+    "updated": "Work log item updated",
+    "deleted": "Work log item deleted",
+    "namePlaceholder": "Item name, e.g. Review asset list",
+    "descriptionPlaceholder": "Optional description",
+    "empty": "No work log items yet",
+    "entryCount": "{count} {count, plural, =1 {entry} other {entries}}",
+    "editAriaLabel": "Edit {name}",
+    "deleteAriaLabel": "Delete {name}",
+    "deleteTitle": "Delete \"{name}\"?",
+    "deleteUsed": "This item is used by {count} work log {count, plural, =1 {entry} other {entries}}. Deleting it keeps those entries but clears the item from them.",
+    "deleteUnused": "This will permanently delete this work log item."
+  },
+  "scrapeTemplate": {
+    "formatTitle": "Template format",
+    "formatHelp": "One <code>key=value</code> pair per line. Keys become Prometheus <code>__labels__</code>.",
+    "variablesTitle": "Available variables:",
+    "varHostname": "Asset hostname as stored",
+    "varSerial": "Serial number",
+    "varModel": "Model",
+    "varManufacturer": "Manufacturer",
+    "varFiNumber": "FI number (14.10.100.013)",
+    "varVaultPath": "Vault path reference (not the secret)",
+    "exampleLabel": "Pearl example:",
+    "syntaxValid": "Template syntax is valid"
   }
 }

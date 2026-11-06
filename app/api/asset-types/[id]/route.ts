@@ -2,17 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { validateTemplate } from "@/lib/scrape-template";
-import { validateHostnamePattern } from "@/lib/hostname-pattern";
+import { validateTemplate } from "@/lib/prometheus/scrape-template";
+import { validateHostnamePattern } from "@/lib/hostname";
 import { logAudit } from "@/lib/audit";
-import { CRITICALITY_VALUES } from "@/lib/criticality";
+import { auditChanges } from "@/lib/audit/diff";
+import { Criticality } from "@/generated/prisma/enums";
+import { isAdmin } from "@/lib/permissions";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import { nameConflictResponse } from "@/lib/catalog/merge";
 
 const schema = z.object({
   name: z.string().min(1).max(255).optional(),
   scrapeTargetTemplate: z.string().max(10000).optional().nullable(),
   prometheusExposed: z.boolean().optional(),
   hostnamePattern: z.string().max(500).optional().nullable(),
-  defaultCriticality: z.enum(CRITICALITY_VALUES).optional().nullable(),
+  defaultCriticality: z.enum(Criticality).optional().nullable(),
 });
 
 export async function PUT(
@@ -21,14 +25,13 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json();
+  const body = await readJsonBody(req);
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!parsed.success) return invalidInput(parsed.error);
 
-  // Validate template syntax if provided
   if (parsed.data.scrapeTargetTemplate) {
     const templateErrors = validateTemplate(parsed.data.scrapeTargetTemplate);
     if (templateErrors.length > 0) {
@@ -39,7 +42,6 @@ export async function PUT(
     }
   }
 
-  // Validate hostname regex syntax if provided
   if (parsed.data.hostnamePattern) {
     const patternError = validateHostnamePattern(parsed.data.hostnamePattern);
     if (patternError) {
@@ -54,18 +56,15 @@ export async function PUT(
     where: { id },
     select: { name: true, scrapeTargetTemplate: true, prometheusExposed: true, hostnamePattern: true, defaultCriticality: true },
   });
+  if (!before) return notFoundResponse("Asset type");
 
-  // Check for name conflict before attempting update
   if (parsed.data.name !== undefined) {
     const conflict = await prisma.assetType.findFirst({
       where: { name: parsed.data.name, NOT: { id } },
-      select: { id: true, name: true },
+      select: { id: true, name: true, _count: { select: { assets: true } } },
     });
     if (conflict) {
-      return NextResponse.json(
-        { error: `An asset type named "${parsed.data.name}" already exists.`, conflict: "name", existingId: conflict.id },
-        { status: 409 }
-      );
+      return nameConflictResponse(`An asset type named "${parsed.data.name}" already exists.`, conflict);
     }
   }
 
@@ -81,19 +80,14 @@ export async function PUT(
       },
     });
 
-    const changes: Record<string, { from: unknown; to: unknown }> = {};
-    if (before) {
-      if (parsed.data.name !== undefined && parsed.data.name !== before.name)
-        changes["Name"] = { from: before.name, to: parsed.data.name };
-      if (parsed.data.scrapeTargetTemplate !== undefined && parsed.data.scrapeTargetTemplate !== before.scrapeTargetTemplate)
-        changes["Scrape template"] = { from: before.scrapeTargetTemplate ?? null, to: parsed.data.scrapeTargetTemplate ?? null };
-      if (parsed.data.prometheusExposed !== undefined && parsed.data.prometheusExposed !== before.prometheusExposed)
-        changes["Prometheus exposed"] = { from: before.prometheusExposed, to: parsed.data.prometheusExposed };
-      if (parsed.data.hostnamePattern !== undefined && parsed.data.hostnamePattern !== before.hostnamePattern)
-        changes["Hostname pattern"] = { from: before.hostnamePattern ?? null, to: parsed.data.hostnamePattern ?? null };
-      if (parsed.data.defaultCriticality !== undefined && parsed.data.defaultCriticality !== before.defaultCriticality)
-        changes["Default criticality"] = { from: before.defaultCriticality ?? null, to: parsed.data.defaultCriticality ?? null };
-    }
+    const d = parsed.data;
+    const changes = auditChanges([
+      d.name !== undefined && { label: "Name", before: before.name, after: d.name },
+      d.scrapeTargetTemplate !== undefined && { label: "Scrape template", before: before.scrapeTargetTemplate, after: d.scrapeTargetTemplate ?? null },
+      d.prometheusExposed !== undefined && { label: "Prometheus exposed", before: before.prometheusExposed, after: d.prometheusExposed },
+      d.hostnamePattern !== undefined && { label: "Hostname pattern", before: before.hostnamePattern, after: d.hostnamePattern ?? null },
+      d.defaultCriticality !== undefined && { label: "Default criticality", before: before.defaultCriticality, after: d.defaultCriticality ?? null },
+    ]);
 
     await logAudit({
       session,
@@ -105,8 +99,15 @@ export async function PUT(
       detail: Object.keys(changes).length > 0 ? { changes } : undefined,
     });
     return NextResponse.json(type);
-  } catch {
-    return NextResponse.json({ error: "Asset type not found." }, { status: 404 });
+  } catch (err) {
+    // Races with a concurrent delete or rename.
+    if (isRecordNotFoundError(err)) {
+      return notFoundResponse("Asset type");
+    }
+    if (isUniqueConstraintError(err)) {
+      return nameTakenResponse();
+    }
+    throw err;
   }
 }
 
@@ -116,9 +117,12 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
+  const assetType = await prisma.assetType.findUnique({ where: { id }, select: { name: true } });
+  if (!assetType) return notFoundResponse("Asset type");
+
   const count = await prisma.asset.count({ where: { typeId: id } });
   if (count > 0) {
     return NextResponse.json(
@@ -134,15 +138,20 @@ export async function DELETE(
     );
   }
 
-  const assetType = await prisma.assetType.findUnique({ where: { id }, select: { name: true } });
-  await prisma.assetType.delete({ where: { id } });
+  try {
+    await prisma.assetType.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Asset type");
+    throw err;
+  }
   await logAudit({
     session,
     req,
     action: "DELETE",
     entityType: "AssetType",
     entityId: id,
-    entityName: assetType?.name,
+    entityName: assetType.name,
   });
   return NextResponse.json({ ok: true });
 }

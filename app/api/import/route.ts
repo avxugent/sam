@@ -1,342 +1,106 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { parseCsv, parseDate, csvValue } from "@/lib/csv";
-import { normalizeMacAddress } from "@/lib/mac-address";
+import { parseCsv } from "@/lib/csv/core";
+import { parseImportRow } from "@/lib/csv/import";
+import { loadImportContext } from "@/lib/csv/import-context";
+import { readCsvUpload } from "@/lib/csv/upload";
 import { logAudit } from "@/lib/audit";
-import { resolveAssetCreationDefaults } from "@/lib/asset-defaults";
-import { CRITICALITY_VALUES } from "@/lib/criticality";
-import type { Criticality } from "@/generated/prisma/client";
+import { isAdmin } from "@/lib/permissions";
+import { prismaErrorCode } from "@/lib/route-helpers";
+import { isHostnameCompliant } from "@/lib/hostname";
+import { customFieldRows, macAddressRows } from "@/lib/assets/input";
 
-// CSV columns from the legacy export
-// GUID;FI NUMMER;CAMPUS;GEBOUW;LOKAAL;TYPE;BRAND;MODEL;SERIAL;QUANTITY;
-// DIAGONAL;WIDTH;HEIGHT;MIC_TYPE;FREQUENCY;MAC;IP_HOSTNAME;ROOM_LOCATION;
-// INSTALL_DATE;INTEGRATOR;CONTACTPERSOON;Factuurdatum;Factuurnummer
-//
-// FI NUMMER format: CC.BB.FFF.RR(R) (e.g. 14.10.100.13 or 14.10.100.013)
-// It is stored on the room-level location (LOKAAL).
-// Last (room) segment may be 2 or 3 digits.
-const FI_REGEX = /^\d{2}\.\d{2}\.\d{3}\.\d{2,3}$/;
-
-// Re-export csvValue under short alias for local readability
-const v = csvValue;
+/** Database errors caused by a row's own data: that row is skipped, the import goes on. */
+const ROW_ERROR_REASONS: Record<string, string> = {
+  P2000: "a value is too long for its column",
+  P2002: "its hostname (or another unique value) is already used by another asset",
+  P2003: "it refers to a record that no longer exists",
+};
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const formData = await req.formData();
-  const file = formData.get("file") as File | null;
-  if (!file) return NextResponse.json({ error: "No file provided." }, { status: 400 });
-
-  // Validate that the uploaded file is a CSV — check both MIME type and extension
-  const ALLOWED_CSV_TYPES = new Set(["text/csv", "text/plain", "application/csv"]);
-  const hasValidType = ALLOWED_CSV_TYPES.has(file.type);
-  const hasValidExt = file.name.toLowerCase().endsWith(".csv");
-  if (!hasValidType && !hasValidExt) {
-    return NextResponse.json({ error: "Only CSV files are accepted." }, { status: 400 });
-  }
-
-  const text = await file.text();
-  const rows = parseCsv(text);
+  const upload = await readCsvUpload(req);
+  if ("error" in upload) return upload.error;
+  const rows = parseCsv(upload.text);
 
   if (rows.length === 0) {
     return NextResponse.json({ error: "No data rows found in CSV." }, { status: 400 });
   }
 
-  // ── Caches to avoid redundant DB lookups ──
-  const locationCache = new Map<string, string>(); // "campus|building|room" -> id
-  const typeCache = new Map<string, string>();      // name -> id
-  const mfrCache = new Map<string, string>();       // name -> id
-  const modelCache = new Map<string, string>();     // "typeId|manufacturerId|name" -> id
+  const ctx = await loadImportContext();
 
-  // Pre-load existing types and manufacturers
-  const existingTypes = await prisma.assetType.findMany({ select: { id: true, name: true } });
-  existingTypes.forEach((t) => typeCache.set(t.name.toLowerCase(), t.id));
-
-  const existingMfrs = await prisma.manufacturer.findMany({ select: { id: true, name: true } });
-  existingMfrs.forEach((m) => mfrCache.set(m.name.toLowerCase(), m.id));
-
-  // Models are admin-only to create (no fixed-list autocreate here, unlike
-  // type/manufacturer above) — import only resolves a MODEL cell against an
-  // existing Model scoped to the row's type/manufacturer; an unmatched value
-  // leaves modelId unset and surfaces a row warning instead of guessing.
-  const existingModels = await prisma.model.findMany({ select: { id: true, typeId: true, manufacturerId: true, name: true } });
-  existingModels.forEach((m) =>
-    modelCache.set(`${m.typeId}|${m.manufacturerId ?? ""}|${m.name.toLowerCase()}`, m.id)
-  );
-  function lookupModel(typeId: string | null, manufacturerId: string | null, name: string): string | null {
-    if (!typeId) return null;
-    return modelCache.get(`${typeId}|${manufacturerId ?? ""}|${name.toLowerCase()}`) ?? null;
-  }
-
-  const supplierCache = new Map<string, string>(); // name -> id
-  const existingSuppliers = await prisma.supplier.findMany({ select: { id: true, name: true } });
-  existingSuppliers.forEach((s) => supplierCache.set(s.name.toLowerCase(), s.id));
-
-  const userIdByEmail = new Map<string, string>(); // email -> id
-  const existingUsers = await prisma.user.findMany({ select: { id: true, email: true } });
-  existingUsers.forEach((u) => userIdByEmail.set(u.email.toLowerCase(), u.id));
-
-  // Owner/supplier defaults are resolved once — the setting and the active
-  // supplier window can't change mid-import.
-  const creationDefaults = await resolveAssetCreationDefaults(prisma, {});
-
-  // Pre-load existing locations (campus/building/room)
-  const existingLocations = await prisma.location.findMany({
-    select: { id: true, name: true, parentId: true, fiNumber: true },
-  });
-  // Build lookups: parentId|name -> id, and fiNumber -> id
-  const locationLookup = new Map<string, string>();
-  const fiNumberLookup = new Map<string, string>();
-  existingLocations.forEach((l) => {
-    locationLookup.set(`${l.parentId ?? ""}|${l.name.toLowerCase()}`, l.id);
-    if (l.fiNumber) fiNumberLookup.set(l.fiNumber, l.id);
-  });
-
-  const stats = { created: 0, skipped: 0, errors: [] as string[] };
-
-  async function getOrCreateLocation(
-    name: string,
-    parentId: string | null,
-    fiNumber?: string | null
-  ): Promise<string> {
-    const key = `${parentId ?? ""}|${name.toLowerCase()}`;
-    if (locationLookup.has(key)) {
-      const existingId = locationLookup.get(key)!;
-      // If we have a fiNumber and it isn't already owned by another location, apply it
-      if (fiNumber && !fiNumberLookup.has(fiNumber)) {
-        await prisma.location.updateMany({
-          where: { id: existingId, fiNumber: null },
-          data: { fiNumber },
-        });
-        fiNumberLookup.set(fiNumber, existingId);
-      }
-      return existingId;
-    }
-
-    // Safely handle duplicate fiNumber — if it collides, store null
-    const safeFiNumber = fiNumber && !fiNumberLookup.has(fiNumber) ? fiNumber : null;
-
-    const loc = await prisma.location.create({
-      data: { name, parentId, fiNumber: safeFiNumber },
-    });
-    locationLookup.set(key, loc.id);
-    if (safeFiNumber) fiNumberLookup.set(safeFiNumber, loc.id);
-    return loc.id;
-  }
-
-  async function getOrCreateType(name: string): Promise<string> {
-    const key = name.toLowerCase();
-    if (typeCache.has(key)) return typeCache.get(key)!;
-    const t = await prisma.assetType.upsert({
-      where: { name },
-      create: { name },
-      update: {},
-    });
-    typeCache.set(key, t.id);
-    return t.id;
-  }
-
-  async function getOrCreateManufacturer(name: string): Promise<string> {
-    const key = name.toLowerCase();
-    if (mfrCache.has(key)) return mfrCache.get(key)!;
-    const m = await prisma.manufacturer.upsert({
-      where: { name },
-      create: { name },
-      update: {},
-    });
-    mfrCache.set(key, m.id);
-    return m.id;
-  }
-
-  async function getOrCreateSupplier(name: string): Promise<string> {
-    const key = name.toLowerCase();
-    if (supplierCache.has(key)) return supplierCache.get(key)!;
-    const s = await prisma.supplier.upsert({
-      where: { name },
-      create: { name },
-      update: {},
-    });
-    supplierCache.set(key, s.id);
-    return s.id;
-  }
+  const stats = { created: 0, skipped: 0, aborted: false, errors: [] as string[] };
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const rowNum = i + 2; // 1-indexed + header
 
     try {
-      const campus = v(row, "CAMPUS");
-      const gebouw = v(row, "GEBOUW");
-      const lokaal = v(row, "LOKAAL");
-
-      if (!lokaal) {
-        stats.errors.push(`Row ${rowNum}: LOKAAL is empty, skipping.`);
+      const parsed = parseImportRow(row, ctx.userIdByEmail);
+      if ("skip" in parsed) {
+        stats.errors.push(`Row ${rowNum}: ${parsed.skip}`);
         stats.skipped++;
         continue;
       }
+      const locationId = await ctx.locationId(parsed.location);
 
-      // FI number — validated before use
-      const rawFi = v(row, "FI NUMMER", "FI_NUMMER");
-      const fiNumber = rawFi && FI_REGEX.test(rawFi) ? rawFi : null;
+      const typeId = parsed.typeName ? await ctx.typeId(parsed.typeName) : null;
+      const manufacturerId = parsed.brandName ? await ctx.manufacturerId(parsed.brandName) : null;
 
-      // Build location hierarchy; FI number is applied to the room (LOKAAL) level.
-      // If a location already exists with this FI number, reuse it directly —
-      // it's the authoritative key, so CAMPUS/GEBOUW/LOKAAL name drift is ignored.
-      let locationId: string;
-      const existingByFi = fiNumber ? fiNumberLookup.get(fiNumber) : undefined;
-      if (existingByFi) {
-        locationId = existingByFi;
-      } else {
-        let campusId: string | null = null;
-        let gebouwId: string | null = null;
-
-        if (campus) campusId = await getOrCreateLocation(campus, null);
-        if (gebouw) gebouwId = await getOrCreateLocation(gebouw, campusId);
-        locationId = await getOrCreateLocation(lokaal, gebouwId ?? campusId, fiNumber);
-      }
-
-      // Type and manufacturer
-      const typeName = v(row, "TYPE");
-      const brandName = v(row, "BRAND");
-      const typeId = typeName ? await getOrCreateType(typeName) : null;
-      const manufacturerId = brandName ? await getOrCreateManufacturer(brandName) : null;
-
-      const modelRaw = v(row, "MODEL");
       let modelId: string | null = null;
-      if (modelRaw) {
-        modelId = lookupModel(typeId, manufacturerId, modelRaw);
+      if (parsed.modelName) {
+        modelId = ctx.modelId(typeId, manufacturerId, parsed.modelName);
         if (!modelId) {
-          stats.errors.push(`Row ${rowNum}: MODEL "${modelRaw}" does not match any existing model for this type/manufacturer, left unset.`);
+          stats.errors.push(`Row ${rowNum}: MODEL "${parsed.modelName}" does not match any existing model for this type/manufacturer, left unset.`);
         }
       }
-
-      // Dates
-      const installationDate = parseDate(v(row, "INSTALL_DATE"));
-      const invoiceDate = parseDate(v(row, "Factuurdatum"));
-      const endOfSupportDate = parseDate(v(row, "END_OF_SUPPORT"));
-
-      // Owner — matched by email; unmatched → default owner + row warning
-      const ownerEmail = v(row, "OWNER");
-      let ownerId: string | null = creationDefaults.ownerId;
-      if (ownerEmail) {
-        const matched = userIdByEmail.get(ownerEmail.toLowerCase());
-        if (matched) {
-          ownerId = matched;
-        } else {
-          stats.errors.push(`Row ${rowNum}: OWNER "${ownerEmail}" does not match any user email, left unset/default.`);
-        }
-      }
-
-      // Criticality — case-insensitive enum parse; invalid → null + warning
-      const criticalityRaw = v(row, "CRITICALITY");
-      let criticality: Criticality | null = null;
-      if (criticalityRaw) {
-        const upper = criticalityRaw.toUpperCase();
-        if ((CRITICALITY_VALUES as readonly string[]).includes(upper)) {
-          criticality = upper as Criticality;
-        } else {
-          stats.errors.push(`Row ${rowNum}: CRITICALITY "${criticalityRaw}" is not one of ${CRITICALITY_VALUES.join("/")}, ignored.`);
-        }
+      stats.errors.push(...parsed.warnings.map((w) => `Row ${rowNum}: ${w}`));
+      // The form rejects such a hostname; import keeps it (legacy files) and
+      // the hostname compliance report lists it for cleanup.
+      const { hostname } = parsed.asset;
+      if (hostname && !isHostnameCompliant(hostname, ctx.hostnamePattern(typeId))) {
+        stats.errors.push(`Row ${rowNum}: IP_HOSTNAME "${hostname}" does not match the hostname format for its type, imported as-is.`);
       }
 
       // Supplier — matched/created by name (manufacturer pattern); absent → window default
-      const supplierName = v(row, "SUPPLIER");
-      const supplierId = supplierName
-        ? await getOrCreateSupplier(supplierName)
-        : creationDefaults.supplierId;
+      const supplierId = parsed.supplierName
+        ? await ctx.supplierId(parsed.supplierName)
+        : ctx.creationDefaults.supplierId;
 
-      // MAC address(es) — may be semicolon or comma-separated within the field.
-      // Normalize each to AA:BB:CC:DD:EE:FF; if a value can't be normalized,
-      // keep it as-is and flag it rather than guess or drop it.
-      const macRaw = v(row, "MAC");
-      const macAddresses = macRaw
-        ? macRaw
-            .split(/[,;|]/)
-            .map((m) => m.trim())
-            .filter(Boolean)
-            .map((m) => {
-              const normalized = normalizeMacAddress(m);
-              if (normalized === null) {
-                stats.errors.push(`Row ${rowNum}: MAC address "${m}" could not be normalized, stored as-is.`);
-                return m;
-              }
-              return normalized;
-            })
-        : [];
-
-      // Custom fields — store non-empty legacy fields that don't have a direct mapping
-      const customFields: { key: string; value: string }[] = [];
-      const addCustom = (key: string, ...csvKeys: string[]) => {
-        const val = v(row, ...csvKeys);
-        if (val) customFields.push({ key, value: val });
-      };
-
-      addCustom("GUID", "GUID");
-      // FI nummer is stored on the location directly — not as a custom field
-
-      // Quantity is only meaningful for bulk items with no individual identity
-      // (no serial number, hostname, or MAC address).
-      const serialValue = v(row, "SERIAL") || null;
-      const hostnameValue = v(row, "IP_HOSTNAME") || null;
-      const hasIdentity = !!serialValue || !!hostnameValue || macAddresses.length > 0;
-      const quantityRaw = v(row, "QUANTITY");
-      let quantity = 1;
-      if (quantityRaw) {
-        const parsedQuantity = parseInt(quantityRaw, 10);
-        if (!Number.isFinite(parsedQuantity) || parsedQuantity < 1) {
-          stats.errors.push(`Row ${rowNum}: QUANTITY "${quantityRaw}" is not a positive integer, defaulted to 1.`);
-        } else if (hasIdentity && parsedQuantity !== 1) {
-          stats.errors.push(`Row ${rowNum}: QUANTITY ${parsedQuantity} ignored — asset has a serial number, hostname, or MAC address.`);
-        } else {
-          quantity = parsedQuantity;
-        }
-      }
-
-      addCustom("Diagonal (inch)", "DIAGONAL");
-      addCustom("Width (cm)", "WIDTH");
-      addCustom("Height (cm)", "HEIGHT");
-      addCustom("Mic type", "MIC_TYPE");
-      addCustom("Frequency", "FREQUENCY");
-      addCustom("Room location", "ROOM_LOCATION");
-      addCustom("Integrator", "INTEGRATOR");
-      addCustom("Contact person", "CONTACTPERSOON");
-
-      const locationCache_key = `${campus}|${gebouw}|${lokaal}`;
-      locationCache.set(locationCache_key, locationId);
-
+      const { macAddresses, customFields, ...assetFields } = parsed.asset;
       await prisma.asset.create({
         data: {
+          ...assetFields,
           locationId,
           typeId,
           manufacturerId,
           modelId,
-          serialNumber: serialValue,
-          hostname: hostnameValue,
-          quantity,
-          installationDate,
-          invoiceDate,
-          invoiceNumber: v(row, "Factuurnummer") || null,
-          ownerId,
-          criticality,
-          endOfSupportDate,
+          ownerId: parsed.ownerId ?? ctx.creationDefaults.ownerId,
           supplierId,
-          macAddresses: macAddresses.length > 0
-            ? { create: macAddresses.map((address) => ({ address })) }
-            : undefined,
-          customFields: customFields.length > 0
-            ? { create: customFields }
-            : undefined,
+          macAddresses: macAddresses.length > 0 ? { create: macAddressRows(macAddresses) } : undefined,
+          customFields: customFields.length > 0 ? { create: customFieldRows(customFields) } : undefined,
         },
       });
 
       stats.created++;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      stats.errors.push(`Row ${rowNum}: ${msg}`);
-      stats.skipped++;
+      const reason = ROW_ERROR_REASONS[prismaErrorCode(err) ?? ""];
+      if (reason) {
+        stats.errors.push(`Row ${rowNum}: skipped, ${reason}.`);
+        stats.skipped++;
+        continue;
+      }
+      // Anything else (e.g. the database went away) is not about this row:
+      // stop instead of marking every remaining row as skipped.
+      console.error("[import] stopped at row", rowNum, err);
+      stats.errors.push(`Row ${rowNum}: the import stopped because of a server error. Rows before it were imported; this row and the ones after it were not.`);
+      stats.skipped += rows.length - i;
+      stats.aborted = true;
+      break;
     }
   }
 
@@ -345,37 +109,14 @@ export async function POST(req: NextRequest) {
     req,
     action: "IMPORT",
     entityType: "Asset",
-    detail: { created: stats.created, skipped: stats.skipped, errorCount: stats.errors.length },
+    detail: { created: stats.created, skipped: stats.skipped, errorCount: stats.errors.length, ...(stats.aborted && { aborted: true }) },
   });
 
   return NextResponse.json({
     ok: true,
     created: stats.created,
     skipped: stats.skipped,
+    aborted: stats.aborted,
     errors: stats.errors,
-  });
-}
-
-// Preview endpoint: parse CSV and return first 10 rows with detected columns
-export async function PUT(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const formData = await req.formData();
-  const file = formData.get("file") as File | null;
-  if (!file) return NextResponse.json({ error: "No file provided." }, { status: 400 });
-
-  const ALLOWED_CSV_TYPES = new Set(["text/csv", "text/plain", "application/csv"]);
-  if (!ALLOWED_CSV_TYPES.has(file.type) && !file.name.toLowerCase().endsWith(".csv")) {
-    return NextResponse.json({ error: "Only CSV files are accepted." }, { status: 400 });
-  }
-
-  const text = await file.text();
-  const rows = parseCsv(text);
-
-  return NextResponse.json({
-    totalRows: rows.length,
-    columns: rows.length > 0 ? Object.keys(rows[0]) : [],
-    preview: rows.slice(0, 5),
   });
 }

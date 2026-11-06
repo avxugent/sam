@@ -1,11 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { AssetTypesClient } from "@/components/settings/asset-types-client";
+import { getTranslations } from "next-intl/server";
+import { AssetTypesClient } from "@/components/admin/catalog/asset-types-client";
+import { isAdmin } from "@/lib/permissions";
 
 export default async function AssetTypesPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/");
+  if (!session?.user || !isAdmin(session.user.role)) redirect("/");
+
+  const t = await getTranslations("adminPages");
 
   const [types, manufacturers] = await Promise.all([
     prisma.assetType.findMany({
@@ -31,15 +35,15 @@ export default async function AssetTypesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Asset Types</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage asset types and configure Prometheus scrape templates for
-          exporter-based monitoring.
-        </p>
+        <h1 className="text-2xl font-bold">{t("assetTypes.title")}</h1>
+        <p className="text-muted-foreground mt-1">{t("assetTypes.subtitle")}</p>
       </div>
       <AssetTypesClient initialTypes={types} manufacturers={manufacturers} />
     </div>
   );
 }
 
-export const metadata = { title: "Asset Types – SAM Admin" };
+export async function generateMetadata() {
+  const t = await getTranslations("adminPages");
+  return { title: t("assetTypes.title") };
+}

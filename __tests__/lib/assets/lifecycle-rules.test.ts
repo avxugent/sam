@@ -1,0 +1,254 @@
+import { describe, it, expect } from "vitest";
+import {
+  checkReturnToStock,
+  decommissionViolation,
+  repairViolation,
+  returnToStockViolation,
+  reinstateViolation,
+  buildReinstateUpdateData,
+  buildDeployedAssetData,
+  buildStockItemFromReturn,
+  buildDecommissionUpdateData,
+  buildSendForRepairUpdateData,
+  deployViolation,
+} from "@/lib/assets/lifecycle-rules";
+
+describe("decommissionViolation", () => {
+  it("is ALREADY_DECOMMISSIONED for a decommissioned asset", () => {
+    expect(decommissionViolation({ status: "DECOMMISSIONED" })?.code).toBe("ALREADY_DECOMMISSIONED");
+  });
+
+  it("is null for installed and in-repair assets", () => {
+    expect(decommissionViolation({ status: "INSTALLED" })).toBeNull();
+    expect(decommissionViolation({ status: "IN_REPAIR" })).toBeNull();
+  });
+});
+
+describe("repairViolation", () => {
+  it("refuses decommissioned and already-in-repair assets", () => {
+    expect(repairViolation({ status: "DECOMMISSIONED" })?.code).toBe("ALREADY_DECOMMISSIONED");
+    expect(repairViolation({ status: "IN_REPAIR" })).toEqual({
+      code: "ALREADY_IN_REPAIR",
+      message: "Asset is already sent for repair.",
+    });
+  });
+
+  it("is null for an installed asset", () => {
+    expect(repairViolation({ status: "INSTALLED" })).toBeNull();
+  });
+});
+
+describe("checkReturnToStock", () => {
+  it("returns the asset when it can go back to stock, the violation otherwise", () => {
+    const ok = { id: "a1", status: "INSTALLED" as const, typeId: "t1", modelId: "m1" };
+    expect(checkReturnToStock(ok)).toEqual({ violation: null, asset: ok });
+    expect(checkReturnToStock({ ...ok, modelId: null }).violation?.code).toBe("MISSING_MODEL");
+  });
+});
+
+describe("returnToStockViolation", () => {
+  it("reports ALREADY_DECOMMISSIONED first, even if type/model are also missing", () => {
+    expect(returnToStockViolation({ status: "DECOMMISSIONED", typeId: null, modelId: null })?.code).toBe(
+      "ALREADY_DECOMMISSIONED"
+    );
+  });
+
+  it("requires a type, then a model", () => {
+    expect(returnToStockViolation({ status: "INSTALLED", typeId: null, modelId: "model-1" })?.code).toBe("MISSING_TYPE");
+    expect(returnToStockViolation({ status: "INSTALLED", typeId: "t1", modelId: null })?.code).toBe("MISSING_MODEL");
+  });
+
+  it("is null for valid installed and in-repair assets (repair -> stock is a valid exit)", () => {
+    expect(returnToStockViolation({ status: "INSTALLED", typeId: "t1", modelId: "model-1" })).toBeNull();
+    expect(returnToStockViolation({ status: "IN_REPAIR", typeId: "t1", modelId: "model-1" })).toBeNull();
+  });
+});
+
+describe("reinstateViolation / buildReinstateUpdateData", () => {
+  it("only reinstates decommissioned assets", () => {
+    expect(reinstateViolation({ status: "INSTALLED" })?.code).toBe("NOT_DECOMMISSIONED");
+    expect(reinstateViolation({ status: "DECOMMISSIONED" })).toBeNull();
+  });
+
+  it("clears the disposal evidence", () => {
+    expect(buildReinstateUpdateData()).toEqual({
+      status: "INSTALLED",
+      decommissionedAt: null,
+      decommissionNote: null,
+      disposalMethod: null,
+      decommissionedById: null,
+    });
+  });
+});
+
+describe("buildStockItemFromReturn", () => {
+  const BASE = {
+    lineageId: "lineage-1",
+    typeId: "t1",
+    manufacturerId: "m1",
+    modelId: "model-1",
+    serialNumber: "SN-1",
+    invoiceNumber: null,
+    invoiceDate: null,
+    notes: null,
+    hostname: null,
+    warrantyMonths: null,
+    vaultPath: null,
+    macAddresses: [],
+    customFields: [],
+  };
+
+  it("builds the create payload with quantity locked to 1, the given locationId, the source lineageId, and no metadata when nothing extra is set", () => {
+    const data = buildStockItemFromReturn(BASE, "loc-1");
+    expect(data).toMatchObject({
+      lineageId: "lineage-1",
+      typeId: "t1",
+      manufacturerId: "m1",
+      modelId: "model-1",
+      serialNumber: "SN-1",
+      quantity: 1,
+      locationId: "loc-1",
+      metadata: null,
+    });
+  });
+
+  it("packs MAC addresses, custom fields, hostname, warranty, and vault path into metadata JSON", () => {
+    const data = buildStockItemFromReturn({
+      ...BASE,
+      macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }],
+      customFields: [{ key: "asset tag", value: "1234" }],
+      hostname: "host1",
+      warrantyMonths: 24,
+      vaultPath: "secret/host1",
+    }, "loc-1");
+    expect(JSON.parse(data.metadata as string)).toEqual({
+      macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }],
+      customFields: [{ key: "asset tag", value: "1234" }],
+      hostname: "host1",
+      warrantyMonths: 24,
+      vaultPath: "secret/host1",
+    });
+  });
+});
+
+describe("buildDecommissionUpdateData", () => {
+  it("sets status, disposal fields, actor and location snapshot", () => {
+    const data = buildDecommissionUpdateData({
+      note: "End of life",
+      disposalMethod: "WIPED",
+      actorId: "u1",
+      location: { name: "Room 101", fiNumber: "14.10.100.013" },
+    });
+    expect(data).toMatchObject({
+      status: "DECOMMISSIONED",
+      decommissionNote: "End of life",
+      disposalMethod: "WIPED",
+      decommissionedById: "u1",
+      lastLocationName: "Room 101",
+      lastLocationFiNumber: "14.10.100.013",
+    });
+    expect(data.decommissionedAt).toBeInstanceOf(Date);
+  });
+
+  it("defaults fiNumber to null when the location has none", () => {
+    const data = buildDecommissionUpdateData({
+      note: null,
+      disposalMethod: "OTHER",
+      actorId: "u1",
+      location: { name: "Room 101", fiNumber: null },
+    });
+    expect(data.lastLocationFiNumber).toBeNull();
+  });
+
+  it("clears any stale repair fields (harmless no-op from INSTALLED, required when decommissioning from IN_REPAIR)", () => {
+    const data = buildDecommissionUpdateData({
+      note: "Repair failed, written off",
+      disposalMethod: "DESTROYED",
+      actorId: "u1",
+      location: { name: "Room 101", fiNumber: null },
+    });
+    expect(data).toMatchObject({
+      repairStartedAt: null,
+      repairNote: null,
+      sentForRepairById: null,
+    });
+  });
+});
+
+describe("buildSendForRepairUpdateData", () => {
+  it("sets status, repairStartedAt, note, and actor", () => {
+    const data = buildSendForRepairUpdateData({ note: "Sent to vendor", actorId: "u1" });
+    expect(data).toMatchObject({
+      status: "IN_REPAIR",
+      repairNote: "Sent to vendor",
+      sentForRepairById: "u1",
+    });
+    expect(data.repairStartedAt).toBeInstanceOf(Date);
+  });
+
+  it("allows a null note", () => {
+    const data = buildSendForRepairUpdateData({ note: null, actorId: "u1" });
+    expect(data.repairNote).toBeNull();
+  });
+});
+
+describe("deployViolation", () => {
+  const item = { quantity: 5, serialNumber: null, metadata: null };
+
+  it("allows deploying up to the available units of a fungible item", () => {
+    expect(deployViolation(item, 5)).toBeNull();
+  });
+
+  it("rejects more units than the item holds", () => {
+    expect(deployViolation(item, 6)?.code).toBe("INSUFFICIENT_QUANTITY");
+  });
+
+  it("deploys an item with a device identity one unit at a time", () => {
+    const macs = JSON.stringify({ macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }] });
+    const hostname = JSON.stringify({ hostname: "srv-01" });
+    expect(deployViolation({ ...item, serialNumber: "SN" }, 2)?.code).toBe("SINGLE_UNIT_DEVICE");
+    expect(deployViolation({ ...item, metadata: macs }, 2)?.code).toBe("SINGLE_UNIT_DEVICE");
+    expect(deployViolation({ ...item, metadata: hostname }, 2)?.code).toBe("SINGLE_UNIT_DEVICE");
+    expect(deployViolation({ ...item, metadata: macs }, 1)).toBeNull();
+  });
+});
+
+describe("buildDeployedAssetData", () => {
+  const ITEM = {
+    lineageId: "lin-1",
+    typeId: "t1",
+    manufacturerId: "m1",
+    modelId: "md1",
+    serialNumber: null,
+    invoiceNumber: "INV-1",
+    invoiceDate: null,
+    metadata: JSON.stringify({ hostname: "rec01.example.org", macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }], customFields: [{ key: "rack", value: "R1" }] }),
+  };
+  const params = { locationId: "l1", serialNumber: "SN9", ownerId: "o1", supplierId: null };
+
+  it("carries lineage and stored identity when one unit consumes the whole item", () => {
+    const data = buildDeployedAssetData(ITEM, { ...params, deployedQuantity: 1, remainingQuantity: 0 });
+    expect(data).toMatchObject({
+      locationId: "l1",
+      lineageId: "lin-1",
+      serialNumber: "SN9",
+      hostname: "rec01.example.org",
+      ownerId: "o1",
+      macAddresses: { create: [{ address: "AA:BB:CC:DD:EE:FF" }] },
+      customFields: { create: [{ key: "rack", value: "R1" }] },
+    });
+  });
+
+  it("mints a fresh lineage for a partial single-unit deploy but keeps the identity", () => {
+    const data = buildDeployedAssetData(ITEM, { ...params, deployedQuantity: 1, remainingQuantity: 3 });
+    expect(data.lineageId).toBeUndefined();
+    expect(data.hostname).toBe("rec01.example.org");
+  });
+
+  it("drops the per-unit identity when several units are deployed", () => {
+    const data = buildDeployedAssetData(ITEM, { ...params, deployedQuantity: 2, remainingQuantity: 0 });
+    expect(data.lineageId).toBeUndefined();
+    expect(data.hostname).toBeUndefined();
+    expect(data.macAddresses).toBeUndefined();
+  });
+});

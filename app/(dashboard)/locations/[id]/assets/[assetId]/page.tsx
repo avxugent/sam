@@ -1,7 +1,16 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
+import { readGeneralSettings } from "@/lib/app-settings";
 import { auth } from "@/lib/auth";
+import { Role } from "@/lib/permissions";
 import { AssetDetailClient } from "@/components/assets/asset-detail-client";
+import { locationBreadcrumbs } from "@/lib/locations/path";
+import { ASSET_DETAIL_INCLUDE } from "@/lib/assets/include";
+import { userNamesById } from "@/lib/users/names";
+import { assetLabel } from "@/lib/assets/label";
+import { attachmentKind } from "@/components/attachments/attachment";
+
 
 export default async function AssetPage({
   params,
@@ -11,51 +20,42 @@ export default async function AssetPage({
   const session = await auth();
   const { id: locationId, assetId } = await params;
 
-  const templateSettings = await prisma.appSetting.findMany({
-    where: { key: { in: ["hostname.urlTemplate", "macAddress.urlTemplate"] } },
-  });
-  const templateMap = Object.fromEntries(templateSettings.map((s) => [s.key, s.value]));
-  const hostnameUrlTemplate = templateMap["hostname.urlTemplate"] || null;
-  const macAddressUrlTemplate = templateMap["macAddress.urlTemplate"] || null;
+  const templates = await readGeneralSettings();
 
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },
-    include: {
-      type: true,
-      manufacturer: true,
-      model: true,
-      supplier: true,
-      macAddresses: true,
-      customFields: true,
-      location: { select: { id: true, name: true, parentId: true } },
-      attachments: {
-        include: { uploadedBy: { select: { id: true, name: true } } },
-        orderBy: { createdAt: "desc" },
-      },
-    },
+    include: ASSET_DETAIL_INCLUDE,
   });
 
   if (!asset || asset.locationId !== locationId) notFound();
 
-  const breadcrumbs = await buildBreadcrumbs(locationId);
+  const breadcrumbs = await locationBreadcrumbs(locationId);
 
   // Owner / decommissioned-by are soft refs (no FK) — resolve names here so
   // deleted users degrade to a "(deleted user)" label client-side.
-  const softRefIds = [asset.ownerId, asset.decommissionedById, asset.sentForRepairById].filter(
-    (v): v is string => !!v
-  );
-  const softRefUsers = softRefIds.length
-    ? await prisma.user.findMany({ where: { id: { in: softRefIds } }, select: { id: true, name: true } })
-    : [];
-  const nameById = new Map(softRefUsers.map((u) => [u.id, u.name]));
+  const nameById = await userNamesById([asset.ownerId, asset.decommissionedById, asset.sentForRepairById]);
 
   return (
     <AssetDetailClient
-      asset={asset}
+      asset={{
+        ...asset,
+        installationDate: asset.installationDate?.toISOString() ?? null,
+        invoiceDate: asset.invoiceDate?.toISOString() ?? null,
+        endOfSupportDate: asset.endOfSupportDate?.toISOString() ?? null,
+        decommissionedAt: asset.decommissionedAt?.toISOString() ?? null,
+        repairStartedAt: asset.repairStartedAt?.toISOString() ?? null,
+        createdAt: asset.createdAt.toISOString(),
+        updatedAt: asset.updatedAt.toISOString(),
+        attachments: asset.attachments.map((a) => ({
+          ...a,
+          attachmentType: attachmentKind(a.attachmentType),
+          createdAt: a.createdAt.toISOString(),
+        })),
+      }}
       breadcrumbs={breadcrumbs}
-      userRole={session?.user?.role || "VIEWER"}
-      hostnameUrlTemplate={hostnameUrlTemplate}
-      macAddressUrlTemplate={macAddressUrlTemplate}
+      userRole={session?.user?.role ?? Role.VIEWER}
+      hostnameUrlTemplate={templates.hostnameUrlTemplate}
+      macAddressUrlTemplate={templates.macAddressUrlTemplate}
       ownerName={asset.ownerId ? nameById.get(asset.ownerId) ?? null : null}
       decommissionedByName={asset.decommissionedById ? nameById.get(asset.decommissionedById) ?? null : null}
       sentForRepairByName={asset.sentForRepairById ? nameById.get(asset.sentForRepairById) ?? null : null}
@@ -63,23 +63,14 @@ export default async function AssetPage({
   );
 }
 
-async function buildBreadcrumbs(locationId: string): Promise<{ id: string; name: string }[]> {
-  const location = await prisma.location.findUnique({
-    where: { id: locationId },
-    select: { id: true, name: true, parentId: true },
-  });
-  if (!location) return [];
-  if (!location.parentId) return [{ id: location.id, name: location.name }];
-  const parents = await buildBreadcrumbs(location.parentId);
-  return [...parents, { id: location.id, name: location.name }];
-}
-
 export async function generateMetadata({ params }: { params: Promise<{ id: string; assetId: string }> }) {
   const { assetId } = await params;
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },
-    select: { model: { select: { name: true } }, serialNumber: true },
+    select: { model: { select: { name: true } }, hostname: true, serialNumber: true },
   });
-  const title = asset?.model?.name || asset?.serialNumber || "Asset";
-  return { title: `${title} – SAM` };
+  const title = asset && assetLabel(asset);
+  if (title) return { title: title };
+  const t = await getTranslations("asset");
+  return { title: t("title") };
 }

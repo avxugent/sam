@@ -1,0 +1,40 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: { asset: { findMany: vi.fn() } },
+}));
+vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { GET as manufacturerAssets } from "@/app/api/manufacturers/[id]/assets/route";
+
+const mockAuth = vi.mocked(auth);
+const params = { params: Promise.resolve({ id: "x1" }) };
+const req = () => new NextRequest("http://localhost/api/x");
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockAuth.mockResolvedValue({ user: { id: "u1", role: "VIEWER" } } as never);
+});
+
+describe("GET /api/manufacturers/[id]/assets", () => {
+  it("401 without a session", async () => {
+    mockAuth.mockResolvedValue(null as never);
+    expect((await manufacturerAssets(req(), params)).status).toBe(401);
+  });
+
+  it("lists the manufacturer's installed assets only", async () => {
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([{ id: "as1" }] as never);
+    const res = await manufacturerAssets(req(), params);
+    expect(await res.json()).toEqual([{ id: "as1" }]);
+    expect(vi.mocked(prisma.asset.findMany).mock.calls[0][0]?.where).toEqual({ manufacturerId: "x1", status: "INSTALLED" });
+  });
+
+  it("400 for an unknown ?status= value", async () => {
+    const res = await manufacturerAssets(new NextRequest("http://localhost/api/x?status=gone"), params);
+    expect(res.status).toBe(400);
+    expect(prisma.asset.findMany).not.toHaveBeenCalled();
+  });
+});

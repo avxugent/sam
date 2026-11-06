@@ -1,48 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { z } from "zod";
 import { logAudit } from "@/lib/audit";
-import { normalizeMacAddress } from "@/lib/mac-address";
-
-const MAX_MAC_ADDRESSES = 20;
-
-// Same normalization as the asset API and the create route.
-const macAddressField = z.string().transform((v, ctx) => {
-  const normalized = normalizeMacAddress(v);
-  if (normalized === null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Invalid MAC address (expected AA:BB:CC:DD:EE:FF)",
-    });
-    return z.NEVER;
-  }
-  return normalized;
-});
-
-const updateSchema = z
-  .object({
-    typeId: z.string().min(1).optional(),
-    manufacturerId: z.string().min(1).optional().nullable(),
-    modelId: z.string().min(1).optional(),
-    serialNumber: z.string().max(100).optional().nullable(),
-    quantity: z.number().int().min(1).optional(),
-    notes: z.string().max(5000).optional().nullable(),
-    locationId: z.string().optional().nullable(),
-    reservedForLocationId: z.string().optional().nullable(),
-    invoiceNumber: z.string().max(100).optional().nullable(),
-    invoiceDate: z.string().optional().nullable(),
-    macAddresses: z.array(macAddressField).max(MAX_MAC_ADDRESSES).optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.serialNumber && data.quantity !== undefined && data.quantity > 1) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["quantity"],
-        message: "Quantity must be 1 when a serial number is set.",
-      });
-    }
-  });
+import { auditChanges } from "@/lib/audit/diff";
+import { canEdit } from "@/lib/permissions";
+import { invalidInput, isForeignKeyError, isRecordNotFoundError, notFoundResponse, readJsonBody, unknownReferenceResponse } from "@/lib/route-helpers";
+import { parseStockMetadata, serializeStockMetadata, stockMetadataMacs } from "@/lib/stock-metadata";
+import { STOCK_IDENTITY_QUANTITY_MESSAGE, updateStockItemSchema } from "@/lib/schemas/stock";
+import { hasDeviceIdentity } from "@/lib/schemas/asset";
+import { toDateUpdate, toIsoDay } from "@/lib/dates";
+import { STOCK_ITEM_ROW_INCLUDE } from "@/lib/stock/include";
+import { HISTORY_CHANGE_LABELS, sortedMacs } from "@/lib/assets/history-keys";
 
 export async function GET(
   _req: NextRequest,
@@ -69,7 +37,7 @@ export async function GET(
       location: { select: { id: true, name: true } },
     },
   });
-  if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!item) return notFoundResponse("Stock item");
 
   return NextResponse.json(item);
 }
@@ -80,57 +48,78 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const existing = await prisma.stockItem.findUnique({ where: { id }, include: { model: { select: { name: true } } } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const existing = await prisma.stockItem.findUnique({
+    where: { id },
+    include: {
+      type: { select: { name: true } },
+      manufacturer: { select: { name: true } },
+      model: { select: { name: true } },
+      location: { select: { name: true } },
+    },
+  });
+  if (!existing) return notFoundResponse("Stock item");
 
-  const body = await req.json();
-  const parsed = updateSchema.safeParse(body);
+  const body = await readJsonBody(req);
+  const parsed = updateStockItemSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    return invalidInput(parsed.error);
   }
 
   const { invoiceDate, macAddresses, ...rest } = parsed.data;
 
-  // Replace the MAC list in the metadata blob, preserving any other keys (hostname,
-  // customFields, …) that may have been stored when the item came from an asset.
-  let metadataUpdate: { metadata: string | null } | Record<string, never> = {};
-  if (macAddresses !== undefined) {
-    let meta: Record<string, unknown> = {};
-    if (existing.metadata) {
-      try { meta = JSON.parse(existing.metadata) as Record<string, unknown>; } catch { /* ignore */ }
-    }
-    if (macAddresses.length) meta.macAddresses = macAddresses.map((address) => ({ address }));
-    else delete meta.macAddresses;
-    metadataUpdate = { metadata: Object.keys(meta).length > 0 ? JSON.stringify(meta) : null };
+  const meta = parseStockMetadata(existing.metadata);
+  const macsBefore = stockMetadataMacs(existing.metadata);
+
+  // The schema only sees the fields in the body; check the single-device rule
+  // against the values the item will have, as the asset PUT does.
+  const identified = hasDeviceIdentity({
+    serialNumber: rest.serialNumber !== undefined ? rest.serialNumber : existing.serialNumber,
+    hostname: meta.hostname,
+    macCount: macAddresses !== undefined ? macAddresses.length : macsBefore.length,
+  });
+  if (identified && (rest.quantity ?? existing.quantity) > 1) {
+    return NextResponse.json({ error: STOCK_IDENTITY_QUANTITY_MESSAGE }, { status: 400 });
   }
 
-  const item = await prisma.stockItem.update({
-    where: { id },
-    data: {
-      ...rest,
-      ...(invoiceDate !== undefined
-        ? { invoiceDate: invoiceDate ? new Date(invoiceDate) : null }
-        : {}),
-      ...metadataUpdate,
-    },
-    include: { type: true, manufacturer: true, model: true, location: { select: { id: true, name: true } } },
-  });
+  let item;
+  try {
+    item = await prisma.stockItem.update({
+      where: { id },
+      data: {
+        ...rest,
+        invoiceDate: toDateUpdate(invoiceDate),
+        // Replace the MAC list in the metadata blob, preserving any other keys (hostname,
+        // customFields, …) that may have been stored when the item came from an asset.
+        ...(macAddresses !== undefined && {
+          metadata: serializeStockMetadata({ ...meta, macAddresses: macAddresses.map((address) => ({ address })) }),
+        }),
+      },
+      include: STOCK_ITEM_ROW_INCLUDE,
+    });
+  } catch (err) {
+    if (isForeignKeyError(err)) return unknownReferenceResponse();
+    // Deleted (or deployed) by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Stock item");
+    throw err;
+  }
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
   const d = parsed.data;
-  if (d.modelId !== undefined && d.modelId !== existing.modelId)
-    changes["Model"] = { from: existing.model?.name ?? null, to: item.model?.name ?? null };
-  if (d.serialNumber !== undefined && d.serialNumber !== existing.serialNumber)
-    changes["Serial number"] = { from: existing.serialNumber ?? null, to: d.serialNumber ?? null };
-  if (d.quantity !== undefined && d.quantity !== existing.quantity)
-    changes["Quantity"] = { from: existing.quantity, to: d.quantity };
-  if (d.notes !== undefined && d.notes !== existing.notes)
-    changes["Notes"] = { from: existing.notes ?? null, to: d.notes ?? null };
-  if (d.invoiceNumber !== undefined && d.invoiceNumber !== existing.invoiceNumber)
-    changes["Invoice number"] = { from: existing.invoiceNumber ?? null, to: d.invoiceNumber ?? null };
+  const changes = auditChanges([
+    d.typeId !== undefined && { label: HISTORY_CHANGE_LABELS.type, before: existing.typeId, after: d.typeId, display: [existing.type.name, item.type.name] },
+    d.manufacturerId !== undefined && { label: HISTORY_CHANGE_LABELS.manufacturer, before: existing.manufacturerId, after: d.manufacturerId, display: [existing.manufacturer?.name, item.manufacturer?.name] },
+    d.modelId !== undefined && { label: HISTORY_CHANGE_LABELS.model, before: existing.modelId, after: d.modelId, display: [existing.model?.name, item.model?.name] },
+    d.serialNumber !== undefined && { label: HISTORY_CHANGE_LABELS.serialNumber, before: existing.serialNumber, after: d.serialNumber },
+    d.quantity !== undefined && { label: HISTORY_CHANGE_LABELS.quantity, before: existing.quantity, after: d.quantity },
+    d.notes !== undefined && { label: HISTORY_CHANGE_LABELS.notes, before: existing.notes, after: d.notes },
+    d.locationId !== undefined && { label: HISTORY_CHANGE_LABELS.location, before: existing.locationId, after: d.locationId, display: [existing.location?.name, item.location?.name] },
+    d.reservedForLocationId !== undefined && { label: "Reserved for", before: existing.reservedForLocationId, after: d.reservedForLocationId },
+    d.invoiceNumber !== undefined && { label: HISTORY_CHANGE_LABELS.invoiceNumber, before: existing.invoiceNumber, after: d.invoiceNumber },
+    invoiceDate !== undefined && { label: HISTORY_CHANGE_LABELS.invoiceDate, before: toIsoDay(existing.invoiceDate), after: invoiceDate || null },
+    macAddresses !== undefined && { label: HISTORY_CHANGE_LABELS.macAddresses, before: sortedMacs(macsBefore), after: sortedMacs(macAddresses) },
+  ]);
 
   await logAudit({
     session,
@@ -152,16 +141,22 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role === "VIEWER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canEdit(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const item = await prisma.stockItem.findUnique({
     where: { id },
     select: { model: { select: { name: true } }, lineageId: true },
   });
-  if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!item) return notFoundResponse("Stock item");
 
-  await prisma.stockItem.delete({ where: { id } });
+  try {
+    await prisma.stockItem.delete({ where: { id } });
+  } catch (err) {
+    // Deleted (or deployed) by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("Stock item");
+    throw err;
+  }
 
   await logAudit({
     session,

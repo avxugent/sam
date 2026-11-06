@@ -21,7 +21,7 @@ export function AppFooter({ version }: { version: string }) {
     : "";
 
   return (
-    <footer className="hidden lg:flex items-center justify-between px-6 py-2 border-t border-[#e2e8f0] bg-[#f8fafc] text-[11px] text-[#94a3b8] shrink-0">
+    <footer className="hidden lg:flex items-center justify-between px-6 py-2 border-t border-border bg-background text-[11px] text-subtle shrink-0">
       <span>v{version}</span>
       <span suppressHydrationWarning>
         {dateStr}{dateStr && timeStr ? " · " : ""}{timeStr}

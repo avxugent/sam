@@ -35,13 +35,13 @@ export function StockNavItems({
         className={cn(
           "flex items-center gap-1.5 py-[5px] pl-[40px] pr-[10px] text-[12px] select-none",
           allActive
-            ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
-            : "text-[#334155] hover:bg-[#f8fafc]"
+            ? "bg-primary-tint text-primary font-semibold border-r-[3px] border-primary"
+            : "text-secondary-foreground hover:bg-background"
         )}
       >
         <span className="flex-1 truncate">{t("allItems")}</span>
         {stockItemCount > 0 && (
-          <span className="text-[11px] text-[#64748b] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
+          <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0 rounded flex-shrink-0 leading-5">
             {stockItemCount}
           </span>
         )}
@@ -56,8 +56,8 @@ export function StockNavItems({
             className={cn(
               "flex items-center py-[5px] pl-[40px] pr-[10px] text-[12px] select-none",
               isActive
-                ? "bg-[#e8f0fc] text-[#1e64c8] font-semibold border-r-[3px] border-[#1e64c8]"
-                : "text-[#334155] hover:bg-[#f8fafc]"
+                ? "bg-primary-tint text-primary font-semibold border-r-[3px] border-primary"
+                : "text-secondary-foreground hover:bg-background"
             )}
           >
             <span className="truncate">{t.name}</span>
@@ -65,20 +65,20 @@ export function StockNavItems({
         );
       })}
 
-      <div className="mx-3 my-1 h-px bg-[#f1f5f9]" />
+      <div className="mx-3 my-1 h-px bg-muted" />
       <Link
         href="/decommissioned"
         className={cn(
           "flex items-center gap-1.5 py-[5px] pl-[40px] pr-[10px] text-[12px] select-none",
           isDecommissioned
-            ? "bg-[#f1f5f9] text-[#64748b] font-semibold border-r-[3px] border-[#94a3b8]"
-            : "text-[#64748b] hover:bg-[#f8fafc]"
+            ? "bg-muted text-muted-foreground font-semibold border-r-[3px] border-subtle"
+            : "text-muted-foreground hover:bg-background"
         )}
       >
-        <ArchiveX className={cn("h-3 w-3 flex-shrink-0", isDecommissioned ? "text-[#64748b]" : "text-[#94a3b8]")} />
+        <ArchiveX className={cn("h-3 w-3 flex-shrink-0", isDecommissioned ? "text-muted-foreground" : "text-subtle")} />
         <span className="flex-1 truncate">{t("decommissioned")}</span>
         {decommissionedCount > 0 && (
-          <span className="text-[11px] text-[#94a3b8] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
+          <span className="text-[11px] text-subtle bg-muted px-1.5 py-0 rounded flex-shrink-0 leading-5">
             {decommissionedCount}
           </span>
         )}
@@ -88,14 +88,14 @@ export function StockNavItems({
         className={cn(
           "flex items-center gap-1.5 py-[5px] pl-[40px] pr-[10px] text-[12px] select-none",
           isInRepair
-            ? "bg-[#f1f5f9] text-[#64748b] font-semibold border-r-[3px] border-[#94a3b8]"
-            : "text-[#64748b] hover:bg-[#f8fafc]"
+            ? "bg-muted text-muted-foreground font-semibold border-r-[3px] border-subtle"
+            : "text-muted-foreground hover:bg-background"
         )}
       >
-        <Wrench className={cn("h-3 w-3 flex-shrink-0", isInRepair ? "text-[#64748b]" : "text-[#94a3b8]")} />
+        <Wrench className={cn("h-3 w-3 flex-shrink-0", isInRepair ? "text-muted-foreground" : "text-subtle")} />
         <span className="flex-1 truncate">{t("inRepair")}</span>
         {inRepairCount > 0 && (
-          <span className="text-[11px] text-[#94a3b8] bg-[#f1f5f9] px-1.5 py-0 rounded flex-shrink-0 leading-5">
+          <span className="text-[11px] text-subtle bg-muted px-1.5 py-0 rounded flex-shrink-0 leading-5">
             {inRepairCount}
           </span>
         )}

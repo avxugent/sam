@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import bcrypt from "bcryptjs";
-import { z } from "zod";
+import { hashPassword } from "@/lib/passwords";
 import { logAudit } from "@/lib/audit";
-
-const updateSchema = z.object({
-  name: z.string().min(1).max(128).optional(),
-  email: z.string().email().max(255).optional(),
-  password: z.string().min(8).max(128).optional(),
-  role: z.enum(["ADMIN", "MAINTAINER", "EDITOR", "VIEWER"]).optional(),
-  twoFactorRequired: z.boolean().optional(),
-});
+import { auditChanges } from "@/lib/audit/diff";
+import { isAdmin, Role } from "@/lib/permissions";
+import { updateUserSchema } from "@/lib/schemas/user";
+import { invalidInput, isRecordNotFoundError, isUniqueConstraintError, nameTakenResponse, notFoundResponse, readJsonBody } from "@/lib/route-helpers";
+import type { Prisma } from "@/generated/prisma/client";
 
 export async function PUT(
   req: NextRequest,
@@ -19,21 +15,28 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json();
-  const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  const body = await readJsonBody(req);
+  const parsed = updateUserSchema.safeParse(body);
+  if (!parsed.success) return invalidInput(parsed.error);
 
   const target = await prisma.user.findUnique({
     where: { id },
     select: { provider: true, name: true, email: true, role: true, twoFactorRequired: true },
   });
-  if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (!target) return notFoundResponse("User");
+
+  if (isAdmin(target.role) && parsed.data.role !== undefined && !isAdmin(parsed.data.role)) {
+    const adminCount = await prisma.user.count({ where: { role: Role.ADMIN } });
+    if (adminCount <= 1) {
+      return NextResponse.json({ error: "Cannot demote the last admin account." }, { status: 400 });
+    }
+  }
 
   const { password, ...data } = parsed.data;
-  const updateData: Record<string, unknown> = { ...data };
+  const updateData: Prisma.UserUpdateInput = { ...data };
 
   if (password) {
     // Cannot set password for SSO users
@@ -43,29 +46,34 @@ export async function PUT(
         { status: 400 }
       );
     }
-    updateData.passwordHash = await bcrypt.hash(password, 13);
+    updateData.passwordHash = await hashPassword(password);
     // Admin password reset forces user to change it on next login
     updateData.mustChangePassword = true;
   }
 
-  const user = await prisma.user.update({
-    where: { id },
-    data: updateData,
-    select: { id: true, name: true, email: true, role: true, provider: true, totpEnabled: true, mustChangePassword: true, twoFactorRequired: true, createdAt: true },
-  });
+  let user;
+  try {
+    user = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: { id: true, name: true, email: true, role: true, provider: true, totpEnabled: true, mustChangePassword: true, twoFactorRequired: true, createdAt: true },
+    });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("User");
+    if (isUniqueConstraintError(err)) return nameTakenResponse("Email already in use.");
+    throw err;
+  }
 
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
   const d = parsed.data;
-  if (d.name !== undefined && d.name !== target.name)
-    changes["Name"] = { from: target.name, to: d.name };
-  if (d.email !== undefined && d.email !== target.email)
-    changes["Email"] = { from: target.email, to: d.email };
-  if (d.role !== undefined && d.role !== target.role)
-    changes["Role"] = { from: target.role, to: d.role };
-  if (d.twoFactorRequired !== undefined && d.twoFactorRequired !== target.twoFactorRequired)
-    changes["2FA required"] = { from: target.twoFactorRequired, to: d.twoFactorRequired };
-  if (password)
-    changes["Password"] = { from: "•••", to: "•••" };
+  const changes = auditChanges([
+    d.name !== undefined && { label: "Name", before: target.name, after: d.name },
+    d.email !== undefined && { label: "Email", before: target.email, after: d.email },
+    d.role !== undefined && { label: "Role", before: target.role, after: d.role },
+    d.twoFactorRequired !== undefined && { label: "2FA required", before: target.twoFactorRequired, after: d.twoFactorRequired },
+    // A new password always counts as a change; never record password material.
+    !!password && { label: "Password", before: false, after: true, display: ["•••", "•••"] },
+  ]);
 
   await logAudit({
     session,
@@ -86,7 +94,7 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
 
@@ -94,23 +102,29 @@ export async function DELETE(
     return NextResponse.json({ error: "You cannot delete your own account." }, { status: 400 });
   }
 
-  const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
   const userToDelete = await prisma.user.findUnique({ where: { id }, select: { role: true, email: true } });
-  if (userToDelete?.role === "ADMIN" && adminCount <= 1) {
+  if (!userToDelete) return notFoundResponse("User");
+
+  const adminCount = await prisma.user.count({ where: { role: Role.ADMIN } });
+  if (isAdmin(userToDelete.role) && adminCount <= 1) {
     return NextResponse.json({ error: "Cannot delete the last admin account." }, { status: 400 });
   }
 
-  await prisma.user.delete({ where: { id } });
+  try {
+    await prisma.user.delete({ where: { id } });
+  } catch (err) {
+    // Deleted by a concurrent request since the read.
+    if (isRecordNotFoundError(err)) return notFoundResponse("User");
+    throw err;
+  }
   await logAudit({
     session,
     req,
     action: "DELETE",
     entityType: "User",
     entityId: id,
-    entityName: userToDelete?.email,
-    detail: userToDelete
-      ? { snapshot: { Email: userToDelete.email, Role: userToDelete.role } }
-      : undefined,
+    entityName: userToDelete.email,
+    detail: { snapshot: { Email: userToDelete.email, Role: userToDelete.role } },
   });
   return NextResponse.json({ ok: true });
 }

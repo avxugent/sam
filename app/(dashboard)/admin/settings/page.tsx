@@ -1,37 +1,25 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { GeneralSettingsClient } from "@/components/settings/general-settings-client";
-import { BrandingSettingsClient } from "@/components/settings/branding-settings-client";
-import { ComplianceSettingsClient } from "@/components/settings/compliance-settings-client";
-import { WorkLogItemsManager } from "@/components/settings/work-log-items-manager";
+import { readBrandingSettings, readComplianceSettings, readGeneralSettings } from "@/lib/app-settings";
+import { GeneralSettingsClient } from "@/components/admin/settings/general-settings-client";
+import { BrandingSettingsClient } from "@/components/admin/settings/branding-settings-client";
+import { ComplianceSettingsClient } from "@/components/admin/settings/compliance-settings-client";
+import { WorkLogItemsManager } from "@/components/admin/settings/work-log-items-manager";
+import { isAdmin } from "@/lib/permissions";
 
 export default async function SettingsPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/");
+  if (!session?.user || !isAdmin(session.user.role)) redirect("/");
 
-  const settings = await prisma.appSetting.findMany({
-    where: {
-      key: {
-        in: [
-          "hostname.urlTemplate",
-          "macAddress.urlTemplate",
-          "location.urlTemplate",
-          "app.title",
-          "branding.logoStorageKey",
-          "branding.faviconStorageKey",
-          "branding.backgroundMode",
-          "branding.backgroundStorageKey",
-          "security.requireTwoFactor",
-          "audit.retentionDays",
-          "assets.defaultOwnerId",
-          "compliance.reviewWorkLogItemId",
-          "compliance.reviewPeriodMonths",
-        ],
-      },
-    },
-  });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const t = await getTranslations("adminPages");
+
+  const [general, branding, compliance] = await Promise.all([
+    readGeneralSettings(),
+    readBrandingSettings(),
+    readComplianceSettings(),
+  ]);
 
   const workLogItems = await prisma.workLogItem.findMany({
     orderBy: [{ order: "asc" }, { name: "asc" }],
@@ -47,33 +35,33 @@ export default async function SettingsPage() {
     <div className="max-w-2xl space-y-10">
       <div>
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-muted-foreground mt-1">General application configuration.</p>
+          <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("settings.subtitle")}</p>
         </div>
         <GeneralSettingsClient
-          initialHostnameUrlTemplate={map["hostname.urlTemplate"] ?? ""}
-          initialMacAddressUrlTemplate={map["macAddress.urlTemplate"] ?? ""}
-          initialLocationUrlTemplate={map["location.urlTemplate"] ?? ""}
+          initialHostnameUrlTemplate={general.hostnameUrlTemplate}
+          initialMacAddressUrlTemplate={general.macAddressUrlTemplate}
+          initialLocationUrlTemplate={general.locationUrlTemplate}
         />
       </div>
 
       <div>
         <BrandingSettingsClient
-          initialAppTitle={map["app.title"] ?? "SAM"}
-          initialHasLogo={!!map["branding.logoStorageKey"]}
-          initialHasFavicon={!!map["branding.faviconStorageKey"]}
-          initialBackgroundMode={map["branding.backgroundMode"] ?? ""}
-          initialHasCustomBackground={!!map["branding.backgroundStorageKey"]}
+          initialAppTitle={branding.appTitle}
+          initialHasLogo={branding.hasLogo}
+          initialHasFavicon={branding.hasFavicon}
+          initialBackgroundMode={branding.backgroundMode}
+          initialHasCustomBackground={branding.hasCustomBackground}
         />
       </div>
 
       <div>
         <ComplianceSettingsClient
-          initialRequireTwoFactor={map["security.requireTwoFactor"] === "true"}
-          initialAuditRetentionDays={parseInt(map["audit.retentionDays"] ?? "730", 10)}
-          initialDefaultOwnerId={map["assets.defaultOwnerId"] || null}
-          initialReviewWorkLogItemId={map["compliance.reviewWorkLogItemId"] || null}
-          initialReviewPeriodMonths={parseInt(map["compliance.reviewPeriodMonths"] ?? "12", 10)}
+          initialRequireTwoFactor={compliance.requireTwoFactor}
+          initialAuditRetentionDays={compliance.auditRetentionDays}
+          initialDefaultOwnerId={compliance.defaultOwnerId}
+          initialReviewWorkLogItemId={compliance.reviewWorkLogItemId}
+          initialReviewPeriodMonths={compliance.reviewPeriodMonths}
           users={users}
           workLogItems={workLogItems.map((i) => ({ id: i.id, name: i.name }))}
         />
@@ -81,11 +69,8 @@ export default async function SettingsPage() {
 
       <div>
         <div className="mb-6">
-          <h2 className="text-xl font-bold">Work log items</h2>
-          <p className="text-muted-foreground mt-1">
-            Fixed work log items technicians can select on a location&apos;s work log (e.g. &quot;Review asset
-            list&quot;). Track and report which locations have each item filled in.
-          </p>
+          <h2 className="text-xl font-bold">{t("workLogItems.title")}</h2>
+          <p className="text-muted-foreground mt-1">{t("workLogItems.subtitle")}</p>
         </div>
         <WorkLogItemsManager initialItems={workLogItems} />
       </div>
@@ -94,4 +79,7 @@ export default async function SettingsPage() {
   );
 }
 
-export const metadata = { title: "Settings – SAM Admin" };
+export async function generateMetadata() {
+  const t = await getTranslations("adminPages");
+  return { title: t("settings.title") };
+}

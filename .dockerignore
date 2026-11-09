@@ -22,6 +22,8 @@ uploads/
 .DS_Store
 *.tsbuildinfo
 .vscode
+# Local agent settings and skills must never reach the image or the build cache
+.claude
 .idea
 
 # Docs

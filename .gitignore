@@ -45,6 +45,8 @@ next-env.d.ts
 # Uploaded files
 /uploads/
 .claude/scheduled_tasks.lock
+# Claude Code "don't ask again" rules are stored here as the exact command strings, which can hold credentials
+.claude/settings.local.json
 app/.next/
 
 # desloppify local state

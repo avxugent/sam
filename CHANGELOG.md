@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.0.0] - 2026-11-09
+
+First stable release of the 4.0.0 line. It is `4.0.0-alpha.2` promoted unchanged: the alphas were tested on the dev server with no issues found, and nothing shipped changed since (only repository tooling files). Published as `:4.0.0` and `:latest`.
+
+Upgrading from 3.1.3: everything in the `4.0.0-alpha.1` and `4.0.0-alpha.2` sections below applies, in particular the **Breaking** items of `4.0.0-alpha.1` (data migration `20261101120000_backfill_report_definition_source`, sign-in and 2FA token changes, API changes, maintenance scripts requiring `DB_*`).
+
+---
+
 ## [4.0.0-alpha.2] - 2026-11-06
 
 Second pre-release of the 4.0.0 line; the only change since `4.0.0-alpha.1` is the Docker base image. Published as a prerelease image tag, never `:latest`.

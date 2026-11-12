@@ -148,7 +148,7 @@ Workflows live in `.github/workflows/`; each has a status badge in the README.
 | `ci.yml` | push / PR to `main` | `npm audit`, type-check (app and scripts), ESLint, unit tests with the 80% coverage gate, integration tests against MySQL |
 | `codeql.yml` | push / PR to `main`, weekly | CodeQL static analysis (`security-extended`) of the TypeScript code; results in the Security tab |
 | `dependency-review.yml` | PRs touching a manifest or lockfile | Blocks new or bumped dependencies with a known vulnerability of moderate severity or higher |
-| `docker-security.yml` | Docker-related changes, weekly | Hadolint on the Dockerfile (errors fail, warnings are shown) and a Trivy scan of the built image (fixable HIGH / CRITICAL vulnerabilities fail) |
+| `docker-security.yml` | Docker-related changes, weekly | Hadolint on the Dockerfile (errors fail, warnings are shown) and a Trivy scan of the built image (fixable HIGH / CRITICAL vulnerabilities fail; `.trivyignore` lists a few expiring exceptions for the npm CLI bundled in the Node image) |
 | `secret-scan.yml` | push / PR to `main` | Gitleaks over the whole git history; `.gitleaks.toml` allowlists the fake secrets in `__tests__/` |
 | `actionlint.yml` | changes to workflow files | Lints the workflow files |
 | `pr-title.yml` | PRs | The title must be a conventional commit subject (`feat:`, `fix(scope):`, `build(deps):`, …) |

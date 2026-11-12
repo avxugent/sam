@@ -1,0 +1,14 @@
+# Findings in the npm CLI that ships inside the node base image
+# (/usr/local/lib/node_modules/npm), not in SAM's own dependencies: the app runs
+# `node server.js`, and `npx prisma ...` resolves a local binary without a registry
+# fetch. They are fixed by a Node image that bundles a newer npm. The entries expire
+# so this list is looked at again instead of growing silently: when one lapses the
+# scan fails until the base image is bumped or the entry is renewed on purpose.
+# brace-expansion 5.0.9
+CVE-2026-102276 exp:2026-12-15
+CVE-2026-102278 exp:2026-12-15
+# undici 6.28.0
+CVE-2026-109383 exp:2026-12-15
+CVE-2026-109869 exp:2026-12-15
+CVE-2026-19534 exp:2026-12-15
+CVE-2026-87018 exp:2026-12-15

@@ -6,6 +6,7 @@ on:
     paths:
       - Dockerfile
       - .dockerignore
+      - .trivyignore
       - package.json
       - package-lock.json
       - scripts/package.json
@@ -16,6 +17,7 @@ on:
     paths:
       - Dockerfile
       - .dockerignore
+      - .trivyignore
       - package.json
       - package-lock.json
       - scripts/package.json
@@ -85,6 +87,7 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "1"
+          trivyignores: .trivyignore
 
       # Results for the Security tab; PR tokens may be read-only, so main and the schedule only.
       - name: Scan image (SARIF)
@@ -97,6 +100,7 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "0"
+          trivyignores: .trivyignore
           skip-setup-trivy: true
 
       - name: Upload SARIF to code scanning

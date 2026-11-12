@@ -19,7 +19,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- **Node.js 24 → 26**: `.nvmrc` (`26.12.0`), the Docker base image (`node:26.12.0-alpine`) and both CI jobs. `engines` is unchanged (`>=22.12.0`).
+- **Node.js 24 → 26**: `.nvmrc` (`26.13.1`), the Docker base image (`node:26.12.0-alpine`) and both CI jobs. `engines` is unchanged (`>=22.12.0`).
 
 ---
 

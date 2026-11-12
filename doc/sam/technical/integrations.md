@@ -361,6 +361,22 @@ If JIRA is unavailable, the work log entry displays normally without the badge �
 
 ---
 
+## MCP (AI assistants)
+
+SAM exposes a read-only [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp`, so an AI assistant can answer questions such as "what is in room X" or "where do we have model Y".
+
+1. Each user creates a key under **Settings → Profile → API keys** (name, optional expiry up to 365 days). The key (`sam_mcp_…`) is shown once.
+2. Point the client at the endpoint with the key as a Bearer token, e.g. Claude Code:
+
+```bash
+claude mcp add --transport http sam https://sam.example.org/api/mcp \
+  --header "Authorization: Bearer sam_mcp_…"
+```
+
+A key acts as its owner and can only read. It never returns the Vault path, notes, invoice data or user references. Keys are stored as SHA-256 hashes; creating and revoking them is written to the audit log. Revoke a key to cut a client off immediately; deleting the user removes their keys.
+
+---
+
 ## S3 Storage
 
 By default, attachments are stored on the local filesystem (`UPLOAD_DIR`). To use S3 or an S3-compatible service:

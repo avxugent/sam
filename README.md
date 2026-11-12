@@ -13,6 +13,7 @@ A modern, self-hosted web application for managing AV hardware assets across phy
 - **Map & Address** — geocode locations with OpenStreetMap (no API key required)
 - **CSV import** — bulk-import from legacy spreadsheet exports
 - **Roles** — Admin / Editor / Viewer
+- **MCP server** — read-only `/api/mcp` endpoint for AI assistants, with per-user API keys
 - **SSO** — Microsoft Entra ID (Azure AD) via OAuth2, alongside local credentials
 - **Docker** — multi-stage production image, full `docker-compose.yml`
 

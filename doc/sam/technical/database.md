@@ -85,6 +85,23 @@ SSO users have `passwordHash = null`. The Credentials provider rejects them. Pas
 
 ---
 
+### ApiKey
+
+Per-user key for the MCP endpoint (`/api/mcp`). Only a hash of the key is stored.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string (cuid) | Primary key |
+| `userId` | string | FK to User (`onDelete: Cascade`) |
+| `label` | string | Owner-chosen name |
+| `keyPrefix` | string | First 12 characters of the key, to tell keys apart |
+| `keyHash` | string (unique) | SHA-256 hex of the full key |
+| `createdAt` | DateTime | |
+| `lastUsedAt` | DateTime? | Refreshed at most once a minute |
+| `expiresAt` | DateTime? | `null` = never expires |
+
+---
+
 ### Passkey
 
 WebAuthn credential — an alternative second factor to TOTP. Hand-rolled with `@simplewebauthn/server`; not a NextAuth Adapter table.

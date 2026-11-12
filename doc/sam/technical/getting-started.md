@@ -9,8 +9,8 @@ sync_to_confluence: true
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | 24 (LTS) | Pinned via `.nvmrc` — run `nvm use` |
-| npm | bundled with Node 24 | |
+| Node.js | 26 | Pinned via `.nvmrc` — run `nvm use` |
+| npm | bundled with Node 26 | |
 | Docker | any recent | For local MySQL |
 | Git | any | |
 
@@ -23,7 +23,7 @@ sync_to_confluence: true
 ```bash
 git clone <repo-url>
 cd SAMproject
-nvm use          # switches to Node 24 per .nvmrc
+nvm use          # switches to Node 26 per .nvmrc
 npm install
 ```
 

@@ -16,6 +16,7 @@ export type AuditAction =
 
 /** What an audit entry is about; the asset history and audit log UI branch on these. */
 export type AuditEntityType =
+  | "ApiKey"
   | "Asset"
   | "AssetType"
   | "AssetTypeManufacturerTemplate"

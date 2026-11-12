@@ -14,7 +14,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 |---|---|---|
 | Framework | next | 16.4 |
 | Language | typescript | ~5.9 |
-| Runtime | node | 24 LTS |
+| Runtime | node | 26 |
 | React | react | 19.3 |
 | ORM | @prisma/client | 7.10 |
 | Auth | next-auth | 5.0.0-beta.32 |
@@ -118,7 +118,8 @@ lib/               — shared code; modules importing next/server are route-hand
   reports/         — report engine + definition types
   schemas/         — Zod schemas shared by API routes and forms (asset, supplier, work-log, report, …), and ids.ts (idSchema / MAX_ID_LENGTH for every body or query id); no DB code
   suppliers/       — default-window rules and conflict lookup
-  tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), session-or-token, session-or-export token
+  tokens/          — constant-time Bearer check, integration token (Prometheus/Grafana), session-or-token, session-or-export token, api-key.ts (per-user API keys for /api/mcp: generate, hash, apiKeyUser)
+  mcp/             — read-only MCP server for /api/mcp: tools.ts (registerTools, every tool read-only) and format.ts (slim DTOs that leave out Vault paths, notes, invoice data)
   two-factor/      — TOTP, WebAuthn passkeys, remember-device cookie, enrollment policy, sign-in steps, signing key (NEXTAUTH_SECRET, fails closed)
   stock/, work-logs/ — each only an include.ts: the relations a stock item row / a work-log entry is returned with
 components/
@@ -161,7 +162,7 @@ prisma/
 - **Roles**: `ADMIN > MAINTAINER > EDITOR > VIEWER` (Prisma `Role` enum; `session.user.role` is typed as `Role`). Viewers cannot write. Editors write inventory data (locations, assets, stock, work logs, reports). Maintainers additionally manage the catalog (manufacturers, models, suppliers). Admins can do everything, including users, asset types, settings, import/export and audit. Check roles only through the predicates in `lib/permissions.ts` (`isAdmin`, `canManageCatalog`, `canEdit`) — never compare role strings inline.
 - Every API route handler performs its own auth check — do not rely solely on `proxy.ts`. The proxy is a redirect guard, not an authorization boundary.
 - `auth()` from `lib/auth.ts` returns null for a session that still owes a login step (forced password change, 2FA setup, 2FA code; a remembered device waives the code), so every route and page sees only fully signed-in users. Only `proxy.ts` and the routes and pages that complete those steps (`/api/auth/2fa/*`, `/api/auth/passkey/*` registration/authentication, `/api/users/me`, `/login/2fa`) read the session with `authIncludingPendingSteps()`, and narrow it with `signInIncompleteResponse(session, allowedSteps)`. Never export or use NextAuth's raw `auth` elsewhere.
-- The Prometheus and Grafana endpoints (`/api/prometheus/*`, `/api/grafana/*`) use Bearer token auth (`PROMETHEUS_SD_TOKEN`), not session cookies, and `/api/assets/by-hostname` accepts either. They are exempted from the proxy session redirect, as are `/api/export/*` (admin session or `EXPORT_TOKEN`, via `adminSessionOrExportToken(req)` in `lib/tokens/session-or-export.ts`) and the public `/api/branding/*` assets (logo, favicon, background, shown on the login page); the exempt handlers authenticate themselves and reject a session that still owes a login step (`signInIncompleteResponse`) (`integrationTokenResponse(req)` from `lib/tokens/integration.ts`; `sessionOrIntegrationTokenResponse(req, sessionAllowed)` from `lib/tokens/session-or-integration.ts` where a session is also accepted).
+- The Prometheus and Grafana endpoints (`/api/prometheus/*`, `/api/grafana/*`) use Bearer token auth (`PROMETHEUS_SD_TOKEN`), not session cookies, and `/api/assets/by-hostname` accepts either. They are exempted from the proxy session redirect, as are `/api/mcp` (per-user API key via `apiKeyUser(req)` in `lib/tokens/api-key.ts`; read-only tools only — any write tool needs role checks and `logAudit`), `/api/export/*` (admin session or `EXPORT_TOKEN`, via `adminSessionOrExportToken(req)` in `lib/tokens/session-or-export.ts`) and the public `/api/branding/*` assets (logo, favicon, background, shown on the login page); the exempt handlers authenticate themselves and reject a session that still owes a login step (`signInIncompleteResponse`) (`integrationTokenResponse(req)` from `lib/tokens/integration.ts`; `sessionOrIntegrationTokenResponse(req, sessionAllowed)` from `lib/tokens/session-or-integration.ts` where a session is also accepted).
 
 ---
 
@@ -300,7 +301,7 @@ npm run test:integration # opt-in: raw SQL against a real MySQL (DB_* env), see 
 
 > **Always run `npm test` after making any code change** and confirm the output shows no failures before considering the task complete. A passing test run is the minimum bar — never leave tests broken.
 
-The project requires **Node 24** (pinned via `.nvmrc`). If `npm test` fails with `ERR_REQUIRE_ESM` from `html-encoding-sniffer`, you are on the wrong Node version. Run `nvm use` in the project root to switch automatically.
+The project requires **Node 26** (pinned via `.nvmrc`). If `npm test` fails with `ERR_REQUIRE_ESM` from `html-encoding-sniffer`, you are on the wrong Node version. Run `nvm use` in the project root to switch automatically.
 
 ### Coverage requirement — **80% minimum**
 
@@ -359,5 +360,5 @@ The Vitest config is at `vitest.config.mts` and setup file is `vitest.setup.mts`
 11. **Do not rename `vitest.config.mts` to `vitest.config.js`** — `.mts` and `.ts` are both valid in this ESM project, but `.js` would drop type safety.
 12. **Do not downgrade jsdom below v29 or Node below 22.12.** jsdom v29 requires Node 22.12+ stable `require(esm)` support — on older Node versions tests will fail with `ERR_REQUIRE_ESM` from `html-encoding-sniffer`.
 13. **Always run `npm test` after every code change** — confirm zero failures before moving on. Run `npm run test:coverage` before pushing to also enforce the 80% threshold.
-14. **Run tests with Node 24** — use `nvm use` in the project root (`.nvmrc` pins the version). Tests fail with `ERR_REQUIRE_ESM` on Node 20 or below due to jsdom v29's ESM requirement.
+14. **Run tests with Node 26** — use `nvm use` in the project root (`.nvmrc` pins the version). Tests fail with `ERR_REQUIRE_ESM` on Node 20 or below due to jsdom v29's ESM requirement.
 15. **Keep documentation in sync** — the `doc/` folder contains source documentation published to Confluence. When making changes that affect architecture, API routes, database schema, configuration, authentication, deployment, or integrations, update the relevant file(s) in `doc/sam/` as part of the same task. Do not leave docs describing behaviour that no longer exists.

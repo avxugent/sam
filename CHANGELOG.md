@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Read-only MCP server** at `POST /api/mcp` (Model Context Protocol, stateless Streamable HTTP) so AI assistants can query the inventory: location tree, assets per location, assets per model, asset lookup by hostname / serial / MAC, stock per location, and catalog lookups. Authenticated with **per-user API keys** (Settings → Profile → API keys; stored as SHA-256 hashes, shown once, optional expiry, revocable, audited). New table `api_keys` (migration `20261112120000_add_api_keys`), new dependency `@modelcontextprotocol/sdk`. Vault paths, notes and invoice data are never returned.
+
+### Changed
+
+- **Node.js 24 → 26**: `.nvmrc` (`26.12.0`), the Docker base image (`node:26.12.0-alpine`) and both CI jobs. `engines` is unchanged (`>=22.12.0`).
+
+---
+
 ## [4.0.0] - 2026-11-09
 
 First stable release of the 4.0.0 line. It is `4.0.0-alpha.2` promoted unchanged: the alphas were tested on the dev server with no issues found, and nothing shipped changed since (only repository tooling files). Published as `:4.0.0` and `:latest`.

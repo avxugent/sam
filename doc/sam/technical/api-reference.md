@@ -187,6 +187,9 @@ Deploy body: `{ locationId: string }`. Carries metadata (MAC, hostname, custom f
 | `DELETE` | `/api/users/[id]` | ADMIN | Delete user. `404` if unknown; `400` for your own account or the last admin |
 | `GET` | `/api/users/me` | VIEWER | Current user's profile (also reachable while a forced password change is pending) |
 | `PUT` | `/api/users/me` | VIEWER | Update own name, password (`currentPassword` required; not for SSO accounts), theme or default location tab |
+| `GET` | `/api/users/me/api-keys` | VIEWER | Own API keys (label, prefix, created / last used / expires; never the key) |
+| `POST` | `/api/users/me/api-keys` | VIEWER | Create an API key. Body `{ label, expiresInDays? (1–365) }`; the plaintext key is in the `201` response only. `409` (`tooManyApiKeys`) at 20 keys |
+| `DELETE` | `/api/users/me/api-keys/[id]` | VIEWER | Revoke own key (`404` for anyone else's) |
 | `GET` | `/api/users/lite` | EDITOR | Minimal `{id, name}` list (asset form owner dropdown) |
 | `GET` | `/api/users/export` | ADMIN | Access-review CSV (name, email, role, provider, 2FA status, last login). Session only — no token access |
 
@@ -300,6 +303,16 @@ Actions recorded: `CREATE`, `UPDATE`, `DELETE`, `IMPORT`, `EXPORT`, plus authent
 | `GET` | `/api/reports/[id]/export` | VIEWER | Export report results as CSV. Decommissioned assets are excluded by default unless the report's own filters explicitly target `status`. Contains every matching row (the on-screen result is capped at 5,000) |
 
 Reports are run on the report page itself (a server component); there is no separate run endpoint.
+
+---
+
+## MCP
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/mcp` | Bearer API key (any role) | Read-only Model Context Protocol server (JSON-RPC over stateless Streamable HTTP). `401` for a missing, unknown, expired or revoked key; `429` above 120 requests per minute per key. `GET` / `DELETE` return `405` |
+
+Tools (all read-only): `get_location_tree`, `find_locations`, `get_location`, `list_assets_by_location`, `list_stock_by_location`, `list_models`, `list_assets_by_model`, `find_asset`, `get_asset`, `list_asset_types`, `list_manufacturers`. List tools take `limit` (max 200, default 50) and `offset` and return `{ total, limit, offset, hasMore, items }`. See [Integrations](integrations.md#mcp-ai-assistants).
 
 ---
 

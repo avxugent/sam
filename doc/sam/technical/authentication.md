@@ -143,13 +143,19 @@ Role hierarchy for permission checks: `ADMIN > MAINTAINER > EDITOR > VIEWER`. Co
 
 ---
 
+## API keys (MCP)
+
+`/api/mcp` authenticates with a per-user API key (`Authorization: Bearer sam_mcp_…`), not a session. Keys are created, listed and revoked by their owner through `/api/users/me/api-keys` (fully signed-in session required, so forced 2FA still applies to creating one). Only the SHA-256 of a key is stored; the plaintext is shown once. A key is rejected once revoked or expired and acts read-only; `lastUsedAt` is refreshed at most once a minute. Helper: `lib/tokens/api-key.ts`.
+
+---
+
 ## Route Guard (`proxy.ts`)
 
 All authenticated routes are guarded by `proxy.ts` at the project root (Next.js 16 replaces `middleware.ts` with `proxy.ts`).
 
 The proxy:
 1. Allows public routes: `/login`, `/api/auth/*`, `/api/setup`, `/setup`
-2. Lets token-authenticated endpoints through to their handlers: `/api/prometheus/*`, `/api/grafana/*`, `/api/assets/by-hostname`, `/api/export/*` and the public `/api/branding/*` assets
+2. Lets token-authenticated endpoints through to their handlers: `/api/prometheus/*`, `/api/grafana/*`, `/api/assets/by-hostname`, `/api/export/*`, `/api/mcp` (API key) and the public `/api/branding/*` assets
 3. Redirects unauthenticated requests to `/login`
 4. Redirects to `/login/change-password` when `mustChangePassword = true`
 5. Redirects to `/login/setup-2fa` when `twoFactorRequired = true` and 2FA not yet configured

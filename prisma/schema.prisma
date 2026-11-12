@@ -62,6 +62,7 @@ model User {
   attachments Attachment[]
   workLogs    WorkLog[]    @relation("WorkLogPerformer")
   passkeys    Passkey[]
+  apiKeys     ApiKey[]
 
   @@map("users")
 }
@@ -86,6 +87,24 @@ model Passkey {
 
   @@index([userId])
   @@map("passkeys")
+}
+
+// Per-user API key for the MCP endpoint (/api/mcp). Only the SHA-256 of the key
+// is stored; the plaintext is shown once at creation. Acts as its owner.
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  label      String
+  keyPrefix  String // first characters of the key, so the owner can tell keys apart
+  keyHash    String    @unique // SHA-256 hex of the full key
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+
+  @@index([userId])
+  @@map("api_keys")
 }
 
 model Location {

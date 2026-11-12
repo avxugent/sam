@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ProfileClient } from "@/components/settings/profile-client";
+import { ApiKeysSettings } from "@/components/settings/api-keys-settings";
 import { parseAuthProvider } from "@/lib/users/providers";
 
 export default async function ProfilePage() {
@@ -19,6 +20,11 @@ export default async function ProfilePage() {
     },
   });
   if (!user) redirect("/login");
+  const apiKeys = await prisma.apiKey.findMany({
+    where: { userId: session.user.id },
+    select: { id: true, label: true, keyPrefix: true, createdAt: true, lastUsedAt: true, expiresAt: true },
+    orderBy: { createdAt: "desc" },
+  });
   const t = await getTranslations("settings");
 
   return (
@@ -33,6 +39,16 @@ export default async function ProfilePage() {
         provider={parseAuthProvider(user.provider)}
         locationDefaultTab={user.locationDefaultTab}
       />
+      <div className="mt-6 max-w-lg">
+        <ApiKeysSettings
+          keys={apiKeys.map((k) => ({
+            ...k,
+            createdAt: k.createdAt.toISOString(),
+            lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
+            expiresAt: k.expiresAt?.toISOString() ?? null,
+          }))}
+        />
+      </div>
     </div>
   );
 }

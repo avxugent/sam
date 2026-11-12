@@ -34,6 +34,12 @@ export const proxy = authIncludingPendingSteps(async (req) => {
     return NextResponse.next();
   }
 
+  // The MCP endpoint authenticates with a per-user API key (Bearer); its
+  // handler returns 401 itself — a redirect would hand HTML to MCP clients.
+  if (pathname === "/api/mcp") {
+    return NextResponse.next();
+  }
+
   // Branding assets (logo, favicon) are public so they render on the login page
   // and in browser tabs without a session.
   if (pathname.startsWith("/api/branding/")) {

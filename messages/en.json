@@ -1001,7 +1001,32 @@
     "profilePageSubtitle": "Manage your display name and password.",
     "twoFactorPageTitle": "Two-Factor Authentication",
     "twoFactorPageSubtitle": "Secure your account with a time-based one-time password (TOTP) or a passkey.",
-    "profileSaved": "Profile saved"
+    "profileSaved": "Profile saved",
+    "apiKeys": {
+      "title": "API keys",
+      "subtitle": "Keys let an AI assistant read the inventory through the MCP endpoint ({endpoint}). A key can read everything you can see, and nothing more.",
+      "none": "You have no API keys.",
+      "create": "Create key",
+      "label": "Name",
+      "labelPlaceholder": "e.g. Claude Desktop",
+      "expiresInDays": "Expires after (days)",
+      "expiresHelp": "Leave empty for a key that never expires (maximum 365 days).",
+      "createdAt": "Created",
+      "lastUsed": "Last used",
+      "neverUsed": "never used",
+      "expires": "Expires",
+      "neverExpires": "never expires",
+      "expired": "expired",
+      "revoke": "Revoke",
+      "revokeConfirmTitle": "Revoke this key?",
+      "revokeConfirmDescription": "Clients using it lose access immediately. This cannot be undone.",
+      "newKeyTitle": "Copy your new key now",
+      "newKeyDescription": "It is shown only once and cannot be retrieved later.",
+      "copy": "Copy key",
+      "copied": "Copied",
+      "done": "Done",
+      "createFailed": "Could not create the key."
+    }
   },
   "report": {
     "title": "Reports",

@@ -13,6 +13,9 @@ export default defineConfig({
     // a worker share globals and module state: a Radix dialog left open by one file broke the next, and
     // which files shared a worker depended on the CPU count (CI hung where 8-core machines passed).
     pool: "forks",
+    // Node 25+ ships its own global localStorage, which is undefined without --localstorage-file and shadows
+    // jsdom's. Switching Node's off lets the jsdom one through (the flag exists since Node 22.4).
+    execArgv: ["--no-experimental-webstorage"],
     alias: {
       "@": path.resolve(__dirname, "."),
     },

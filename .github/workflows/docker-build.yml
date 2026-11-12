@@ -73,6 +73,7 @@ jobs:
       # connect to the DB during build — dummy values are sufficient.
       # NEXTAUTH_SECRET and NEXTAUTH_URL are required to avoid next-auth build errors.
       - name: Build and push Docker image
+        id: build-push
         uses: docker/build-push-action@v7
         with:
           context: .

@@ -1,0 +1,9 @@
+title = "SAM gitleaks config"
+
+[extend]
+useDefault = true
+
+# Tests set fake secrets (NEXTAUTH_SECRET = "test-secret-...") on purpose.
+[[allowlists]]
+description = "Test fixtures"
+paths = ['''^__tests__/''']

@@ -1,0 +1,36 @@
+name: Dependency review
+
+# Blocks a PR that adds or bumps a dependency to a version with a known
+# vulnerability (the lockfile diff, before it reaches main). `npm audit` in CI
+# covers what is already on main.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - package.json
+      - package-lock.json
+      - scripts/package.json
+      - scripts/package-lock.json
+      - .github/workflows/**
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # summary comment on failure
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v5.0.0
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: on-failure

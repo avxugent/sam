@@ -1,0 +1,9 @@
+name: SAM CodeQL config
+
+# Generated Prisma client and tests are not application code.
+paths-ignore:
+  - generated
+  - __tests__
+
+queries:
+  - uses: security-extended

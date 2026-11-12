@@ -136,3 +136,38 @@ npm run test:coverage    # fails build if below 80%
 ```
 
 See [Architecture](architecture.md) for test conventions.
+
+---
+
+## Continuous integration and security
+
+Workflows live in `.github/workflows/`; each has a status badge in the README.
+
+| Workflow | Runs on | What it checks |
+|---|---|---|
+| `ci.yml` | push / PR to `main` | `npm audit`, type-check (app and scripts), ESLint, unit tests with the 80% coverage gate, integration tests against MySQL |
+| `codeql.yml` | push / PR to `main`, weekly | CodeQL static analysis (`security-extended`) of the TypeScript code; results in the Security tab |
+| `dependency-review.yml` | PRs touching a manifest or lockfile | Blocks new or bumped dependencies with a known vulnerability of moderate severity or higher |
+| `docker-security.yml` | Docker-related changes, weekly | Hadolint on the Dockerfile (errors fail, warnings are shown) and a Trivy scan of the built image (fixable HIGH / CRITICAL vulnerabilities fail) |
+| `secret-scan.yml` | push / PR to `main` | Gitleaks over the whole git history; `.gitleaks.toml` allowlists the fake secrets in `__tests__/` |
+| `actionlint.yml` | changes to workflow files | Lints the workflow files |
+| `pr-title.yml` | PRs | The title must be a conventional commit subject (`feat:`, `fix(scope):`, `build(deps):`, …) |
+| `docker-build.yml` | release tags `v*.*.*`, manual | Builds and pushes the image to GHCR and Docker Hub |
+| `confluence-publish.yml` | changes to `doc/` | Publishes the documentation to Confluence |
+
+### Dependabot
+
+`.github/dependabot.yml` opens weekly (Monday) PRs for npm, GitHub Actions, the Docker base image and the `docker-compose` images:
+
+- npm: minor and patch updates arrive as one PR, majors one by one. `scripts/` is locked to the root lockfile's versions (`__tests__/scripts/manifest.test.ts`), so the packages both manifests share (`prisma`, `@prisma/*`, `zod`, `tsx`, `bcryptjs`, `node-html-parser`, `@aws-sdk/client-s3`) are bumped together in one PR across `/` and `/scripts`. If that test fails on a Dependabot PR, bring `scripts/package.json` and `scripts/package-lock.json` in line with the root lockfile.
+- Docker: Node and MySQL major versions are never proposed. A Node major is adopted by hand, in `.nvmrc`, `ci.yml` and the Dockerfile together.
+- PR titles follow the convention above (`build(deps): …`, `ci(deps): …`).
+
+### Running the checks locally
+
+```bash
+npx tsc --noEmit && npm run lint && npm run test:coverage   # what ci.yml runs
+gitleaks git . --redact                                    # secret scan (install gitleaks)
+actionlint                                                 # workflow lint (install actionlint)
+hadolint Dockerfile                                        # Dockerfile lint (install hadolint)
+```

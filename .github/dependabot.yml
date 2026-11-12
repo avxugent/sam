@@ -1,0 +1,84 @@
+version: 2
+
+updates:
+  # ── npm ────────────────────────────────────────────────────────────────────
+  # scripts/ is locked to the root lockfile's versions (__tests__/scripts/manifest.test.ts),
+  # so the packages both manifests share are bumped together, in one PR across both
+  # directories. Everything else: minor and patch updates in one weekly PR, majors one by one.
+  - package-ecosystem: npm
+    directories:
+      - "/"
+      - "/scripts"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Brussels
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      scripts-shared:
+        patterns:
+          - "@aws-sdk/client-s3"
+          - "@prisma/*"
+          - "prisma"
+          - "bcryptjs"
+          - "node-html-parser"
+          - "tsx"
+          - "zod"
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ── GitHub Actions ─────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Brussels
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # ── Docker base image ──────────────────────────────────────────────────────
+  # Node majors are adopted deliberately (.nvmrc, CI and the Dockerfile move together).
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Brussels
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+
+  # ── docker-compose images (MySQL) ──────────────────────────────────────────
+  # Major MySQL upgrades need a data migration plan, so they are never automatic.
+  - package-ecosystem: docker-compose
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Brussels
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      - dependency-name: mysql
+        update-types: ["version-update:semver-major"]

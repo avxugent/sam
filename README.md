@@ -2,6 +2,14 @@
 
 A modern, self-hosted web application for managing AV hardware assets across physical rooms and facilities.
 
+[![CI](https://github.com/avxugent/sam/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/avxugent/sam/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/avxugent/sam/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/avxugent/sam/actions/workflows/codeql.yml)
+[![Docker security](https://github.com/avxugent/sam/actions/workflows/docker-security.yml/badge.svg?branch=main)](https://github.com/avxugent/sam/actions/workflows/docker-security.yml)
+[![Secret scan](https://github.com/avxugent/sam/actions/workflows/secret-scan.yml/badge.svg?branch=main)](https://github.com/avxugent/sam/actions/workflows/secret-scan.yml)
+[![Lint workflows](https://github.com/avxugent/sam/actions/workflows/actionlint.yml/badge.svg?branch=main)](https://github.com/avxugent/sam/actions/workflows/actionlint.yml)
+[![Dependabot](https://img.shields.io/badge/dependabot-enabled-025e8c?logo=dependabot)](.github/dependabot.yml)
+[![Node.js 26](https://img.shields.io/badge/node-26-5fa04e?logo=nodedotjs&logoColor=white)](.nvmrc)
+
 ---
 
 ## Features

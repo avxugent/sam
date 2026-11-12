@@ -11,7 +11,7 @@ sync_to_confluence: true
 |---|---|---|
 | Framework | Next.js | 16.4.2 |
 | Language | TypeScript | ~5.9 |
-| Runtime | Node.js | 24 LTS |
+| Runtime | Node.js | 26 |
 | React | react | 19.3 |
 | ORM | Prisma | 7.10 |
 | Database | MySQL | 8.0 |

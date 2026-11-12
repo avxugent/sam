@@ -7,7 +7,7 @@ sync_to_confluence: true
 
 SAM ships a set of standalone Node.js scripts for administrative and maintenance tasks. They live in the `scripts/` directory and run directly against the database (bypassing the HTTP API), so they must be executed from the project root where the `.env` file is located.
 
-**Prerequisites:** Node 24 (`nvm use`), `.env` present and configured, `npm install` already run.
+**Prerequisites:** Node 26 (`nvm use`), `.env` present and configured, `npm install` already run.
 
 ---
 

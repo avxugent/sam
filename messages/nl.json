@@ -1001,7 +1001,32 @@
     "profilePageSubtitle": "Beheer uw weergavenaam en wachtwoord.",
     "twoFactorPageTitle": "Tweestapsverificatie",
     "twoFactorPageSubtitle": "Beveilig uw account met een tijdgebaseerd eenmalig wachtwoord (TOTP) of een passkey.",
-    "profileSaved": "Profiel opgeslagen"
+    "profileSaved": "Profiel opgeslagen",
+    "apiKeys": {
+      "title": "API-sleutels",
+      "subtitle": "Met een sleutel kan een AI-assistent de inventaris lezen via het MCP-eindpunt ({endpoint}). Een sleutel kan alles lezen wat jij kunt zien, niet meer.",
+      "none": "Je hebt geen API-sleutels.",
+      "create": "Sleutel aanmaken",
+      "label": "Naam",
+      "labelPlaceholder": "bv. Claude Desktop",
+      "expiresInDays": "Verloopt na (dagen)",
+      "expiresHelp": "Laat leeg voor een sleutel die nooit verloopt (maximaal 365 dagen).",
+      "createdAt": "Aangemaakt",
+      "lastUsed": "Laatst gebruikt",
+      "neverUsed": "nooit gebruikt",
+      "expires": "Verloopt",
+      "neverExpires": "verloopt nooit",
+      "expired": "verlopen",
+      "revoke": "Intrekken",
+      "revokeConfirmTitle": "Deze sleutel intrekken?",
+      "revokeConfirmDescription": "Clients die hem gebruiken verliezen meteen toegang. Dit kan niet ongedaan worden gemaakt.",
+      "newKeyTitle": "Kopieer je nieuwe sleutel nu",
+      "newKeyDescription": "Hij wordt maar één keer getoond en kan later niet meer worden opgehaald.",
+      "copy": "Sleutel kopiëren",
+      "copied": "Gekopieerd",
+      "done": "Klaar",
+      "createFailed": "De sleutel kon niet worden aangemaakt."
+    }
   },
   "report": {
     "title": "Rapporten",

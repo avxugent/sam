@@ -5,13 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [4.1.0] - 2026-11-12
+
+Adds a read-only MCP server so AI assistants can query the inventory, with per-user API keys; moves the project to Node 26; adds repository security scanning. Published as `:4.1.0` and `:latest`.
+
+Upgrading from 4.0.0:
+
+- Run the new migration `20261112120000_add_api_keys` (`npm run db:migrate:deploy`; the Nomad job does this before every deploy). It only creates the `api_keys` table.
+- The Docker base image is now `node:26.13.1-alpine`. No configuration changes are needed.
+- The MCP endpoint is off until a user creates an API key (Settings → Profile → API keys).
 
 ### Added
 
 - **Read-only MCP server** at `POST /api/mcp` (Model Context Protocol, stateless Streamable HTTP) so AI assistants can query the inventory: location tree, assets per location, assets per model, asset lookup by hostname / serial / MAC, stock per location, and catalog lookups. Authenticated with **per-user API keys** (Settings → Profile → API keys; stored as SHA-256 hashes, shown once, optional expiry, revocable, audited). New table `api_keys` (migration `20261112120000_add_api_keys`), new dependency `@modelcontextprotocol/sdk`. Vault paths, notes and invoice data are never returned.
-
-- **CI and repository security**: CodeQL, dependency review on PRs, Docker image scanning (Hadolint + Trivy), Gitleaks secret scanning, actionlint and a conventional-commit PR title check; Dependabot for npm (root and `scripts/`, with shared packages bumped together), GitHub Actions, the Docker base image and the compose images. README badges for each.
+- **CI and repository security**: CodeQL, dependency review on PRs, Docker image scanning (Hadolint + Trivy), Gitleaks secret scanning, actionlint and a conventional-commit PR title check; Dependabot for npm (root and `scripts/`, with shared packages bumped together), GitHub Actions, the Docker base image and the compose images. README badges for each. `.trivyignore` exempts 6 findings in the npm CLI bundled with the Node image until 2026-12-15; the image scan fails again after that unless a newer base image has fixed them.
 
 ### Fixed
 
@@ -19,7 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- **Node.js 24 → 26**: `.nvmrc` (`26.13.1`), the Docker base image (`node:26.12.0-alpine`) and both CI jobs. `engines` is unchanged (`>=22.12.0`).
+- **Node.js 24 → 26**: `.nvmrc` (`26.13.1`), the Docker base image (`node:26.13.1-alpine`) and both CI jobs. `engines` is unchanged (`>=22.12.0`).
 
 ---
 

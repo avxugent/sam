@@ -28,11 +28,11 @@ jobs:
     steps:
       # ── 1. Checkout ────────────────────────────────────────────────────────
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # ── 2. Set up Node.js ──────────────────────────────────────────────────
       - name: Set up Node.js 26
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: "npm"
@@ -121,10 +121,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Node.js 26
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: "npm"

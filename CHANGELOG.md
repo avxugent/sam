@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.1.1] - 2026-11-13
+
+Fixes the multi-arch Docker build, which failed for 4.1.0 on `linux/arm64`. No application changes, no migrations, no configuration changes. Published as `:4.1.1` and `:latest`.
+
+### Fixed
+
+- **Docker build on `linux/arm64`.** `prisma generate` ran under QEMU emulation, where Node 26's schema-validation WASM reported bogus P1012 errors on a valid schema. The Prisma client is now generated in a stage on the build host's own platform (`prisma-gen`) and copied into the builder; the output is platform-independent TypeScript.
+
+---
+
 ## [4.1.0] - 2026-11-12
 
 Adds a read-only MCP server so AI assistants can query the inventory, with per-user API keys; moves the project to Node 26; adds repository security scanning. Published as `:4.1.0` and `:latest`.

@@ -76,13 +76,14 @@ Visit the URL set in `NEXTAUTH_URL`. The setup wizard appears on first run.
 
 ## Dockerfile
 
-Four-stage multi-stage build:
+Five-stage multi-stage build:
 
 | Stage | Purpose |
 |---|---|
 | `deps` | Install all npm dependencies (dev + prod) for the build |
 | `scripts-deps` | Install `scripts/package.json` — only the maintenance scripts' dependencies, pinned to the root lockfile — into `scripts/node_modules`; also the source of the Prisma CLI (`prisma migrate deploy`) |
-| `builder` | Build the Next.js app (`next build`) and generate the Prisma client |
+| `prisma-gen` | Generate the Prisma client on the build host's native platform (`--platform=$BUILDPLATFORM`). The output is platform-independent TypeScript; generating it under QEMU emulation (the arm64 leg of the multi-arch CI build) fails on Node 26 |
+| `builder` | Build the Next.js app (`next build`) with the client copied from `prisma-gen` |
 | `runner` | Final image — standalone output, `scripts/` with its `node_modules` plus copies of `lib/` and the generated Prisma client (the scripts import them), and the Prisma schema/config |
 
 The entrypoint is `node .next/standalone/server.js` (enabled by `output: "standalone"` in `next.config.ts`).

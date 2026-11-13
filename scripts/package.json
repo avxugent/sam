@@ -4,11 +4,11 @@
   "type": "module",
   "description": "Runtime dependencies of the maintenance scripts (and the shared lib/ code they import) in the production image. Versions match the root package-lock.json; __tests__/scripts/manifest.test.ts checks this.",
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1147.0",
+    "@aws-sdk/client-s3": "3.1165.0",
     "@prisma/adapter-mariadb": "7.10.1",
     "@prisma/client": "7.10.1",
     "bcryptjs": "3.0.3",
-    "node-html-parser": "9.0.4",
+    "node-html-parser": "9.0.7",
     "prisma": "7.10.1",
     "tsx": "4.23.15",
     "zod": "4.6.7"

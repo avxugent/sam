@@ -312,7 +312,7 @@ Reports are run on the report page itself (a server component); there is no sepa
 |---|---|---|---|
 | `POST` | `/api/mcp` | Bearer API key (any role) | Read-only Model Context Protocol server (JSON-RPC over stateless Streamable HTTP). `401` for a missing, unknown, expired or revoked key; `429` above 120 requests per minute per key. `GET` / `DELETE` return `405` |
 
-Tools (all read-only): `get_location_tree`, `find_locations`, `get_location`, `list_assets_by_location`, `list_stock_by_location`, `list_models`, `list_assets_by_model`, `find_asset`, `get_asset`, `list_asset_types`, `list_manufacturers`. List tools take `limit` (max 200, default 50) and `offset` and return `{ total, limit, offset, hasMore, items }`. See [Integrations](integrations.md#mcp-ai-assistants).
+Tools (all read-only): `get_location_tree`, `find_locations`, `get_location`, `list_assets_by_location`, `list_stock_by_location`, `list_models`, `list_assets_by_model`, `find_asset`, `get_asset`, `list_asset_types`, `list_manufacturers`. List tools take `limit` (max 200, default 50) and `offset` and return `{ total, limit, offset, hasMore, items }`. `list_assets_by_model` adds `totalUnits`, `locationCount` and a `byLocation` breakdown limited to the 50 locations with the most units (the totals always cover every location). See [Integrations](integrations.md#mcp-ai-assistants).
 
 ---
 

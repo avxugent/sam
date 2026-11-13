@@ -5,6 +5,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.1.2] - 2026-11-13
+
+A small MCP fix, MCP client setup documentation, dependency updates, and a CI fix for docs-only pull requests. No migrations and no configuration changes. Published as `:4.1.2` and `:latest`.
+
+### Changed
+
+- **MCP `list_assets_by_model`:** the per-location breakdown (`byLocation`) is now limited to the 50 locations with the most units and ordered by units, highest first (it used to list every location, ordered by name, whatever `limit` was, which could be hundreds of entries for a common model). `totalUnits` still covers every location, and the new `locationCount` gives the full number of locations.
+
+### Documentation
+
+- **MCP client setup** for Claude Code, Claude Desktop (via `mcp-remote`) and other agents, with the generic endpoint settings (`doc/sam/technical/integrations.md`).
+- Noted that MCP `get_asset` returns custom fields unfiltered, so secrets do not belong in custom fields.
+
+### Dependencies
+
+- Minor and patch updates, among them `next` 16.4.5, `react` and `react-dom` 19.3.1, the Radix UI packages, `lucide-react`, `react-hook-form` and `@simplewebauthn/server`; test tooling `msw` 3.0.4.
+
+### CI
+
+- Docs-only pull requests no longer hang on the required `Lint · Type-check · Test` check: the workflow always starts and skips the heavy jobs when only docs changed.
+
+---
+
 ## [4.1.1] - 2026-11-13
 
 Fixes the multi-arch Docker build, which failed for 4.1.0 on `linux/arm64`. No application changes, no migrations, no configuration changes. Published as `:4.1.1` and `:latest`.

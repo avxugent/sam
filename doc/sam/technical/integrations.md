@@ -365,15 +365,79 @@ If JIRA is unavailable, the work log entry displays normally without the badge �
 
 SAM exposes a read-only [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp`, so an AI assistant can answer questions such as "what is in room X" or "where do we have model Y".
 
-1. Each user creates a key under **Settings → Profile → API keys** (name, optional expiry up to 365 days). The key (`sam_mcp_…`) is shown once.
-2. Point the client at the endpoint with the key as a Bearer token, e.g. Claude Code:
+1. Each user creates a key under **Settings → Profile → API keys** (name, optional expiry up to 365 days). The key (`sam_mcp_…`) is shown once. Treat it like a password: a key that has been pasted into a chat, ticket or repository should be revoked and replaced.
+2. Point the client at the endpoint with the key as a Bearer token. The sections below cover Claude Code, Claude Desktop and other agents.
+
+In the examples, `https://sam.example.org` is your SAM base URL and `sam_mcp_…` is the key.
+
+### Claude Code
 
 ```bash
-claude mcp add --transport http sam https://sam.example.org/api/mcp \
+claude mcp add --scope user --transport http sam https://sam.example.org/api/mcp \
   --header "Authorization: Bearer sam_mcp_…"
 ```
 
+- `--scope user` makes the server available in every project. The default (`local`) applies only to the directory you ran the command in; `--scope project` writes a `.mcp.json` that is meant to be committed, so never put a literal key in it.
+- To keep the key out of shell history, export it first and let the shell expand it: `export SAM_MCP_KEY=sam_mcp_…`, then `--header "Authorization: Bearer $SAM_MCP_KEY"`. The expanded value is stored in your Claude config.
+- A shared `.mcp.json` can read the key from each user's environment instead of containing it:
+
+```json
+{
+  "mcpServers": {
+    "sam": {
+      "type": "http",
+      "url": "https://sam.example.org/api/mcp",
+      "headers": { "Authorization": "Bearer ${SAM_MCP_KEY}" }
+    }
+  }
+}
+```
+
+- Check it with `claude mcp list` (the server should show as connected) or `/mcp` inside a session. A server added or changed during a session loads on the next start (`claude --continue` resumes the conversation). After rotating a key, remove and re-add the server (`claude mcp remove sam -s user`), then reconnect with `/mcp`.
+
+### Claude Desktop
+
+Claude Desktop's config file starts local servers, so a remote server like SAM is reached through the [`mcp-remote`](https://github.com/geelen/mcp-remote) bridge, which runs on your machine and forwards to the endpoint with the header attached. It needs Node.js on that machine. Open **Settings → Developer → Edit Config** (`claude_desktop_config.json`; macOS: `~/Library/Application Support/Claude/`, Windows: `%APPDATA%\Claude\`) and add:
+
+```json
+{
+  "mcpServers": {
+    "sam": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://sam.example.org/api/mcp", "--header", "Authorization:${SAM_AUTH}"],
+      "env": { "SAM_AUTH": "Bearer sam_mcp_…" }
+    }
+  }
+}
+```
+
+The header value goes in `env` and is referenced as `${SAM_AUTH}` because Claude Desktop on Windows mishandles spaces inside `args`. Quit Claude Desktop completely (not just the window) and start it again; the config is only read at launch. If `sam` does not appear, run the same `npx -y mcp-remote …` command in a terminal to see the error that Claude Desktop hides.
+
+Recent Claude versions can also add a remote server under **Settings → Connectors → Add custom connector**, and Anthropic documents a *request header* field there for a fixed credential (enter `Bearer sam_mcp_…`, including the word `Bearer`). Whether that field is present depends on your version and plan, and custom connectors may be reached from Anthropic's infrastructure rather than from your machine, which would need an endpoint that is reachable from the internet (check Anthropic's [custom connector documentation](https://claude.com/docs/connectors/custom)). The `mcp-remote` entry above runs locally, so it also works for an instance that is only reachable inside your network.
+
+### Other AI agents and MCP clients
+
+Anything that speaks MCP over HTTP can use SAM:
+
+| Setting | Value |
+|---|---|
+| URL | `https://<your SAM host>/api/mcp` |
+| Transport | Streamable HTTP, stateless, JSON responses (no SSE stream, no sessions) |
+| Method | `POST` only (`GET` and `DELETE` return `405`) |
+| Authentication | Header `Authorization: Bearer sam_mcp_…`. There is no OAuth flow, and a browser session cookie is not accepted |
+| Request headers | `Content-Type: application/json` and `Accept: application/json, text/event-stream` |
+| Rate limit | 120 requests per minute per key; beyond that the server answers `429` with a `Retry-After` header |
+
+- Clients that take a JSON config usually want the same fields as the `.mcp.json` example above (`type`/`transport` `http` or `streamable-http`, `url`, `headers`); the key names differ per client, so check its documentation.
+- A client that can only start local (stdio) servers can use the same bridge as Claude Desktop: `npx -y mcp-remote https://sam.example.org/api/mcp --header "Authorization:Bearer sam_mcp_…"`.
+- To test a key without a client, list the tools with curl: `curl -s -X POST https://sam.example.org/api/mcp -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -H "Authorization: Bearer sam_mcp_…" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'` should return the eleven tools.
+- Error meanings: `401` is a missing, wrong, revoked or expired key (or the proxy stripped the `Authorization` header); `405` means the client used `GET`; `429` is the rate limit.
+
+### What a key can do
+
 A key acts as its owner and can only read. It never returns the Vault path, notes, invoice data or user references. Keys are stored as SHA-256 hashes; creating and revoking them is written to the audit log. Revoke a key to cut a client off immediately; deleting the user removes their keys.
+
+**Custom fields are returned.** `get_asset` includes an asset's custom fields (every key and value) in its response. Unlike the Vault path, notes and invoice data, they are free-form and are not filtered, so anything typed into a custom field is visible to every key holder, whatever their role (a viewer can see the same fields in the UI). Keep credentials, licence keys and other secrets out of custom fields.
 
 ---
 

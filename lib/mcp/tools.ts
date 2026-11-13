@@ -11,6 +11,8 @@ import { assetDetail, assetSummary, errorResult, jsonResult, stockSummary } from
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
+/** Locations listed in list_assets_by_model's breakdown; the full count and total units are still reported. */
+const BY_LOCATION_MAX = 50;
 
 const pageShape = {
   limit: z.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT).describe("Page size (max 200)"),
@@ -246,7 +248,7 @@ export function registerTools(server: McpServer): void {
     "list_assets_by_model",
     {
       description:
-        "Assets of one model across all locations, with the total number of units and a per-location breakdown.",
+        `Assets of one model across all locations, with the total number of units and a per-location breakdown (the ${BY_LOCATION_MAX} locations with the most units; locationCount is the full number of locations).`,
       inputSchema: { modelId: idSchema, status: statusSchema, ...pageShape },
       annotations: readOnly,
     },
@@ -268,18 +270,25 @@ export function registerTools(server: McpServer): void {
         prisma.asset.count({ where }),
         prisma.asset.groupBy({ by: ["locationId"], where, _sum: { quantity: true } }),
       ]);
+      const unitsOf = (p: (typeof perLocation)[number]) => p._sum.quantity ?? 0;
+      const topLocations = [...perLocation]
+        .sort((a, b) => unitsOf(b) - unitsOf(a) || a.locationId.localeCompare(b.locationId))
+        .slice(0, BY_LOCATION_MAX);
       const locations = await prisma.location.findMany({
-        where: { id: { in: perLocation.map((p) => p.locationId) } },
+        where: { id: { in: topLocations.map((p) => p.locationId) } },
         select: { id: true, name: true },
       });
       const nameById = new Map(locations.map((l) => [l.id, l.name]));
-      const byLocation = perLocation
-        .map((p) => ({ locationId: p.locationId, location: nameById.get(p.locationId) ?? null, units: p._sum.quantity ?? 0 }))
-        .sort((a, b) => (a.location ?? "").localeCompare(b.location ?? ""));
+      const byLocation = topLocations.map((p) => ({
+        locationId: p.locationId,
+        location: nameById.get(p.locationId) ?? null,
+        units: unitsOf(p),
+      }));
       const items = assets.map(assetSummary);
       return jsonResult({
         model: { id: model.id, name: model.name, manufacturer: model.manufacturer?.name ?? null, type: model.type.name },
-        totalUnits: byLocation.reduce((sum, l) => sum + l.units, 0),
+        totalUnits: perLocation.reduce((sum, p) => sum + unitsOf(p), 0),
+        locationCount: perLocation.length,
         byLocation,
         total,
         limit,

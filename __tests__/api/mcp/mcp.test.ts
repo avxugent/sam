@@ -207,10 +207,28 @@ describe("tools", () => {
 
     const { data } = await callTool("list_assets_by_model", { modelId: "m1" });
     expect(data).toMatchObject({ totalUnits: 3, total: 3, model: { name: "Cam X", manufacturer: "Acme" } });
-    expect(data.byLocation.map((l: { location: string }) => l.location)).toEqual(["A room", "B room"]);
+    expect(data.locationCount).toBe(2);
+    expect(data.byLocation.map((l: { location: string }) => l.location)).toEqual(["B room", "A room"]);
 
     vi.mocked(prisma.model.findUnique).mockResolvedValue(null as never);
     expect((await callTool("list_assets_by_model", { modelId: "nope" })).isError).toBe(true);
+  });
+
+  it("list_assets_by_model caps the breakdown but still totals every location", async () => {
+    vi.mocked(prisma.model.findUnique).mockResolvedValue({ id: "m1", name: "Cam X", manufacturer: null, type: { name: "Camera" } } as never);
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.asset.count).mockResolvedValue(0 as never);
+    const rows = Array.from({ length: 80 }, (_, i) => ({ locationId: `l${String(i).padStart(2, "0")}`, _sum: { quantity: i === 79 ? 5 : 1 } }));
+    vi.mocked(prisma.asset.groupBy).mockResolvedValue(rows as never);
+    vi.mocked(prisma.location.findMany).mockResolvedValue([] as never);
+
+    const { data } = await callTool("list_assets_by_model", { modelId: "m1", limit: 1 });
+    expect(data.byLocation).toHaveLength(50);
+    expect(data.byLocation[0]).toMatchObject({ locationId: "l79", units: 5 });
+    expect(data.locationCount).toBe(80);
+    expect(data.totalUnits).toBe(84);
+    expect(vi.mocked(prisma.location.findMany).mock.calls.at(-1)![0]!.where).toEqual({ id: { in: expect.any(Array) } });
+    expect((vi.mocked(prisma.location.findMany).mock.calls.at(-1)![0]!.where as { id: { in: string[] } }).id.in).toHaveLength(50);
   });
 
   it("find_asset matches hostname, serial and a normalised MAC address", async () => {

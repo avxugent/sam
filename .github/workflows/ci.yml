@@ -10,19 +10,55 @@ on:
       - "**.md"
       - "markdown-confluence-sync.config.cjs"
       - ".github/workflows/confluence-publish.yml"
+  # No paths-ignore here: the ruleset requires the "Lint · Type-check · Test"
+  # check, and a workflow that never starts leaves a docs-only PR waiting on it
+  # forever. The `changes` job below skips the real jobs instead (a job skipped
+  # by a condition counts as passing for a required check).
   pull_request:
     branches:
       - main
       - master
-    paths-ignore:
-      - "doc/**"
-      - "**.md"
-      - "markdown-confluence-sync.config.cjs"
-      - ".github/workflows/confluence-publish.yml"
 
 jobs:
+  # Docs-only PRs skip the jobs below. Keep this pattern in sync with the
+  # paths-ignore list under `push`.
+  changes:
+    name: Detect code changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Any change outside docs?
+        id: filter
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # push events are already filtered by paths-ignore: always run
+          if [ -z "$BASE_SHA" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --name-only "$BASE_SHA...$HEAD_SHA" > changed.txt
+          cat changed.txt
+          # `|| true`: grep exits 1 when every file is a docs file
+          grep -vE '^(doc/|.*\.md$|markdown-confluence-sync\.config\.cjs$|\.github/workflows/confluence-publish\.yml$)' changed.txt > code-files.txt || true
+          if [ -s code-files.txt ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+            echo "Docs-only change: skipping lint, type-check and tests."
+          fi
+
   ci:
     name: Lint · Type-check · Test
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -91,6 +127,8 @@ jobs:
 
   integration:
     name: Integration tests (MySQL)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
 
     services:

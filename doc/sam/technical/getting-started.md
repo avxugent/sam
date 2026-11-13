@@ -145,7 +145,7 @@ Workflows live in `.github/workflows/`; each has a status badge in the README.
 
 | Workflow | Runs on | What it checks |
 |---|---|---|
-| `ci.yml` | push / PR to `main` | `npm audit`, type-check (app and scripts), ESLint, unit tests with the 80% coverage gate, integration tests against MySQL |
+| `ci.yml` | push / PR to `main` | `npm audit`, type-check (app and scripts), ESLint, unit tests with the 80% coverage gate, integration tests against MySQL. A PR that only changes docs skips these jobs, which still report as passed so the required `Lint · Type-check · Test` check does not block the merge |
 | `codeql.yml` | push / PR to `main`, weekly | CodeQL static analysis (`security-extended`) of the TypeScript code; results in the Security tab |
 | `dependency-review.yml` | PRs touching a manifest or lockfile | Blocks new or bumped dependencies with a known vulnerability of moderate severity or higher |
 | `docker-security.yml` | Docker-related changes, weekly | Hadolint on the Dockerfile (errors fail, warnings are shown) and a Trivy scan of the built image (fixable HIGH / CRITICAL vulnerabilities fail; `.trivyignore` lists a few expiring exceptions for the npm CLI bundled in the Node image) |

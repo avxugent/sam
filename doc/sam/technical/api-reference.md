@@ -54,6 +54,7 @@ Key validated fields:
 - `macAddresses` — array of MAC address strings
 - `customFields` — array of `{ key, value }` objects
 - `installationDate` — ISO date string
+- `firmwareVersion` — optional free text, max 100 characters; `null` or empty clears it. Changes are written to the asset history
 - `ownerId` — soft user reference. When absent on create, the `assets.defaultOwnerId` setting is applied; explicit `null` stays empty
 - `criticality` — `LOW | MEDIUM | HIGH | CRITICAL` or `null` (inherit the type's `defaultCriticality`)
 - `endOfSupportDate` — ISO date string

@@ -129,7 +129,7 @@ export function ReportViewer({ reportId, reportName, columns, result, canEdit, g
                           </td>
                         );
                       }
-                      if ((col === "serialNumber" || col === "hostname") && val) {
+                      if ((col === "serialNumber" || col === "firmwareVersion" || col === "hostname") && val) {
                         return (
                           <td key={col} className="px-4 py-[10px] font-mono text-[11.5px] text-muted-foreground">
                             {val}

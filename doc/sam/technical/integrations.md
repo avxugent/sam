@@ -437,6 +437,8 @@ Anything that speaks MCP over HTTP can use SAM:
 
 A key acts as its owner and can only read. It never returns the Vault path, notes, invoice data or user references. Keys are stored as SHA-256 hashes; creating and revoking them is written to the audit log. Revoke a key to cut a client off immediately; deleting the user removes their keys.
 
+**Firmware version is returned.** `get_asset` includes the asset's `firmwareVersion` (it is not sensitive).
+
 **Custom fields are returned.** `get_asset` includes an asset's custom fields (every key and value) in its response. Unlike the Vault path, notes and invoice data, they are free-form and are not filtered, so anything typed into a custom field is visible to every key holder, whatever their role (a viewer can see the same fields in the UI). Keep credentials, licence keys and other secrets out of custom fields.
 
 ---

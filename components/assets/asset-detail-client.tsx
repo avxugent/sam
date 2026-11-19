@@ -345,6 +345,7 @@ export function AssetDetailClient({
                 </FieldValue>
               </div>
               <div><FieldLabel>{tField("serialNumber")}</FieldLabel><FieldValue value={asset.serialNumber} mono /></div>
+              <div><FieldLabel>{tField("firmwareVersion")}</FieldLabel><FieldValue value={asset.firmwareVersion} mono /></div>
               {asset.quantity !== 1 && (
                 <div><FieldLabel>{tField("quantity")}</FieldLabel><FieldValue value={String(asset.quantity)} /></div>
               )}

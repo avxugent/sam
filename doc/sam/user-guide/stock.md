@@ -46,7 +46,7 @@ Deploying creates a new installed asset at a target location and removes the ite
 4. If the item is a bulk item (quantity > 1), set how many units to deploy and optionally enter serial numbers for each unit.
 5. Click **Deploy**.
 
-SAM creates one asset per deployed unit at the target location. Any metadata stored on the stock item (hostname, MAC addresses, custom fields) is carried over to the new asset.
+SAM creates one asset per deployed unit at the target location. Any metadata stored on the stock item (hostname, MAC addresses, custom fields, firmware version) is carried over to the new asset.
 
 > Requires Editor or Admin role.
 

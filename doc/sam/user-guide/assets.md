@@ -15,6 +15,7 @@ The asset detail page shows:
 - Type, manufacturer, model, serial number
 - Hostname and MAC addresses
 - Installation date, invoice number and date, warranty months
+- Firmware version (if recorded)
 - Notes
 - Custom fields (defined per asset type)
 - Vault credentials path (if configured)

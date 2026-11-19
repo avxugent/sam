@@ -15,6 +15,7 @@ export type ReportRow = {
   id: string;
   model: string | null;
   serialNumber: string | null;
+  firmwareVersion: string | null;
   hostname: string | null;
   type: string | null;
   manufacturer: string | null;

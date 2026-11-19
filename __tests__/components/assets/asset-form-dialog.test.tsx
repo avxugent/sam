@@ -436,6 +436,27 @@ describe("<AssetFormDialog /> edit", () => {
     await waitFor(() => expect(mockToast).toHaveBeenCalledWith({ title: "Asset updated" }));
   });
 
+  it("prefills the firmware version and trims an edit", async () => {
+    editedAsset.firmwareVersion = "2.1.0";
+    const user = await openEdit();
+    const field = screen.getByLabelText("Firmware version");
+    expect(field).toHaveValue("2.1.0");
+    await user.clear(field);
+    await user.type(field, "  2.2.0 ");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(lastWrite()).toBeDefined());
+    expect(lastWrite()!.body).toMatchObject({ firmwareVersion: "2.2.0" });
+  });
+
+  it("sends a null firmware version once the field is cleared", async () => {
+    editedAsset.firmwareVersion = "2.1.0";
+    const user = await openEdit();
+    await user.clear(screen.getByLabelText("Firmware version"));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(lastWrite()).toBeDefined());
+    expect(lastWrite()!.body).toMatchObject({ firmwareVersion: null });
+  });
+
   it("keeps the form blank when the asset cannot be loaded", async () => {
     overrides["GET /api/assets/asset-1"] = json({ error: "Not found" }, 404);
     render(

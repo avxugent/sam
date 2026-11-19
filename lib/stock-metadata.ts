@@ -12,6 +12,7 @@ const stockMetadataSchema = z
     hostname: z.string().optional(),
     warrantyMonths: z.number().optional(),
     vaultPath: z.string().optional(),
+    firmwareVersion: z.string().optional(),
   })
   // Keep keys this version doesn't know about when an edit rewrites the blob.
   .loose();

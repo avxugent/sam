@@ -30,6 +30,7 @@ const assetFields = z.object({
   invoiceDate: optionalIsoDay,
   notes: z.string().max(5000).optional().nullable(),
   vaultPath: z.string().max(500).optional().nullable(),
+  firmwareVersion: z.string().max(100).optional().nullable(),
   ownerId: z.string().max(MAX_ID_LENGTH).optional().nullable(),
   criticality: z.enum(Criticality).optional().nullable(),
   endOfSupportDate: optionalIsoDay,

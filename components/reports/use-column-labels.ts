@@ -9,6 +9,7 @@ export function useColumnLabels(): Record<ColumnKey, string> {
   return {
     model: tField("model"),
     serialNumber: tField("serialNumber"),
+    firmwareVersion: tField("firmwareVersion"),
     hostname: tField("hostname"),
     type: tField("type"),
     manufacturer: tField("manufacturer"),

@@ -279,6 +279,7 @@ export function generateUsersCsv(
 const REPORT_COLUMN_LABELS: Record<ColumnKey, string> = {
   model: "Model",
   serialNumber: "Serial Number",
+  firmwareVersion: "Firmware Version",
   hostname: "Hostname",
   type: "Type",
   manufacturer: "Manufacturer",

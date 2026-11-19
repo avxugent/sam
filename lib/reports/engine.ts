@@ -258,6 +258,7 @@ export async function runAssetReport(
     id: a.id,
     model: a.model?.name ?? null,
     serialNumber: a.serialNumber,
+    firmwareVersion: a.firmwareVersion,
     hostname: a.hostname,
     type: a.type?.name ?? null,
     manufacturer: a.manufacturer?.name ?? null,

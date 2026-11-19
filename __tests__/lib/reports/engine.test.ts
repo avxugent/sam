@@ -530,6 +530,21 @@ describe("translateFilters() — NIS2 fields", () => {
     });
   });
 
+  it("firmwareVersion neq keeps assets without firmware, and combines with a model filter", () => {
+    expect(
+      translateFilters([
+        { field: "model", op: "eq", value: "X1" },
+        { field: "firmwareVersion", op: "neq", value: "2.1.0" },
+      ])
+    ).toEqual({
+      AND: [
+        { model: { name: "X1" } },
+        { OR: [{ firmwareVersion: { not: "2.1.0" } }, { firmwareVersion: null }] },
+      ],
+    });
+    expect(translateFilters([{ field: "firmwareVersion", op: "isNull" }])).toEqual({ AND: [{ firmwareVersion: null }] });
+  });
+
   it("ignores an invalid criticality value (never widens the result set)", () => {
     expect(translateFilters([{ field: "criticality", op: "eq", value: "EXTREME" }])).toEqual({});
     expect(translateFilters([{ field: "criticality", op: "neq", value: "" }])).toEqual({});

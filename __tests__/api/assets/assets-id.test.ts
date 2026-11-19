@@ -57,6 +57,7 @@ const BEFORE = {
   invoiceNumber: null,
   notes: null,
   vaultPath: null,
+  firmwareVersion: null,
   installationDate: null,
   invoiceDate: null,
   endOfSupportDate: null,
@@ -159,6 +160,17 @@ describe("PUT /api/assets/[id]", () => {
     expect(tx.customField.createMany).toHaveBeenCalledWith({ data: [{ key: "rack", value: "R1", assetId: "a1" }] });
     const detail = vi.mocked(logAudit).mock.calls[0][0].detail as { changes: Record<string, unknown> };
     expect(Object.keys(detail.changes).sort()).toEqual(["Custom field: rack", "MAC addresses", "Notes"]);
+  });
+
+  it("audits a firmware version change", async () => {
+    runTransaction({ firmwareVersion: "2.1.0" });
+    expect((await PUT(req("PUT", { firmwareVersion: "2.1.0" }), params)).status).toBe(200);
+    const detail = vi.mocked(logAudit).mock.calls[0][0].detail as { changes: Record<string, unknown> };
+    expect(Object.keys(detail.changes)).toEqual(["Firmware version"]);
+  });
+
+  it("rejects a firmware version over 100 characters", async () => {
+    expect((await PUT(req("PUT", { firmwareVersion: "x".repeat(101) }), params)).status).toBe(400);
   });
 
   it("leaves dates untouched when omitted and clears them when sent empty", async () => {

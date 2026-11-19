@@ -23,6 +23,7 @@ describe("history keys", () => {
       notes: "Notes",
       invoiceNumber: "Invoice number",
       invoiceDate: "Invoice date",
+      firmwareVersion: "Firmware version",
       macAddresses: "MAC addresses",
     });
   });

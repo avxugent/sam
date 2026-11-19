@@ -28,6 +28,7 @@
  *     $.manufacturer.name → Manufacturer (string)
  *     $.model           → Model       (string)
  *     $.serialNumber    → Serial      (string)
+ *     $.firmwareVersion → Firmware    (string)
  *     $.location.path   → Location    (string)
  *     $.location.fiNumber → FI Number (string)
  *     $.installationDate  → Installed  (string)
@@ -93,6 +94,7 @@ export async function GET(req: NextRequest) {
         hostname: asset.hostname,
         model: asset.model?.name ?? null,
         serialNumber: asset.serialNumber,
+        firmwareVersion: asset.firmwareVersion,
         installationDate: toIsoDay(asset.installationDate),
         invoiceNumber: asset.invoiceNumber,
         notes: asset.notes,

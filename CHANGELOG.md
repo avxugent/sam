@@ -5,7 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [4.2.0] - 2026-11-19
+
+Adds an optional firmware version to assets, for tracking devices that cannot be monitored via Prometheus, and usable in reports. Includes one migration (a nullable column; no configuration changes, no backfill). Published as `:4.2.0` and `:latest`.
 
 ### Added
 
@@ -14,6 +16,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Database
 
 - New migration `20261119090000_add_asset_firmware_version`: nullable `assets.firmwareVersion` column. Applied by `prisma migrate deploy`.
+
+### Dependencies
+
+- Minor and patch updates: `next` 16.4.6, `next-intl` 4.15.1, `lucide-react` 1.72, `react-hook-form` 7.92, `eslint-config-next` 16.4.6; test tooling `@testing-library/user-event` 14.6.10 and `msw` 3.0.5.
 
 ---
 

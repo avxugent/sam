@@ -89,6 +89,7 @@ type ReturnableAsset = {
   hostname: string | null;
   warrantyMonths: number | null;
   vaultPath: string | null;
+  firmwareVersion: string | null;
   macAddresses: { address: string }[];
   customFields: { key: string; value: string }[];
 };
@@ -115,6 +116,7 @@ export function buildStockItemFromReturn(
       hostname: asset.hostname || undefined,
       warrantyMonths: asset.warrantyMonths ?? undefined,
       vaultPath: asset.vaultPath || undefined,
+      firmwareVersion: asset.firmwareVersion || undefined,
     }),
   };
 }
@@ -224,6 +226,7 @@ export function buildDeployedAssetData(
       hostname: meta.hostname ?? null,
       warrantyMonths: meta.warrantyMonths ?? null,
       vaultPath: meta.vaultPath ?? null,
+      firmwareVersion: meta.firmwareVersion ?? null,
     }),
     ...(meta?.macAddresses?.length && {
       macAddresses: { create: meta.macAddresses.map((m) => ({ address: m.address })) },

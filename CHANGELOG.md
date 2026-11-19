@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Firmware version on assets:** an optional free-text `firmwareVersion` field (max 100 characters) in the asset form, shown on the asset detail page, recorded in the asset history, and returned by `/api/assets/by-hostname` and MCP `get_asset`. For devices that are not connected to the internet and cannot be monitored via Prometheus. Asset reports can filter on it (equals, does not equal, contains, is empty; "does not equal" also lists assets without a firmware version) and show it as a column, e.g. all assets of model X that are not on firmware Y. The value is kept when an asset is returned to stock and deployed again.
+
+### Database
+
+- New migration `20261119090000_add_asset_firmware_version`: nullable `assets.firmwareVersion` column. Applied by `prisma migrate deploy`.
+
+---
+
 ## [4.1.2] - 2026-11-13
 
 A small MCP fix, MCP client setup documentation, dependency updates, and a CI fix for docs-only pull requests. No migrations and no configuration changes. Published as `:4.1.2` and `:latest`.

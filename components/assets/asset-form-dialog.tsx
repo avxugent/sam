@@ -61,6 +61,7 @@ type EditedAsset = Pick<
   | "invoiceDate"
   | "notes"
   | "vaultPath"
+  | "firmwareVersion"
   | "ownerId"
   | "criticality"
   | "endOfSupportDate"
@@ -113,6 +114,7 @@ function buildAssetFormSchema(t: AssetFormTranslator, assetTypes: AssetType[]) {
     invoiceDate: z.string().optional(),
     notes: z.string().max(5000).optional(),
     vaultPath: z.string().max(500).optional(),
+    firmwareVersion: z.string().max(100).optional(),
     ownerId: z.string().max(64).optional(),
     // "" is the "inherit from type" choice.
     criticality: z.union([z.enum(Criticality), z.literal("")]).optional(),
@@ -167,6 +169,7 @@ const EMPTY_ASSET_FORM: Partial<AssetFormValues> = {
   macAddresses: [],
   customFields: [],
   vaultPath: "",
+  firmwareVersion: "",
 };
 
 type Props = {
@@ -291,6 +294,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       invoiceDate: toIsoDay(asset.invoiceDate) ?? "",
       notes: asset.notes || "",
       vaultPath: asset.vaultPath || "",
+      firmwareVersion: asset.firmwareVersion || "",
       ownerId: asset.ownerId || "",
       criticality: asset.criticality || "",
       endOfSupportDate: toIsoDay(asset.endOfSupportDate) ?? "",
@@ -355,6 +359,7 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
       ...data,
       hostname: data.hostname?.trim() || null,
       vaultPath: data.vaultPath?.trim() || null,
+      firmwareVersion: data.firmwareVersion?.trim() || null,
       // Empty on create = "use default" (owner setting / supplier window) —
       // the API applies defaults only when the field is absent, so omit it.
       // Empty on edit = explicit clear (null).
@@ -647,6 +652,11 @@ export function AssetFormDialog({ mode, locationId, assetId, children, onSuccess
             helpText={hostnameSet ? tAsset("macHelpText") : undefined}
             listError={macCrossError}
           />
+
+          <div className="space-y-1.5">
+            <Label htmlFor="firmwareVersion">{tField("firmwareVersion")}</Label>
+            <Input id="firmwareVersion" {...register("firmwareVersion")} className="font-mono text-sm" />
+          </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="notes">{tField("notes")}</Label>

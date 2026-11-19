@@ -128,6 +128,7 @@
     "macAddresses": "MAC-adressen",
     "macAddress": "MAC-adres",
     "customFields": "Aangepaste velden",
+    "firmwareVersion": "Firmwareversie",
     "vaultPath": "Vault-pad",
     "vaultCredentials": "Vault-credentials",
     "fiNumber": "FI-nummer",

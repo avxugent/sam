@@ -128,6 +128,7 @@
     "macAddresses": "MAC Addresses",
     "macAddress": "MAC address",
     "customFields": "Custom Fields",
+    "firmwareVersion": "Firmware version",
     "vaultPath": "Vault path",
     "vaultCredentials": "Vault Credentials",
     "fiNumber": "FI Number",

@@ -264,6 +264,7 @@ The core entity — a physical device installed in a location.
 | `warrantyMonths` | int? | Warranty period |
 | `notes` | string? | Free-text notes |
 | `vaultPath` | string? | Vault KV path for per-device credentials |
+| `firmwareVersion` | string? (max 100) | Firmware version, entered by hand (for devices that cannot be monitored via Prometheus). Filterable and selectable in asset reports; carried through return-to-stock and deploy |
 | `ownerId` | string? | Responsible person — soft ref to User (no FK, survives user deletion). Defaults to the `assets.defaultOwnerId` setting at creation when not provided |
 | `criticality` | Criticality? | Per-asset override; `null` = inherit `AssetType.defaultCriticality` |
 | `endOfSupportDate` | Date? | Vendor end-of-support; past dates flag the asset on the compliance dashboard |
@@ -447,7 +448,7 @@ Pre-deployment inventory — hardware received but not yet installed.
 | `locationId` | string? | FK to Location — physical storage location (e.g. a storage room). `onDelete: Restrict`: a Location holding stock cannot be deleted. Distinct from `reservedForLocationId`. |
 | `reservedForLocationId` | string? | Optional reservation — where the unit is earmarked to be deployed, not where it's stored |
 | `invoiceNumber` | string? | Purchase invoice reference |
-| `metadata` | JSON? | Extra fields (hostname, MACs, custom fields) carried to deployed asset |
+| `metadata` | JSON? | Extra fields (hostname, MACs, custom fields, vault path, firmware version) carried to deployed asset |
 
 ---
 

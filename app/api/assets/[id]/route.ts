@@ -153,6 +153,7 @@ export async function PUT(
     d.hostname !== undefined && { label: "Hostname", before: before.hostname, after: d.hostname },
     d.invoiceNumber !== undefined && { label: HISTORY_CHANGE_LABELS.invoiceNumber, before: before.invoiceNumber, after: d.invoiceNumber },
     d.notes !== undefined && { label: HISTORY_CHANGE_LABELS.notes, before: before.notes, after: d.notes },
+    d.firmwareVersion !== undefined && { label: HISTORY_CHANGE_LABELS.firmwareVersion, before: before.firmwareVersion, after: d.firmwareVersion },
     d.vaultPath !== undefined && { label: "Vault path", before: before.vaultPath, after: d.vaultPath },
     d.typeId !== undefined && { label: HISTORY_CHANGE_LABELS.type, before: before.typeId, after: d.typeId, display: [before.type?.name ?? before.typeId, asset.type?.name ?? d.typeId] },
     d.manufacturerId !== undefined && { label: HISTORY_CHANGE_LABELS.manufacturer, before: before.manufacturerId, after: d.manufacturerId, display: [before.manufacturer?.name ?? before.manufacturerId, asset.manufacturer?.name ?? d.manufacturerId] },

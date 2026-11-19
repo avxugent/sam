@@ -319,6 +319,8 @@ model Asset {
   // Emitted by the Prometheus SD endpoint as the {vault_path} reference. SAM
   // never reads the secret; the exporter resolves it from Vault at scrape time.
   vaultPath            String?
+  // Optional firmware version, entered by hand (devices that can't be monitored via Prometheus).
+  firmwareVersion      String?         @db.VarChar(100)
   // Responsible person; soft ref to User (no FK) so it survives user deletion.
   ownerId              String?
   // null = inherit AssetType.defaultCriticality
@@ -533,7 +535,7 @@ model StockItem {
   invoiceNumber         String?   @db.VarChar(100)
   invoiceDate           DateTime? @db.Date
   // JSON blob preserving item-specific data when an asset is returned to stock
-  // Shape: { macAddresses?: {address:string}[], customFields?: {key:string,value:string}[], hostname?: string, warrantyMonths?: number, vaultPath?: string }
+  // Shape: { macAddresses?: {address:string}[], customFields?: {key:string,value:string}[], hostname?: string, warrantyMonths?: number, vaultPath?: string, firmwareVersion?: string }
   metadata              String?   @db.Text
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt

@@ -11,6 +11,7 @@ describe("useColumnLabels", () => {
     expect(result.current).toEqual({
       model: "field.model",
       serialNumber: "field.serialNumber",
+      firmwareVersion: "field.firmwareVersion",
       hostname: "field.hostname",
       type: "field.type",
       manufacturer: "field.manufacturer",

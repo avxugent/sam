@@ -62,6 +62,7 @@ When creating a report you choose a **report type**:
 | Installation date | Before / after a date, or older/newer than N years |
 | Model | Contains a text string |
 | Serial number | Contains a text string |
+| Firmware version | Equals / does not equal / contains a text string, or "is empty" / "is not empty". "Does not equal" also lists assets with no firmware recorded, so *model X, firmware does not equal 2.1.0* finds the devices that still need an update as well as those never checked |
 | Hostname | Contains a text string; "is empty" / "is not empty" options |
 | Work log item | Whether a [fixed work log item](work-logs.md#fixed-work-log-items) *is filled in* / *is not filled in* for the asset (any work log entry tagged with that item). Combine with an asset-type filter to track a recurring task across all assets of one type. |
 | Work log item (at location) | Same as above, but checks the asset's **location** instead of the asset itself — any work log entry tagged with that item at that location counts, whether it names a specific asset or is location-wide. Combine with an asset-type filter to answer e.g. "which Recorders sit in a room where this task hasn't been logged". |
@@ -69,7 +70,7 @@ When creating a report you choose a **report type**:
 | Criticality | Filter by the **effective** criticality — a per-asset override or the type default. "Is empty" finds unclassified assets |
 | End of support | Before / after a date, older/newer than N years, or "is empty" for assets without a date |
 
-The supplier, criticality (effective value) and end-of-support fields are also available as columns.
+The supplier, criticality (effective value), end-of-support and firmware version fields are also available as columns.
 
 5. Select which **columns** to include in the results.
 6. Optionally set a **group by** field to summarise counts per type, manufacturer, location, or installation year.

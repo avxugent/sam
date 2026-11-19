@@ -77,6 +77,7 @@ export function ReportBuilder({
     status: tField("status"),
     model: tField("model"),
     serialNumber: tField("serialNumber"),
+    firmwareVersion: tField("firmwareVersion"),
     hostname: tField("hostname"),
     installationDate: tField("installationDate"),
     invoiceDate: tField("invoiceDate"),

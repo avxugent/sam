@@ -36,6 +36,7 @@ export function assetSummary(a: AssetRow) {
 }
 
 type AssetDetailRow = AssetRow & {
+  firmwareVersion: string | null;
   warrantyMonths: number | null;
   endOfSupportDate: Date | null;
   criticality: string | null;
@@ -48,6 +49,7 @@ export function assetDetail(a: AssetDetailRow, locationPath: string) {
   return {
     ...assetSummary(a),
     locationPath,
+    firmwareVersion: a.firmwareVersion,
     warrantyMonths: a.warrantyMonths,
     endOfSupportDate: toIsoDay(a.endOfSupportDate),
     criticality: a.criticality,

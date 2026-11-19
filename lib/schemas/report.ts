@@ -24,6 +24,7 @@ const filterFieldSchema = z.enum([
   "status",
   "model",
   "serialNumber",
+  "firmwareVersion",
   "hostname",
   "installationDate",
   "invoiceDate",
@@ -60,6 +61,7 @@ export const REPORT_FILTER_FIELDS = {
   criticality: { kind: "enum", ops: ID_OPS },
   model: { kind: "text", ops: TEXT_OPS },
   serialNumber: { kind: "text", ops: TEXT_OPS },
+  firmwareVersion: { kind: "text", ops: TEXT_OPS },
   hostname: { kind: "text", ops: TEXT_OPS },
   installationDate: { kind: "date", ops: ["before", "after", "olderThanYears", "newerThanYears", "isNull", "isNotNull"] },
   invoiceDate: { kind: "date", ops: ["before", "after", "isNull", "isNotNull"] },
@@ -121,6 +123,7 @@ const groupBySchema = z.enum([
 const columnKeySchema = z.enum([
   "model",
   "serialNumber",
+  "firmwareVersion",
   "hostname",
   "type",
   "manufacturer",

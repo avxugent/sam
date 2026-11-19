@@ -94,6 +94,7 @@ describe("buildStockItemFromReturn", () => {
     hostname: null,
     warrantyMonths: null,
     vaultPath: null,
+    firmwareVersion: null,
     macAddresses: [],
     customFields: [],
   };
@@ -120,6 +121,7 @@ describe("buildStockItemFromReturn", () => {
       hostname: "host1",
       warrantyMonths: 24,
       vaultPath: "secret/host1",
+      firmwareVersion: "2.1.0",
     }, "loc-1");
     expect(JSON.parse(data.metadata as string)).toEqual({
       macAddresses: [{ address: "AA:BB:CC:DD:EE:FF" }],
@@ -127,6 +129,7 @@ describe("buildStockItemFromReturn", () => {
       hostname: "host1",
       warrantyMonths: 24,
       vaultPath: "secret/host1",
+      firmwareVersion: "2.1.0",
     });
   });
 });
@@ -237,6 +240,12 @@ describe("buildDeployedAssetData", () => {
       macAddresses: { create: [{ address: "AA:BB:CC:DD:EE:FF" }] },
       customFields: { create: [{ key: "rack", value: "R1" }] },
     });
+  });
+
+  it("restores the firmware version stored in the metadata", () => {
+    const item = { ...ITEM, metadata: JSON.stringify({ firmwareVersion: "2.1.0" }) };
+    const data = buildDeployedAssetData(item, { ...params, deployedQuantity: 1, remainingQuantity: 0 });
+    expect(data.firmwareVersion).toBe("2.1.0");
   });
 
   it("mints a fresh lineage for a partial single-unit deploy but keeps the identity", () => {

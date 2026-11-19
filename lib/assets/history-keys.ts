@@ -33,6 +33,7 @@ export const HISTORY_CHANGE_LABELS = {
   notes: "Notes",
   invoiceNumber: "Invoice number",
   invoiceDate: "Invoice date",
+  firmwareVersion: "Firmware version",
   macAddresses: "MAC addresses",
 } as const;
 

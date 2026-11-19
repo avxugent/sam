@@ -246,6 +246,7 @@ describe("tools", () => {
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({
       ...assetRow,
       warrantyMonths: 36,
+      firmwareVersion: "2.1.0",
       endOfSupportDate: null,
       criticality: null,
       supplier: { name: "Sup" },
@@ -255,7 +256,7 @@ describe("tools", () => {
     vi.mocked(getLocationAncestors).mockResolvedValue([{ id: "c", name: "Campus", fiNumber: null }, { id: "l2", name: "Room 1", fiNumber: null }]);
 
     const { data } = await callTool("get_asset", { assetId: "a1" });
-    expect(data).toMatchObject({ locationPath: "Campus / Room 1", supplier: "Sup", macAddresses: ["AA:BB:CC:DD:EE:FF"], customFields: { rack: "R1" } });
+    expect(data).toMatchObject({ locationPath: "Campus / Room 1", firmwareVersion: "2.1.0", supplier: "Sup", macAddresses: ["AA:BB:CC:DD:EE:FF"], customFields: { rack: "R1" } });
     expect(JSON.stringify(data)).not.toMatch(/vaultPath|secret\/data|private/);
 
     vi.mocked(prisma.asset.findUnique).mockResolvedValue(null as never);
